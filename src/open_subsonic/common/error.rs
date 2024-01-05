@@ -26,28 +26,35 @@ pub enum OpenSubsonicError {
 }
 
 #[derive(Debug, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
 struct ActualError {
     code: u8,
     message: String,
 }
 
 #[derive(Debug, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ErrorResponse {
+struct ActualErrorResponse {
     error: ActualError,
 
     #[serde(flatten)]
     constant: ErrorConstantResponse,
 }
 
+#[derive(Debug, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ErrorResponse {
+    #[serde(rename = "subsonic-response")]
+    subsonic_response: ActualErrorResponse,
+}
+
 fn error_to_json(code: u8, error: &OpenSubsonicError) -> Json<ErrorResponse> {
     Json(ErrorResponse {
-        error: ActualError {
-            code: code,
-            message: error.to_string(),
+        subsonic_response: ActualErrorResponse {
+            error: ActualError {
+                code: code,
+                message: error.to_string(),
+            },
+            ..Default::default()
         },
-        ..Default::default()
     })
 }
 

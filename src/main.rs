@@ -18,17 +18,18 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // build our application with a route
-    let app = Router::new()
-        .route("/", get(handler))
-        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()));
-
     // run it
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app()).await.unwrap();
+}
+
+fn app() -> Router {
+    Router::new()
+        .route("/", get(handler))
+        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
 }
 
 async fn handler() -> Html<&'static str> {
