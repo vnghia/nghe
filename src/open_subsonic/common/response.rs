@@ -60,3 +60,26 @@ pub struct ErrorConstantResponse {
 fn emit_status_failed<S: Serializer>(_: &(), s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str("failed")
 }
+
+macro_rules! wrap_success_response_root {
+    ($StructName:ident, { $($tt:tt)* }) => {
+        paste::paste! {
+          #[derive(Debug, Default, Serialize)]
+          #[serde(rename_all = "camelCase")]
+          struct [<Actual $StructName>] {
+            $($tt)*
+            #[serde(flatten)]
+            constant: SuccessConstantResponse,
+          }
+
+          #[derive(Debug, Default, Serialize)]
+          #[serde(rename_all = "camelCase")]
+          pub struct $StructName {
+              #[serde(rename = "subsonic-response")]
+              subsonic_response: [<Actual $StructName>],
+          }
+        }
+    };
+}
+
+pub(crate) use wrap_success_response_root;
