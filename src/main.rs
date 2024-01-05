@@ -7,6 +7,8 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use nghe::open_subsonic::system;
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
@@ -29,6 +31,8 @@ async fn main() {
 fn app() -> Router {
     Router::new()
         .route("/", get(handler))
+        // system
+        .route("/ping", get(system::ping))
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
 }
 
