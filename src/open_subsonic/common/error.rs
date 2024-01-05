@@ -4,6 +4,7 @@ use serde::Serialize;
 use snafu::prelude::*;
 
 #[derive(Debug, Snafu)]
+#[snafu(visibility(pub), context(suffix(OSE)))]
 pub enum OpenSubsonicError {
     #[snafu(whatever, display("{message}"))]
     Generic {
