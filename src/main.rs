@@ -3,12 +3,14 @@ mod built_info {
 }
 
 use axum::{response::Html, routing::get, Router};
+use sea_orm_migration::prelude::*;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
 use nghe::open_subsonic::system;
+use nghe::Migrator;
 use nghe::ServerState;
 
 #[tokio::main]
@@ -16,7 +18,13 @@ async fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                format!("{}=info,tower_http=info", built_info::PKG_NAME).into()
+                [
+                    format!("{}=info", built_info::PKG_NAME),
+                    "sea_orm_migration::migrator=info".to_owned(),
+                    "tower_http=info".to_owned(),
+                ]
+                .join(",")
+                .into()
             }),
         )
         .with(tracing_subscriber::fmt::layer())
@@ -27,6 +35,11 @@ async fn main() {
 
     // state
     let server_state = ServerState::new(config).await;
+
+    // db migration
+    Migrator::up(&server_state.conn, None)
+        .await
+        .expect("can not run pending migration(s)");
 
     // run it
     let listener = tokio::net::TcpListener::bind(format!(

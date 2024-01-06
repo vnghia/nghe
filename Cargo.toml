@@ -2,6 +2,7 @@
 name = "nghe"
 version = "0.1.0"
 edition = "2021"
+default-run = "nghe"
 
 [dependencies]
 axum = "0.7.3"
@@ -12,7 +13,10 @@ sea-orm = { version = "0.12.10", features = [
   "sqlx-postgres",
   "runtime-tokio-native-tls",
   "macros",
+  "with-uuid",
+  "with-time",
 ] }
+sea-orm-migration = "0.12.10"
 serde = { version = "1.0", features = ["derive"] }
 snafu = "0.8.0"
 tokio = { version = "1.0", features = ["full"] }
@@ -21,5 +25,22 @@ tower-http = { version = "0.5.0", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+[dependencies.async-std]
+version = "1"
+features = ["attributes", "tokio1"]
+optional = true
+
 [build-dependencies]
 built = "0.7"
+
+[features]
+sea-cli = ["async-std"]
+
+[[bin]]
+name = "nghe"
+path = "src/main.rs"
+
+[[bin]]
+name = "sea-cli"
+path = "src/migrator/main.rs"
+required-features = ["sea-cli"]
