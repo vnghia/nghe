@@ -7,6 +7,7 @@ use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use nghe::config::Config;
 use nghe::open_subsonic::system;
 
 #[tokio::main]
@@ -20,10 +21,14 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let config = Config::new().expect("configuration can not be parsed");
+    tracing::info!("configuration: {:?}", config);
+
     // run it
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
-        .await
-        .unwrap();
+    let listener =
+        tokio::net::TcpListener::bind(format!("{}:{}", config.server.host, config.server.port))
+            .await
+            .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app()).await.unwrap();
 }
