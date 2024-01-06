@@ -2,7 +2,7 @@ use sea_orm::{Database, DatabaseConnection};
 
 use crate::config::Config;
 
-#[derive(Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct ServerState {
     pub config: Config,
     pub conn: DatabaseConnection,

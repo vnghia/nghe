@@ -6,14 +6,16 @@ use derivative::Derivative;
 use serde::Deserialize;
 use std::net::IpAddr;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Derivative, Debug, Deserialize, Clone)]
+#[derivative(Default)]
 #[allow(unused)]
 pub struct Server {
+    #[derivative(Default(value = "\"127.0.0.1\".parse::<IpAddr>().unwrap()"))]
     pub host: IpAddr,
     pub port: u16,
 }
 
-#[derive(Derivative, Deserialize, Clone)]
+#[derive(Derivative, Default, Deserialize, Clone)]
 #[derivative(Debug)]
 #[allow(unused)]
 pub struct Database {
@@ -21,7 +23,7 @@ pub struct Database {
     pub url: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Config {
     pub server: Server,
