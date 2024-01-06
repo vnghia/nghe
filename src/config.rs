@@ -2,20 +2,30 @@ mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+use derivative::Derivative;
 use serde::Deserialize;
 use std::net::IpAddr;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Server {
     pub host: IpAddr,
     pub port: u16,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Derivative, Deserialize, Clone)]
+#[derivative(Debug)]
+#[allow(unused)]
+pub struct Database {
+    #[derivative(Debug = "ignore")]
+    pub url: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Config {
     pub server: Server,
+    pub database: Database,
 }
 
 impl Config {

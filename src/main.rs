@@ -9,6 +9,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
 use nghe::open_subsonic::system;
+use nghe::ServerState;
 
 #[tokio::main]
 async fn main() {
@@ -24,21 +25,27 @@ async fn main() {
     let config = Config::new().expect("configuration can not be parsed");
     tracing::info!("configuration: {:?}", config);
 
+    // state
+    let server_state = ServerState::new(config).await;
+
     // run it
-    let listener =
-        tokio::net::TcpListener::bind(format!("{}:{}", config.server.host, config.server.port))
-            .await
-            .unwrap();
+    let listener = tokio::net::TcpListener::bind(format!(
+        "{}:{}",
+        server_state.config.server.host, server_state.config.server.port
+    ))
+    .await
+    .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app()).await.unwrap();
+    axum::serve(listener, app(server_state)).await.unwrap();
 }
 
-fn app() -> Router {
+fn app(server_state: ServerState) -> Router {
     Router::new()
         .route("/", get(handler))
         // system
         .route("/ping", get(system::ping))
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
+        .with_state(server_state)
 }
 
 async fn handler() -> Html<&'static str> {
