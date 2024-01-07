@@ -1,6 +1,6 @@
 use libaes::Cipher;
 
-use super::super::OpenSubsonicError;
+use super::super::{OSResult, OpenSubsonicError};
 
 const IV_LEN: usize = 16;
 
@@ -14,7 +14,7 @@ pub fn encrypt_password(cipher: &Cipher, data: String) -> Vec<u8> {
     .concat()
 }
 
-pub fn decrypt_password(cipher: &Cipher, data: Vec<u8>) -> Result<String, OpenSubsonicError> {
+pub fn decrypt_password(cipher: &Cipher, data: Vec<u8>) -> OSResult<String> {
     let cipher_text = &data[IV_LEN..];
     let iv = &data[..IV_LEN];
     match String::from_utf8(cipher.cbc_decrypt(iv, cipher_text)) {

@@ -13,6 +13,8 @@ pub enum OpenSubsonicError {
     NotFound { message: Option<String> },
 }
 
+pub type OSResult<T> = Result<T, OpenSubsonicError>;
+
 #[derive(Debug, Default, Serialize)]
 struct ActualError {
     code: u8,
