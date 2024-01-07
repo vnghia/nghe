@@ -25,16 +25,8 @@ tower-http = { version = "0.5.0", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-[dependencies.async-std]
-version = "1"
-features = ["attributes", "tokio1"]
-optional = true
-
 [build-dependencies]
 built = "0.7"
-
-[features]
-sea-cli = ["async-std"]
 
 [[bin]]
 name = "nghe"
@@ -43,4 +35,3 @@ path = "src/main.rs"
 [[bin]]
 name = "sea-cli"
 path = "src/migrator/main.rs"
-required-features = ["sea-cli"]
