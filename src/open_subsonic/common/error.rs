@@ -2,6 +2,8 @@ use super::response::ErrorConstantResponse;
 use axum::response::{IntoResponse, Json, Response};
 use serde::Serialize;
 
+use nghe_proc_macros::wrap_subsonic_response;
+
 pub enum OpenSubsonicError {
     Generic { source: anyhow::Error },
     BadRequest,
@@ -16,19 +18,10 @@ struct ActualError {
     message: String,
 }
 
+#[wrap_subsonic_response(false)]
 #[derive(Debug, Default, Serialize)]
-struct ActualErrorResponse {
-    error: ActualError,
-
-    #[serde(flatten)]
-    constant: ErrorConstantResponse,
-}
-
-#[derive(Debug, Default, Serialize)]
-#[serde(rename_all = "camelCase")]
 struct ErrorResponse {
-    #[serde(rename = "subsonic-response")]
-    subsonic_response: ActualErrorResponse,
+    error: ActualError,
 }
 
 fn error_to_json(code: u8, message: String) -> Json<ErrorResponse> {

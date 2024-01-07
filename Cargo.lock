@@ -1268,15 +1268,26 @@ dependencies = [
  "built",
  "config",
  "derivative",
+ "nghe-proc_macros",
  "paste",
  "sea-orm",
  "sea-orm-migration",
  "serde",
+ "serde_json",
  "tokio",
  "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "nghe-proc_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]

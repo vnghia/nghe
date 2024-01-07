@@ -11,29 +11,6 @@ macro_rules! emit_constant_serialize {
     };
 }
 
-macro_rules! wrap_success_response_root {
-  ($struct_name:ident, { $($field_name:ident : $field_type:ty),* }) => {
-      paste::paste! {
-          #[derive(Debug, Default, Serialize)]
-          #[serde(rename_all = "camelCase")]
-          struct [<Actual $struct_name>] {
-              $($field_name : $field_type,)*
-              #[serde(flatten)]
-              constant: SuccessConstantResponse,
-          }
-
-          #[derive(Debug, Default, Serialize)]
-          #[serde(rename_all = "camelCase")]
-          pub struct $struct_name {
-              #[serde(rename = "subsonic-response")]
-              subsonic_response: [<Actual $struct_name>],
-          }
-      }
-  };
-}
-
-pub(crate) use wrap_success_response_root;
-
 #[derive(Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ConstantResponse {
