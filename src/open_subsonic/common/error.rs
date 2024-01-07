@@ -4,6 +4,7 @@ use serde::Serialize;
 
 use nghe_proc_macros::wrap_subsonic_response;
 
+#[derive(Debug)]
 pub enum OpenSubsonicError {
     Generic { source: anyhow::Error },
     BadRequest { message: Option<String> },

@@ -5,5 +5,5 @@ pub mod open_subsonic;
 pub mod state;
 
 pub use migrator::Migrator;
-pub use open_subsonic::error;
+pub use open_subsonic::OpenSubsonicError;
 pub use state::ServerState;
