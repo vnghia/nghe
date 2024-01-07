@@ -56,7 +56,7 @@ fn app(server_state: ServerState) -> Router {
     Router::new()
         .route("/", get(handler))
         // system
-        .route("/ping", get(system::ping))
+        .merge(system::router(server_state.clone()))
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(server_state)
 }
