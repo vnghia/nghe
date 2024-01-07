@@ -62,21 +62,21 @@ fn emit_status_failed<S: Serializer>(_: &(), s: S) -> Result<S::Ok, S::Error> {
 }
 
 macro_rules! wrap_success_response_root {
-    ($StructName:ident, { $($tt:tt)* }) => {
+    ($struct_name:ident, { $($field_name:ident : $field_type:ty),* }) => {
         paste::paste! {
           #[derive(Debug, Default, Serialize)]
           #[serde(rename_all = "camelCase")]
-          struct [<Actual $StructName>] {
-            $($tt)*
+          struct [<Actual $struct_name>] {
+            $($field_name : $field_type,)*
             #[serde(flatten)]
             constant: SuccessConstantResponse,
           }
 
           #[derive(Debug, Default, Serialize)]
           #[serde(rename_all = "camelCase")]
-          pub struct $StructName {
+          pub struct $struct_name {
               #[serde(rename = "subsonic-response")]
-              subsonic_response: [<Actual $StructName>],
+              subsonic_response: [<Actual $struct_name>],
           }
         }
     };
