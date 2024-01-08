@@ -1,17 +1,33 @@
+use darling::{ast::NestedMeta, Error, FromMeta};
 use proc_macro::{self, TokenStream};
 use quote::quote;
-use syn::{parse::Parser, parse_macro_input, Ident, ItemStruct, LitBool};
+use syn::{parse::Parser, parse_macro_input, Ident, ItemStruct};
+
+#[derive(Debug, FromMeta)]
+struct WrapSubsonicResponse {
+    #[darling(default = "return_true")]
+    success: bool,
+}
 
 #[proc_macro_attribute]
 pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut old_struct = parse_macro_input!(input as ItemStruct);
     let mut new_struct = old_struct.clone();
 
-    let is_success = match syn::parse::<LitBool>(args) {
-        Ok(parsed) => parsed.value,
-        Err(_) => true,
+    let attr_args = match NestedMeta::parse_meta_list(args.into()) {
+        Ok(v) => v,
+        Err(e) => {
+            return TokenStream::from(Error::from(e).write_errors());
+        }
     };
-    let constant_type = if is_success {
+    let _args = match WrapSubsonicResponse::from_list(&attr_args) {
+        Ok(v) => v,
+        Err(e) => {
+            return TokenStream::from(e.write_errors());
+        }
+    };
+
+    let constant_type = if _args.success {
         "SuccessConstantResponse"
     } else {
         "ErrorConstantResponse"
@@ -52,4 +68,8 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
         #new_struct
     }
     .into();
+}
+
+fn return_true() -> bool {
+    return true;
 }
