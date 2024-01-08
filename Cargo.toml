@@ -12,6 +12,7 @@ axum = "0.7.3"
 config = "0.13.4"
 derivative = "2.2.0"
 libaes = "0.7.0"
+md5 = "0.7.0"
 nghe-proc_macros = { path = "src/proc_macros", version = "0.1.0" }
 paste = "1.0.14"
 rand = "0.8.5"
