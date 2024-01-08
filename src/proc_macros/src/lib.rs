@@ -3,14 +3,14 @@ use proc_macro::{self, TokenStream};
 use quote::quote;
 use syn::{parse::Parser, parse_macro_input, Ident, ItemStruct};
 
+const CONSTANT_RESPONSE_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::response";
+const COMMON_REQUEST_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::request";
+
 #[derive(Debug, FromMeta)]
 struct WrapSubsonicResponse {
     #[darling(default = "return_true")]
     success: bool,
 }
-
-const CONSTANT_RESPONSE_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::response";
-const COMMON_REQUEST_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::request";
 
 #[proc_macro_attribute]
 pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -97,6 +97,12 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     .into();
 }
 
+#[derive(Debug, FromMeta)]
+struct AddValidateResponse {
+    #[darling(default = "return_false")]
+    admin: bool,
+}
+
 #[proc_macro_attribute]
 pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut item_struct = parse_macro_input!(input as ItemStruct);
@@ -107,7 +113,22 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     item_struct.ident = Ident::new(&new_struct_name, item_struct.ident.span());
     let new_item_struct_ident = item_struct.ident.clone();
 
-    let _ = parse_macro_input!(args as syn::parse::Nothing);
+    let attr_args = match NestedMeta::parse_meta_list(args.into()) {
+        Ok(v) => v,
+        Err(e) => {
+            return TokenStream::from(Error::from(e).write_errors());
+        }
+    };
+    let _args = match AddValidateResponse::from_list(&attr_args) {
+        Ok(v) => v,
+        Err(e) => {
+            return TokenStream::from(e.write_errors());
+        }
+    };
+
+    let need_admin_token: proc_macro2::TokenStream = (if _args.admin { "true" } else { "false" })
+        .parse()
+        .unwrap();
 
     let common_type_token: proc_macro2::TokenStream =
         format!("{}::CommonParams", COMMON_REQUEST_IMPORT_PREFIX)
@@ -140,6 +161,11 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             fn get_common_params(&self) -> &#common_type_token {
                 &self.common
             }
+
+            #[inline(always)]
+            fn need_admin(&self) -> bool {
+                #need_admin_token
+            }
         }
 
         pub type #old_item_struct_ident = #validated_form_token<#new_item_struct_ident>;
@@ -149,4 +175,8 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
 
 fn return_true() -> bool {
     return true;
+}
+
+fn return_false() -> bool {
+    return false;
 }

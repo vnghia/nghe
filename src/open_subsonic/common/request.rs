@@ -23,6 +23,8 @@ pub struct CommonParams {
 pub trait Validate {
     fn get_common_params(&self) -> &CommonParams;
 
+    fn need_admin(&self) -> bool;
+
     async fn validate(
         &self,
         conn: &DatabaseConnection,
@@ -42,6 +44,9 @@ pub trait Validate {
             &common_params.salt,
             &common_params.token,
         )?;
+        if self.need_admin() && !user.admin_role {
+            return Err(OpenSubsonicError::Forbidden { message: None });
+        }
         Ok(user)
     }
 }
