@@ -16,29 +16,29 @@ pub struct CommonParams {
     pub salt: String,
 }
 
-pub trait AuthenticatedForm {
+pub trait Validate {
     fn get_common_params(&self) -> CommonParams;
 
     #[allow(async_fn_in_trait)]
-    async fn check_authentication(
+    async fn validate(
         &self,
         conn: &DatabaseConnection,
         key: &EncryptionKey,
     ) -> OSResult<user::Model> {
         let common_params = self.get_common_params();
-        let current_user: user::Model = match User::find()
+        let user: user::Model = match User::find()
             .filter(user::Column::Username.eq(common_params.username))
             .one(conn)
             .await?
         {
-            Some(result) => result,
+            Some(user) => user,
             _ => return Err(OpenSubsonicError::Unauthorized { message: None }),
         };
         check_password(
-            decrypt_password(key, &current_user.password)?,
+            decrypt_password(key, &user.password)?,
             &common_params.salt,
             &common_params.token,
         )?;
-        Ok(current_user)
+        Ok(user)
     }
 }
