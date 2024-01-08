@@ -10,6 +10,7 @@ struct WrapSubsonicResponse {
 }
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::response";
+const COMMON_REQUEST_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::request";
 
 #[proc_macro_attribute]
 pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -99,12 +100,25 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
 #[proc_macro_attribute]
 pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut item_struct = parse_macro_input!(input as ItemStruct);
-    let item_struct_ident = item_struct.ident.clone();
+    let old_item_struct_ident = item_struct.ident.clone();
+
+    let mut new_struct_name = old_item_struct_ident.to_string();
+    new_struct_name.insert_str(0, "Raw");
+    item_struct.ident = Ident::new(&new_struct_name, item_struct.ident.span());
+    let new_item_struct_ident = item_struct.ident.clone();
 
     let _ = parse_macro_input!(args as syn::parse::Nothing);
 
     let common_type_token: proc_macro2::TokenStream =
-        "crate::open_subsonic::common::request::CommonParams"
+        format!("{}::CommonParams", COMMON_REQUEST_IMPORT_PREFIX)
+            .parse()
+            .unwrap();
+    let validate_trait_token: proc_macro2::TokenStream =
+        format!("{}::Validate", COMMON_REQUEST_IMPORT_PREFIX)
+            .parse()
+            .unwrap();
+    let validated_form_token: proc_macro2::TokenStream =
+        format!("{}::ValidatedForm", COMMON_REQUEST_IMPORT_PREFIX)
             .parse()
             .unwrap();
 
@@ -120,13 +134,15 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     return quote!(
-      #item_struct
+        #item_struct
 
-      impl crate::open_subsonic::common::request::Validate for #item_struct_ident {
-          fn get_common_params(&self) -> &#common_type_token {
-              &self.common
-          }
-      }
+        impl #validate_trait_token for #new_item_struct_ident {
+            fn get_common_params(&self) -> &#common_type_token {
+                &self.common
+            }
+        }
+
+        pub type #old_item_struct_ident = #validated_form_token<#new_item_struct_ident>;
     )
     .into();
 }
