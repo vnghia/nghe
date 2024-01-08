@@ -1,23 +1,24 @@
 use libaes::Cipher;
 
 use super::super::{OSResult, OpenSubsonicError};
+use crate::config::EncryptionKey;
 
 const IV_LEN: usize = 16;
 
-pub fn encrypt_password(cipher: &Cipher, data: &String) -> Vec<u8> {
+pub fn encrypt_password(key: &EncryptionKey, data: &String) -> Vec<u8> {
     let plain_text = data.as_bytes();
     let iv: [u8; IV_LEN] = rand::random();
     [
         iv.as_slice(),
-        cipher.cbc_encrypt(&iv, plain_text).as_slice(),
+        Cipher::new_128(key).cbc_encrypt(&iv, plain_text).as_slice(),
     ]
     .concat()
 }
 
-pub fn decrypt_password(cipher: &Cipher, data: &Vec<u8>) -> OSResult<String> {
+pub fn decrypt_password(key: &EncryptionKey, data: &Vec<u8>) -> OSResult<String> {
     let cipher_text = &data[IV_LEN..];
     let iv = &data[..IV_LEN];
-    match String::from_utf8(cipher.cbc_decrypt(iv, cipher_text)) {
+    match String::from_utf8(Cipher::new_128(key).cbc_decrypt(iv, cipher_text)) {
         Ok(plain_text) => Ok(plain_text),
         Err(_) => Err(OpenSubsonicError::BadRequest {
             message: Some("can not decrypt password".to_owned()),
@@ -50,11 +51,11 @@ mod tests {
 
     #[test]
     fn test_roundtrip_password() {
-        let cipher = Cipher::new_128(&rand::random());
+        let key: EncryptionKey = rand::random();
         let password: String = Password(16..32).fake();
         assert_eq!(
             password,
-            decrypt_password(&cipher, &encrypt_password(&cipher, &password)).unwrap()
+            decrypt_password(&key, &encrypt_password(&key, &password)).unwrap()
         )
     }
 

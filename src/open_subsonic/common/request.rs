@@ -1,8 +1,8 @@
 use super::super::user::password::*;
 use super::super::{OSResult, OpenSubsonicError};
+use crate::config::EncryptionKey;
 use crate::entity::{prelude::*, *};
 
-use libaes::Cipher;
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, *};
 use serde::Deserialize;
 
@@ -23,7 +23,7 @@ pub trait AuthenticatedForm {
     async fn check_authentication(
         &self,
         conn: &DatabaseConnection,
-        cipher: &Cipher,
+        key: &EncryptionKey,
     ) -> OSResult<user::Model> {
         let common_params = self.get_common_params();
         let current_user: user::Model = match User::find()
@@ -35,7 +35,7 @@ pub trait AuthenticatedForm {
             _ => return Err(OpenSubsonicError::Unauthorized { message: None }),
         };
         check_password(
-            decrypt_password(cipher, &current_user.password)?,
+            decrypt_password(key, &current_user.password)?,
             &common_params.salt,
             &common_params.token,
         )?;

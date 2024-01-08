@@ -7,6 +7,8 @@ use libaes::AES_128_KEY_LEN;
 use serde::{de::Error, Deserialize, Deserializer};
 use std::net::IpAddr;
 
+pub type EncryptionKey = [u8; AES_128_KEY_LEN];
+
 #[derive(Derivative, Debug, Deserialize, Clone)]
 #[derivative(Default)]
 #[allow(unused)]
@@ -15,8 +17,6 @@ pub struct Server {
     pub host: IpAddr,
     pub port: u16,
 }
-
-type EncryptionKey = [u8; AES_128_KEY_LEN];
 
 #[derive(Derivative, Default, Deserialize, Clone)]
 #[derivative(Debug)]
