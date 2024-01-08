@@ -43,4 +43,10 @@ name = "sea-cli"
 path = "src/migrator/main.rs"
 
 [dev-dependencies]
+fake = { version = "2.9.2", features = [
+  "derive",
+  "uuid",
+  "serde_json",
+  "time",
+] }
 serde_json = "1.0.111"

@@ -46,21 +46,12 @@ pub fn check_password(
 mod tests {
     use super::*;
 
-    use rand::distributions::Alphanumeric;
-    use rand::{thread_rng, Rng};
-
-    fn generate_alphanumeric_string(length: usize) -> String {
-        thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(length)
-            .map(char::from)
-            .collect()
-    }
+    use fake::{faker::internet::en::Password, Fake};
 
     #[test]
     fn test_roundtrip_password() {
         let cipher = Cipher::new_128(&rand::random());
-        let password: String = generate_alphanumeric_string(32);
+        let password: String = Password(16..32).fake();
         assert_eq!(
             password,
             decrypt_password(&cipher, &encrypt_password(&cipher, &password)).unwrap()
@@ -69,17 +60,17 @@ mod tests {
 
     #[test]
     fn test_check_password_success() {
-        let password: String = generate_alphanumeric_string(32);
-        let client_salt: String = generate_alphanumeric_string(8);
+        let password: String = Password(16..32).fake();
+        let client_salt: String = Password(8..16).fake();
         let client_token = to_hex_string(md5::compute(password.clone() + &client_salt));
         assert!(check_password(password, &client_salt, &client_token).is_ok())
     }
 
     #[test]
     fn test_check_password_failed() {
-        let password: String = generate_alphanumeric_string(32);
-        let client_salt: String = generate_alphanumeric_string(8);
-        let wrong_client_salt = generate_alphanumeric_string(8);
+        let password: String = Password(16..32).fake();
+        let client_salt: String = Password(8..16).fake();
+        let wrong_client_salt = Password(8..16).fake();
         let client_token = to_hex_string(md5::compute(password.clone() + &client_salt));
         assert!(check_password(password, &wrong_client_salt, &client_token).is_err())
     }
