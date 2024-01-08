@@ -9,6 +9,8 @@ struct WrapSubsonicResponse {
     success: bool,
 }
 
+const CONSTANT_RESPONSE_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::response";
+
 #[proc_macro_attribute]
 pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut old_struct = parse_macro_input!(input as ItemStruct);
@@ -28,17 +30,25 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     };
 
     let constant_type = if _args.success {
-        "SuccessConstantResponse"
+        format!(
+            "{}::SuccessConstantResponse",
+            CONSTANT_RESPONSE_IMPORT_PREFIX
+        )
     } else {
-        "ErrorConstantResponse"
+        format!("{}::ErrorConstantResponse", CONSTANT_RESPONSE_IMPORT_PREFIX)
     };
     let constant_type_token: proc_macro2::TokenStream = constant_type.parse().unwrap();
 
-    let mut old_struct_name = old_struct.ident.to_string();
-    old_struct_name.insert_str(0, "Actual");
-    old_struct.ident = Ident::new(&old_struct_name, old_struct.ident.span());
+    let mut new_struct_name = new_struct.ident.to_string();
+    new_struct_name.insert_str(0, "Wrapped");
+    new_struct.ident = Ident::new(&new_struct_name, new_struct.ident.span());
 
-    let old_struct_name_token: proc_macro2::TokenStream = old_struct_name.parse().unwrap();
+    let old_struct_ident = old_struct.ident.clone();
+    let new_struct_ident = new_struct.ident.clone();
+    let json_ident = Ident::new(
+        &format!("{}Json", old_struct_ident.to_string()),
+        old_struct.ident.span(),
+    );
 
     if let syn::Fields::Named(ref mut old_fields) = old_struct.fields {
         if let syn::Fields::Named(ref mut new_fields) = new_struct.fields {
@@ -55,7 +65,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
                 syn::Field::parse_named
                     .parse2(quote! {
                         #[serde(rename = "subsonic-response")]
-                        subsonic_response: #old_struct_name_token
+                        root: #old_struct_ident
                     })
                     .unwrap(),
             )
@@ -66,6 +76,22 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
         #old_struct
 
         #new_struct
+
+        pub type #json_ident = axum::Json<#new_struct_ident>;
+
+        impl From<#old_struct_ident> for #new_struct_ident {
+            fn from(old: #old_struct_ident) -> Self {
+                Self {
+                    root: old
+                }
+            }
+        }
+
+        impl From<#old_struct_ident> for #json_ident {
+            fn from(old: #old_struct_ident) -> Self {
+                Self(old.into())
+            }
+        }
     }
     .into();
 }

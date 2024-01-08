@@ -1,5 +1,4 @@
-use super::response::ErrorConstantResponse;
-use axum::response::{IntoResponse, Json, Response};
+use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 
 use nghe_proc_macros::wrap_subsonic_response;
@@ -27,14 +26,13 @@ struct ErrorResponse {
     error: ActualError,
 }
 
-fn error_to_json(code: u8, message: String) -> Json<ErrorResponse> {
+fn error_to_json(code: u8, message: String) -> ErrorResponseJson {
     tracing::error!(message);
-    Json(ErrorResponse {
-        subsonic_response: ActualErrorResponse {
-            error: ActualError { code, message },
-            ..Default::default()
-        },
-    })
+    ErrorResponse {
+        error: ActualError { code, message },
+        ..Default::default()
+    }
+    .into()
 }
 
 impl<E> From<E> for OpenSubsonicError

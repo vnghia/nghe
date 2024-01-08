@@ -53,3 +53,109 @@ emit_constant_serialize!(server_version, str, constant::SERVER_VERSION);
 emit_constant_serialize!(open_subsonic_support, bool, true);
 emit_constant_serialize!(status_ok, str, "ok");
 emit_constant_serialize!(status_failed, str, "failed");
+
+#[cfg(test)]
+mod tests {
+    use super::constant;
+    use super::*;
+
+    use serde_json::{json, to_value};
+
+    use nghe_proc_macros::wrap_subsonic_response;
+
+    #[test]
+    fn test_ser_success_empty() {
+        #[wrap_subsonic_response]
+        #[derive(Debug, Default, Serialize)]
+        struct Test {}
+
+        assert_eq!(
+            to_value(Into::<WrappedTest>::into(Test::default())).unwrap(),
+            json!({
+                "subsonic-response": {
+                    "status": "ok",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_TYPE,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        )
+    }
+
+    #[test]
+    fn test_ser_success() {
+        #[wrap_subsonic_response]
+        #[derive(Debug, Default, Serialize)]
+        struct Test {
+            a: u16,
+        }
+        let a = 10;
+
+        assert_eq!(
+            to_value(Into::<WrappedTest>::into(Test {
+                a,
+                ..Default::default()
+            }))
+            .unwrap(),
+            json!({
+                "subsonic-response": {
+                    "a": a,
+                    "status": "ok",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_TYPE,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        )
+    }
+
+    #[test]
+    fn test_ser_error_empty() {
+        #[wrap_subsonic_response(success = false)]
+        #[derive(Debug, Default, Serialize)]
+        struct Test {}
+
+        assert_eq!(
+            to_value(Into::<WrappedTest>::into(Test::default())).unwrap(),
+            json!({
+                "subsonic-response": {
+                    "status": "failed",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_TYPE,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        )
+    }
+
+    #[test]
+    fn test_ser_error() {
+        #[wrap_subsonic_response(success = false)]
+        #[derive(Debug, Default, Serialize)]
+        struct Test {
+            a: u16,
+        }
+        let a = 10;
+
+        assert_eq!(
+            to_value(Into::<WrappedTest>::into(Test {
+                a,
+                ..Default::default()
+            }))
+            .unwrap(),
+            json!({
+                "subsonic-response": {
+                    "a": a,
+                    "status": "failed",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_TYPE,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        )
+    }
+}
