@@ -3,7 +3,8 @@ mod built_info {
 }
 
 use derivative::Derivative;
-use serde::Deserialize;
+use libaes::AES_128_KEY_LEN;
+use serde::{de::Error, Deserialize, Deserializer};
 use std::net::IpAddr;
 
 #[derive(Derivative, Debug, Deserialize, Clone)]
@@ -15,12 +16,31 @@ pub struct Server {
     pub port: u16,
 }
 
+type EncryptionKey = [u8; AES_128_KEY_LEN];
+
 #[derive(Derivative, Default, Deserialize, Clone)]
 #[derivative(Debug)]
 #[allow(unused)]
 pub struct Database {
     #[derivative(Debug = "ignore")]
     pub url: String,
+    #[derivative(Debug = "ignore")]
+    #[serde(deserialize_with = "string_to_key")]
+    pub encryption_key: EncryptionKey,
+}
+
+fn string_to_key<'de, D>(deserializer: D) -> Result<EncryptionKey, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    if s.len() != AES_128_KEY_LEN {
+        Err(D::Error::custom(
+            "encryption key length should be 128-bit or 16 ascii character",
+        ))
+    } else {
+        s.as_bytes().try_into().map_err(D::Error::custom)
+    }
 }
 
 #[derive(Debug, Default, Deserialize, Clone)]
