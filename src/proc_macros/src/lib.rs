@@ -96,6 +96,41 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     .into();
 }
 
+#[proc_macro_attribute]
+pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
+    let mut item_struct = parse_macro_input!(input as ItemStruct);
+    let item_struct_ident = item_struct.ident.clone();
+
+    let _ = parse_macro_input!(args as syn::parse::Nothing);
+
+    let common_type_token: proc_macro2::TokenStream =
+        "crate::open_subsonic::common::request::CommonParams"
+            .parse()
+            .unwrap();
+
+    if let syn::Fields::Named(ref mut fields) = item_struct.fields {
+        fields.named.push(
+            syn::Field::parse_named
+                .parse2(quote! {
+                    #[serde(flatten)]
+                    common: #common_type_token
+                })
+                .unwrap(),
+        );
+    }
+
+    return quote!(
+      #item_struct
+
+      impl crate::open_subsonic::common::request::Validate for #item_struct_ident {
+          fn get_common_params(&self) -> &#common_type_token {
+              &self.common
+          }
+      }
+    )
+    .into();
+}
+
 fn return_true() -> bool {
     return true;
 }
