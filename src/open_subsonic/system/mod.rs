@@ -6,6 +6,6 @@ use crate::ServerState;
 
 pub fn router(server_state: ServerState) -> Router<ServerState> {
     Router::new()
-        .route("/ping", get(ping::ping_handler))
+        .route("/rest/ping", get(ping::ping_handler))
         .with_state(server_state)
 }
