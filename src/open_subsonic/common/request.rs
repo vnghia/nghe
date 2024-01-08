@@ -16,10 +16,10 @@ pub struct CommonParams {
     pub salt: String,
 }
 
+#[async_trait::async_trait]
 pub trait Validate {
     fn get_common_params(&self) -> &CommonParams;
 
-    #[allow(async_fn_in_trait)]
     async fn validate(
         &self,
         conn: &DatabaseConnection,
