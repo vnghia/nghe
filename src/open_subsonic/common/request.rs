@@ -2,9 +2,12 @@ use super::super::user::password::*;
 use super::super::{OSResult, OpenSubsonicError};
 use crate::config::EncryptionKey;
 use crate::entity::{prelude::*, *};
+use crate::ServerState;
 
+use axum::extract::FromRef;
+use axum::extract::{Form, FromRequest, Request};
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, *};
-use serde::Deserialize;
+use serde::{de::DeserializeOwned, Deserialize};
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 pub struct CommonParams {
@@ -40,5 +43,31 @@ pub trait Validate {
             &common_params.token,
         )?;
         Ok(user)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValidatedForm<T> {
+    pub form: T,
+    pub user: user::Model,
+}
+
+#[async_trait::async_trait]
+impl<T, S> FromRequest<S> for ValidatedForm<T>
+where
+    T: DeserializeOwned + Validate + Send + Sync,
+    ServerState: FromRef<S>,
+    S: Send + Sync,
+    Form<T>: FromRequest<S, Rejection = OpenSubsonicError>,
+{
+    type Rejection = OpenSubsonicError;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let Form(form) = Form::<T>::from_request(req, state).await?;
+        let state = ServerState::from_ref(state);
+        let user = form
+            .validate(&state.conn, &state.config.database.encryption_key)
+            .await?;
+        Ok(ValidatedForm { form, user })
     }
 }
