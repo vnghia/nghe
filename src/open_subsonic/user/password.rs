@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use libaes::Cipher;
 
 use super::super::{OSResult, OpenSubsonicError};
@@ -26,16 +27,16 @@ pub fn decrypt_password(key: &EncryptionKey, data: &Vec<u8>) -> OSResult<String>
     }
 }
 
-fn to_hex_string(digest: md5::Digest) -> String {
-    format!("{:x}", digest)
+pub fn to_password_token(password: &String, client_salt: &String) -> String {
+    hex::encode::<[u8; 16]>(md5::compute(concat_string!(password, client_salt)).into())
 }
 
 pub fn check_password(
-    password: String,
+    password: &String,
     client_salt: &String,
     client_token: &String,
 ) -> OSResult<()> {
-    let password_token = to_hex_string(md5::compute(password + client_salt));
+    let password_token = to_password_token(password, client_salt);
     if &password_token == client_token {
         Ok(())
     } else {
@@ -60,11 +61,19 @@ mod tests {
     }
 
     #[test]
+    fn test_to_password_token() {
+        assert_eq!(
+            "26719a1196d2a940705a59634eb18eab",
+            to_password_token(&"sesame".to_owned(), &"c19b2d".to_owned())
+        )
+    }
+
+    #[test]
     fn test_check_password_success() {
         let password: String = Password(16..32).fake();
         let client_salt: String = Password(8..16).fake();
-        let client_token = to_hex_string(md5::compute(password.clone() + &client_salt));
-        assert!(check_password(password, &client_salt, &client_token).is_ok())
+        let client_token = to_password_token(&password, &client_salt);
+        assert!(check_password(&password, &client_salt, &client_token).is_ok())
     }
 
     #[test]
@@ -72,7 +81,7 @@ mod tests {
         let password: String = Password(16..32).fake();
         let client_salt: String = Password(8..16).fake();
         let wrong_client_salt = Password(8..16).fake();
-        let client_token = to_hex_string(md5::compute(password.clone() + &client_salt));
-        assert!(check_password(password, &wrong_client_salt, &client_token).is_err())
+        let client_token = to_password_token(&password, &client_salt);
+        assert!(check_password(&password, &wrong_client_salt, &client_token).is_err())
     }
 }

@@ -35,7 +35,7 @@ pub trait Validate {
             _ => return Err(OpenSubsonicError::Unauthorized { message: None }),
         };
         check_password(
-            decrypt_password(key, &user.password)?,
+            &decrypt_password(key, &user.password)?,
             &common_params.salt,
             &common_params.token,
         )?;
