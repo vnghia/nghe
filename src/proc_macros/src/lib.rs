@@ -106,12 +106,7 @@ struct AddValidateResponse {
 #[proc_macro_attribute]
 pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     let mut item_struct = parse_macro_input!(input as ItemStruct);
-    let old_item_struct_ident = item_struct.ident.clone();
-
-    let mut new_struct_name = old_item_struct_ident.to_string();
-    new_struct_name.insert_str(0, "Raw");
-    item_struct.ident = Ident::new(&new_struct_name, item_struct.ident.span());
-    let new_item_struct_ident = item_struct.ident.clone();
+    let item_struct_ident = item_struct.ident.clone();
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
         Ok(v) => v,
@@ -142,6 +137,20 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         format!("{}::ValidatedForm", COMMON_REQUEST_IMPORT_PREFIX)
             .parse()
             .unwrap();
+    let mut validated_type = item_struct_ident.to_string();
+    validated_type = match validated_type.strip_suffix("Params") {
+        Some(result) => result.to_owned(),
+        _ => {
+            return syn::Error::new(
+                item_struct_ident.span(),
+                "struct's name should end with `Params`",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
+    let validated_type_token: proc_macro2::TokenStream =
+        format!("{}Request", validated_type).parse().unwrap();
 
     if let syn::Fields::Named(ref mut fields) = item_struct.fields {
         fields.named.push(
@@ -157,7 +166,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     return quote!(
         #item_struct
 
-        impl #validate_trait_token for #new_item_struct_ident {
+        impl #validate_trait_token for #item_struct_ident {
             fn get_common_params(&self) -> &#common_type_token {
                 &self.common
             }
@@ -168,7 +177,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
 
-        pub type #old_item_struct_ident = #validated_form_token<#new_item_struct_ident>;
+        pub type #validated_type_token = #validated_form_token<#item_struct_ident>;
     )
     .into();
 }

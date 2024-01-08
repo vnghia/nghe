@@ -53,7 +53,7 @@ pub trait Validate {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedForm<T> {
-    pub form: T,
+    pub params: T,
     pub user: user::Model,
 }
 
@@ -68,11 +68,11 @@ where
     type Rejection = OpenSubsonicError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(form) = Form::<T>::from_request(req, state).await?;
+        let Form(params) = Form::<T>::from_request(req, state).await?;
         let state = ServerState::from_ref(state);
-        let user = form
+        let user = params
             .validate(&state.conn, &state.config.database.encryption_key)
             .await?;
-        Ok(ValidatedForm { form, user })
+        Ok(ValidatedForm { params, user })
     }
 }
