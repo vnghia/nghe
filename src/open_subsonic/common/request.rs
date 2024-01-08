@@ -17,7 +17,7 @@ pub struct CommonParams {
 }
 
 pub trait Validate {
-    fn get_common_params(&self) -> CommonParams;
+    fn get_common_params(&self) -> &CommonParams;
 
     #[allow(async_fn_in_trait)]
     async fn validate(
@@ -27,7 +27,7 @@ pub trait Validate {
     ) -> OSResult<user::Model> {
         let common_params = self.get_common_params();
         let user: user::Model = match User::find()
-            .filter(user::Column::Username.eq(common_params.username))
+            .filter(user::Column::Username.eq(&common_params.username))
             .one(conn)
             .await?
         {
