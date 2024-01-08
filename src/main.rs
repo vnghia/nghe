@@ -2,7 +2,7 @@ mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
-use axum::{response::Html, routing::get, Router};
+use axum::Router;
 use sea_orm_migration::prelude::*;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -54,13 +54,9 @@ async fn main() {
 
 fn app(server_state: ServerState) -> Router {
     Router::new()
-        .route("/", get(handler))
         // system
         .merge(system::router(server_state.clone()))
+        // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(server_state)
-}
-
-async fn handler() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
 }
