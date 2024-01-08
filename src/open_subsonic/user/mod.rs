@@ -1,1 +1,1 @@
-mod password;
+pub mod password;
