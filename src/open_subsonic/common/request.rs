@@ -4,8 +4,7 @@ use crate::config::EncryptionKey;
 use crate::entity::{prelude::*, *};
 use crate::ServerState;
 
-use axum::extract::FromRef;
-use axum::extract::{Form, FromRequest, Request};
+use axum::extract::{rejection::FormRejection, Form, FromRef, FromRequest, Request};
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, *};
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -63,7 +62,7 @@ where
     T: DeserializeOwned + Validate + Send + Sync,
     ServerState: FromRef<S>,
     S: Send + Sync,
-    Form<T>: FromRequest<S, Rejection = OpenSubsonicError>,
+    Form<T>: FromRequest<S, Rejection = FormRejection>,
 {
     type Rejection = OpenSubsonicError;
 
