@@ -90,6 +90,33 @@ mod tests {
     #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
     struct TestParams {}
 
+    #[add_validate(admin = true)]
+    #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+    struct AdminTestParams {}
+
+    async fn setup_db_and_user(
+        username: String,
+        password: &String,
+        key: &EncryptionKey,
+        admin_role: bool,
+    ) -> TemporaryDatabase {
+        let current_timestamp = std::time::SystemTime::now();
+        let db = TemporaryDatabase::new_from_env().await;
+        db.insert(
+            user::Model {
+                username: username,
+                password: encrypt_password(&key, &password),
+                created_at: current_timestamp.into(),
+                updated_at: current_timestamp.into(),
+                admin_role: admin_role,
+                ..Faker.fake()
+            }
+            .into_active_model(),
+        )
+        .await
+        .to_owned()
+    }
+
     #[tokio::test]
     async fn test_validate_success() {
         let key: EncryptionKey = rand::random();
@@ -100,18 +127,7 @@ mod tests {
         let client_salt: String = Password(8..16).fake();
         let client_token = to_password_token(&password, &client_salt);
 
-        let db = TemporaryDatabase::new_from_env().await;
-        db.insert(
-            user::Model {
-                username: username.clone(),
-                password: encrypt_password(&key, &password),
-                created_at: std::time::SystemTime::now().into(),
-                updated_at: std::time::SystemTime::now().into(),
-                ..Faker.fake()
-            }
-            .into_active_model(),
-        )
-        .await;
+        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
 
         assert!(TestParams {
             common: CommonParams {
@@ -123,6 +139,118 @@ mod tests {
         .validate(db.get_conn(), &key)
         .await
         .is_ok());
+
+        db.async_drop().await;
+    }
+
+    #[tokio::test]
+    async fn test_validate_wrong_username() {
+        let key: EncryptionKey = rand::random();
+
+        let username: String = Username().fake();
+        let wrong_username: String = Username().fake();
+        let password: String = Password(16..32).fake();
+
+        let client_salt: String = Password(8..16).fake();
+        let client_token = to_password_token(&password, &client_salt);
+
+        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
+
+        assert!(matches!(
+            TestParams {
+                common: CommonParams {
+                    username: wrong_username.clone(),
+                    token: client_token,
+                    salt: client_salt
+                }
+            }
+            .validate(db.get_conn(), &key)
+            .await,
+            Err(OpenSubsonicError::Unauthorized { message: _ })
+        ));
+
+        db.async_drop().await;
+    }
+
+    #[tokio::test]
+    async fn test_validate_wrong_password() {
+        let key: EncryptionKey = rand::random();
+
+        let username: String = Username().fake();
+        let password: String = Password(16..32).fake();
+        let wrong_password: String = Password(16..32).fake();
+
+        let client_salt: String = Password(8..16).fake();
+        let client_token = to_password_token(&wrong_password, &client_salt);
+
+        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
+
+        assert!(matches!(
+            TestParams {
+                common: CommonParams {
+                    username: username.clone(),
+                    token: client_token,
+                    salt: client_salt
+                }
+            }
+            .validate(db.get_conn(), &key)
+            .await,
+            Err(OpenSubsonicError::Unauthorized { message: _ })
+        ));
+
+        db.async_drop().await;
+    }
+
+    #[tokio::test]
+    async fn test_validate_admin_success() {
+        let key: EncryptionKey = rand::random();
+
+        let username: String = Username().fake();
+        let password: String = Password(16..32).fake();
+
+        let client_salt: String = Password(8..16).fake();
+        let client_token = to_password_token(&password, &client_salt);
+
+        let db = setup_db_and_user(username.clone(), &password, &key, true).await;
+
+        assert!(AdminTestParams {
+            common: CommonParams {
+                username: username.clone(),
+                token: client_token,
+                salt: client_salt
+            }
+        }
+        .validate(db.get_conn(), &key)
+        .await
+        .is_ok());
+
+        db.async_drop().await;
+    }
+
+    #[tokio::test]
+    async fn test_validate_no_admin() {
+        let key: EncryptionKey = rand::random();
+
+        let username: String = Username().fake();
+        let password: String = Password(16..32).fake();
+
+        let client_salt: String = Password(8..16).fake();
+        let client_token = to_password_token(&password, &client_salt);
+
+        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
+
+        assert!(matches!(
+            AdminTestParams {
+                common: CommonParams {
+                    username: username.clone(),
+                    token: client_token,
+                    salt: client_salt
+                }
+            }
+            .validate(db.get_conn(), &key)
+            .await,
+            Err(OpenSubsonicError::Forbidden { message: _ })
+        ));
 
         db.async_drop().await;
     }
