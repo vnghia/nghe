@@ -8,6 +8,7 @@ default-run = "nghe"
 
 [dependencies]
 anyhow = "1.0.79"
+async-dropper = { version = "0.3.1", features = ["tokio", "simple"] }
 async-trait = "0.1.77"
 axum = { version = "0.7.3", features = ["macros"] }
 concat-string = "1.0.1"
@@ -52,4 +53,7 @@ fake = { version = "2.9.2", features = [
   "serde_json",
   "time",
 ] }
+futures = "0.3.30"
 serde_json = "1.0.111"
+url = "2.5.0"
+uuid = { version = "1.6.1", features = ["v4", "fast-rng"] }
