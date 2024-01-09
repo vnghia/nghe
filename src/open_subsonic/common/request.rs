@@ -59,7 +59,7 @@ pub struct ValidatedForm<T> {
 #[async_trait::async_trait]
 impl<T, S> FromRequest<S> for ValidatedForm<T>
 where
-    T: DeserializeOwned + Validate + Send + Sync,
+    T: DeserializeOwned + Validate + Send + Sync + std::fmt::Debug,
     ServerState: FromRef<S>,
     S: Send + Sync,
     Form<T>: FromRequest<S, Rejection = FormRejection>,
@@ -68,6 +68,7 @@ where
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let Form(params) = Form::<T>::from_request(req, state).await?;
+        tracing::debug!("deserialized form {:?}", params);
         let state = ServerState::from_ref(state);
         let user = params
             .validate(&state.conn, &state.config.database.encryption_key)
