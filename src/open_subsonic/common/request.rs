@@ -76,3 +76,54 @@ where
         Ok(ValidatedForm { params, user })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test::utils::tests::*;
+
+    use fake::{faker::internet::en::*, Fake, Faker};
+
+    use nghe_proc_macros::add_validate;
+
+    #[add_validate]
+    #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+    struct TestParams {}
+
+    #[tokio::test]
+    async fn test_validate_success() {
+        let key: EncryptionKey = rand::random();
+
+        let username: String = Username().fake();
+        let password: String = Password(16..32).fake();
+
+        let client_salt: String = Password(8..16).fake();
+        let client_token = to_password_token(&password, &client_salt);
+
+        let db = TemporaryDatabase::new_from_env().await;
+        db.insert(
+            user::Model {
+                username: username.clone(),
+                password: encrypt_password(&key, &password),
+                created_at: std::time::SystemTime::now().into(),
+                updated_at: std::time::SystemTime::now().into(),
+                ..Faker.fake()
+            }
+            .into_active_model(),
+        )
+        .await;
+
+        assert!(TestParams {
+            common: CommonParams {
+                username: username.clone(),
+                token: client_token,
+                salt: client_salt
+            }
+        }
+        .validate(db.get_conn(), &key)
+        .await
+        .is_ok());
+
+        db.async_drop().await;
+    }
+}
