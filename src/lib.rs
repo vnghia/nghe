@@ -3,6 +3,7 @@ pub mod entity;
 pub mod migrator;
 pub mod open_subsonic;
 pub mod state;
+pub mod test;
 
 pub use migrator::Migrator;
 pub use open_subsonic::OpenSubsonicError;
