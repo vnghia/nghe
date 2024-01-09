@@ -7,6 +7,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
+concat-string = "1.0.1"
 darling = { version = "0.20" }
 proc-macro2 = { version = "1.0" }
 quote = { version = "1.0" }

@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use darling::{ast::NestedMeta, Error, FromMeta};
 use proc_macro::{self, TokenStream};
 use quote::quote;
@@ -31,12 +32,9 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     };
 
     let constant_type = if _args.success {
-        format!(
-            "{}::SuccessConstantResponse",
-            CONSTANT_RESPONSE_IMPORT_PREFIX
-        )
+        concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::SuccessConstantResponse")
     } else {
-        format!("{}::ErrorConstantResponse", CONSTANT_RESPONSE_IMPORT_PREFIX)
+        concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::ErrorConstantResponse")
     };
     let constant_type_token: proc_macro2::TokenStream = constant_type.parse().unwrap();
 
@@ -59,7 +57,10 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             .into();
         }
     };
-    let json_type_ident = Ident::new(&format!("{}Response", json_type), old_struct.ident.span());
+    let json_type_ident = Ident::new(
+        &concat_string!(json_type, "Response"),
+        old_struct.ident.span(),
+    );
 
     if let syn::Fields::Named(ref mut old_fields) = old_struct.fields {
         if let syn::Fields::Named(ref mut new_fields) = new_struct.fields {
@@ -136,15 +137,15 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         .unwrap();
 
     let common_type_token: proc_macro2::TokenStream =
-        format!("{}::CommonParams", COMMON_REQUEST_IMPORT_PREFIX)
+        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams")
             .parse()
             .unwrap();
     let validate_trait_token: proc_macro2::TokenStream =
-        format!("{}::Validate", COMMON_REQUEST_IMPORT_PREFIX)
+        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::Validate")
             .parse()
             .unwrap();
     let validated_form_token: proc_macro2::TokenStream =
-        format!("{}::ValidatedForm", COMMON_REQUEST_IMPORT_PREFIX)
+        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::ValidatedForm")
             .parse()
             .unwrap();
     let mut validated_type = item_struct_ident.to_string();
@@ -160,7 +161,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
     let validated_type_ident = Ident::new(
-        &format!("{}Request", validated_type),
+        &concat_string!(validated_type, "Request"),
         item_struct_ident.span(),
     );
 
