@@ -1431,6 +1431,7 @@ dependencies = [
  "fake",
  "futures",
  "hex",
+ "http-body-util",
  "libaes",
  "md5",
  "nghe-proc_macros",

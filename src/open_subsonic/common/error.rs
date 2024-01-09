@@ -3,6 +3,11 @@ use serde::Serialize;
 
 use nghe_proc_macros::wrap_subsonic_response;
 
+const BAD_REQUEST_MESSAGE: &'static str = "required parameter is missing";
+const UNAUTHORIZED_MESSAGE: &'static str = "wrong username or password";
+const FORBIDDEN_MESSAGE: &'static str = "user is not authorized for the given operation";
+const NOT_FOUND_MESSAGE: &'static str = "the requested data was not found";
+
 #[derive(Debug)]
 pub enum OpenSubsonicError {
     Generic { source: anyhow::Error },
@@ -48,23 +53,84 @@ impl IntoResponse for OpenSubsonicError {
     fn into_response(self) -> Response {
         match self {
             OpenSubsonicError::Generic { source } => error_to_json(0, source.to_string()),
-            OpenSubsonicError::BadRequest { message } => error_to_json(
-                10,
-                message.unwrap_or("required parameter is missing".to_owned()),
-            ),
-            OpenSubsonicError::Unauthorized { message } => error_to_json(
-                40,
-                message.unwrap_or("wrong username or password".to_owned()),
-            ),
-            OpenSubsonicError::Forbidden { message } => error_to_json(
-                50,
-                message.unwrap_or("user is not authorized for the given operation".to_owned()),
-            ),
-            OpenSubsonicError::NotFound { message } => error_to_json(
-                70,
-                message.unwrap_or("the requested data was not found".to_owned()),
-            ),
+            OpenSubsonicError::BadRequest { message } => {
+                error_to_json(10, message.unwrap_or(BAD_REQUEST_MESSAGE.to_owned()))
+            }
+            OpenSubsonicError::Unauthorized { message } => {
+                error_to_json(40, message.unwrap_or(UNAUTHORIZED_MESSAGE.to_owned()))
+            }
+            OpenSubsonicError::Forbidden { message } => {
+                error_to_json(50, message.unwrap_or(FORBIDDEN_MESSAGE.to_owned()))
+            }
+            OpenSubsonicError::NotFound { message } => {
+                error_to_json(70, message.unwrap_or(NOT_FOUND_MESSAGE.to_owned()))
+            }
         }
         .into_response()
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use axum::body::Bytes;
+    use http_body_util::BodyExt;
+
+    async fn to_bytes(mut res: Response) -> Bytes {
+        res.body_mut().collect().await.unwrap().to_bytes()
+    }
+
+    #[tokio::test]
+    async fn test_generic_error() {
+        let message = "error";
+        let e: OpenSubsonicError = std::io::Error::new(std::io::ErrorKind::Other, message).into();
+        assert_eq!(
+            to_bytes(e.into_response()).await,
+            to_bytes(error_to_json(0, message.to_owned()).into_response()).await
+        );
+    }
+
+    macro_rules! generate_custom_test {
+        ($error_type:ident, $error_code:literal) => {
+            paste::paste! {
+              #[tokio::test]
+              async fn [<test_ $error_type:snake _custom_message>]() {
+                  let message = stringify!($error_type);
+                  let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: Some(message.to_owned()) };
+                  assert_eq!(
+                    to_bytes(e.into_response()).await,
+                    to_bytes(error_to_json($error_code, message.to_owned()).into_response()).await
+                  );
+              }
+            }
+        };
+    }
+
+    macro_rules! generate_default_test {
+        ($error_type:ident, $error_code:literal) => {
+            paste::paste! {
+              #[tokio::test]
+              async fn [<test_ $error_type:snake _default_message>]() {
+                  let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: None };
+                  assert_eq!(
+                    to_bytes(e.into_response()).await,
+                    to_bytes(error_to_json($error_code, [<$error_type:snake:upper _MESSAGE>].to_owned()).into_response()).await
+                  );
+              }
+            }
+        };
+    }
+
+    generate_custom_test!(BadRequest, 10);
+    generate_default_test!(BadRequest, 10);
+
+    generate_custom_test!(Unauthorized, 40);
+    generate_default_test!(Unauthorized, 40);
+
+    generate_custom_test!(Forbidden, 50);
+    generate_default_test!(Forbidden, 50);
+
+    generate_custom_test!(NotFound, 70);
+    generate_default_test!(NotFound, 70);
 }
