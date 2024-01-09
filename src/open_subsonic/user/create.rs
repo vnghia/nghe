@@ -31,12 +31,7 @@ pub async fn create_user_handler(
     State(state): State<ServerState>,
     req: CreateUserRequest,
 ) -> OSResult<CreateUserResponse> {
-    create_user(
-        &state.conn,
-        &state.config.database.encryption_key,
-        req.params,
-    )
-    .await?;
+    create_user(&state.conn, &state.encryption_key, req.params).await?;
     Ok(CreateUserBody::default().into())
 }
 

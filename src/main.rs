@@ -34,7 +34,7 @@ async fn main() {
     tracing::info!("configuration: {:?}", config);
 
     // state
-    let server_state = ServerState::new(config).await;
+    let server_state = ServerState::new(&config).await;
 
     // db migration
     Migrator::up(&server_state.conn, None)
@@ -42,12 +42,10 @@ async fn main() {
         .expect("can not run pending migration(s)");
 
     // run it
-    let listener = tokio::net::TcpListener::bind(format!(
-        "{}:{}",
-        server_state.config.server.host, server_state.config.server.port
-    ))
-    .await
-    .unwrap();
+    let listener =
+        tokio::net::TcpListener::bind(format!("{}:{}", config.server.host, config.server.port))
+            .await
+            .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app(server_state)).await.unwrap();
 }

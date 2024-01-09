@@ -33,7 +33,7 @@ pub async fn setup_handler(
     }
     create_user(
         &state.conn,
-        &state.config.database.encryption_key,
+        &state.encryption_key,
         CreateUserParams {
             username: params.username,
             password: params.password,

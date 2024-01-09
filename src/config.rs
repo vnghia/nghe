@@ -9,16 +9,14 @@ use std::net::IpAddr;
 
 pub type EncryptionKey = [u8; AES_128_KEY_LEN];
 
-#[derive(Derivative, Debug, Deserialize, Clone)]
-#[derivative(Default)]
+#[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Server {
-    #[derivative(Default(value = "\"127.0.0.1\".parse::<IpAddr>().unwrap()"))]
     pub host: IpAddr,
     pub port: u16,
 }
 
-#[derive(Derivative, Default, Deserialize, Clone)]
+#[derive(Derivative, Deserialize, Clone)]
 #[derivative(Debug)]
 #[allow(unused)]
 pub struct Database {
@@ -43,7 +41,7 @@ where
     }
 }
 
-#[derive(Debug, Default, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Config {
     pub server: Server,

@@ -70,9 +70,7 @@ where
         let Form(params) = Form::<T>::from_request(req, state).await?;
         tracing::debug!("deserialized form {:?}", params);
         let state = ServerState::from_ref(state);
-        let user = params
-            .validate(&state.conn, &state.config.database.encryption_key)
-            .await?;
+        let user = params.validate(&state.conn, &state.encryption_key).await?;
         Ok(ValidatedForm { params, user })
     }
 }
