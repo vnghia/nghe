@@ -9,7 +9,7 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
-use nghe::open_subsonic::system;
+use nghe::open_subsonic::{system, user};
 use nghe::Migrator;
 use nghe::ServerState;
 
@@ -56,6 +56,8 @@ fn app(server_state: ServerState) -> Router {
     Router::new()
         // system
         .merge(system::router(server_state.clone()))
+        // user
+        .merge(user::router(server_state.clone()))
         // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(server_state)
