@@ -80,7 +80,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::utils::tests::*;
+    use crate::utils::test::db::TemporaryDatabase;
 
     use fake::{faker::internet::en::*, Fake, Faker};
 
