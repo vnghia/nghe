@@ -3,7 +3,10 @@
 pub mod tests {
     use crate::Migrator;
 
-    use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
+    use sea_orm::{
+        ActiveModelTrait, ConnectionTrait, Database, DatabaseConnection, DbErr, EntityTrait,
+        Statement,
+    };
     use sea_orm_migration::prelude::*;
     use url::Url;
     use uuid::Uuid;
@@ -59,6 +62,14 @@ pub mod tests {
 
         pub fn get_conn(&self) -> &DatabaseConnection {
             &self.conn
+        }
+
+        pub async fn insert<A: ActiveModelTrait>(&self, model: A) -> &Self {
+            A::Entity::insert(model)
+                .exec(&self.conn)
+                .await
+                .expect(&format!("can not insert into database \"{}\"", &self.name));
+            &self
         }
 
         // TODO: implement actual async drop
