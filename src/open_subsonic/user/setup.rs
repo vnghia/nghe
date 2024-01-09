@@ -47,3 +47,70 @@ pub async fn setup_handler(
     .await?;
     Ok(SetupBody::default().into())
 }
+
+#[cfg(test)]
+mod tests {
+    use fake::{faker::internet::en::FreeEmail, Fake};
+
+    use super::*;
+    use crate::utils::test::{db::TemporaryDatabase, user::create_key_user_token};
+
+    #[tokio::test]
+    async fn test_setup_no_user() {
+        let db = TemporaryDatabase::new_from_env().await;
+        let (key, username, password, _, _) = create_key_user_token();
+
+        let state = State(ServerState {
+            conn: db.get_conn().clone(),
+            encryption_key: key,
+        });
+        let form = Form(SetupParams {
+            username,
+            password,
+            email: FreeEmail().fake(),
+        });
+
+        assert_eq!(
+            setup_handler(state, form).await.unwrap().0,
+            SetupBody::default().into()
+        );
+
+        db.async_drop().await;
+    }
+
+    #[tokio::test]
+    async fn test_setup_with_user() {
+        let db = TemporaryDatabase::new_from_env().await;
+        let (_, current_username, current_password, _, _) = create_key_user_token();
+        let (key, username, password, _, _) = create_key_user_token();
+
+        let state = State(ServerState {
+            conn: db.get_conn().clone(),
+            encryption_key: key,
+        });
+        let form = Form(SetupParams {
+            username,
+            password,
+            email: FreeEmail().fake(),
+        });
+
+        create_user(
+            &state.conn,
+            &state.encryption_key,
+            CreateUserParams {
+                username: current_username,
+                password: current_password,
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+
+        assert!(matches!(
+            setup_handler(state, form).await,
+            Err(OpenSubsonicError::Forbidden { message: _ })
+        ));
+
+        db.async_drop().await;
+    }
+}
