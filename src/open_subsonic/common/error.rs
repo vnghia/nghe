@@ -22,13 +22,13 @@ struct ActualError {
 
 #[wrap_subsonic_response(success = false)]
 #[derive(Debug, Default, Serialize)]
-struct ErrorResponse {
+struct ErrorBody {
     error: ActualError,
 }
 
-fn error_to_json(code: u8, message: String) -> ErrorResponseJson {
+fn error_to_json(code: u8, message: String) -> ErrorResponse {
     tracing::error!(message);
-    ErrorResponse {
+    ErrorBody {
         error: ActualError { code, message },
         ..Default::default()
     }

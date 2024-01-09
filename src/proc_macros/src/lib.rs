@@ -46,10 +46,20 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
 
     let old_struct_ident = old_struct.ident.clone();
     let new_struct_ident = new_struct.ident.clone();
-    let json_ident = Ident::new(
-        &format!("{}Json", old_struct_ident.to_string()),
-        old_struct.ident.span(),
-    );
+
+    let mut json_type = old_struct_ident.to_string();
+    json_type = match json_type.strip_suffix("Body") {
+        Some(result) => result.to_owned(),
+        _ => {
+            return syn::Error::new(
+                old_struct_ident.span(),
+                "struct's name should end with `Body`",
+            )
+            .to_compile_error()
+            .into();
+        }
+    };
+    let json_type_ident = Ident::new(&format!("{}Response", json_type), old_struct.ident.span());
 
     if let syn::Fields::Named(ref mut old_fields) = old_struct.fields {
         if let syn::Fields::Named(ref mut new_fields) = new_struct.fields {
@@ -78,7 +88,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
 
         #new_struct
 
-        pub type #json_ident = axum::Json<#new_struct_ident>;
+        pub type #json_type_ident = axum::Json<#new_struct_ident>;
 
         impl From<#old_struct_ident> for #new_struct_ident {
             fn from(old: #old_struct_ident) -> Self {
@@ -88,7 +98,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             }
         }
 
-        impl From<#old_struct_ident> for #json_ident {
+        impl From<#old_struct_ident> for #json_type_ident {
             fn from(old: #old_struct_ident) -> Self {
                 Self(old.into())
             }
@@ -149,8 +159,10 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             .into();
         }
     };
-    let validated_type_token: proc_macro2::TokenStream =
-        format!("{}Request", validated_type).parse().unwrap();
+    let validated_type_ident = Ident::new(
+        &format!("{}Request", validated_type),
+        item_struct_ident.span(),
+    );
 
     if let syn::Fields::Named(ref mut fields) = item_struct.fields {
         fields.named.push(
@@ -177,7 +189,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
 
-        pub type #validated_type_token = #validated_form_token<#item_struct_ident>;
+        pub type #validated_type_ident = #validated_form_token<#item_struct_ident>;
     )
     .into();
 }

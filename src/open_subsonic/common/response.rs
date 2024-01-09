@@ -67,10 +67,10 @@ mod tests {
     fn test_ser_success_empty() {
         #[wrap_subsonic_response]
         #[derive(Debug, Default, Serialize)]
-        struct Test {}
+        struct TestBody {}
 
         assert_eq!(
-            to_value(Into::<WrappedTest>::into(Test::default())).unwrap(),
+            to_value(Into::<WrappedTestBody>::into(TestBody::default())).unwrap(),
             json!({
                 "subsonic-response": {
                     "status": "ok",
@@ -87,13 +87,13 @@ mod tests {
     fn test_ser_success() {
         #[wrap_subsonic_response]
         #[derive(Debug, Default, Serialize)]
-        struct Test {
+        struct TestBody {
             a: u16,
         }
         let a = 10;
 
         assert_eq!(
-            to_value(Into::<WrappedTest>::into(Test {
+            to_value(Into::<WrappedTestBody>::into(TestBody {
                 a,
                 ..Default::default()
             }))
@@ -115,10 +115,10 @@ mod tests {
     fn test_ser_error_empty() {
         #[wrap_subsonic_response(success = false)]
         #[derive(Debug, Default, Serialize)]
-        struct Test {}
+        struct TestBody {}
 
         assert_eq!(
-            to_value(Into::<WrappedTest>::into(Test::default())).unwrap(),
+            to_value(Into::<WrappedTestBody>::into(TestBody::default())).unwrap(),
             json!({
                 "subsonic-response": {
                     "status": "failed",
@@ -135,13 +135,13 @@ mod tests {
     fn test_ser_error() {
         #[wrap_subsonic_response(success = false)]
         #[derive(Debug, Default, Serialize)]
-        struct Test {
+        struct TestBody {
             a: u16,
         }
         let a = 10;
 
         assert_eq!(
-            to_value(Into::<WrappedTest>::into(Test {
+            to_value(Into::<WrappedTestBody>::into(TestBody {
                 a,
                 ..Default::default()
             }))
