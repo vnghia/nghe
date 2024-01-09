@@ -11,7 +11,7 @@ use sea_orm::{EntityTrait, *};
 use serde::{Deserialize, Serialize};
 
 #[add_validate(admin = true)]
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateUserParams {
     pub username: String,
@@ -23,7 +23,7 @@ pub struct CreateUserParams {
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 pub struct CreateUserBody {}
 
 #[axum::debug_handler]

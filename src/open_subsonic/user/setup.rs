@@ -9,7 +9,7 @@ use nghe_proc_macros::wrap_subsonic_response;
 use sea_orm::{EntityTrait, *};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SetupParams {
     pub username: String,
@@ -18,7 +18,7 @@ pub struct SetupParams {
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 pub struct SetupBody {}
 
 #[axum::debug_handler]

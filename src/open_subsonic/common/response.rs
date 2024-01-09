@@ -11,7 +11,7 @@ macro_rules! emit_constant_serialize {
     };
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 struct ConstantResponse {
     #[serde(serialize_with = "emit_open_subsonic_version")]
@@ -27,7 +27,7 @@ struct ConstantResponse {
     open_subsonic: (),
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SuccessConstantResponse {
     #[serde(serialize_with = "emit_status_ok")]
@@ -37,7 +37,7 @@ pub struct SuccessConstantResponse {
     constant: ConstantResponse,
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorConstantResponse {
     #[serde(serialize_with = "emit_status_failed")]
