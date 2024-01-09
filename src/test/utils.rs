@@ -1,7 +1,10 @@
 #[cfg(test)]
 #[allow(dead_code)]
 pub mod tests {
+    use crate::Migrator;
+
     use sea_orm::{ConnectionTrait, Database, DatabaseConnection, DbErr, Statement};
+    use sea_orm_migration::prelude::*;
     use url::Url;
     use uuid::Uuid;
 
@@ -33,8 +36,12 @@ pub mod tests {
             let conn = Database::connect(new_url)
                 .await
                 .expect("can not connect to the new database");
-
             println!("create new database with name \"{}\"", name);
+
+            Migrator::up(&conn, None)
+                .await
+                .expect("can not run pending migration(s)");
+
             Self {
                 name,
                 conn,
