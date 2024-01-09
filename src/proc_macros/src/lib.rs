@@ -169,7 +169,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             syn::Field::parse_named
                 .parse2(quote! {
                     #[serde(flatten)]
-                    common: #common_type_token
+                    pub common: #common_type_token
                 })
                 .unwrap(),
         );
