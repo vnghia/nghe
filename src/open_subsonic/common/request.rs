@@ -80,7 +80,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::db::TemporaryDatabase;
+    use crate::utils::test::{db::TemporaryDatabase, user::create_key_user_token};
 
     use fake::{faker::internet::en::*, Fake, Faker};
 
@@ -119,13 +119,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_success() {
-        let key: EncryptionKey = rand::random();
-
-        let username: String = Username().fake();
-        let password: String = Password(16..32).fake();
-
-        let client_salt: String = Password(8..16).fake();
-        let client_token = to_password_token(&password, &client_salt);
+        let (key, username, password, client_salt, client_token) = create_key_user_token();
 
         let db = setup_db_and_user(username.clone(), &password, &key, false).await;
 
@@ -145,14 +139,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_username() {
-        let key: EncryptionKey = rand::random();
-
-        let username: String = Username().fake();
+        let (key, username, password, client_salt, client_token) = create_key_user_token();
         let wrong_username: String = Username().fake();
-        let password: String = Password(16..32).fake();
-
-        let client_salt: String = Password(8..16).fake();
-        let client_token = to_password_token(&password, &client_salt);
 
         let db = setup_db_and_user(username.clone(), &password, &key, false).await;
 
@@ -174,16 +162,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_password() {
-        let key: EncryptionKey = rand::random();
-
-        let username: String = Username().fake();
-        let password: String = Password(16..32).fake();
+        let (key, username, _, client_salt, client_token) = create_key_user_token();
         let wrong_password: String = Password(16..32).fake();
 
-        let client_salt: String = Password(8..16).fake();
-        let client_token = to_password_token(&wrong_password, &client_salt);
-
-        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
+        let db = setup_db_and_user(username.clone(), &wrong_password, &key, false).await;
 
         assert!(matches!(
             TestParams {
@@ -203,13 +185,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_admin_success() {
-        let key: EncryptionKey = rand::random();
-
-        let username: String = Username().fake();
-        let password: String = Password(16..32).fake();
-
-        let client_salt: String = Password(8..16).fake();
-        let client_token = to_password_token(&password, &client_salt);
+        let (key, username, password, client_salt, client_token) = create_key_user_token();
 
         let db = setup_db_and_user(username.clone(), &password, &key, true).await;
 
@@ -229,13 +205,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_no_admin() {
-        let key: EncryptionKey = rand::random();
-
-        let username: String = Username().fake();
-        let password: String = Password(16..32).fake();
-
-        let client_salt: String = Password(8..16).fake();
-        let client_token = to_password_token(&password, &client_salt);
+        let (key, username, password, client_salt, client_token) = create_key_user_token();
 
         let db = setup_db_and_user(username.clone(), &password, &key, false).await;
 
