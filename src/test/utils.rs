@@ -3,6 +3,7 @@
 pub mod tests {
     use crate::Migrator;
 
+    use concat_string::concat_string;
     use sea_orm::{
         ActiveModelTrait, ConnectionTrait, Database, DatabaseConnection, DbErr, EntityTrait,
         Statement,
@@ -31,7 +32,7 @@ pub mod tests {
             old_conn
                 .execute(Statement::from_string(
                     old_conn.get_database_backend(),
-                    format!("CREATE DATABASE \"{}\";", name),
+                    concat_string!("CREATE DATABASE \"", name, "\";"),
                 ))
                 .await
                 .expect("can not create new database");
@@ -68,13 +69,18 @@ pub mod tests {
             A::Entity::insert(model)
                 .exec(&self.conn)
                 .await
-                .expect(&format!("can not insert into database \"{}\"", &self.name));
+                .expect(&concat_string!(
+                    "can not insert into database \"",
+                    &self.name,
+                    "\""
+                ));
             &self
         }
 
         // TODO: implement actual async drop
         pub async fn async_drop(&self) {
-            let raw_statement = format!("DROP DATABASE IF EXISTS \"{}\" WITH (FORCE);", &self.name);
+            let raw_statement =
+                concat_string!("DROP DATABASE IF EXISTS \"", &self.name, "\" WITH (FORCE);");
             match self
                 .old_conn
                 .execute(Statement::from_string(
