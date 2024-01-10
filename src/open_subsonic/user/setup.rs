@@ -1,7 +1,6 @@
-use super::super::OSResult;
 use super::create::{create_user, CreateUserParams};
 use crate::entity::*;
-use crate::{OpenSubsonicError, ServerState};
+use crate::{OSResult, OpenSubsonicError, ServerState};
 
 use axum::extract::State;
 use axum::Form;

@@ -1,8 +1,8 @@
 use concat_string::concat_string;
 use libaes::Cipher;
 
-use super::super::{OSResult, OpenSubsonicError};
 use crate::config::EncryptionKey;
+use crate::{OSResult, OpenSubsonicError};
 
 const IV_LEN: usize = 16;
 

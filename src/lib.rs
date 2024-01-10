@@ -6,5 +6,5 @@ pub mod state;
 pub mod utils;
 
 pub use migrator::Migrator;
-pub use open_subsonic::OpenSubsonicError;
+pub use open_subsonic::{OSResult, OpenSubsonicError};
 pub use state::ServerState;

@@ -1,8 +1,7 @@
 use super::super::user::password::*;
-use super::super::{OSResult, OpenSubsonicError};
 use crate::config::EncryptionKey;
 use crate::entity::{prelude::*, *};
-use crate::ServerState;
+use crate::{OSResult, OpenSubsonicError, ServerState};
 
 use axum::extract::{rejection::FormRejection, Form, FromRef, FromRequest, Request};
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, *};

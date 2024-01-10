@@ -1,8 +1,7 @@
-use super::super::OSResult;
 use super::password::encrypt_password;
 use crate::config::EncryptionKey;
 use crate::entity::{prelude::*, *};
-use crate::ServerState;
+use crate::{OSResult, ServerState};
 
 use axum::extract::State;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};

@@ -1,4 +1,4 @@
-use super::super::OSResult;
+use crate::OSResult;
 
 use serde::Serialize;
 
