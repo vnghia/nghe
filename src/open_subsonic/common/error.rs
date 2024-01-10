@@ -73,13 +73,7 @@ impl IntoResponse for OpenSubsonicError {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use axum::body::Bytes;
-    use http_body_util::BodyExt;
-
-    async fn to_bytes(mut res: Response) -> Bytes {
-        res.body_mut().collect().await.unwrap().to_bytes()
-    }
+    use crate::utils::test::http::to_bytes;
 
     #[tokio::test]
     async fn test_generic_error() {
