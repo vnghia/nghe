@@ -5,7 +5,7 @@ mod built_info {
 use derivative::Derivative;
 use libaes::AES_128_KEY_LEN;
 use serde::{de::Error, Deserialize, Deserializer};
-use std::net::IpAddr;
+use std::{net::IpAddr, path::PathBuf};
 
 pub type EncryptionKey = [u8; AES_128_KEY_LEN];
 
@@ -43,9 +43,17 @@ where
 
 #[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
+pub struct Folder {
+    top_paths: Vec<PathBuf>,
+    depth_levels: Vec<u8>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[allow(unused)]
 pub struct Config {
     pub server: Server,
     pub database: Database,
+    pub folder: Folder,
 }
 
 impl Config {
@@ -54,11 +62,15 @@ impl Config {
             // server
             .set_default("server.host", "127.0.0.1")?
             .set_default("server.port", 3000)?
+            .set_default("folder.depth_levels", Vec::<u8>::default())?
             .add_source(
                 config::Environment::with_prefix(built_info::PKG_NAME)
                     .prefix_separator("_")
                     .separator("__")
-                    .try_parsing(true),
+                    .list_separator(":")
+                    .try_parsing(true)
+                    .with_list_parse_key("folder.top_paths")
+                    .with_list_parse_key("folder.depth_levels"),
             )
             .build()?;
         s.try_deserialize()
