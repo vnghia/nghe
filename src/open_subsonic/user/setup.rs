@@ -20,7 +20,6 @@ pub struct SetupParams {
 #[derive(Debug, Default, Serialize, PartialEq, Eq)]
 pub struct SetupBody {}
 
-#[axum::debug_handler]
 pub async fn setup_handler(
     State(state): State<ServerState>,
     Form(params): Form<SetupParams>,

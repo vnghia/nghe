@@ -25,7 +25,6 @@ pub struct CreateUserParams {
 #[derive(Debug, Default, Serialize, PartialEq, Eq)]
 pub struct CreateUserBody {}
 
-#[axum::debug_handler]
 pub async fn create_user_handler(
     State(state): State<ServerState>,
     req: CreateUserRequest,

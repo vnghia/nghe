@@ -7,8 +7,8 @@ impl MigrationName for Migration {
     }
 }
 
-const IDX_PK_USER: &'static str = "idx-pk-user";
-const IDX_USER_USERNAME: &'static str = "idx-user-username";
+const IDX_PK_USER: &str = "idx-pk-user";
+const IDX_USER_USERNAME: &str = "idx-user-username";
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {

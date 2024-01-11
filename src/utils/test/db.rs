@@ -16,7 +16,7 @@ pub struct TemporaryDatabase {
 }
 
 impl TemporaryDatabase {
-    async fn new(url: &String) -> Self {
+    async fn new(url: &str) -> Self {
         let name = Uuid::new_v4().to_string();
         let mut new_url = Url::parse(url).expect("can not parse database url");
         new_url.set_path(&name);
@@ -76,7 +76,7 @@ impl TemporaryDatabase {
     pub async fn async_drop(&self) {
         let raw_statement =
             concat_string!("DROP DATABASE IF EXISTS \"", &self.name, "\" WITH (FORCE);");
-        match self
+        if let Err(e) = self
             .old_conn
             .execute(Statement::from_string(
                 self.old_conn.get_database_backend(),
@@ -84,14 +84,11 @@ impl TemporaryDatabase {
             ))
             .await
         {
-            Err(e) => {
-                println!("{}", e);
-                println!(
-                    "can not drop database, please drop the database manually with '{}'",
-                    &raw_statement
-                )
-            }
-            _ => (),
+            println!("{}", e);
+            println!(
+                "can not drop database, please drop the database manually with '{}'",
+                &raw_statement
+            )
         }
     }
 }

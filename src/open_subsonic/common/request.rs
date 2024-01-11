@@ -93,7 +93,7 @@ mod tests {
 
     async fn setup_db_and_user(
         username: String,
-        password: &String,
+        password: &str,
         key: &EncryptionKey,
         admin_role: bool,
     ) -> TemporaryDatabase {
@@ -101,11 +101,11 @@ mod tests {
         let db = TemporaryDatabase::new_from_env().await;
         db.insert(
             user::Model {
-                username: username,
-                password: encrypt_password(&key, &password),
+                username,
+                password: encrypt_password(key, password),
                 created_at: current_timestamp.into(),
                 updated_at: current_timestamp.into(),
-                admin_role: admin_role,
+                admin_role,
                 ..Faker.fake()
             }
             .into_active_model(),

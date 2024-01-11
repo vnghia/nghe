@@ -3,10 +3,10 @@ use serde::Serialize;
 
 use nghe_proc_macros::wrap_subsonic_response;
 
-const BAD_REQUEST_MESSAGE: &'static str = "required parameter is missing";
-const UNAUTHORIZED_MESSAGE: &'static str = "wrong username or password";
-const FORBIDDEN_MESSAGE: &'static str = "user is not authorized for the given operation";
-const NOT_FOUND_MESSAGE: &'static str = "the requested data was not found";
+const BAD_REQUEST_MESSAGE: &str = "required parameter is missing";
+const UNAUTHORIZED_MESSAGE: &str = "wrong username or password";
+const FORBIDDEN_MESSAGE: &str = "user is not authorized for the given operation";
+const NOT_FOUND_MESSAGE: &str = "the requested data was not found";
 
 #[derive(Debug)]
 pub enum OpenSubsonicError {

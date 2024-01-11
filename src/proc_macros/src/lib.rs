@@ -4,8 +4,8 @@ use proc_macro::{self, TokenStream};
 use quote::quote;
 use syn::{parse::Parser, parse_macro_input, Ident, ItemStruct};
 
-const CONSTANT_RESPONSE_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::response";
-const COMMON_REQUEST_IMPORT_PREFIX: &'static str = "crate::open_subsonic::common::request";
+const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
+const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
 
 #[derive(Debug, FromMeta)]
 struct WrapSubsonicResponse {
@@ -84,7 +84,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
         }
     }
 
-    return quote! {
+    quote! {
         #old_struct
 
         #new_struct
@@ -105,7 +105,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             }
         }
     }
-    .into();
+    .into()
 }
 
 #[derive(Debug, FromMeta)]
@@ -176,7 +176,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         );
     }
 
-    return quote!(
+    quote!(
         #item_struct
 
         impl #validate_trait_token for #item_struct_ident {
@@ -192,13 +192,13 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
 
         pub type #validated_type_ident = #validated_form_token<#item_struct_ident>;
     )
-    .into();
+    .into()
 }
 
 fn return_true() -> bool {
-    return true;
+    true
 }
 
 fn return_false() -> bool {
-    return false;
+    false
 }
