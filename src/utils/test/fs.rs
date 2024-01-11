@@ -11,6 +11,7 @@ pub struct TemporaryFs {
     root: TempDir,
 }
 
+#[allow(clippy::new_without_default)]
 impl TemporaryFs {
     pub fn new() -> Self {
         Self {
@@ -37,5 +38,24 @@ impl TemporaryFs {
             .await
             .expect("can not write to temporary file");
         path
+    }
+
+    pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
+        paths
+            .iter()
+            .map(|path| self.root.path().join(path))
+            .collect()
+    }
+
+    pub fn canonicalize_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
+        paths
+            .iter()
+            .map(std::fs::canonicalize)
+            .collect::<Result<Vec<_>, _>>()
+            .expect("can not canonicalize temp path")
+    }
+
+    pub fn get_root_path(&self) -> &Path {
+        self.root.path()
     }
 }
