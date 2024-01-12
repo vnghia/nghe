@@ -37,7 +37,7 @@ pub async fn create_user(
     conn: &DatabaseConnection,
     key: &EncryptionKey,
     params: CreateUserParams,
-) -> OSResult<()> {
+) -> OSResult<user::Model> {
     let password = encrypt_password(key, &params.password);
     let user = user::ActiveModel {
         username: ActiveValue::Set(params.username),
@@ -48,6 +48,8 @@ pub async fn create_user(
         share_role: ActiveValue::Set(params.share_role),
         ..Default::default()
     };
-    User::insert(user).exec(conn).await?;
-    Ok(())
+    User::insert(user)
+        .exec_with_returning(conn)
+        .await
+        .map_err(|e| crate::OpenSubsonicError::Generic { source: e.into() })
 }
