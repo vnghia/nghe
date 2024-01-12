@@ -2,6 +2,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20240106_000001_create_user_table;
 mod m20240112_000002_create_music_folder_table;
+mod m20240112_000003_create_user_music_folder_table;
 
 pub struct Migrator;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20240106_000001_create_user_table::Migration),
             Box::new(m20240112_000002_create_music_folder_table::Migration),
+            Box::new(m20240112_000003_create_user_music_folder_table::Migration),
         ]
     }
 }

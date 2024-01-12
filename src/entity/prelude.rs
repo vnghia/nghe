@@ -2,3 +2,4 @@
 
 pub use super::music_folder::Entity as MusicFolder;
 pub use super::user::Entity as User;
+pub use super::user_music_folder::Entity as UserMusicFolder;
