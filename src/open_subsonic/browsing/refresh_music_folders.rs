@@ -83,6 +83,8 @@ mod tests {
 
         assert_eq!(inputs, results);
         assert_eq!(deleted_folder_count, 0);
+
+        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -122,6 +124,8 @@ mod tests {
 
         assert_eq!(inputs, results);
         assert_eq!(deleted_folder_count, 0);
+
+        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -175,5 +179,7 @@ mod tests {
 
         assert_eq!(inputs, results);
         assert_eq!(deleted_folder_count, 1);
+
+        db.async_drop().await;
     }
 }
