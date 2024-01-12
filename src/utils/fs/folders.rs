@@ -168,16 +168,13 @@ mod tests {
         let dir_1 = temp_fs.create_dir("test1/").await;
         let dir_2 = temp_fs.create_dir("test2/").await;
 
-        let mut input = vec![dir_1, dir_2];
-        let mut result = build_music_folders(&input, &[]).await;
+        let mut inputs = vec![dir_1, dir_2];
+        let mut results = build_music_folders(&inputs, &[]).await;
 
-        input = stream::iter(input)
-            .then(canonicalize)
-            .try_collect::<Vec<_>>()
-            .await
-            .unwrap();
-        result.sort();
-        assert_eq!(input, result);
+        inputs.sort();
+        let inputs = temp_fs.canonicalize_paths(&inputs);
+        results.sort();
+        assert_eq!(inputs, results);
     }
 
     #[tokio::test]
