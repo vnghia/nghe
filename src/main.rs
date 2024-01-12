@@ -9,7 +9,10 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
-use nghe::open_subsonic::{browsing::refresh_music_folders::refresh_music_folders, system, user};
+use nghe::open_subsonic::{
+    browsing::{refresh_music_folders, refresh_user_music_folders},
+    system, user,
+};
 use nghe::Migrator;
 use nghe::ServerState;
 
@@ -48,6 +51,9 @@ async fn main() {
         &config.folder.depth_levels,
     )
     .await;
+
+    // user music folders
+    refresh_user_music_folders(&server_state.conn, &upserted_music_folders).await;
 
     // run it
     let listener =
