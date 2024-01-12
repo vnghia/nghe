@@ -97,14 +97,14 @@ mod tests {
         key: &EncryptionKey,
         admin_role: bool,
     ) -> TemporaryDatabase {
-        let current_timestamp = std::time::SystemTime::now();
+        let current_timestamp = time::OffsetDateTime::now_utc();
         let db = TemporaryDatabase::new_from_env().await;
         db.insert(
             user::Model {
                 username,
                 password: encrypt_password(key, password),
-                created_at: current_timestamp.into(),
-                updated_at: current_timestamp.into(),
+                created_at: current_timestamp,
+                updated_at: current_timestamp,
                 admin_role,
                 ..Faker.fake()
             }
