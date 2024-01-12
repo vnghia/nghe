@@ -2,4 +2,5 @@
 
 pub mod prelude;
 
+pub mod music_folder;
 pub mod user;
