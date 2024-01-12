@@ -6,13 +6,16 @@ use crate::{OSResult, OpenSubsonicError, ServerState};
 use axum::extract::{rejection::FormRejection, Form, FromRef, FromRequest, Request};
 use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, *};
 use serde::{de::DeserializeOwned, Deserialize};
+use serde_with::serde_as;
 
+#[serde_as]
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 pub struct CommonParams {
     #[serde(rename = "u")]
     pub username: String,
     #[serde(rename = "t")]
-    pub token: String,
+    #[serde_as(as = "serde_with::hex::Hex")]
+    pub token: MD5Token,
     #[serde(rename = "s")]
     pub salt: String,
 }

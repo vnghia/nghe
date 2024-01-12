@@ -6,6 +6,8 @@ use crate::{OSResult, OpenSubsonicError};
 
 const IV_LEN: usize = 16;
 
+pub type MD5Token = [u8; 16];
+
 pub fn encrypt_password(key: &EncryptionKey, data: &str) -> Vec<u8> {
     let plain_text = data.as_bytes();
     let iv: [u8; IV_LEN] = rand::random();
@@ -27,13 +29,13 @@ pub fn decrypt_password(key: &EncryptionKey, data: &[u8]) -> OSResult<String> {
     }
 }
 
-pub fn to_password_token(password: &str, client_salt: &str) -> String {
-    hex::encode::<[u8; 16]>(md5::compute(concat_string!(password, client_salt)).into())
+pub fn to_password_token(password: &str, client_salt: &str) -> MD5Token {
+    md5::compute(concat_string!(password, client_salt)).into()
 }
 
-pub fn check_password(password: &str, client_salt: &str, client_token: &str) -> OSResult<()> {
+pub fn check_password(password: &str, client_salt: &str, client_token: &MD5Token) -> OSResult<()> {
     let password_token = to_password_token(password, client_salt);
-    if password_token == client_token {
+    if password_token == *client_token {
         Ok(())
     } else {
         Err(OpenSubsonicError::Unauthorized { message: None })
@@ -45,6 +47,9 @@ mod tests {
     use super::*;
 
     use fake::{faker::internet::en::Password, Fake};
+    use serde::Deserialize;
+    use serde_json::json;
+    use serde_with::serde_as;
 
     #[test]
     fn test_roundtrip_password() {
@@ -58,9 +63,13 @@ mod tests {
 
     #[test]
     fn test_to_password_token() {
+        #[serde_as]
+        #[derive(Debug, Deserialize, PartialEq, Eq)]
+        struct TestBytes(#[serde_as(as = "serde_with::hex::Hex")] MD5Token);
+
         assert_eq!(
-            "26719a1196d2a940705a59634eb18eab",
-            to_password_token("sesame", "c19b2d")
+            serde_json::from_value::<TestBytes>(json!("26719a1196d2a940705a59634eb18eab")).unwrap(),
+            TestBytes(to_password_token("sesame", "c19b2d"))
         )
     }
 

@@ -15,7 +15,6 @@ concat-string = "1.0.1"
 config = "0.13.4"
 derivative = "2.2.0"
 futures = "0.3.30"
-hex = "0.4.3"
 libaes = "0.7.0"
 md5 = "0.7.0"
 mimalloc = "0.1.39"
@@ -31,6 +30,7 @@ sea-orm = { version = "0.12.10", features = [
 ] }
 sea-orm-migration = "0.12.10"
 serde = { version = "1.0", features = ["derive"] }
+serde_with = { version = "3.4.0", features = ["hex"] }
 time = "0.3.31"
 tokio = { version = "1.0", features = ["full"] }
 tower = { version = "0.4", features = ["util"] }

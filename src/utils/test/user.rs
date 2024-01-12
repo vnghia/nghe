@@ -1,9 +1,9 @@
 use crate::config::EncryptionKey;
-use crate::open_subsonic::user::password::to_password_token;
+use crate::open_subsonic::user::password::{to_password_token, MD5Token};
 
 use fake::{faker::internet::en::*, Fake};
 
-pub fn create_key_user_token() -> (EncryptionKey, String, String, String, String) {
+pub fn create_key_user_token() -> (EncryptionKey, String, String, String, MD5Token) {
     let key: EncryptionKey = rand::random();
     let username: String = Username().fake();
     let password: String = Password(16..32).fake();
