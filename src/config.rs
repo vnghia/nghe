@@ -44,8 +44,8 @@ where
 #[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Folder {
-    top_paths: Vec<PathBuf>,
-    depth_levels: Vec<u8>,
+    pub top_paths: Vec<PathBuf>,
+    pub depth_levels: Vec<u8>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

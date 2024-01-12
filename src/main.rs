@@ -9,7 +9,7 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
-use nghe::open_subsonic::{system, user};
+use nghe::open_subsonic::{browsing::refresh_music_folders::refresh_music_folders, system, user};
 use nghe::Migrator;
 use nghe::ServerState;
 
@@ -40,6 +40,14 @@ async fn main() {
     Migrator::up(&server_state.conn, None)
         .await
         .expect("can not run pending migration(s)");
+
+    // music folders
+    let (upserted_music_folders, _) = refresh_music_folders(
+        &server_state.conn,
+        &config.folder.top_paths,
+        &config.folder.depth_levels,
+    )
+    .await;
 
     // run it
     let listener =

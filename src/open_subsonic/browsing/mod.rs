@@ -1,1 +1,1 @@
-mod refresh_music_folders;
+pub mod refresh_music_folders;
