@@ -11,10 +11,28 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            command: cargo
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            command: cross
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            command: cross
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            command: cross
+
+    runs-on: ${{ matrix.platform.os }}
 
     env:
       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+      CROSS_CONTAINER_OPTS: "--network=host"
 
     services:
       postgres:
@@ -31,7 +49,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build
-        run: cargo build --verbose
-      - name: Run tests
-        run: cargo test --verbose
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install cross
+        run: cargo binstall cross --no-confirm
+      - name: Build and test
+        run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}

@@ -24,7 +24,7 @@ paste = "1.0.14"
 rand = "0.8.5"
 sea-orm = { version = "0.12.10", features = [
   "sqlx-postgres",
-  "runtime-tokio-native-tls",
+  "runtime-tokio-rustls",
   "macros",
   "with-uuid",
   "with-time",
