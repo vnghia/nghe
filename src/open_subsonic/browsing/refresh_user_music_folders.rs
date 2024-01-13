@@ -47,12 +47,9 @@ pub async fn refresh_user_music_folders(
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::{
-        browsing::refresh_music_folders,
-        user::create::{create_user, CreateUserParams},
-    };
+    use super::super::super::browsing::refresh_music_folders;
     use super::*;
-    use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs, user::create_key_user_token};
+    use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs, user::create_db_users};
 
     async fn setup(
         u1d1: bool,
@@ -65,34 +62,9 @@ mod tests {
         Vec<music_folder::Model>,
         Vec<user_music_folder::Model>,
     ) {
-        let db = TemporaryDatabase::new_from_env().await;
-        let (key, _, _, _, _) = create_key_user_token();
-
-        let (_, username1, password1, _, _) = create_key_user_token();
-        let user1 = create_user(
-            db.get_conn(),
-            &key,
-            CreateUserParams {
-                username: username1,
-                password: password1,
-                ..Default::default()
-            },
-        )
-        .await
-        .unwrap();
-
-        let (_, username2, password2, _, _) = create_key_user_token();
-        let user2 = create_user(
-            db.get_conn(),
-            &key,
-            CreateUserParams {
-                username: username2,
-                password: password2,
-                ..Default::default()
-            },
-        )
-        .await
-        .unwrap();
+        let (db, user_tokens) = create_db_users(2, 0).await;
+        let user1 = user_tokens[0].0.clone();
+        let user2 = user_tokens[1].0.clone();
 
         let temp_fs = TemporaryFs::new();
         let dir_1 = temp_fs.create_dir("test1/").await;

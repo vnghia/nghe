@@ -13,11 +13,11 @@ use serde_with::serde_as;
 pub struct CommonParams {
     #[serde(rename = "u")]
     pub username: String,
+    #[serde(rename = "s")]
+    pub salt: String,
     #[serde(rename = "t")]
     #[serde_as(as = "serde_with::hex::Hex")]
     pub token: MD5Token,
-    #[serde(rename = "s")]
-    pub salt: String,
 }
 
 #[async_trait::async_trait]
@@ -80,9 +80,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::{db::TemporaryDatabase, user::create_key_user_token};
+    use crate::{
+        open_subsonic::user::create::create_user,
+        open_subsonic::user::create::CreateUserParams,
+        utils::test::user::{create_db_key_users, create_user_token},
+    };
 
-    use fake::{faker::internet::en::*, Fake, Faker};
+    use fake::{faker::internet::en::*, Fake};
 
     use nghe_proc_macros::add_validate;
 
@@ -94,40 +98,15 @@ mod tests {
     #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
     struct AdminTestParams {}
 
-    async fn setup_db_and_user(
-        username: String,
-        password: &str,
-        key: &EncryptionKey,
-        admin_role: bool,
-    ) -> TemporaryDatabase {
-        let current_timestamp = time::OffsetDateTime::now_utc();
-        let db = TemporaryDatabase::new_from_env().await;
-        db.insert(
-            user::Model {
-                username,
-                password: encrypt_password(key, password),
-                created_at: current_timestamp,
-                updated_at: current_timestamp,
-                admin_role,
-                ..Faker.fake()
-            }
-            .into_active_model(),
-        )
-        .await
-        .to_owned()
-    }
-
     #[tokio::test]
     async fn test_validate_success() {
-        let (key, username, password, client_salt, client_token) = create_key_user_token();
-
-        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
+        let (db, key, user_tokens) = create_db_key_users(1, 0).await;
 
         assert!(TestParams {
             common: CommonParams {
-                username: username.clone(),
-                token: client_token,
-                salt: client_salt
+                username: user_tokens[0].0.username.clone(),
+                salt: user_tokens[0].1.clone(),
+                token: user_tokens[0].2,
             }
         }
         .validate(db.get_conn(), &key)
@@ -139,17 +118,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_username() {
-        let (key, username, password, client_salt, client_token) = create_key_user_token();
+        let (db, key, user_tokens) = create_db_key_users(1, 0).await;
         let wrong_username: String = Username().fake();
-
-        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
 
         assert!(matches!(
             TestParams {
                 common: CommonParams {
                     username: wrong_username.clone(),
-                    token: client_token,
-                    salt: client_salt
+                    salt: user_tokens[0].1.clone(),
+                    token: user_tokens[0].2,
                 }
             }
             .validate(db.get_conn(), &key)
@@ -162,10 +139,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_password() {
-        let (key, username, _, client_salt, client_token) = create_key_user_token();
+        let (db, key, _) = create_db_key_users(0, 0).await;
+        let (username, _, client_salt, client_token) = create_user_token();
         let wrong_password: String = Password(16..32).fake();
-
-        let db = setup_db_and_user(username.clone(), &wrong_password, &key, false).await;
+        let _ = create_user(
+            db.get_conn(),
+            &key,
+            CreateUserParams {
+                username: username.clone(),
+                password: wrong_password,
+                ..Default::default()
+            },
+        )
+        .await;
 
         assert!(matches!(
             TestParams {
@@ -185,15 +171,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_admin_success() {
-        let (key, username, password, client_salt, client_token) = create_key_user_token();
-
-        let db = setup_db_and_user(username.clone(), &password, &key, true).await;
+        let (db, key, user_tokens) = create_db_key_users(1, 1).await;
 
         assert!(AdminTestParams {
             common: CommonParams {
-                username: username.clone(),
-                token: client_token,
-                salt: client_salt
+                username: user_tokens[0].0.username.clone(),
+                salt: user_tokens[0].1.clone(),
+                token: user_tokens[0].2,
             }
         }
         .validate(db.get_conn(), &key)
@@ -205,16 +189,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_no_admin() {
-        let (key, username, password, client_salt, client_token) = create_key_user_token();
-
-        let db = setup_db_and_user(username.clone(), &password, &key, false).await;
+        let (db, key, user_tokens) = create_db_key_users(1, 0).await;
 
         assert!(matches!(
             AdminTestParams {
                 common: CommonParams {
-                    username: username.clone(),
-                    token: client_token,
-                    salt: client_salt
+                    username: user_tokens[0].0.username.clone(),
+                    salt: user_tokens[0].1.clone(),
+                    token: user_tokens[0].2,
                 }
             }
             .validate(db.get_conn(), &key)

@@ -51,12 +51,15 @@ mod tests {
     use fake::{faker::internet::en::FreeEmail, Fake};
 
     use super::*;
-    use crate::utils::test::{db::TemporaryDatabase, user::create_key_user_token};
+    use crate::utils::test::{
+        db::TemporaryDatabase, user::create_db_key_users, user::create_user_token,
+    };
 
     #[tokio::test]
     async fn test_setup_no_user() {
         let db = TemporaryDatabase::new_from_env().await;
-        let (key, username, password, _, _) = create_key_user_token();
+        let key = rand::random();
+        let (username, password, _, _) = create_user_token();
 
         let state = State(ServerState {
             conn: db.get_conn().clone(),
@@ -78,9 +81,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_setup_with_user() {
-        let db = TemporaryDatabase::new_from_env().await;
-        let (_, current_username, current_password, _, _) = create_key_user_token();
-        let (key, username, password, _, _) = create_key_user_token();
+        let (db, key, _) = create_db_key_users(1, 1).await;
+        let (username, password, _, _) = create_user_token();
 
         let state = State(ServerState {
             conn: db.get_conn().clone(),
@@ -91,18 +93,6 @@ mod tests {
             password,
             email: FreeEmail().fake(),
         });
-
-        create_user(
-            &state.conn,
-            &state.encryption_key,
-            CreateUserParams {
-                username: current_username,
-                password: current_password,
-                ..Default::default()
-            },
-        )
-        .await
-        .unwrap();
 
         assert!(matches!(
             setup_handler(state, form).await,
