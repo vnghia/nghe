@@ -1,5 +1,5 @@
 use super::create::{create_user, CreateUserParams};
-use crate::entity::*;
+use crate::entity::prelude::*;
 use crate::{OSResult, OpenSubsonicError, ServerState};
 
 use axum::extract::State;
@@ -24,7 +24,7 @@ pub async fn setup_handler(
     State(state): State<ServerState>,
     Form(params): Form<SetupParams>,
 ) -> OSResult<SetupResponse> {
-    if user::Entity::find().count(&state.conn).await? != 0 {
+    if User::find().count(&state.conn).await? != 0 {
         return Err(OpenSubsonicError::Forbidden {
             message: Some("setup can only be used when there is no user".to_owned()),
         });

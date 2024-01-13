@@ -8,7 +8,7 @@ pub async fn refresh_user_music_folders(
     conn: &DatabaseConnection,
     music_folders: &[music_folder::Model],
 ) {
-    let users = user::Entity::find()
+    let users = User::find()
         .select_column(user::Column::Id)
         .all(conn)
         .await
@@ -147,10 +147,7 @@ mod tests {
         let (db, _temp_fs, music_folders, permissions) = setup(true, true, true, true).await;
         refresh_user_music_folders(db.get_conn(), &music_folders).await;
 
-        let results = user_music_folder::Entity::find()
-            .all(db.get_conn())
-            .await
-            .unwrap();
+        let results = UserMusicFolder::find().all(db.get_conn()).await.unwrap();
         let permissions = sort_models(permissions);
         let results = sort_models(results);
         assert_eq!(permissions, results);
@@ -165,10 +162,7 @@ mod tests {
         db.insert(permissions[3].clone().into_active_model()).await;
         refresh_user_music_folders(db.get_conn(), &music_folders).await;
 
-        let results = user_music_folder::Entity::find()
-            .all(db.get_conn())
-            .await
-            .unwrap();
+        let results = UserMusicFolder::find().all(db.get_conn()).await.unwrap();
         let permissions = sort_models(permissions);
         let results = sort_models(results);
         assert_eq!(permissions, results);
