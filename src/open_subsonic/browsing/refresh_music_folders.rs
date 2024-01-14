@@ -1,8 +1,6 @@
 use crate::entity::{prelude::*, *};
 use crate::utils::fs::folders::build_music_folders;
 
-use concat_string::concat_string;
-use futures::stream::{self, StreamExt};
 use sea_orm::{DatabaseConnection, EntityTrait, *};
 use std::path::Path;
 
@@ -13,41 +11,47 @@ pub async fn refresh_music_folders<P: AsRef<Path>>(
 ) -> (Vec<music_folder::Model>, u64) {
     let update_start_time = time::OffsetDateTime::now_utc();
 
-    let upserted_folders: Vec<music_folder::Model> =
-        stream::iter(build_music_folders(top_paths, depth_levels).await)
-            .then(|music_folder| async move {
-                MusicFolder::insert(music_folder::ActiveModel {
-                    path: Set(music_folder.to_string_lossy().to_string()),
-                    updated_at: Set(time::OffsetDateTime::now_utc()),
-                    ..Default::default()
-                })
-                .on_conflict(
-                    sea_query::OnConflict::column(music_folder::Column::Path)
-                        .update_column(music_folder::Column::UpdatedAt)
-                        .to_owned(),
-                )
-                .exec_with_returning(conn)
-                .await
-                .expect(&concat_string!(
-                    "can not upsert music folder ",
-                    music_folder.to_string_lossy()
-                ))
-            })
-            .collect()
-            .await;
-    for upserted_folder in &upserted_folders {
-        tracing::info!("new music folder added: {}", &upserted_folder.path);
-    }
+    let music_folder_models = build_music_folders(top_paths, depth_levels)
+        .await
+        .iter()
+        .map(|music_folder| music_folder::ActiveModel {
+            path: Set(music_folder.to_string_lossy().to_string()),
+            updated_at: Set(time::OffsetDateTime::now_utc()),
+            ..Default::default()
+        })
+        .collect::<Vec<_>>();
+    let music_folder_len = music_folder_models.len();
+
+    // TODO: use `exec_with_retuning` with `insert_many`.
+    // https://github.com/SeaQL/sea-orm/issues/1862
+    MusicFolder::insert_many(music_folder_models)
+        .on_conflict(
+            sea_query::OnConflict::column(music_folder::Column::Path)
+                .update_column(music_folder::Column::UpdatedAt)
+                .to_owned(),
+        )
+        .exec(conn)
+        .await
+        .expect("can not upsert music folder");
 
     // TODO: return more information about what are deleted.
     // https://github.com/SeaQL/sea-orm/discussions/2059
-    let deleted_folder_count = music_folder::Entity::delete_many()
+    let deleted_folder_count = MusicFolder::delete_many()
         .filter(music_folder::Column::UpdatedAt.lt(update_start_time))
         .exec(conn)
         .await
         .expect("can not delete old music folder")
         .rows_affected;
     tracing::info!("{} old music folders deleted", deleted_folder_count);
+
+    let upserted_folders = MusicFolder::find()
+        .all(conn)
+        .await
+        .expect("can not get list of upserted folders");
+    for upserted_folder in &upserted_folders {
+        tracing::info!("new music folder added: {}", &upserted_folder.path);
+    }
+    assert_eq!(upserted_folders.len(), music_folder_len);
 
     (upserted_folders, deleted_folder_count)
 }
