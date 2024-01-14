@@ -1,7 +1,6 @@
 use crate::entity::{prelude::*, *};
 
-use concat_string::concat_string;
-use futures::stream::{self, StreamExt};
+use itertools::Itertools;
 use sea_orm::{DatabaseConnection, EntityTrait, *};
 
 pub async fn refresh_user_music_folders(
@@ -14,34 +13,30 @@ pub async fn refresh_user_music_folders(
         .await
         .expect("can not get list of users");
 
-    stream::iter(users)
-        .for_each(|user| async move {
-            stream::iter(music_folders)
-                .for_each(move |music_folder| async move {
-                    UserMusicFolder::insert(user_music_folder::ActiveModel {
-                        user_id: Set(user.id),
-                        music_folder_id: Set(music_folder.id),
-                        ..Default::default()
-                    })
-                    .on_conflict(
-                        sea_query::OnConflict::columns([
-                            user_music_folder::Column::UserId,
-                            user_music_folder::Column::MusicFolderId,
-                        ])
-                        .do_nothing()
-                        .to_owned(),
-                    )
-                    .on_empty_do_nothing()
-                    .exec(conn)
-                    .await
-                    .expect(&concat_string!(
-                        "can not set permission for user with folder ",
-                        &music_folder.path
-                    ));
-                })
-                .await;
-        })
-        .await;
+    let user_music_folder_models =
+        users
+            .iter()
+            .cartesian_product(music_folders)
+            .map(|(user, music_folder)| user_music_folder::ActiveModel {
+                user_id: Set(user.id),
+                music_folder_id: Set(music_folder.id),
+                ..Default::default()
+            });
+
+    UserMusicFolder::insert_many(user_music_folder_models)
+        .on_conflict(
+            sea_query::OnConflict::columns([
+                user_music_folder::Column::UserId,
+                user_music_folder::Column::MusicFolderId,
+            ])
+            .do_nothing()
+            .to_owned(),
+        )
+        .on_empty_do_nothing()
+        .exec(conn)
+        .await
+        .expect("can not set permission for in user music folder");
+
     tracing::info!("done refreshing user music folders");
 }
 

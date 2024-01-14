@@ -1425,6 +1425,7 @@ dependencies = [
  "fake",
  "futures",
  "http-body-util",
+ "itertools",
  "libaes",
  "md5",
  "mimalloc",
