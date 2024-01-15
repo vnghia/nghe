@@ -10,7 +10,7 @@ default-run = "nghe"
 anyhow = "1.0.79"
 async-dropper = { version = "0.3.1", features = ["tokio", "simple"] }
 async-trait = "0.1.77"
-axum = { version = "0.7.3", features = ["macros"] }
+axum = { version = "0.7.4", features = ["macros"] }
 concat-string = "1.0.1"
 config = "0.13.4"
 derivative = "2.2.0"
