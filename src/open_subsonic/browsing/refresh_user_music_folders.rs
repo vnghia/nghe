@@ -42,7 +42,6 @@ pub async fn refresh_user_music_folders(
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::browsing::refresh_music_folders;
     use super::*;
     use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs, user::create_db_users};
 
@@ -62,41 +61,31 @@ mod tests {
         let user2 = user_tokens[1].0.clone();
 
         let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/").await;
-        let dir_2 = temp_fs.create_dir("test2/").await;
-
-        let (mut upserted_folders, _) =
-            refresh_music_folders(db.get_conn(), &[dir_1, dir_2], &[]).await;
-        upserted_folders.sort_by_key(|model| model.path.clone());
-
-        let dir_ids = upserted_folders
-            .iter()
-            .map(|model| model.id)
-            .collect::<Vec<_>>();
+        let upserted_folders = temp_fs.create_music_folders(db.get_conn(), 2).await;
 
         (
             db,
             temp_fs,
-            upserted_folders,
+            upserted_folders.clone(),
             vec![
                 user_music_folder::Model {
                     user_id: user1.id,
-                    music_folder_id: dir_ids[0],
+                    music_folder_id: upserted_folders[0].id,
                     allow: u1d1,
                 },
                 user_music_folder::Model {
                     user_id: user1.id,
-                    music_folder_id: dir_ids[1],
+                    music_folder_id: upserted_folders[1].id,
                     allow: u1d2,
                 },
                 user_music_folder::Model {
                     user_id: user2.id,
-                    music_folder_id: dir_ids[0],
+                    music_folder_id: upserted_folders[0].id,
                     allow: u2d1,
                 },
                 user_music_folder::Model {
                     user_id: user2.id,
-                    music_folder_id: dir_ids[1],
+                    music_folder_id: upserted_folders[1].id,
                     allow: u2d2,
                 },
             ],

@@ -3,9 +3,13 @@ mod built_info {
 }
 
 use fake::{Fake, Faker};
+use sea_orm::DatabaseConnection;
 use std::path::{Path, PathBuf};
 use tempdir::TempDir;
 use tokio::{fs::*, io::AsyncWriteExt};
+
+use crate::entity::*;
+use crate::open_subsonic::browsing::refresh_music_folders;
 
 pub struct TemporaryFs {
     root: TempDir,
@@ -57,5 +61,19 @@ impl TemporaryFs {
 
     pub fn get_root_path(&self) -> &Path {
         self.root.path()
+    }
+
+    pub async fn create_music_folders(
+        &self,
+        conn: &DatabaseConnection,
+        n_folder: u8,
+    ) -> Vec<music_folder::Model> {
+        let mut music_folder_paths = Vec::<PathBuf>::default();
+        for _ in 0..n_folder {
+            let dir_path = Faker.fake::<String>();
+            music_folder_paths.push(self.create_dir(&dir_path).await);
+        }
+        let (upserted_folders, _) = refresh_music_folders(conn, &music_folder_paths, &[]).await;
+        upserted_folders
     }
 }
