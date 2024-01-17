@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct GetMusicFoldersParams {}
 
 #[derive(Debug, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct MusicFolders {
     music_folder: Vec<music_folder::Model>,
 }
