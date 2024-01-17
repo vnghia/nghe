@@ -52,7 +52,8 @@ mod tests {
 
     use super::*;
     use crate::utils::test::{
-        db::TemporaryDatabase, user::create_db_key_users, user::create_user_token,
+        db::TemporaryDatabase, state::setup_state, user::create_db_key_users,
+        user::create_user_token,
     };
 
     #[tokio::test]
@@ -61,10 +62,7 @@ mod tests {
         let key = rand::random();
         let (username, password, _, _) = create_user_token();
 
-        let state = State(ServerState {
-            conn: db.get_conn().clone(),
-            encryption_key: key,
-        });
+        let state = setup_state(db.get_conn(), key);
         let form = Form(SetupParams {
             username,
             password,
@@ -84,10 +82,7 @@ mod tests {
         let (db, key, _) = create_db_key_users(1, 1).await;
         let (username, password, _, _) = create_user_token();
 
-        let state = State(ServerState {
-            conn: db.get_conn().clone(),
-            encryption_key: key,
-        });
+        let state = setup_state(db.get_conn(), key);
         let form = Form(SetupParams {
             username,
             password,
