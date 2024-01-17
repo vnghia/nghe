@@ -10,6 +10,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
 use nghe::open_subsonic::{
+    browsing,
     browsing::{refresh_music_folders, refresh_user_music_folders},
     system, user,
 };
@@ -68,6 +69,8 @@ fn app(server_state: ServerState) -> Router {
     Router::new()
         // system
         .merge(system::router(server_state.clone()))
+        // browsing
+        .merge(browsing::router(server_state.clone()))
         // user
         .merge(user::router(server_state.clone()))
         // layer

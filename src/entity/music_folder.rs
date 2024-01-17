@@ -9,7 +9,9 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     #[sea_orm(unique)]
+    #[serde(rename = "name")]
     pub path: String,
+    #[serde(skip_serializing)]
     pub updated_at: TimeDateTimeWithTimeZone,
 }
 
