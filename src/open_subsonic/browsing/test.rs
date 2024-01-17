@@ -1,7 +1,8 @@
 use itertools::Itertools;
 
+use crate::config::EncryptionKey;
 use crate::entity::*;
-use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs, user::create_db_users};
+use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs, user::create_db_key_users};
 
 pub async fn setup_user_and_music_folders(
     n_user: u8,
@@ -9,11 +10,13 @@ pub async fn setup_user_and_music_folders(
     allows: &[bool],
 ) -> (
     TemporaryDatabase,
+    EncryptionKey,
+    Vec<(user::Model, String, EncryptionKey)>,
     TemporaryFs,
     Vec<music_folder::Model>,
     Vec<user_music_folder::Model>,
 ) {
-    let (db, user_tokens) = create_db_users(n_user, 0).await;
+    let (db, key, user_tokens) = create_db_key_users(n_user, 0).await;
     let temp_fs = TemporaryFs::new();
     let upserted_folders = temp_fs.create_music_folders(db.get_conn(), n_folder).await;
     let user_music_folders = (user_tokens.iter().cartesian_product(&upserted_folders))
@@ -27,5 +30,12 @@ pub async fn setup_user_and_music_folders(
         )
         .collect::<Vec<_>>();
 
-    (db, temp_fs, upserted_folders.clone(), user_music_folders)
+    (
+        db,
+        key,
+        user_tokens,
+        temp_fs,
+        upserted_folders,
+        user_music_folders,
+    )
 }

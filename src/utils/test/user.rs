@@ -48,11 +48,3 @@ pub async fn create_db_key_users(
 
     (db, key, user_tokens)
 }
-
-pub async fn create_db_users(
-    n_user: u8,
-    n_admin: u8,
-) -> (TemporaryDatabase, Vec<(user::Model, String, MD5Token)>) {
-    let (db, _, user_tokens) = create_db_key_users(n_user, n_admin).await;
-    (db, user_tokens)
-}

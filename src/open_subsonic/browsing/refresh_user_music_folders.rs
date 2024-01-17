@@ -53,7 +53,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_insert() {
-        let (db, _temp_fs, music_folders, permissions) =
+        let (db, _, _, _temp_fs, music_folders, permissions) =
             setup_user_and_music_folders(2, 2, &[true, true, true, true]).await;
         refresh_user_music_folders(db.get_conn(), &music_folders).await;
 
@@ -67,7 +67,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_do_nothing() {
-        let (db, _temp_fs, music_folders, permissions) =
+        let (db, _, _, _temp_fs, music_folders, permissions) =
             setup_user_and_music_folders(2, 2, &[true, false, true, true]).await;
         db.insert(permissions[1].clone().into_active_model()).await;
         db.insert(permissions[3].clone().into_active_model()).await;
