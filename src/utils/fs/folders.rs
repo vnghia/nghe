@@ -5,8 +5,6 @@ use tokio::fs::*;
 use walkdir::WalkDir;
 
 fn get_deepest_folders<P: AsRef<Path>>(root: P, max_depth: u8) -> Vec<PathBuf> {
-    let mut folders = Vec::<PathBuf>::default();
-
     let entries = WalkDir::new(&root)
         .max_depth(max_depth.into())
         .into_iter()
@@ -25,16 +23,19 @@ fn get_deepest_folders<P: AsRef<Path>>(root: P, max_depth: u8) -> Vec<PathBuf> {
             root.as_ref().to_string_lossy()
         ));
 
-    for i in 0..entries.len() {
-        if i == entries.len() - 1 || !entries[i + 1].path().starts_with(entries[i].path()) {
-            // if it is not a children of the `previous_entry`,
-            // it means that the `previous_entry` is a deepest folder,
-            // add it to the result and `previous_entry` back to its parent.
-            // The last one is always a deepest folder.
-            folders.push(entries[i].path().to_path_buf());
-        }
-    }
-
+    let folders = (0..entries.len())
+        .filter_map(|i| {
+            if i == entries.len() - 1 || !entries[i + 1].path().starts_with(entries[i].path()) {
+                // if it is not a children of the `previous_entry`,
+                // it means that the `previous_entry` is a deepest folder,
+                // add it to the result and `previous_entry` back to its parent.
+                // The last one is always a deepest folder.
+                Some(entries[i].path().to_path_buf())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
     folders
 }
 
