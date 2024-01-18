@@ -5,6 +5,7 @@ use crate::open_subsonic::user::create::{create_user, CreateUserParams};
 use crate::open_subsonic::user::password::{to_password_token, MD5Token};
 
 use fake::{faker::internet::en::*, Fake};
+use futures::stream::{self, StreamExt};
 
 pub fn create_user_token() -> (String, String, String, MD5Token) {
     let username: String = Username().fake();
@@ -25,26 +26,26 @@ pub async fn create_db_key_users(
     let key = rand::random();
     let db = TemporaryDatabase::new_from_env().await;
 
-    let mut user_tokens = Vec::<(user::Model, String, MD5Token)>::default();
-
-    for i in 0..n_user {
-        let (username, password, client_salt, client_token) = create_user_token();
-
-        let user = create_user(
-            db.get_conn(),
-            &key,
-            CreateUserParams {
-                username,
-                password,
-                admin_role: i < n_admin,
-                ..Default::default()
-            },
-        )
-        .await
-        .unwrap();
-
-        user_tokens.push((user, client_salt, client_token));
-    }
+    let user_tokens = stream::iter(0..n_user)
+        .zip(stream::repeat(db.get_conn()))
+        .then(|(i, conn)| async move {
+            let (username, password, client_salt, client_token) = create_user_token();
+            let user = create_user(
+                conn,
+                &key,
+                CreateUserParams {
+                    username,
+                    password,
+                    admin_role: i < n_admin,
+                    ..Default::default()
+                },
+            )
+            .await
+            .unwrap();
+            (user, client_salt, client_token)
+        })
+        .collect::<Vec<_>>()
+        .await;
 
     (db, key, user_tokens)
 }

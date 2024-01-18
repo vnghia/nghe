@@ -3,6 +3,7 @@ mod built_info {
 }
 
 use fake::{Fake, Faker};
+use futures::stream::{self, StreamExt};
 use sea_orm::DatabaseConnection;
 use std::path::{Path, PathBuf};
 use tempdir::TempDir;
@@ -68,11 +69,10 @@ impl TemporaryFs {
         conn: &DatabaseConnection,
         n_folder: u8,
     ) -> Vec<music_folder::Model> {
-        let mut music_folder_paths = Vec::<PathBuf>::default();
-        for _ in 0..n_folder {
-            let dir_path = Faker.fake::<String>();
-            music_folder_paths.push(self.create_dir(&dir_path).await);
-        }
+        let music_folder_paths = stream::iter(0..n_folder)
+            .then(|_| async move { self.create_dir(&Faker.fake::<String>()).await })
+            .collect::<Vec<_>>()
+            .await;
         let (upserted_folders, _) = refresh_music_folders(conn, &music_folder_paths, &[]).await;
         upserted_folders
     }
