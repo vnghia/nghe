@@ -9,6 +9,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_music_folder_permissions (user_id, music_folder_id) {
+        user_id -> Uuid,
+        music_folder_id -> Uuid,
+        allow -> Bool,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Uuid,
         username -> Text,
@@ -22,7 +30,11 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(user_music_folder_permissions -> music_folders (music_folder_id));
+diesel::joinable!(user_music_folder_permissions -> users (user_id));
+
 diesel::allow_tables_to_appear_in_same_query!(
     music_folders,
+    user_music_folder_permissions,
     users,
 );
