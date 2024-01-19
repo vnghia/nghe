@@ -11,7 +11,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use nghe::config::Config;
 use nghe::open_subsonic::{
     browsing,
-    browsing::{refresh_music_folders, refresh_user_music_folders},
+    browsing::{refresh_music_folders, refresh_user_music_folders_all_users},
     system, user,
 };
 use nghe::Migrator;
@@ -54,7 +54,15 @@ async fn main() {
     .await;
 
     // user music folders
-    refresh_user_music_folders(&server_state.conn, &upserted_music_folders).await;
+    refresh_user_music_folders_all_users(
+        &server_state.conn,
+        &upserted_music_folders
+            .iter()
+            .map(|music_folder| music_folder.id)
+            .collect::<Vec<_>>(),
+    )
+    .await
+    .expect("can not set music folders permissions");
 
     // run it
     let listener =
