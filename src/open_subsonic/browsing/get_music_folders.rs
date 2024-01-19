@@ -58,6 +58,8 @@ mod tests {
     use crate::utils::test::http::to_validated_form;
     use crate::utils::test::state::setup_state;
 
+    use itertools::Itertools;
+
     fn sort_models(mut music_folders: Vec<music_folder::Model>) -> Vec<music_folder::Model> {
         music_folders.sort_by_key(|model| model.id);
         music_folders
@@ -72,7 +74,7 @@ mod tests {
             &music_folders
                 .iter()
                 .map(|music_folder| music_folder.id)
-                .collect::<Vec<_>>(),
+                .collect_vec(),
         )
         .await
         .unwrap();
@@ -119,7 +121,7 @@ mod tests {
             &music_folders
                 .iter()
                 .map(|music_folder| music_folder.id)
-                .collect::<Vec<_>>(),
+                .collect_vec(),
         )
         .await
         .unwrap();

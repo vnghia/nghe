@@ -92,7 +92,7 @@ mod tests {
             .unwrap()
             .into_iter()
             .sorted_by_key(|user_music_folder| user_music_folder.music_folder_id)
-            .collect::<Vec<_>>();
+            .collect_vec();
 
         assert_eq!(
             music_folders
@@ -103,7 +103,7 @@ mod tests {
                     music_folder_id: music_folder.id,
                     allow: true
                 })
-                .collect::<Vec<_>>(),
+                .collect_vec(),
             results
         );
 

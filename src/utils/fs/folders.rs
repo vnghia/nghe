@@ -1,5 +1,6 @@
 use concat_string::concat_string;
 use futures::stream::{self, StreamExt, TryStreamExt};
+use itertools::Itertools;
 use std::path::{Path, PathBuf};
 use tokio::fs::*;
 use walkdir::WalkDir;
@@ -35,7 +36,7 @@ fn get_deepest_folders<P: AsRef<Path>>(root: P, max_depth: u8) -> Vec<PathBuf> {
                 None
             }
         })
-        .collect::<Vec<_>>();
+        .collect_vec();
     folders
 }
 
@@ -85,7 +86,7 @@ pub async fn build_music_folders<P: AsRef<Path>>(
             .iter()
             .zip(depth_levels.iter())
             .flat_map(|(root, depth)| get_deepest_folders(root, *depth))
-            .collect::<Vec<_>>()
+            .collect_vec()
     })
     .await
     .expect("can not get deepest folders from top paths")

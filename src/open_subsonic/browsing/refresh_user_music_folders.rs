@@ -51,7 +51,7 @@ pub async fn refresh_user_music_folders_all_users(
         .map_err(|e| OpenSubsonicError::Generic { source: e.into() })?
         .iter()
         .map(|user| user.id)
-        .collect::<Vec<_>>();
+        .collect_vec();
     refresh_user_music_folders(conn, &user_ids, music_folder_ids).await
 }
 
@@ -66,7 +66,7 @@ pub async fn refresh_user_music_folders_all_folders(
         .map_err(|e| OpenSubsonicError::Generic { source: e.into() })?
         .iter()
         .map(|music_folder: &music_folder::Model| music_folder.id)
-        .collect::<Vec<_>>();
+        .collect_vec();
     refresh_user_music_folders(conn, user_ids, &music_folder_ids).await
 }
 
@@ -90,7 +90,7 @@ mod tests {
             &music_folders
                 .iter()
                 .map(|music_folder| music_folder.id)
-                .collect::<Vec<_>>(),
+                .collect_vec(),
         )
         .await
         .unwrap();
@@ -114,7 +114,7 @@ mod tests {
             &music_folders
                 .iter()
                 .map(|music_folder| music_folder.id)
-                .collect::<Vec<_>>(),
+                .collect_vec(),
         )
         .await
         .unwrap();

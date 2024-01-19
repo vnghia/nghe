@@ -3,6 +3,7 @@ mod built_info {
 }
 
 use axum::Router;
+use itertools::Itertools;
 use sea_orm_migration::prelude::*;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -59,7 +60,7 @@ async fn main() {
         &upserted_music_folders
             .iter()
             .map(|music_folder| music_folder.id)
-            .collect::<Vec<_>>(),
+            .collect_vec(),
     )
     .await
     .expect("can not set music folders permissions");

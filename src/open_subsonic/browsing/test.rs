@@ -28,7 +28,7 @@ pub async fn setup_user_and_music_folders(
                 allow: *allow,
             },
         )
-        .collect::<Vec<_>>();
+        .collect_vec();
 
     (
         db,
