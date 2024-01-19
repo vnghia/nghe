@@ -73,20 +73,19 @@ mod tests {
         let dir_1 = temp_fs.create_dir("test1/").await;
         let dir_2 = temp_fs.create_dir("test2/").await;
 
-        let mut inputs = vec![dir_1, dir_2];
+        let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
             refresh_music_folders(db.get_conn(), &inputs, &[]).await;
-        let mut results = upserted_folders
+        let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
             .collect_vec();
 
-        inputs.sort();
-        let inputs = temp_fs.canonicalize_paths(&inputs);
-        results.sort();
-
-        assert_eq!(inputs, results);
+        assert_eq!(
+            temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
+            results.into_iter().sorted().collect_vec()
+        );
         assert_eq!(deleted_folder_count, 0);
 
         db.async_drop().await;
@@ -114,20 +113,19 @@ mod tests {
         )
         .await;
 
-        let mut inputs = vec![dir_1, dir_2];
+        let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
             refresh_music_folders(db.get_conn(), &inputs, &[]).await;
-        let mut results = upserted_folders
+        let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
             .collect_vec();
 
-        inputs.sort();
-        let inputs = temp_fs.canonicalize_paths(&inputs);
-        results.sort();
-
-        assert_eq!(inputs, results);
+        assert_eq!(
+            temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
+            results.into_iter().sorted().collect_vec()
+        );
         assert_eq!(deleted_folder_count, 0);
 
         db.async_drop().await;
@@ -169,20 +167,19 @@ mod tests {
         )
         .await;
 
-        let mut inputs = vec![dir_1, dir_2];
+        let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
             refresh_music_folders(db.get_conn(), &inputs, &[]).await;
-        let mut results = upserted_folders
+        let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
             .collect_vec();
 
-        inputs.sort();
-        let inputs = temp_fs.canonicalize_paths(&inputs);
-        results.sort();
-
-        assert_eq!(inputs, results);
+        assert_eq!(
+            temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
+            results.into_iter().sorted().collect_vec()
+        );
         assert_eq!(deleted_folder_count, 1);
 
         db.async_drop().await;

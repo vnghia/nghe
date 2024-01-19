@@ -170,13 +170,13 @@ mod tests {
         let dir_1 = temp_fs.create_dir("test1/").await;
         let dir_2 = temp_fs.create_dir("test2/").await;
 
-        let mut inputs = vec![dir_1, dir_2];
-        let mut results = build_music_folders(&inputs, &[]).await;
+        let inputs = vec![dir_1, dir_2];
+        let results = build_music_folders(&inputs, &[]).await;
 
-        inputs.sort();
-        let inputs = temp_fs.canonicalize_paths(&inputs);
-        results.sort();
-        assert_eq!(inputs, results);
+        assert_eq!(
+            temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
+            results.into_iter().sorted().collect_vec()
+        );
     }
 
     #[tokio::test]
@@ -208,18 +208,19 @@ mod tests {
             .await;
         temp_fs.create_dir("test2/").await;
 
-        let mut inputs = temp_fs.join_paths(&[
+        let inputs = temp_fs.join_paths(&[
             "test1/test1.1/test1.1.1/",
             "test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/",
             "test1/test1.2/",
             "test1/test1.3/test1.3.1/test1.3.1.1/",
             "test2/",
         ]);
-        let mut results = get_deepest_folders(temp_fs.get_root_path(), u8::MAX);
+        let results = get_deepest_folders(temp_fs.get_root_path(), u8::MAX);
 
-        inputs.sort();
-        results.sort();
-        assert_eq!(inputs, results);
+        assert_eq!(
+            inputs.into_iter().sorted().collect_vec(),
+            results.into_iter().sorted().collect_vec()
+        );
     }
 
     #[tokio::test]
@@ -235,18 +236,19 @@ mod tests {
             .await;
         temp_fs.create_dir("test2/").await;
 
-        let mut inputs = temp_fs.join_paths(&[
+        let inputs = temp_fs.join_paths(&[
             "test1/test1.1/test1.1.1/",
             "test1/test1.1/test1.1.2/",
             "test1/test1.2/",
             "test1/test1.3/test1.3.1/",
             "test2/",
         ]);
-        let mut results = get_deepest_folders(temp_fs.get_root_path(), 3);
+        let results = get_deepest_folders(temp_fs.get_root_path(), 3);
 
-        inputs.sort();
-        results.sort();
-        assert_eq!(inputs, results);
+        assert_eq!(
+            inputs.into_iter().sorted().collect_vec(),
+            results.into_iter().sorted().collect_vec()
+        );
     }
 
     #[tokio::test]
@@ -264,18 +266,19 @@ mod tests {
             .await;
         temp_fs.create_file("test2/test2.1.txt").await;
 
-        let mut inputs = temp_fs.join_paths(&[
+        let inputs = temp_fs.join_paths(&[
             "test1/test1.1/test1.1.1/",
             "test1/test1.1/test1.1.2/",
             "test1/test1.2/",
             "test1/test1.3/test1.3.1/",
             "test2/",
         ]);
-        let mut results = get_deepest_folders(temp_fs.get_root_path(), 3);
+        let results = get_deepest_folders(temp_fs.get_root_path(), 3);
 
-        inputs.sort();
-        results.sort();
-        assert_eq!(inputs, results);
+        assert_eq!(
+            inputs.into_iter().sorted().collect_vec(),
+            results.into_iter().sorted().collect_vec()
+        );
     }
 
     #[tokio::test]
@@ -293,17 +296,18 @@ mod tests {
             .await;
         temp_fs.create_file("test2/test2.1.txt").await;
 
-        let mut inputs = temp_fs.canonicalize_paths(&temp_fs.join_paths(&[
+        let inputs = temp_fs.canonicalize_paths(&temp_fs.join_paths(&[
             "test1/test1.1/",
             "test1/test1.2/",
             "test1/test1.3/",
             "test2/",
         ]));
-        let mut results =
+        let results =
             build_music_folders(&temp_fs.join_paths(&["test1/", "test2/"]), &[1, 2]).await;
 
-        inputs.sort();
-        results.sort();
-        assert_eq!(inputs, results);
+        assert_eq!(
+            inputs.into_iter().sorted().collect_vec(),
+            results.into_iter().sorted().collect_vec()
+        );
     }
 }

@@ -75,10 +75,12 @@ mod tests {
     use super::super::test::setup_user_and_music_folders;
     use super::*;
 
-    fn sort_models(mut models: Vec<user_music_folder::Model>) -> Vec<user_music_folder::Model> {
-        models.sort_by_key(|model| model.user_id);
-        models.sort_by_key(|model| model.music_folder_id);
+    fn sort_models(models: Vec<user_music_folder::Model>) -> Vec<user_music_folder::Model> {
         models
+            .into_iter()
+            .sorted_by_key(|model| model.user_id)
+            .sorted_by_key(|model| model.music_folder_id)
+            .collect_vec()
     }
 
     #[tokio::test]
