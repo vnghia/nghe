@@ -60,9 +60,11 @@ mod tests {
 
     use itertools::Itertools;
 
-    fn sort_models(mut music_folders: Vec<music_folder::Model>) -> Vec<music_folder::Model> {
-        music_folders.sort_by_key(|model| model.id);
+    fn sort_models(music_folders: Vec<music_folder::Model>) -> Vec<music_folder::Model> {
         music_folders
+            .into_iter()
+            .sorted_by_key(|model| model.id)
+            .collect_vec()
     }
 
     #[tokio::test]
