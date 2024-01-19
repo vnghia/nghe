@@ -56,3 +56,57 @@ pub async fn create_user(
     refresh_user_music_folders_all_folders(conn, &[user.id]).await?;
     Ok(user)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        open_subsonic::browsing::test::setup_user_and_music_folders,
+        utils::test::user::create_user_token,
+    };
+
+    use itertools::Itertools;
+
+    #[tokio::test]
+    async fn test_create_user_with_music_folders() {
+        let (db, key, _, _temp_fs, music_folders, _) =
+            setup_user_and_music_folders(0, 2, &[]).await;
+        let (username, password, _, _) = create_user_token();
+
+        let user = create_user(
+            db.get_conn(),
+            &key,
+            CreateUserParams {
+                username: username.clone(),
+                password,
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+
+        let results = UserMusicFolder::find()
+            .filter(user_music_folder::Column::UserId.eq(user.id))
+            .all(db.get_conn())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted_by_key(|user_music_folder| user_music_folder.music_folder_id)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            music_folders
+                .into_iter()
+                .sorted_by_key(|music_folder| music_folder.id)
+                .map(|music_folder| user_music_folder::Model {
+                    user_id: user.id,
+                    music_folder_id: music_folder.id,
+                    allow: true
+                })
+                .collect::<Vec<_>>(),
+            results
+        );
+
+        db.async_drop().await;
+    }
+}
