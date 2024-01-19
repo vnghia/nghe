@@ -1,6 +1,7 @@
 use crate::entity::{prelude::*, *};
 use crate::utils::fs::folders::build_music_folders;
 
+use itertools::Itertools;
 use sea_orm::{DatabaseConnection, EntityTrait, *};
 use std::path::Path;
 
@@ -19,7 +20,7 @@ pub async fn refresh_music_folders<P: AsRef<Path>>(
             updated_at: Set(time::OffsetDateTime::now_utc()),
             ..Default::default()
         })
-        .collect::<Vec<_>>();
+        .collect_vec();
     let music_folder_len = music_folder_models.len();
 
     // TODO: use `exec_with_retuning` with `insert_many`.
@@ -79,7 +80,7 @@ mod tests {
         let mut results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
-            .collect::<Vec<_>>();
+            .collect_vec();
 
         inputs.sort();
         let inputs = temp_fs.canonicalize_paths(&inputs);
@@ -120,7 +121,7 @@ mod tests {
         let mut results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
-            .collect::<Vec<_>>();
+            .collect_vec();
 
         inputs.sort();
         let inputs = temp_fs.canonicalize_paths(&inputs);
@@ -175,7 +176,7 @@ mod tests {
         let mut results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
-            .collect::<Vec<_>>();
+            .collect_vec();
 
         inputs.sort();
         let inputs = temp_fs.canonicalize_paths(&inputs);
