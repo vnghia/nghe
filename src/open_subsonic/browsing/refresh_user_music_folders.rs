@@ -1,27 +1,26 @@
 use crate::entity::{prelude::*, *};
+use crate::{OSResult, OpenSubsonicError};
 
 use itertools::Itertools;
 use sea_orm::{DatabaseConnection, EntityTrait, *};
+use uuid::Uuid;
 
 pub async fn refresh_user_music_folders(
     conn: &DatabaseConnection,
-    music_folders: &[music_folder::Model],
-) {
-    let users = User::find()
-        .select_column(user::Column::Id)
-        .all(conn)
-        .await
-        .expect("can not get list of users");
-
-    let user_music_folder_models =
-        users
-            .iter()
-            .cartesian_product(music_folders)
-            .map(|(user, music_folder)| user_music_folder::ActiveModel {
-                user_id: Set(user.id),
-                music_folder_id: Set(music_folder.id),
+    user_ids: &[Uuid],
+    music_folder_ids: &[Uuid],
+) -> OSResult<()> {
+    let user_music_folder_models = user_ids
+        .iter()
+        .copied()
+        .cartesian_product(music_folder_ids.iter().copied())
+        .map(
+            |(user_id, music_folder_id)| user_music_folder::ActiveModel {
+                user_id: Set(user_id),
+                music_folder_id: Set(music_folder_id),
                 ..Default::default()
-            });
+            },
+        );
 
     UserMusicFolder::insert_many(user_music_folder_models)
         .on_conflict(
@@ -38,6 +37,37 @@ pub async fn refresh_user_music_folders(
         .expect("can not set permission for in user music folder");
 
     tracing::info!("done refreshing user music folders");
+    Ok(())
+}
+
+pub async fn refresh_user_music_folders_all_users(
+    conn: &DatabaseConnection,
+    music_folder_ids: &[Uuid],
+) -> OSResult<()> {
+    let user_ids = User::find()
+        .select_column(user::Column::Id)
+        .all(conn)
+        .await
+        .map_err(|e| OpenSubsonicError::Generic { source: e.into() })?
+        .iter()
+        .map(|user| user.id)
+        .collect::<Vec<_>>();
+    refresh_user_music_folders(conn, &user_ids, music_folder_ids).await
+}
+
+pub async fn refresh_user_music_folders_all_folders(
+    conn: &DatabaseConnection,
+    user_ids: &[Uuid],
+) -> OSResult<()> {
+    let music_folder_ids = MusicFolder::find()
+        .select_column(music_folder::Column::Id)
+        .all(conn)
+        .await
+        .map_err(|e| OpenSubsonicError::Generic { source: e.into() })?
+        .iter()
+        .map(|music_folder: &music_folder::Model| music_folder.id)
+        .collect::<Vec<_>>();
+    refresh_user_music_folders(conn, user_ids, &music_folder_ids).await
 }
 
 #[cfg(test)]
@@ -55,7 +85,15 @@ mod tests {
     async fn test_refresh_insert() {
         let (db, _, _, _temp_fs, music_folders, permissions) =
             setup_user_and_music_folders(2, 2, &[true, true, true, true]).await;
-        refresh_user_music_folders(db.get_conn(), &music_folders).await;
+        refresh_user_music_folders_all_users(
+            db.get_conn(),
+            &music_folders
+                .iter()
+                .map(|music_folder| music_folder.id)
+                .collect::<Vec<_>>(),
+        )
+        .await
+        .unwrap();
 
         let results = UserMusicFolder::find().all(db.get_conn()).await.unwrap();
         let permissions = sort_models(permissions);
@@ -71,7 +109,15 @@ mod tests {
             setup_user_and_music_folders(2, 2, &[true, false, true, true]).await;
         db.insert(permissions[1].clone().into_active_model()).await;
         db.insert(permissions[3].clone().into_active_model()).await;
-        refresh_user_music_folders(db.get_conn(), &music_folders).await;
+        refresh_user_music_folders_all_users(
+            db.get_conn(),
+            &music_folders
+                .iter()
+                .map(|music_folder| music_folder.id)
+                .collect::<Vec<_>>(),
+        )
+        .await
+        .unwrap();
 
         let results = UserMusicFolder::find().all(db.get_conn()).await.unwrap();
         let permissions = sort_models(permissions);

@@ -1,6 +1,7 @@
 use super::password::encrypt_password;
 use crate::config::EncryptionKey;
 use crate::entity::{prelude::*, *};
+use crate::open_subsonic::browsing::refresh_user_music_folders_all_folders;
 use crate::{OSResult, ServerState};
 
 use axum::extract::State;
@@ -48,8 +49,10 @@ pub async fn create_user(
         share_role: ActiveValue::Set(params.share_role),
         ..Default::default()
     };
-    User::insert(user)
+    let user = User::insert(user)
         .exec_with_returning(conn)
         .await
-        .map_err(|e| crate::OpenSubsonicError::Generic { source: e.into() })
+        .map_err(|e| crate::OpenSubsonicError::Generic { source: e.into() })?;
+    refresh_user_music_folders_all_folders(conn, &[user.id]).await?;
+    Ok(user)
 }

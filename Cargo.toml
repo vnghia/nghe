@@ -38,6 +38,7 @@ tower = { version = "0.4", features = ["util"] }
 tower-http = { version = "0.5.1", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = "1.6.1"
 walkdir = "2.4.0"
 
 [build-dependencies]
