@@ -2,29 +2,32 @@ use crate::migration;
 use crate::DbPool;
 
 use concat_string::concat_string;
-use diesel::{pg::PgConnection, Connection};
-use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+use diesel_async::{
+    pooled_connection::AsyncDieselConnectionManager, AsyncConnection, AsyncPgConnection,
+};
 use url::Url;
 use uuid::Uuid;
 
 pub struct TemporaryDatabase {
     name: String,
     pool: DbPool,
-    old_conn: PgConnection,
+    root_url: String,
 }
 
 impl TemporaryDatabase {
-    async fn new(url: &str) -> Self {
+    async fn new(url: String) -> Self {
         let name = Uuid::new_v4().to_string();
-        let mut new_url = Url::parse(url).expect("can not parse database url");
+        let mut new_url = Url::parse(&url).expect("can not parse database url");
         new_url.set_path(&name);
 
-        let mut old_conn = PgConnection::establish(url).expect("can not connect to the database");
-
-        diesel::RunQueryDsl::execute(
+        let mut root_conn = AsyncPgConnection::establish(&url)
+            .await
+            .expect("can not connect to the database");
+        diesel_async::RunQueryDsl::execute(
             diesel::sql_query(concat_string!("CREATE DATABASE \"", name, "\";")),
-            &mut old_conn,
+            &mut root_conn,
         )
+        .await
         .expect("can not create new database");
 
         let pool = DbPool::builder(AsyncDieselConnectionManager::<
@@ -39,13 +42,13 @@ impl TemporaryDatabase {
         Self {
             name,
             pool,
-            old_conn,
+            root_url: url,
         }
     }
 
     pub async fn new_from_env() -> Self {
         Self::new(
-            &std::env::var("DATABASE_URL").expect("please set `DATABASE_URL` environment variable"),
+            std::env::var("DATABASE_URL").expect("please set `DATABASE_URL` environment variable"),
         )
         .await
     }
@@ -55,13 +58,27 @@ impl TemporaryDatabase {
     }
 }
 
+#[cfg(not(target_env = "musl"))]
 impl Drop for TemporaryDatabase {
     fn drop(&mut self) {
+        use diesel::{pg::PgConnection, Connection};
+
         let raw_statement =
             concat_string!("DROP DATABASE IF EXISTS \"", &self.name, "\" WITH (FORCE);");
-        if let Err(e) =
-            diesel::RunQueryDsl::execute(diesel::sql_query(&raw_statement), &mut self.old_conn)
-        {
+
+        let mut conn = match PgConnection::establish(&self.root_url) {
+            Ok(conn) => conn,
+            Err(e) => {
+                println!("{}", e);
+                println!(
+                    "can not drop database, please drop the database manually with '{}'",
+                    &raw_statement
+                );
+                return;
+            }
+        };
+
+        if let Err(e) = diesel::RunQueryDsl::execute(diesel::sql_query(&raw_statement), &mut conn) {
             println!("{}", e);
             println!(
                 "can not drop database, please drop the database manually with '{}'",
