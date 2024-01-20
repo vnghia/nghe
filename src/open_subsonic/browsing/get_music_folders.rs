@@ -48,7 +48,7 @@ pub async fn get_music_folders_handler(
 
 #[cfg(test)]
 mod tests {
-    use super::super::{refresh_user_music_folders_all_users, test::setup_user_and_music_folders};
+    use super::super::{refresh_permissions, test::setup_user_and_music_folders};
     use super::*;
     use crate::open_subsonic::common::request::CommonParams;
     use crate::utils::test::http::to_validated_form;
@@ -60,12 +60,16 @@ mod tests {
     async fn test_allow_all() {
         let (db, key, user_tokens, _temp_fs, music_folders, _) =
             setup_user_and_music_folders(2, 2, &[true, true, true, true]).await;
-        refresh_user_music_folders_all_users(
+
+        refresh_permissions(
             db.get_pool(),
-            &music_folders
-                .iter()
-                .map(|music_folder| music_folder.id)
-                .collect_vec(),
+            None,
+            Some(
+                &music_folders
+                    .iter()
+                    .map(|music_folder| music_folder.id)
+                    .collect_vec(),
+            ),
         )
         .await
         .unwrap();
@@ -115,12 +119,15 @@ mod tests {
             .await
             .unwrap();
 
-        refresh_user_music_folders_all_users(
+        refresh_permissions(
             db.get_pool(),
-            &music_folders
-                .iter()
-                .map(|music_folder| music_folder.id)
-                .collect_vec(),
+            None,
+            Some(
+                &music_folders
+                    .iter()
+                    .map(|music_folder| music_folder.id)
+                    .collect_vec(),
+            ),
         )
         .await
         .unwrap();

@@ -12,7 +12,7 @@ use nghe::config::Config;
 use nghe::migration;
 use nghe::open_subsonic::{
     browsing,
-    browsing::{refresh_music_folders, refresh_user_music_folders_all_users},
+    browsing::{refresh_music_folders, refresh_permissions},
     system, user,
 };
 use nghe::ServerState;
@@ -51,12 +51,15 @@ async fn main() {
     .await;
 
     // user music folders
-    refresh_user_music_folders_all_users(
+    refresh_permissions(
         &server_state.pool,
-        &upserted_music_folders
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec(),
+        None,
+        Some(
+            &upserted_music_folders
+                .iter()
+                .map(|music_folder| music_folder.id)
+                .collect_vec(),
+        ),
     )
     .await
     .expect("can not set music folders permissions");

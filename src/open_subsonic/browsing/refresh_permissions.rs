@@ -4,13 +4,32 @@ use crate::{DbPool, OSResult};
 use diesel::query_dsl::methods::SelectDsl;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
+use std::borrow::Cow;
 use uuid::Uuid;
 
-pub async fn refresh_user_music_folders(
+pub async fn refresh_permissions(
     pool: &DbPool,
-    user_ids: &[Uuid],
-    music_folder_ids: &[Uuid],
+    user_ids: Option<&[Uuid]>,
+    music_folder_ids: Option<&[Uuid]>,
 ) -> OSResult<()> {
+    let user_ids: Cow<[Uuid]> = match user_ids {
+        Some(user_ids) => Cow::Borrowed(user_ids),
+        None => users::table
+            .select(users::id)
+            .load::<Uuid>(&mut pool.get().await?)
+            .await?
+            .into(),
+    };
+
+    let music_folder_ids: Cow<[Uuid]> = match music_folder_ids {
+        Some(music_folder_ids) => Cow::Borrowed(music_folder_ids),
+        None => music_folders::table
+            .select(music_folders::id)
+            .load::<Uuid>(&mut pool.get().await?)
+            .await?
+            .into(),
+    };
+
     let new_user_music_folder_permissions = user_ids
         .iter()
         .copied()
@@ -34,28 +53,6 @@ pub async fn refresh_user_music_folders(
     Ok(())
 }
 
-pub async fn refresh_user_music_folders_all_users(
-    pool: &DbPool,
-    music_folder_ids: &[Uuid],
-) -> OSResult<()> {
-    let user_ids = users::table
-        .select(users::id)
-        .load::<Uuid>(&mut pool.get().await?)
-        .await?;
-    refresh_user_music_folders(pool, &user_ids, music_folder_ids).await
-}
-
-pub async fn refresh_user_music_folders_all_folders(
-    pool: &DbPool,
-    user_ids: &[Uuid],
-) -> OSResult<()> {
-    let music_folder_ids = music_folders::table
-        .select(music_folders::id)
-        .load::<Uuid>(&mut pool.get().await?)
-        .await?;
-    refresh_user_music_folders(pool, user_ids, &music_folder_ids).await
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::test::setup_user_and_music_folders;
@@ -66,12 +63,15 @@ mod tests {
         let (db, _, _, _temp_fs, music_folders, permissions) =
             setup_user_and_music_folders(2, 2, &[true, true, true, true]).await;
 
-        refresh_user_music_folders_all_users(
+        refresh_permissions(
             db.get_pool(),
-            &music_folders
-                .iter()
-                .map(|music_folder| music_folder.id)
-                .collect_vec(),
+            None,
+            Some(
+                &music_folders
+                    .iter()
+                    .map(|music_folder| music_folder.id)
+                    .collect_vec(),
+            ),
         )
         .await
         .unwrap();
@@ -98,12 +98,15 @@ mod tests {
             .await
             .unwrap();
 
-        refresh_user_music_folders_all_users(
+        refresh_permissions(
             db.get_pool(),
-            &music_folders
-                .iter()
-                .map(|music_folder| music_folder.id)
-                .collect_vec(),
+            None,
+            Some(
+                &music_folders
+                    .iter()
+                    .map(|music_folder| music_folder.id)
+                    .collect_vec(),
+            ),
         )
         .await
         .unwrap();

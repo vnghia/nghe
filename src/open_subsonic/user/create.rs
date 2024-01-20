@@ -1,7 +1,7 @@
 use super::password::encrypt_password;
 use crate::config::EncryptionKey;
 use crate::models::*;
-use crate::open_subsonic::browsing::refresh_user_music_folders_all_folders;
+use crate::open_subsonic::browsing::refresh_permissions;
 use crate::{DbPool, OSResult, ServerState};
 
 use axum::extract::State;
@@ -62,7 +62,7 @@ pub async fn create_user(
         .returning(users::User::as_returning())
         .get_result(&mut pool.get().await?)
         .await?;
-    refresh_user_music_folders_all_folders(pool, &[user.id]).await?;
+    refresh_permissions(pool, Some(&[user.id]), None).await?;
     Ok(user)
 }
 
