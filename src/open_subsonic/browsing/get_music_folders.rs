@@ -1,9 +1,10 @@
-use crate::entity::{prelude::*, *};
+use crate::models::*;
 use crate::{OSResult, ServerState};
 
 use axum::extract::State;
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
-use sea_orm::{EntityTrait, *};
 use serde::{Deserialize, Serialize};
 
 #[add_validate]
@@ -14,7 +15,7 @@ pub struct GetMusicFoldersParams {}
 #[derive(Debug, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct MusicFolders {
-    music_folder: Vec<music_folder::Model>,
+    music_folder: Vec<music_folders::MusicFolder>,
 }
 
 #[wrap_subsonic_response]
@@ -28,17 +29,12 @@ pub async fn get_music_folders_handler(
     State(state): State<ServerState>,
     req: GetMusicFoldersRequest,
 ) -> OSResult<GetMusicFoldersResponse> {
-    let music_folders = MusicFolder::find()
-        .join(
-            JoinType::InnerJoin,
-            music_folder::Relation::UserMusicFolder.def(),
-        )
-        .filter(
-            Condition::all()
-                .add(user_music_folder::Column::UserId.eq(req.user.id))
-                .add(user_music_folder::Column::Allow.eq(true)),
-        )
-        .all(&state.conn)
+    let music_folders = music_folders::table
+        .inner_join(user_music_folder_permissions::table)
+        .select(music_folders::MusicFolder::as_select())
+        .filter(user_music_folder_permissions::user_id.eq(req.user.id))
+        .filter(user_music_folder_permissions::allow.eq(true))
+        .load(&mut state.pool.get().await?)
         .await?;
 
     Ok(GetMusicFoldersBody {
@@ -60,19 +56,12 @@ mod tests {
 
     use itertools::Itertools;
 
-    fn sort_models(music_folders: Vec<music_folder::Model>) -> Vec<music_folder::Model> {
-        music_folders
-            .into_iter()
-            .sorted_by_key(|model| model.id)
-            .collect_vec()
-    }
-
     #[tokio::test]
     async fn test_allow_all() {
         let (db, key, user_tokens, _temp_fs, music_folders, _) =
             setup_user_and_music_folders(2, 2, &[true, true, true, true]).await;
         refresh_user_music_folders_all_users(
-            db.get_conn(),
+            db.get_pool(),
             &music_folders
                 .iter()
                 .map(|music_folder| music_folder.id)
@@ -80,13 +69,12 @@ mod tests {
         )
         .await
         .unwrap();
-        let music_folders = sort_models(music_folders);
 
-        let state = setup_state(db.get_conn(), key);
+        let state = setup_state(db.get_pool(), key);
 
         for user_token in user_tokens {
             let form = to_validated_form(
-                db.get_conn(),
+                db.get_pool(),
                 &key,
                 GetMusicFoldersParams {
                     common: CommonParams {
@@ -104,22 +92,31 @@ mod tests {
                 .0
                 .root
                 .music_folders
-                .music_folder;
-            let results = sort_models(results);
+                .music_folder
+                .into_iter()
+                .sorted()
+                .collect_vec();
 
-            assert_eq!(results, music_folders);
+            assert_eq!(
+                results,
+                music_folders.clone().into_iter().sorted().collect_vec()
+            );
         }
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
     async fn test_deny_some() {
         let (db, key, user_tokens, _temp_fs, music_folders, permissions) =
             setup_user_and_music_folders(2, 2, &[true, false, true, true]).await;
-        db.insert(permissions[1].clone().into_active_model()).await;
+
+        diesel::insert_into(user_music_folder_permissions::table)
+            .values(&permissions[1])
+            .execute(&mut db.get_pool().get().await.unwrap())
+            .await
+            .unwrap();
+
         refresh_user_music_folders_all_users(
-            db.get_conn(),
+            db.get_pool(),
             &music_folders
                 .iter()
                 .map(|music_folder| music_folder.id)
@@ -128,11 +125,11 @@ mod tests {
         .await
         .unwrap();
 
-        let state = setup_state(db.get_conn(), key);
+        let state = setup_state(db.get_pool(), key);
 
         {
             let form = to_validated_form(
-                db.get_conn(),
+                db.get_pool(),
                 &key,
                 GetMusicFoldersParams {
                     common: CommonParams {
@@ -157,7 +154,7 @@ mod tests {
 
         {
             let form = to_validated_form(
-                db.get_conn(),
+                db.get_pool(),
                 &key,
                 GetMusicFoldersParams {
                     common: CommonParams {
@@ -175,11 +172,12 @@ mod tests {
                 .0
                 .root
                 .music_folders
-                .music_folder;
+                .music_folder
+                .into_iter()
+                .sorted()
+                .collect_vec();
 
-            assert_eq!(sort_models(results), sort_models(music_folders));
+            assert_eq!(results, music_folders.into_iter().sorted().collect_vec());
         }
-
-        db.async_drop().await;
     }
 }

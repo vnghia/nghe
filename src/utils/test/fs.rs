@@ -2,15 +2,14 @@ mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+use crate::models::*;
+use crate::{open_subsonic::browsing::refresh_music_folders, DbPool};
+
 use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
-use sea_orm::DatabaseConnection;
 use std::path::{Path, PathBuf};
 use tempdir::TempDir;
 use tokio::{fs::*, io::AsyncWriteExt};
-
-use crate::entity::*;
-use crate::open_subsonic::browsing::refresh_music_folders;
 
 pub struct TemporaryFs {
     root: TempDir,
@@ -66,14 +65,14 @@ impl TemporaryFs {
 
     pub async fn create_music_folders(
         &self,
-        conn: &DatabaseConnection,
+        pool: &DbPool,
         n_folder: u8,
-    ) -> Vec<music_folder::Model> {
+    ) -> Vec<music_folders::MusicFolder> {
         let music_folder_paths = stream::iter(0..n_folder)
             .then(|_| async move { self.create_dir(&Faker.fake::<String>()).await })
             .collect::<Vec<_>>()
             .await;
-        let (upserted_folders, _) = refresh_music_folders(conn, &music_folder_paths, &[]).await;
+        let (upserted_folders, _) = refresh_music_folders(pool, &music_folder_paths, &[]).await;
         upserted_folders
     }
 }

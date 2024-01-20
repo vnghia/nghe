@@ -1,11 +1,12 @@
 use super::super::user::password::*;
 use crate::config::EncryptionKey;
-use crate::entity::{prelude::*, *};
-use crate::{OSResult, OpenSubsonicError, ServerState};
+use crate::models::*;
+use crate::{DbPool, OSResult, OpenSubsonicError, ServerState};
 
 use axum::extract::{rejection::FormRejection, Form, FromRef, FromRequest, Request};
 use derivative::Derivative;
-use sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, *};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel_async::RunQueryDsl;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_with::serde_as;
 
@@ -30,20 +31,18 @@ pub trait Validate {
 
     fn need_admin(&self) -> bool;
 
-    async fn validate(
-        &self,
-        conn: &DatabaseConnection,
-        key: &EncryptionKey,
-    ) -> OSResult<user::Model> {
+    async fn validate(&self, pool: &DbPool, key: &EncryptionKey) -> OSResult<users::User> {
         let common_params = self.get_common_params();
-        let user: user::Model = match User::find()
-            .filter(user::Column::Username.eq(&common_params.username))
-            .one(conn)
-            .await?
+        let user = match users::table
+            .filter(users::username.eq(&common_params.username))
+            .select(users::User::as_select())
+            .first(&mut pool.get().await?)
+            .await
         {
-            Some(user) => user,
+            Ok(user) => user,
             _ => return Err(OpenSubsonicError::Unauthorized { message: None }),
         };
+
         check_password(
             &decrypt_password(key, &user.password)?,
             &common_params.salt,
@@ -59,7 +58,7 @@ pub trait Validate {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedForm<T> {
     pub params: T,
-    pub user: user::Model,
+    pub user: users::User,
 }
 
 #[async_trait::async_trait]
@@ -76,7 +75,7 @@ where
         let Form(params) = Form::<T>::from_request(req, state).await?;
         tracing::debug!("deserialized form {:?}", params);
         let state = ServerState::from_ref(state);
-        let user = params.validate(&state.conn, &state.encryption_key).await?;
+        let user = params.validate(&state.pool, &state.encryption_key).await?;
         Ok(ValidatedForm { params, user })
     }
 }
@@ -113,11 +112,9 @@ mod tests {
                 token: user_tokens[0].2,
             }
         }
-        .validate(db.get_conn(), &key)
+        .validate(db.get_pool(), &key)
         .await
         .is_ok());
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -133,12 +130,10 @@ mod tests {
                     token: user_tokens[0].2,
                 }
             }
-            .validate(db.get_conn(), &key)
+            .validate(db.get_pool(), &key)
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -147,7 +142,7 @@ mod tests {
         let (username, _, client_salt, client_token) = create_user_token();
         let wrong_password: String = Password(16..32).fake();
         let _ = create_user(
-            db.get_conn(),
+            db.get_pool(),
             &key,
             CreateUserParams {
                 username: username.clone(),
@@ -165,12 +160,10 @@ mod tests {
                     salt: client_salt
                 }
             }
-            .validate(db.get_conn(), &key)
+            .validate(db.get_pool(), &key)
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -184,11 +177,9 @@ mod tests {
                 token: user_tokens[0].2,
             }
         }
-        .validate(db.get_conn(), &key)
+        .validate(db.get_pool(), &key)
         .await
         .is_ok());
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -203,11 +194,9 @@ mod tests {
                     token: user_tokens[0].2,
                 }
             }
-            .validate(db.get_conn(), &key)
+            .validate(db.get_pool(), &key)
             .await,
             Err(OpenSubsonicError::Forbidden { message: _ })
         ));
-
-        db.async_drop().await;
     }
 }

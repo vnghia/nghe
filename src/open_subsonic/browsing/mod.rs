@@ -1,11 +1,11 @@
 pub mod get_music_folders;
 pub mod refresh_music_folders;
-pub mod refresh_user_music_folders;
+pub mod refresh_user_music_folder_permissions;
 
 pub use refresh_music_folders::refresh_music_folders;
-pub use refresh_user_music_folders::refresh_user_music_folders;
-pub use refresh_user_music_folders::refresh_user_music_folders_all_folders;
-pub use refresh_user_music_folders::refresh_user_music_folders_all_users;
+pub use refresh_user_music_folder_permissions::refresh_user_music_folders;
+pub use refresh_user_music_folder_permissions::refresh_user_music_folders_all_folders;
+pub use refresh_user_music_folder_permissions::refresh_user_music_folders_all_users;
 
 use axum::{routing::get, Router};
 

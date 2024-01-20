@@ -1,22 +1,25 @@
-use sea_orm::{Database, DatabaseConnection};
-
 use crate::config::{Config, EncryptionKey};
+use crate::DbPool;
 
-#[derive(Debug, Default, Clone)]
+use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+
+#[derive(Clone)]
 pub struct ServerState {
-    pub conn: DatabaseConnection,
+    pub pool: DbPool,
     pub encryption_key: EncryptionKey,
 }
 
 impl ServerState {
     pub async fn new(config: &Config) -> Self {
         // database
-        let conn = Database::connect(&config.database.url)
-            .await
-            .expect("can not connect to the database");
+        let pool = DbPool::builder(AsyncDieselConnectionManager::<
+            diesel_async::AsyncPgConnection,
+        >::new(&config.database.url))
+        .build()
+        .expect("can not connect to the database");
 
         Self {
-            conn,
+            pool,
             encryption_key: config.database.encryption_key,
         }
     }

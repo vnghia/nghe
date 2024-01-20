@@ -1,10 +1,9 @@
-use crate::{config::EncryptionKey, ServerState};
+use crate::{config::EncryptionKey, DbPool, ServerState};
 use axum::extract::State;
-use sea_orm::DatabaseConnection;
 
-pub fn setup_state(conn: &DatabaseConnection, key: EncryptionKey) -> State<ServerState> {
+pub fn setup_state(pool: &DbPool, key: EncryptionKey) -> State<ServerState> {
     State(ServerState {
-        conn: conn.clone(),
+        pool: pool.clone(),
         encryption_key: key,
     })
 }

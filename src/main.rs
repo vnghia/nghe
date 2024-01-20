@@ -4,18 +4,17 @@ mod built_info {
 
 use axum::Router;
 use itertools::Itertools;
-use sea_orm_migration::prelude::*;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
+use nghe::migration;
 use nghe::open_subsonic::{
     browsing,
     browsing::{refresh_music_folders, refresh_user_music_folders_all_users},
     system, user,
 };
-use nghe::Migrator;
 use nghe::ServerState;
 
 #[tokio::main]
@@ -25,7 +24,6 @@ async fn main() {
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 [
                     format!("{}=info", built_info::PKG_NAME),
-                    "sea_orm_migration::migrator=info".to_owned(),
                     "tower_http=info".to_owned(),
                 ]
                 .join(",")
@@ -42,13 +40,11 @@ async fn main() {
     let server_state = ServerState::new(&config).await;
 
     // db migration
-    Migrator::up(&server_state.conn, None)
-        .await
-        .expect("can not run pending migration(s)");
+    migration::run_pending_migrations(&config.database.url).await;
 
     // music folders
     let (upserted_music_folders, _) = refresh_music_folders(
-        &server_state.conn,
+        &server_state.pool,
         &config.folder.top_paths,
         &config.folder.depth_levels,
     )
@@ -56,7 +52,7 @@ async fn main() {
 
     // user music folders
     refresh_user_music_folders_all_users(
-        &server_state.conn,
+        &server_state.pool,
         &upserted_music_folders
             .iter()
             .map(|music_folder| music_folder.id)

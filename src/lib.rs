@@ -3,15 +3,17 @@
 use mimalloc::MiMalloc;
 
 pub mod config;
-pub mod entity;
-pub mod migrator;
+pub mod migration;
+pub mod models;
 pub mod open_subsonic;
+pub mod schema;
 pub mod state;
 pub mod utils;
 
-pub use migrator::Migrator;
 pub use open_subsonic::{OSResult, OpenSubsonicError};
 pub use state::ServerState;
+
+pub type DbPool = diesel_async::pooled_connection::deadpool::Pool<diesel_async::AsyncPgConnection>;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

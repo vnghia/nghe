@@ -1,60 +1,45 @@
-use crate::entity::{prelude::*, *};
+use crate::models::*;
 use crate::utils::fs::folders::build_music_folders;
+use crate::DbPool;
 
+use diesel::{ExpressionMethods, SelectableHelper};
+use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use sea_orm::{DatabaseConnection, EntityTrait, *};
 use std::path::Path;
 
 pub async fn refresh_music_folders<P: AsRef<Path>>(
-    conn: &DatabaseConnection,
+    pool: &DbPool,
     top_paths: &[P],
     depth_levels: &[u8],
-) -> (Vec<music_folder::Model>, u64) {
+) -> (Vec<music_folders::MusicFolder>, usize) {
     let update_start_time = time::OffsetDateTime::now_utc();
 
-    let music_folder_models = build_music_folders(top_paths, depth_levels)
-        .await
-        .iter()
-        .map(|music_folder| music_folder::ActiveModel {
-            path: Set(music_folder.to_string_lossy().to_string()),
-            updated_at: Set(time::OffsetDateTime::now_utc()),
-            ..Default::default()
-        })
-        .collect_vec();
-    let music_folder_len = music_folder_models.len();
-
-    // TODO: use `exec_with_retuning` with `insert_many`.
-    // https://github.com/SeaQL/sea-orm/issues/1862
-    MusicFolder::insert_many(music_folder_models)
-        .on_conflict(
-            sea_query::OnConflict::column(music_folder::Column::Path)
-                .update_column(music_folder::Column::UpdatedAt)
-                .to_owned(),
+    let upserted_folders = diesel::insert_into(music_folders::table)
+        .values(
+            build_music_folders(top_paths, depth_levels)
+                .await
+                .iter()
+                .map(|path| music_folders::NewMusicFolder {
+                    path: path.to_string_lossy(),
+                })
+                .collect_vec(),
         )
-        .exec(conn)
+        .on_conflict(music_folders::path)
+        .do_update()
+        .set(music_folders::updated_at.eq(update_start_time))
+        .returning(music_folders::MusicFolder::as_returning())
+        .get_results(&mut pool.get().await.expect("can not checkout a connection"))
         .await
         .expect("can not upsert music folder");
 
-    // TODO: return more information about what are deleted.
-    // https://github.com/SeaQL/sea-orm/discussions/2059
-    let deleted_folder_count = MusicFolder::delete_many()
-        .filter(music_folder::Column::UpdatedAt.lt(update_start_time))
-        .exec(conn)
+    let deleted_folders = diesel::delete(music_folders::table)
+        .filter(music_folders::updated_at.lt(update_start_time))
+        .returning(music_folders::MusicFolder::as_returning())
+        .get_results(&mut pool.get().await.expect("can not checkout a connection"))
         .await
-        .expect("can not delete old music folder")
-        .rows_affected;
-    tracing::info!("{} old music folders deleted", deleted_folder_count);
+        .expect("can not delete old music folder");
 
-    let upserted_folders = MusicFolder::find()
-        .all(conn)
-        .await
-        .expect("can not get list of upserted folders");
-    for upserted_folder in &upserted_folders {
-        tracing::info!("new music folder added: {}", &upserted_folder.path);
-    }
-    assert_eq!(upserted_folders.len(), music_folder_len);
-
-    (upserted_folders, deleted_folder_count)
+    (upserted_folders, deleted_folders.len())
 }
 
 #[cfg(test)]
@@ -63,7 +48,6 @@ mod tests {
     use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs};
 
     use std::path::PathBuf;
-    use uuid::Uuid;
 
     #[tokio::test]
     async fn test_refresh_insert() {
@@ -76,7 +60,7 @@ mod tests {
         let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(db.get_conn(), &inputs, &[]).await;
+            refresh_music_folders(db.get_pool(), &inputs, &[]).await;
         let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
@@ -87,8 +71,6 @@ mod tests {
             results.into_iter().sorted().collect_vec()
         );
         assert_eq!(deleted_folder_count, 0);
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -99,24 +81,24 @@ mod tests {
         let dir_1 = temp_fs.create_dir("test1/").await;
         let dir_2 = temp_fs.create_dir("test2/").await;
 
-        db.insert(
-            music_folder::Model {
-                id: Uuid::new_v4(),
-                path: tokio::fs::canonicalize(&dir_1)
-                    .await
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string(),
-                updated_at: time::OffsetDateTime::now_utc(),
-            }
-            .into_active_model(),
-        )
-        .await;
+        diesel::insert_into(music_folders::table)
+            .values(
+                temp_fs
+                    .canonicalize_paths(&[dir_1.clone()])
+                    .iter()
+                    .map(|path| music_folders::NewMusicFolder {
+                        path: path.to_string_lossy(),
+                    })
+                    .collect_vec(),
+            )
+            .execute(&mut db.get_pool().get().await.unwrap())
+            .await
+            .unwrap();
 
         let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(db.get_conn(), &inputs, &[]).await;
+            refresh_music_folders(db.get_pool(), &inputs, &[]).await;
         let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
@@ -127,8 +109,6 @@ mod tests {
             results.into_iter().sorted().collect_vec()
         );
         assert_eq!(deleted_folder_count, 0);
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -140,37 +120,24 @@ mod tests {
         let dir_2 = temp_fs.create_dir("test2/").await;
         let dir_3 = temp_fs.create_dir("test3/").await;
 
-        db.insert(
-            music_folder::Model {
-                id: Uuid::new_v4(),
-                path: tokio::fs::canonicalize(&dir_1)
-                    .await
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string(),
-                updated_at: time::OffsetDateTime::now_utc(),
-            }
-            .into_active_model(),
-        )
-        .await
-        .insert(
-            music_folder::Model {
-                id: Uuid::new_v4(),
-                path: tokio::fs::canonicalize(&dir_3)
-                    .await
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string(),
-                updated_at: time::OffsetDateTime::now_utc(),
-            }
-            .into_active_model(),
-        )
-        .await;
+        diesel::insert_into(music_folders::table)
+            .values(
+                temp_fs
+                    .canonicalize_paths(&[dir_1.clone(), dir_3])
+                    .iter()
+                    .map(|path| music_folders::NewMusicFolder {
+                        path: path.to_string_lossy(),
+                    })
+                    .collect_vec(),
+            )
+            .execute(&mut db.get_pool().get().await.unwrap())
+            .await
+            .unwrap();
 
         let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(db.get_conn(), &inputs, &[]).await;
+            refresh_music_folders(db.get_pool(), &inputs, &[]).await;
         let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
@@ -181,7 +148,5 @@ mod tests {
             results.into_iter().sorted().collect_vec()
         );
         assert_eq!(deleted_folder_count, 1);
-
-        db.async_drop().await;
     }
 }

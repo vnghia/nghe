@@ -1,11 +1,12 @@
 use super::create::{create_user, CreateUserParams};
-use crate::entity::prelude::*;
+use crate::models::*;
 use crate::{OSResult, OpenSubsonicError, ServerState};
 
 use axum::extract::State;
 use axum::Form;
+use diesel::QueryDsl;
+use diesel_async::RunQueryDsl;
 use nghe_proc_macros::wrap_subsonic_response;
-use sea_orm::{EntityTrait, *};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
@@ -24,13 +25,18 @@ pub async fn setup_handler(
     State(state): State<ServerState>,
     Form(params): Form<SetupParams>,
 ) -> OSResult<SetupResponse> {
-    if User::find().count(&state.conn).await? != 0 {
+    if users::table
+        .count()
+        .first::<i64>(&mut state.pool.get().await?)
+        .await?
+        != 0
+    {
         return Err(OpenSubsonicError::Forbidden {
             message: Some("setup can only be used when there is no user".to_owned()),
         });
     }
     create_user(
-        &state.conn,
+        &state.pool,
         &state.encryption_key,
         CreateUserParams {
             username: params.username,
@@ -62,7 +68,7 @@ mod tests {
         let key = rand::random();
         let (username, password, _, _) = create_user_token();
 
-        let state = setup_state(db.get_conn(), key);
+        let state = setup_state(db.get_pool(), key);
         let form = Form(SetupParams {
             username,
             password,
@@ -73,8 +79,6 @@ mod tests {
             setup_handler(state, form).await.unwrap().0,
             SetupBody::default().into()
         );
-
-        db.async_drop().await;
     }
 
     #[tokio::test]
@@ -82,7 +86,7 @@ mod tests {
         let (db, key, _) = create_db_key_users(1, 1).await;
         let (username, password, _, _) = create_user_token();
 
-        let state = setup_state(db.get_conn(), key);
+        let state = setup_state(db.get_pool(), key);
         let form = Form(SetupParams {
             username,
             password,
@@ -93,7 +97,5 @@ mod tests {
             setup_handler(state, form).await,
             Err(OpenSubsonicError::Forbidden { message: _ })
         ));
-
-        db.async_drop().await;
     }
 }
