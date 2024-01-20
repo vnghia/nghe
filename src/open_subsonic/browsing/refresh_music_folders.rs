@@ -39,6 +39,13 @@ pub async fn refresh_music_folders<P: AsRef<Path>>(
         .await
         .expect("can not delete old music folder");
 
+    for upserted_folder in &upserted_folders {
+        tracing::info!("new music folder added: {}", &upserted_folder.path);
+    }
+    for deleted_folder in &deleted_folders {
+        tracing::info!("old music folder deleted: {}", &deleted_folder.path);
+    }
+
     (upserted_folders, deleted_folders.len())
 }
 
