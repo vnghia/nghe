@@ -13,7 +13,11 @@ concat-string = "1.0.1"
 config = "0.13.4"
 derivative = "2.2.0"
 diesel = { version = "2.1.0", features = ["uuid", "time"] }
-diesel-async = { version = "0.4.1", features = ["postgres", "deadpool", "async-connection-wrapper"] }
+diesel-async = { version = "0.4.1", features = [
+  "postgres",
+  "deadpool",
+  "async-connection-wrapper",
+] }
 diesel_migrations = { version = "2.1.0", features = ["postgres"] }
 futures = "0.3.30"
 itertools = "0.12.0"
@@ -39,7 +43,6 @@ walkdir = "2.4.0"
 built = "0.7"
 
 [dev-dependencies]
-diesel = { version = "2.1.0", features = ["postgres"] }
 fake = { version = "2.9.2", features = [
   "derive",
   "uuid",
@@ -51,3 +54,6 @@ serde_json = "1.0.111"
 tempdir = "0.3.7"
 url = "2.5.0"
 uuid = { version = "1.6.1", features = ["v4", "fast-rng"] }
+
+[target.'cfg(not(target_env = "musl"))'.dev-dependencies]
+diesel = { version = "2.1.0", features = ["postgres"] }
