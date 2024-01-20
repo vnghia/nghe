@@ -13,7 +13,8 @@ pub mod utils;
 pub use open_subsonic::{OSResult, OpenSubsonicError};
 pub use state::ServerState;
 
-pub type DbPool = diesel_async::pooled_connection::deadpool::Pool<diesel_async::AsyncPgConnection>;
+pub type DatabasePool =
+    diesel_async::pooled_connection::deadpool::Pool<diesel_async::AsyncPgConnection>;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

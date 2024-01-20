@@ -44,7 +44,7 @@ async fn main() {
 
     // music folders
     let (upserted_music_folders, _) = refresh_music_folders(
-        &server_state.pool,
+        &server_state.database.pool,
         &config.folder.top_paths,
         &config.folder.depth_levels,
     )
@@ -52,7 +52,7 @@ async fn main() {
 
     // user music folders
     refresh_permissions(
-        &server_state.pool,
+        &server_state.database.pool,
         None,
         Some(
             &upserted_music_folders

@@ -1,5 +1,5 @@
 use crate::migration;
-use crate::DbPool;
+use crate::DatabasePool;
 
 use concat_string::concat_string;
 use diesel_async::{
@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 pub struct TemporaryDatabase {
     name: String,
-    pool: DbPool,
+    pool: DatabasePool,
     root_url: String,
 }
 
@@ -30,7 +30,7 @@ impl TemporaryDatabase {
         .await
         .expect("can not create new database");
 
-        let pool = DbPool::builder(AsyncDieselConnectionManager::<
+        let pool = DatabasePool::builder(AsyncDieselConnectionManager::<
             diesel_async::AsyncPgConnection,
         >::new(new_url.as_str()))
         .build()
@@ -53,7 +53,7 @@ impl TemporaryDatabase {
         .await
     }
 
-    pub fn get_pool(&self) -> &DbPool {
+    pub fn get_pool(&self) -> &DatabasePool {
         &self.pool
     }
 }

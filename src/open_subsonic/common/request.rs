@@ -1,7 +1,7 @@
 use super::super::user::password::*;
 use crate::config::EncryptionKey;
 use crate::models::*;
-use crate::{DbPool, OSResult, OpenSubsonicError, ServerState};
+use crate::{DatabasePool, OSResult, OpenSubsonicError, ServerState};
 
 use axum::extract::{rejection::FormRejection, Form, FromRef, FromRequest, Request};
 use derivative::Derivative;
@@ -31,7 +31,7 @@ pub trait Validate {
 
     fn need_admin(&self) -> bool;
 
-    async fn validate(&self, pool: &DbPool, key: &EncryptionKey) -> OSResult<users::User> {
+    async fn validate(&self, pool: &DatabasePool, key: &EncryptionKey) -> OSResult<users::User> {
         let common_params = self.get_common_params();
         let user = match users::table
             .filter(users::username.eq(&common_params.username))
@@ -75,7 +75,9 @@ where
         let Form(params) = Form::<T>::from_request(req, state).await?;
         tracing::debug!("deserialized form {:?}", params);
         let state = ServerState::from_ref(state);
-        let user = params.validate(&state.pool, &state.encryption_key).await?;
+        let user = params
+            .validate(&state.database.pool, &state.database.key)
+            .await?;
         Ok(ValidatedForm { params, user })
     }
 }

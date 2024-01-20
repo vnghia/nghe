@@ -1,6 +1,6 @@
 use crate::models::*;
 use crate::utils::fs::folders::build_music_folders;
-use crate::DbPool;
+use crate::DatabasePool;
 
 use diesel::{ExpressionMethods, SelectableHelper};
 use diesel_async::RunQueryDsl;
@@ -8,7 +8,7 @@ use itertools::Itertools;
 use std::path::Path;
 
 pub async fn refresh_music_folders<P: AsRef<Path>>(
-    pool: &DbPool,
+    pool: &DatabasePool,
     top_paths: &[P],
     depth_levels: &[u8],
 ) -> (Vec<music_folders::MusicFolder>, usize) {

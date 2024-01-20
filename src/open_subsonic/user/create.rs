@@ -2,7 +2,7 @@ use super::password::encrypt_password;
 use crate::config::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
-use crate::{DbPool, OSResult, ServerState};
+use crate::{DatabasePool, OSResult, ServerState};
 
 use axum::extract::State;
 use diesel::SelectableHelper;
@@ -30,12 +30,12 @@ pub async fn create_user_handler(
     State(state): State<ServerState>,
     req: CreateUserRequest,
 ) -> OSResult<CreateUserResponse> {
-    create_user(&state.pool, &state.encryption_key, req.params).await?;
+    create_user(&state.database.pool, &state.database.key, req.params).await?;
     Ok(CreateUserBody::default().into())
 }
 
 pub async fn create_user(
-    pool: &DbPool,
+    pool: &DatabasePool,
     key: &EncryptionKey,
     params: CreateUserParams,
 ) -> OSResult<users::User> {

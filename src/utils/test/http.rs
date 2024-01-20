@@ -1,7 +1,7 @@
 use crate::{
     config::EncryptionKey,
     open_subsonic::common::request::{Validate, ValidatedForm},
-    DbPool,
+    DatabasePool,
 };
 
 use axum::{body::Bytes, response::Response};
@@ -12,7 +12,7 @@ pub async fn to_bytes(res: Response) -> Bytes {
 }
 
 pub async fn to_validated_form<P: Validate + Sync>(
-    pool: &DbPool,
+    pool: &DatabasePool,
     key: &EncryptionKey,
     params: P,
 ) -> ValidatedForm<P> {

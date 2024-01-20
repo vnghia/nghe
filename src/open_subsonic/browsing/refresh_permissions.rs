@@ -1,5 +1,5 @@
 use crate::models::*;
-use crate::{DbPool, OSResult};
+use crate::{DatabasePool, OSResult};
 
 use diesel::query_dsl::methods::SelectDsl;
 use diesel_async::RunQueryDsl;
@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use uuid::Uuid;
 
 pub async fn refresh_permissions(
-    pool: &DbPool,
+    pool: &DatabasePool,
     user_ids: Option<&[Uuid]>,
     music_folder_ids: Option<&[Uuid]>,
 ) -> OSResult<()> {

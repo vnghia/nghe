@@ -3,7 +3,7 @@ mod built_info {
 }
 
 use crate::models::*;
-use crate::{open_subsonic::browsing::refresh_music_folders, DbPool};
+use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
@@ -65,7 +65,7 @@ impl TemporaryFs {
 
     pub async fn create_music_folders(
         &self,
-        pool: &DbPool,
+        pool: &DatabasePool,
         n_folder: u8,
     ) -> Vec<music_folders::MusicFolder> {
         let music_folder_paths = stream::iter(0..n_folder)

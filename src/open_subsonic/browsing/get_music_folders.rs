@@ -34,7 +34,7 @@ pub async fn get_music_folders_handler(
         .select(music_folders::MusicFolder::as_select())
         .filter(user_music_folder_permissions::user_id.eq(req.user.id))
         .filter(user_music_folder_permissions::allow.eq(true))
-        .load(&mut state.pool.get().await?)
+        .load(&mut state.database.pool.get().await?)
         .await?;
 
     Ok(GetMusicFoldersBody {

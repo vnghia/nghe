@@ -27,7 +27,7 @@ pub async fn setup_handler(
 ) -> OSResult<SetupResponse> {
     if users::table
         .count()
-        .first::<i64>(&mut state.pool.get().await?)
+        .first::<i64>(&mut state.database.pool.get().await?)
         .await?
         != 0
     {
@@ -36,8 +36,8 @@ pub async fn setup_handler(
         });
     }
     create_user(
-        &state.pool,
-        &state.encryption_key,
+        &state.database.pool,
+        &state.database.key,
         CreateUserParams {
             username: params.username,
             password: params.password,

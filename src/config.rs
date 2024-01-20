@@ -26,7 +26,7 @@ pub struct Database {
     pub url: String,
     #[derivative(Debug = "ignore")]
     #[serde_as(as = "serde_with::hex::Hex")]
-    pub encryption_key: EncryptionKey,
+    pub key: EncryptionKey,
 }
 
 #[derive(Debug, Deserialize, Clone)]
