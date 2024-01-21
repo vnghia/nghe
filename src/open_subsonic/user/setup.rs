@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(test, derive(fake::Dummy))]
 pub struct SetupParams {
     pub username: String,
     pub password: String,
@@ -54,7 +55,7 @@ pub async fn setup_handler(
 
 #[cfg(test)]
 mod tests {
-    use fake::{faker::internet::en::FreeEmail, Fake};
+    use fake::{Fake, Faker};
 
     use super::*;
     use crate::utils::test::{
@@ -72,7 +73,7 @@ mod tests {
         let form = Form(SetupParams {
             username,
             password,
-            email: FreeEmail().fake(),
+            ..Faker.fake()
         });
 
         assert_eq!(
@@ -90,7 +91,7 @@ mod tests {
         let form = Form(SetupParams {
             username,
             password,
-            email: FreeEmail().fake(),
+            ..Faker.fake()
         });
 
         assert!(matches!(
