@@ -1,6 +1,14 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    albums (id) {
+        id -> Uuid,
+        name -> Text,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     artists (id) {
         id -> Uuid,
         name -> Text,
@@ -43,6 +51,7 @@ diesel::joinable!(user_music_folder_permissions -> music_folders (music_folder_i
 diesel::joinable!(user_music_folder_permissions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    albums,
     artists,
     music_folders,
     user_music_folder_permissions,
