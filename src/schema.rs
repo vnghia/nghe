@@ -5,6 +5,7 @@ diesel::table! {
         id -> Uuid,
         name -> Text,
         updated_at -> Timestamptz,
+        scanned_at -> Timestamptz,
     }
 }
 
@@ -21,6 +22,7 @@ diesel::table! {
         name -> Text,
         index -> Text,
         updated_at -> Timestamptz,
+        scanned_at -> Timestamptz,
     }
 }
 
@@ -28,7 +30,7 @@ diesel::table! {
     music_folders (id) {
         id -> Uuid,
         path -> Text,
-        updated_at -> Timestamptz,
+        scanned_at -> Timestamptz,
     }
 }
 
@@ -71,8 +73,8 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(albums_artists -> albums (artist_id));
-diesel::joinable!(albums_artists -> artists (album_id));
+diesel::joinable!(albums_artists -> albums (album_id));
+diesel::joinable!(albums_artists -> artists (artist_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
 diesel::joinable!(songs_artists -> artists (artist_id));

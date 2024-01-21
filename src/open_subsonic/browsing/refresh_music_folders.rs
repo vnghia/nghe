@@ -12,7 +12,7 @@ pub async fn refresh_music_folders<P: AsRef<Path>>(
     top_paths: &[P],
     depth_levels: &[u8],
 ) -> (Vec<music_folders::MusicFolder>, usize) {
-    let update_start_time = time::OffsetDateTime::now_utc();
+    let scan_start_time = time::OffsetDateTime::now_utc();
 
     let upserted_folders = diesel::insert_into(music_folders::table)
         .values(
@@ -26,14 +26,14 @@ pub async fn refresh_music_folders<P: AsRef<Path>>(
         )
         .on_conflict(music_folders::path)
         .do_update()
-        .set(music_folders::updated_at.eq(update_start_time))
+        .set(music_folders::scanned_at.eq(scan_start_time))
         .returning(music_folders::MusicFolder::as_returning())
         .get_results(&mut pool.get().await.expect("can not checkout a connection"))
         .await
         .expect("can not upsert music folder");
 
     let deleted_folders = diesel::delete(music_folders::table)
-        .filter(music_folders::updated_at.lt(update_start_time))
+        .filter(music_folders::scanned_at.lt(scan_start_time))
         .returning(music_folders::MusicFolder::as_returning())
         .get_results(&mut pool.get().await.expect("can not checkout a connection"))
         .await

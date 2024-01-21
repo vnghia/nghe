@@ -13,4 +13,4 @@ create table
   );
 
 select
-  diesel_manage_updated_at ('users');
+  add_updated_at ('users');

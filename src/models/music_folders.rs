@@ -17,7 +17,7 @@ pub struct MusicFolder {
     #[serde(rename = "name")]
     pub path: String,
     #[serde(skip_serializing)]
-    pub updated_at: OffsetDateTime,
+    pub scanned_at: OffsetDateTime,
 }
 
 #[derive(Insertable)]
