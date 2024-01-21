@@ -28,7 +28,7 @@ nghe-proc_macros = { path = "src/proc_macros", version = "0.1.0" }
 paste = "1.0.14"
 rand = "0.8.5"
 serde = { version = "1.0", features = ["derive"] }
-serde_with = { version = "3.4.0", features = ["hex"] }
+serde_with = { version = "3.5.0", features = ["hex"] }
 time = "0.3.31"
 tokio = { version = "1.0", features = ["full"] }
 tokio-postgres = "0.7.7"
