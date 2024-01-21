@@ -5,7 +5,6 @@ diesel::table! {
         id -> Uuid,
         name -> Text,
         updated_at -> Timestamptz,
-        scanned_at -> Timestamptz,
     }
 }
 
@@ -22,7 +21,6 @@ diesel::table! {
         name -> Text,
         index -> Text,
         updated_at -> Timestamptz,
-        scanned_at -> Timestamptz,
     }
 }
 
