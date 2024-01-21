@@ -6,10 +6,10 @@ use crate::models::*;
 use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use fake::{Fake, Faker};
-use futures::stream::{self, StreamExt};
+use itertools::Itertools;
 use std::path::{Path, PathBuf};
+use std::{fs::*, io::Write};
 use tempdir::TempDir;
-use tokio::{fs::*, io::AsyncWriteExt};
 
 pub struct TemporaryFs {
     root: TempDir,
@@ -23,23 +23,19 @@ impl TemporaryFs {
         }
     }
 
-    pub async fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+    pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let path = self.root.path().join(path);
-        create_dir_all(&path)
-            .await
-            .expect("can not create temporary dir");
+        create_dir_all(&path).expect("can not create temporary dir");
         path
     }
 
-    pub async fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+    pub fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let path = self.root.path().join(path);
-        self.create_dir(path.parent().unwrap()).await;
+        self.create_dir(path.parent().unwrap());
 
         File::create(&path)
-            .await
             .expect("can not open temporary file")
             .write_all(Faker.fake::<String>().as_bytes())
-            .await
             .expect("can not write to temporary file");
         path
     }
@@ -68,10 +64,9 @@ impl TemporaryFs {
         pool: &DatabasePool,
         n_folder: u8,
     ) -> Vec<music_folders::MusicFolder> {
-        let music_folder_paths = stream::iter(0..n_folder)
-            .then(|_| async move { self.create_dir(&Faker.fake::<String>()).await })
-            .collect::<Vec<_>>()
-            .await;
+        let music_folder_paths = (0..n_folder)
+            .map(|_| self.create_dir(Faker.fake::<String>()))
+            .collect_vec();
         let (upserted_folders, _) = refresh_music_folders(pool, &music_folder_paths, &[]).await;
         upserted_folders
     }

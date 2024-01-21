@@ -61,8 +61,8 @@ mod tests {
         let db = TemporaryDatabase::new_from_env().await;
 
         let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/").await;
-        let dir_2 = temp_fs.create_dir("test2/").await;
+        let dir_1 = temp_fs.create_dir("test1/");
+        let dir_2 = temp_fs.create_dir("test2/");
 
         let inputs = vec![dir_1, dir_2];
 
@@ -85,8 +85,8 @@ mod tests {
         let db = TemporaryDatabase::new_from_env().await;
 
         let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/").await;
-        let dir_2 = temp_fs.create_dir("test2/").await;
+        let dir_1 = temp_fs.create_dir("test1/");
+        let dir_2 = temp_fs.create_dir("test2/");
 
         diesel::insert_into(music_folders::table)
             .values(
@@ -123,9 +123,9 @@ mod tests {
         let db = TemporaryDatabase::new_from_env().await;
 
         let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/").await;
-        let dir_2 = temp_fs.create_dir("test2/").await;
-        let dir_3 = temp_fs.create_dir("test3/").await;
+        let dir_1 = temp_fs.create_dir("test1/");
+        let dir_2 = temp_fs.create_dir("test2/");
+        let dir_3 = temp_fs.create_dir("test3/");
 
         diesel::insert_into(music_folders::table)
             .values(

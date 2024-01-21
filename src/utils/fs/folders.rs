@@ -126,7 +126,7 @@ mod tests {
     #[tokio::test]
     async fn test_top_paths_is_file() {
         let temp_fs = TemporaryFs::new();
-        let file = temp_fs.create_file("test.txt").await;
+        let file = temp_fs.create_file("test.txt");
 
         let result = build_music_folders(&[file.clone()], &[0])
             .catch_unwind()
@@ -146,8 +146,8 @@ mod tests {
     #[tokio::test]
     async fn test_top_paths_nested() {
         let temp_fs = TemporaryFs::new();
-        let parent = temp_fs.create_dir("test1/").await;
-        let child = temp_fs.create_dir("test1/test2/").await;
+        let parent = temp_fs.create_dir("test1/");
+        let child = temp_fs.create_dir("test1/test2/");
 
         let result = build_music_folders(&[parent.clone(), child.clone()], &[0, 0])
             .catch_unwind()
@@ -167,8 +167,8 @@ mod tests {
     #[tokio::test]
     async fn test_top_paths_depth_levels_empty() {
         let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/").await;
-        let dir_2 = temp_fs.create_dir("test2/").await;
+        let dir_1 = temp_fs.create_dir("test1/");
+        let dir_2 = temp_fs.create_dir("test2/");
 
         let inputs = vec![dir_1, dir_2];
         let results = build_music_folders(&inputs, &[]).await;
@@ -182,8 +182,8 @@ mod tests {
     #[tokio::test]
     async fn test_top_paths_depth_levels_neq_len() {
         let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/").await;
-        let dir_2 = temp_fs.create_dir("test2/").await;
+        let dir_1 = temp_fs.create_dir("test1/");
+        let dir_2 = temp_fs.create_dir("test2/");
 
         let result = build_music_folders(&[dir_1, dir_2], &[0, 0, 0])
             .catch_unwind()
@@ -198,15 +198,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_deepest_folder() {
         let temp_fs = TemporaryFs::new();
-        temp_fs.create_dir("test1/test1.1/test1.1.1/").await;
-        temp_fs
-            .create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/")
-            .await;
-        temp_fs.create_dir("test1/test1.2/").await;
-        temp_fs
-            .create_dir("test1/test1.3/test1.3.1/test1.3.1.1/")
-            .await;
-        temp_fs.create_dir("test2/").await;
+        temp_fs.create_dir("test1/test1.1/test1.1.1/");
+        temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
+        temp_fs.create_dir("test1/test1.2/");
+        temp_fs.create_dir("test1/test1.3/test1.3.1/test1.3.1.1/");
+        temp_fs.create_dir("test2/");
 
         let inputs = temp_fs.join_paths(&[
             "test1/test1.1/test1.1.1/",
@@ -226,15 +222,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_deepest_folder_max_depth() {
         let temp_fs = TemporaryFs::new();
-        temp_fs.create_dir("test1/test1.1/test1.1.1/").await;
-        temp_fs
-            .create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/")
-            .await;
-        temp_fs.create_dir("test1/test1.2/").await;
-        temp_fs
-            .create_dir("test1/test1.3/test1.3.1/test1.3.1.1/")
-            .await;
-        temp_fs.create_dir("test2/").await;
+        temp_fs.create_dir("test1/test1.1/test1.1.1/");
+        temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
+        temp_fs.create_dir("test1/test1.2/");
+        temp_fs.create_dir("test1/test1.3/test1.3.1/test1.3.1.1/");
+        temp_fs.create_dir("test2/");
 
         let inputs = temp_fs.join_paths(&[
             "test1/test1.1/test1.1.1/",
@@ -254,17 +246,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_deepest_folder_file() {
         let temp_fs = TemporaryFs::new();
-        temp_fs
-            .create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt")
-            .await;
-        temp_fs
-            .create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/")
-            .await;
-        temp_fs.create_dir("test1/test1.2/").await;
-        temp_fs
-            .create_dir("test1/test1.3/test1.3.1/test1.3.1.1/")
-            .await;
-        temp_fs.create_file("test2/test2.1.txt").await;
+        temp_fs.create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt");
+        temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
+        temp_fs.create_dir("test1/test1.2/");
+        temp_fs.create_dir("test1/test1.3/test1.3.1/test1.3.1.1/");
+        temp_fs.create_file("test2/test2.1.txt");
 
         let inputs = temp_fs.join_paths(&[
             "test1/test1.1/test1.1.1/",
@@ -284,17 +270,11 @@ mod tests {
     #[tokio::test]
     async fn test_build_music_folders() {
         let temp_fs = TemporaryFs::new();
-        temp_fs
-            .create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt")
-            .await;
-        temp_fs
-            .create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/")
-            .await;
-        temp_fs.create_dir("test1/test1.2/").await;
-        temp_fs
-            .create_dir("test1/test1.3/test1.3.1/test1.3.1.1/")
-            .await;
-        temp_fs.create_file("test2/test2.1.txt").await;
+        temp_fs.create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt");
+        temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
+        temp_fs.create_dir("test1/test1.2/");
+        temp_fs.create_dir("test1/test1.3/test1.3.1/test1.3.1.1/");
+        temp_fs.create_file("test2/test2.1.txt");
 
         let inputs = temp_fs.canonicalize_paths(&temp_fs.join_paths(&[
             "test1/test1.1/",
