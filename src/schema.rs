@@ -43,6 +43,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    songs_artists (song_id, artist_id) {
+        song_id -> Uuid,
+        artist_id -> Uuid,
+    }
+}
+
+diesel::table! {
     user_music_folder_permissions (user_id, music_folder_id) {
         user_id -> Uuid,
         music_folder_id -> Uuid,
@@ -68,6 +75,8 @@ diesel::joinable!(albums_artists -> albums (artist_id));
 diesel::joinable!(albums_artists -> artists (album_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
+diesel::joinable!(songs_artists -> artists (artist_id));
+diesel::joinable!(songs_artists -> songs (song_id));
 diesel::joinable!(user_music_folder_permissions -> music_folders (music_folder_id));
 diesel::joinable!(user_music_folder_permissions -> users (user_id));
 
@@ -77,6 +86,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     artists,
     music_folders,
     songs,
+    songs_artists,
     user_music_folder_permissions,
     users,
 );
