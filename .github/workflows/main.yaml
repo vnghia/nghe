@@ -69,19 +69,12 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
       - name: Install libpq
-        run: |
-          vcpkg install libpq[core]:x64-windows-static-release
-          echo "$VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-release\bin" >> $GITHUB_PATH
-          echo "$VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-release\lib" >> $GITHUB_PATH
-          echo "PQ_LIB_DIR=$VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-release\lib" >> $GITHUB_ENV
-      - name: Check
-        run: |
-          printenv
-          ls "C:\vcpkg\installed\"
-          ls "C:\vcpkg\installed\x64-windows-static-release\"
-          ls "C:\vcpkg\installed\x64-windows-static-release\lib"
+        run: vcpkg install libpq[core]:x64-windows-static-release
       - name: Build and test
-        run: cargo test --locked --target x86_64-pc-windows-msvc
+        run: |
+          export PATH=$VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-release\lib:$PATH
+          export PQ_LIB_DIR=$VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-release\lib
+          cargo test --locked --target x86_64-pc-windows-msvc
 
   build-macos:
     runs-on: macos-latest
