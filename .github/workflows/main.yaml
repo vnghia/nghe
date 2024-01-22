@@ -62,6 +62,7 @@ jobs:
     runs-on: windows-latest
 
     env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
@@ -74,14 +75,17 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
       - name: Install libpq
         run: vcpkg install libpq[core]:x64-windows-release
-      - name: Build
-        run: cargo build --locked --target x86_64-pc-windows-msvc
+      - name: Build and test
+        run: cargo test --locked --target x86_64-pc-windows-msvc
 
   # TODO: setup postgres instance for testing
   build-macos:
     runs-on: macos-latest
 
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
     steps:
       - uses: actions/checkout@v4
-      - name: Build
-        run: cargo build --locked --target x86_64-apple-darwin
+      - name: Build and test
+        run: cargo test --locked --target x86_64-apple-darwin
