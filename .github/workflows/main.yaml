@@ -69,11 +69,11 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
       - name: Install libpq
-        run: vcpkg install libpq[core]:x64-windows-static-release
-      - name: Build and test
         run: |
+          vcpkg install libpq[core]:x64-windows-static-release
           cp "$VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-release\lib\libpq.lib" "$HOME\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\"
-          cargo test --locked --target x86_64-pc-windows-msvc
+      - name: Build and test
+        run: cargo test --locked --target x86_64-pc-windows-msvc
 
   build-macos:
     runs-on: macos-latest
