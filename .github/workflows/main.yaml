@@ -57,22 +57,22 @@ jobs:
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
-  build-non-linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-          - os: macos-latest
-            target: x86_64-apple-darwin
+  # TODO: setup postgres instance for testing
+  build-windows:
+    runs-on: windows-latest
 
-    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install libpq
+        run: vcpkg install libpq:x64-windows
+      - name: Build and test
+        run: cargo build --locked --target x86_64-pc-windows-msvc
 
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  # TODO: setup postgres instance for testing
+  build-macos:
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v4
       - name: Build and test
-        run: cargo test --locked --target ${{ matrix.platform.target }}
+        run: cargo build --locked --target x86_64-apple-darwin
