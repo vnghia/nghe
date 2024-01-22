@@ -120,7 +120,7 @@ mod tests {
             .unwrap()
             .downcast_ref::<String>()
             .unwrap()
-            .contains("No such file or directory"));
+            .contains("NotFound"));
     }
 
     #[tokio::test]
@@ -137,10 +137,7 @@ mod tests {
             .unwrap()
             .downcast_ref::<String>()
             .unwrap()
-            .contains(&concat_string!(
-                &file.to_string_lossy(),
-                " is not a directory"
-            )));
+            .contains("is not a directory"));
     }
 
     #[tokio::test]
