@@ -71,7 +71,7 @@ jobs:
       - name: Install libpq
         run: |
           vcpkg install libpq[core]:x64-windows-static-release
-          cp "$VCPKG_INSTALLATION_ROOT\installed\x64-windows-static-release\lib\libpq.lib" "$HOME\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\"
+          cp "C:\vcpkg\installed\x64-windows-static-release\lib\libpq.lib" "$HOME\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\"
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
 
