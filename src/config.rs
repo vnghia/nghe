@@ -38,10 +38,17 @@ pub struct Folder {
 
 #[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
+pub struct Artist {
+    pub ignored_articles: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[allow(unused)]
 pub struct Config {
     pub server: Server,
     pub database: Database,
     pub folder: Folder,
+    pub artist: Artist,
 }
 
 impl Config {
@@ -51,6 +58,10 @@ impl Config {
             .set_default("server.host", "127.0.0.1")?
             .set_default("server.port", 3000)?
             .set_default("folder.depth_levels", Vec::<u8>::default())?
+            .set_default(
+                "artist.ignored_articles",
+                "The An A Die Das Ein Eine Les Le La",
+            )?
             .add_source(
                 config::Environment::with_prefix(built_info::PKG_NAME)
                     .prefix_separator("_")

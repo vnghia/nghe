@@ -1,4 +1,9 @@
-use crate::{config::EncryptionKey, state::DatabaseState, DatabasePool, ServerState};
+use crate::{
+    config::EncryptionKey,
+    state::{ArtistState, DatabaseState},
+    DatabasePool, ServerState,
+};
+
 use axum::extract::State;
 
 pub fn setup_state(pool: &DatabasePool, key: EncryptionKey) -> State<ServerState> {
@@ -7,5 +12,6 @@ pub fn setup_state(pool: &DatabasePool, key: EncryptionKey) -> State<ServerState
             pool: pool.clone(),
             key,
         },
+        artist: ArtistState::default(),
     })
 }
