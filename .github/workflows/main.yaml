@@ -15,20 +15,16 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+          - target: x86_64-unknown-linux-gnu
             command: cargo
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
+          - target: aarch64-unknown-linux-gnu
             command: cross
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
+          - target: x86_64-unknown-linux-musl
             command: cross
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-musl
+          - target: aarch64-unknown-linux-musl
             command: cross
 
-    runs-on: ${{ matrix.platform.os }}
+    runs-on: ubuntu-latest
 
     env:
       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
@@ -62,18 +58,13 @@ jobs:
 
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
       - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v6
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - name: Install libpq
-        run: vcpkg install libpq[core]:x64-windows-static-release
+      - name: Install postgres
+        run: |
+          choco install postgresql16 --force --params '/Password:root'
+          echo "PQ_LIB_DIR=C:\Program Files\PostgreSQL\16\lib" >> $GITHUB_ENV
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
 
