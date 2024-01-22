@@ -70,8 +70,8 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
       - name: Install libpq
         run: |
-          vcpkg install libpq:x64-windows-static-md
-          cp "C:/vcpkg/installed/x64-windows-static-md/lib/*" "C:\Users\runneradmin\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib\"
+          vcpkg install libpq:x64-windows-static-release
+          cp "C:/vcpkg/installed/x64-windows-static-release/lib/*" "C:\Users\runneradmin\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib\"
       - name: Build and test
         run: |
           ls "C:\Users\runneradmin\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib\"
