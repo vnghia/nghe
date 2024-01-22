@@ -78,7 +78,7 @@ jobs:
         run: |
           printenv
           ls "C:\vcpkg\installed\"
-          ls "C:\vcpkg\installed\x64-windows-static-release\bin"
+          ls "C:\vcpkg\installed\x64-windows-static-release\"
           ls "C:\vcpkg\installed\x64-windows-static-release\lib"
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
