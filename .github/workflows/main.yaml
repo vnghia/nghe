@@ -57,11 +57,12 @@ jobs:
     runs-on: windows-latest
 
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
       - uses: actions/checkout@v4
+      - uses: ikalnytskyi/action-setup-postgres@v5
+        id: postgres
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
         with:
@@ -75,14 +76,17 @@ jobs:
           cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
+        env:
+          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
 
   build-macos:
     runs-on: macos-latest
 
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
     steps:
       - uses: actions/checkout@v4
+      - uses: ikalnytskyi/action-setup-postgres@v5
+        id: postgres
       - name: Build and test
         run: cargo test --locked --target x86_64-apple-darwin
+        env:
+          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
