@@ -1,5 +1,5 @@
 [build.env]
 passthrough = ["DATABASE_URL"]
 
-[target]
+[build]
 pre-build = "ci/cross-pre-build.sh"
