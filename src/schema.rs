@@ -39,6 +39,8 @@ diesel::table! {
         album_id -> Uuid,
         music_folder_id -> Uuid,
         path -> Text,
+        updated_at -> Timestamptz,
+        scanned_at -> Timestamptz,
     }
 }
 
