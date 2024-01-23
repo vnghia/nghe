@@ -53,8 +53,8 @@ jobs:
       - name: Install mold
         if: matrix.platform.command == 'cargo'
         run: |
-          apt-get update
-          apt-get --assume-yes install mold
+          sudo apt-get update
+          sudo apt-get --assume-yes install mold
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
