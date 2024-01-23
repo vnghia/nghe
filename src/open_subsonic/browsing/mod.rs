@@ -3,6 +3,7 @@ pub mod artist;
 pub mod get_music_folders;
 pub mod refresh_music_folders;
 pub mod refresh_permissions;
+pub mod songs;
 
 pub use refresh_music_folders::refresh_music_folders;
 pub use refresh_permissions::refresh_permissions;
