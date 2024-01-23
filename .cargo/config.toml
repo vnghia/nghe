@@ -1,4 +1,5 @@
 [target.'cfg(target_os = "linux")']
+linker = "clang"
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 [target.'not(cfg(target_os = "linux"))']
