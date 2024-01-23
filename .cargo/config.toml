@@ -1,0 +1,5 @@
+[target.'cfg(target_os = "linux")']
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+[target.'not(cfg(target_os = "linux"))']
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
