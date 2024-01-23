@@ -50,11 +50,8 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cross
         run: cargo binstall cross --no-confirm
-      - name: Install mold
+      - uses: rui314/setup-mold@v1
         if: matrix.platform.command == 'cargo'
-        run: |
-          sudo apt-get update
-          sudo apt-get --assume-yes install mold
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
