@@ -2,5 +2,5 @@
 passthrough = ["DATABASE_URL"]
 
 [build]
-image = "debian:bookworm"
+image = "library/debian:bookworm"
 pre-build = "ci/cross-pre-build.sh"
