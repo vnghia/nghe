@@ -50,9 +50,10 @@ jobs:
       - name: Install mold
         uses: rui314/setup-mold@v1
         if: matrix.platform.command == 'cargo'
+      - uses: cargo-bins/cargo-binstall@main
       - name: Install cross
+        run: cargo binstall cross --no-confirm
         if: matrix.platform.command == 'cross'
-        run: cargo install cross --git https://github.com/cross-rs/cross
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
