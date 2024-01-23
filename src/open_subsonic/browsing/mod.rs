@@ -1,3 +1,4 @@
+pub mod albums;
 pub mod artist;
 pub mod get_music_folders;
 pub mod refresh_music_folders;
