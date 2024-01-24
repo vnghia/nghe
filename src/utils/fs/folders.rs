@@ -191,8 +191,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_get_deepest_folder() {
+    #[test]
+    fn test_get_deepest_folder() {
         let temp_fs = TemporaryFs::new();
         temp_fs.create_dir("test1/test1.1/test1.1.1/");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
@@ -215,8 +215,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_get_deepest_folder_max_depth() {
+    #[test]
+    fn test_get_deepest_folder_max_depth() {
         let temp_fs = TemporaryFs::new();
         temp_fs.create_dir("test1/test1.1/test1.1.1/");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
@@ -239,8 +239,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_get_deepest_folder_file() {
+    #[test]
+    fn test_get_deepest_folder_file() {
         let temp_fs = TemporaryFs::new();
         temp_fs.create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
