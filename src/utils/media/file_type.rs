@@ -8,7 +8,7 @@ pub mod tests {
 
     use itertools::Itertools;
 
-    fn to_extension(file_type: &FileType) -> &'static str {
+    pub fn to_extension(file_type: &FileType) -> &'static str {
         match file_type {
             FileType::Flac => "flac",
             FileType::Mpeg => "mp3",

@@ -1,3 +1,4 @@
+pub mod asset;
 pub mod db;
 pub mod fs;
 pub mod http;
