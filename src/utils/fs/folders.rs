@@ -24,7 +24,7 @@ fn get_deepest_folders<P: AsRef<Path>>(root: P, max_depth: u8) -> Vec<PathBuf> {
             root.as_ref().to_string_lossy()
         ));
 
-    let folders = (0..entries.len())
+    (0..entries.len())
         .filter_map(|i| {
             if i == entries.len() - 1 || !entries[i + 1].path().starts_with(entries[i].path()) {
                 // if it is not a children of the `previous_entry`,
@@ -36,8 +36,7 @@ fn get_deepest_folders<P: AsRef<Path>>(root: P, max_depth: u8) -> Vec<PathBuf> {
                 None
             }
         })
-        .collect_vec();
-    folders
+        .collect_vec()
 }
 
 pub async fn build_music_folders<P: AsRef<Path>>(
