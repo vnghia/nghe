@@ -1,30 +1,33 @@
+use super::super::media::file_type::MEDIA_FILE_TYPES;
 use crate::OSResult;
 
 use itertools::Itertools;
+use lofty::FileType;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-const MEDIA_EXTENSIONS: [&str; 2] = ["flac", "mp3"];
-
-pub fn scan_media_files<P: AsRef<Path>>(root: P) -> OSResult<Vec<(PathBuf, u64)>> {
+pub fn scan_media_files<P: AsRef<Path>>(root: P) -> OSResult<Vec<(PathBuf, FileType, u64)>> {
     Ok(WalkDir::new(&root)
         .into_iter()
         .filter_map(|entry| {
             match entry {
                 Ok(entry) => {
                     if let Some(extension) = entry.path().extension() {
-                        if MEDIA_EXTENSIONS.contains(&extension.to_string_lossy().as_ref()) {
-                            match entry.metadata() {
-                                Ok(metadata) => {
-                                    if metadata.is_file() {
-                                        return Some(Ok((
-                                            entry.path().to_path_buf(),
-                                            metadata.len(),
-                                        )));
+                        if let Some(file_type) = FileType::from_ext(extension) {
+                            if MEDIA_FILE_TYPES.contains(&file_type) {
+                                match entry.metadata() {
+                                    Ok(metadata) => {
+                                        if metadata.is_file() {
+                                            return Some(Ok((
+                                                entry.path().to_path_buf(),
+                                                file_type,
+                                                metadata.len(),
+                                            )));
+                                        }
                                     }
-                                }
-                                Err(e) => {
-                                    return Some(Err(e));
+                                    Err(e) => {
+                                        return Some(Err(e));
+                                    }
                                 }
                             }
                         }
@@ -42,7 +45,7 @@ pub fn scan_media_files<P: AsRef<Path>>(root: P) -> OSResult<Vec<(PathBuf, u64)>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::fs::TemporaryFs;
+    use crate::utils::{media::file_type::tests::to_extensions, test::fs::TemporaryFs};
 
     use concat_string::concat_string;
     use fake::{Fake, Faker};
@@ -51,7 +54,7 @@ mod tests {
     fn test_scan_media_files_no_filter() {
         let fs = TemporaryFs::new();
 
-        let media_paths = MEDIA_EXTENSIONS
+        let media_paths = to_extensions()
             .iter()
             .cartesian_product(0..3)
             .map(|(extension, _)| {
@@ -63,7 +66,7 @@ mod tests {
         let scanned_lens = scanned_results
             .iter()
             .cloned()
-            .map(|result| result.1)
+            .map(|result| result.2)
             .collect_vec();
         let scanned_paths = scanned_results
             .iter()
@@ -89,13 +92,15 @@ mod tests {
     fn test_scan_media_files_filter_extension() {
         let fs = TemporaryFs::new();
 
-        let media_paths = [MEDIA_EXTENSIONS, ["txt", "rs"]]
+        let supported_extensions = to_extensions();
+
+        let media_paths = [supported_extensions.as_slice(), &["txt", "rs"]]
             .concat()
             .iter()
             .cartesian_product(0..3)
             .filter_map(|(extension, _)| {
                 let path = fs.create_file(concat_string!(Faker.fake::<String>(), ".", extension));
-                if MEDIA_EXTENSIONS.contains(extension) {
+                if supported_extensions.contains(extension) {
                     Some(path)
                 } else {
                     None
@@ -119,7 +124,7 @@ mod tests {
     fn test_scan_media_files_filter_dir() {
         let fs = TemporaryFs::new();
 
-        let media_paths = MEDIA_EXTENSIONS
+        let media_paths = to_extensions()
             .iter()
             .cartesian_product(0..5)
             .filter_map(|(extension, i)| {
