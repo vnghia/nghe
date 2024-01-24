@@ -1,11 +1,10 @@
 use concat_string::concat_string;
-use futures::stream::{self, StreamExt, TryStreamExt};
 use itertools::Itertools;
+use std::fs::*;
 use std::path::{Path, PathBuf};
-use tokio::fs::*;
 use walkdir::WalkDir;
 
-fn get_deepest_folders<P: AsRef<Path>>(root: P, max_depth: u8) -> Vec<PathBuf> {
+fn get_deepest_folders<P: AsRef<Path> + Sync>(root: P, max_depth: u8) -> Vec<PathBuf> {
     let entries = WalkDir::new(&root)
         .max_depth(max_depth.into())
         .into_iter()
@@ -39,23 +38,23 @@ fn get_deepest_folders<P: AsRef<Path>>(root: P, max_depth: u8) -> Vec<PathBuf> {
         .collect_vec()
 }
 
-pub async fn build_music_folders<P: AsRef<Path>>(
+pub fn build_music_folders<P: AsRef<Path> + Sync>(
     top_paths: &[P],
     depth_levels: &[u8],
 ) -> Vec<PathBuf> {
-    let canonicalized_top_paths = stream::iter(top_paths)
-        .then(|path| async move {
-            if !metadata(path).await?.is_dir() {
+    let canonicalized_top_paths: Vec<PathBuf> = top_paths
+        .iter()
+        .map(|path| {
+            if !metadata(path)?.is_dir() {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     concat_string!(path.as_ref().to_string_lossy(), " is not a directory"),
                 ))
             } else {
-                canonicalize(&path).await
+                canonicalize(path)
             }
         })
-        .try_collect::<Vec<_>>()
-        .await
+        .try_collect()
         .expect("top path is not a directory or it can not be canonicalized");
 
     for i in 0..canonicalized_top_paths.len() - 1 {
@@ -79,16 +78,11 @@ pub async fn build_music_folders<P: AsRef<Path>>(
         std::panic::panic_any("depth levels and top paths must have the same length")
     }
 
-    let depth_levels = depth_levels.to_owned();
-    tokio::task::spawn_blocking(move || {
-        canonicalized_top_paths
-            .iter()
-            .zip(depth_levels.iter())
-            .flat_map(|(root, depth)| get_deepest_folders(root, *depth))
-            .collect_vec()
-    })
-    .await
-    .expect("can not get deepest folders from top paths")
+    canonicalized_top_paths
+        .iter()
+        .zip(depth_levels.iter())
+        .flat_map(|(root, depth)| get_deepest_folders(root, *depth))
+        .collect_vec()
 }
 
 #[cfg(test)]
@@ -96,14 +90,14 @@ mod tests {
     use super::*;
     use crate::utils::test::fs::TemporaryFs;
 
-    use futures::FutureExt;
+    use std::panic::catch_unwind;
     use std::str::FromStr;
 
-    #[tokio::test]
-    async fn test_top_paths_non_existent() {
-        let result = build_music_folders(&[PathBuf::from_str("/non-existent").unwrap()], &[0])
-            .catch_unwind()
-            .await;
+    #[test]
+    fn test_top_paths_non_existent() {
+        let result = catch_unwind(|| {
+            build_music_folders(&[PathBuf::from_str("/non-existent").unwrap()], &[0])
+        });
 
         assert!(result
             .as_ref()
@@ -122,14 +116,12 @@ mod tests {
             .contains("NotFound"));
     }
 
-    #[tokio::test]
-    async fn test_top_paths_is_file() {
+    #[test]
+    fn test_top_paths_is_file() {
         let temp_fs = TemporaryFs::new();
         let file = temp_fs.create_file("test.txt");
 
-        let result = build_music_folders(&[file.clone()], &[0])
-            .catch_unwind()
-            .await;
+        let result = catch_unwind(|| build_music_folders(&[file.clone()], &[0]));
 
         assert!(result
             .err()
@@ -139,15 +131,14 @@ mod tests {
             .contains("is not a directory"));
     }
 
-    #[tokio::test]
-    async fn test_top_paths_nested() {
+    #[test]
+    fn test_top_paths_nested() {
         let temp_fs = TemporaryFs::new();
         let parent = temp_fs.create_dir("test1/");
         let child = temp_fs.create_dir("test1/test2/");
 
-        let result = build_music_folders(&[parent.clone(), child.clone()], &[0, 0])
-            .catch_unwind()
-            .await;
+        let result =
+            catch_unwind(|| build_music_folders(&[parent.clone(), child.clone()], &[0, 0]));
 
         assert_eq!(
             *result.err().unwrap().downcast_ref::<String>().unwrap(),
@@ -160,14 +151,14 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_top_paths_depth_levels_empty() {
+    #[test]
+    fn test_top_paths_depth_levels_empty() {
         let temp_fs = TemporaryFs::new();
         let dir_1 = temp_fs.create_dir("test1/");
         let dir_2 = temp_fs.create_dir("test2/");
 
         let inputs = vec![dir_1, dir_2];
-        let results = build_music_folders(&inputs, &[]).await;
+        let results = build_music_folders(&inputs, &[]);
 
         assert_eq!(
             temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
@@ -175,15 +166,13 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_top_paths_depth_levels_neq_len() {
+    #[test]
+    fn test_top_paths_depth_levels_neq_len() {
         let temp_fs = TemporaryFs::new();
         let dir_1 = temp_fs.create_dir("test1/");
         let dir_2 = temp_fs.create_dir("test2/");
 
-        let result = build_music_folders(&[dir_1, dir_2], &[0, 0, 0])
-            .catch_unwind()
-            .await;
+        let result = catch_unwind(|| build_music_folders(&[dir_1, dir_2], &[0, 0, 0]));
 
         assert_eq!(
             *result.err().unwrap().downcast_ref::<&str>().unwrap(),
@@ -263,8 +252,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_build_music_folders() {
+    #[test]
+    fn test_build_music_folders() {
         let temp_fs = TemporaryFs::new();
         temp_fs.create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
@@ -278,8 +267,7 @@ mod tests {
             "test1/test1.3/",
             "test2/",
         ]));
-        let results =
-            build_music_folders(&temp_fs.join_paths(&["test1/", "test2/"]), &[1, 2]).await;
+        let results = build_music_folders(&temp_fs.join_paths(&["test1/", "test2/"]), &[1, 2]);
 
         assert_eq!(
             inputs.into_iter().sorted().collect_vec(),

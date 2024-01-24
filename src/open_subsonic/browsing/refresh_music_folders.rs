@@ -7,7 +7,7 @@ use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use std::path::Path;
 
-pub async fn refresh_music_folders<P: AsRef<Path>>(
+pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
     pool: &DatabasePool,
     top_paths: &[P],
     depth_levels: &[u8],
@@ -17,7 +17,6 @@ pub async fn refresh_music_folders<P: AsRef<Path>>(
     let upserted_folders = diesel::insert_into(music_folders::table)
         .values(
             build_music_folders(top_paths, depth_levels)
-                .await
                 .iter()
                 .map(|path| music_folders::NewMusicFolder {
                     path: path.to_string_lossy(),
