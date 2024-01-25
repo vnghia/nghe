@@ -4,9 +4,9 @@ mod built_info {
 
 use super::asset::get_media_asset_path;
 use crate::models::*;
-use crate::utils::media::file_type::tests::to_extension;
-use crate::utils::media::file_type::MEDIA_FILE_TYPES;
-use crate::utils::media::tag::SongTag;
+use crate::utils::song::file_type::tests::to_extension;
+use crate::utils::song::file_type::SONG_FILE_TYPES;
+use crate::utils::song::tag::SongTag;
 use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use concat_string::concat_string;
@@ -125,7 +125,7 @@ impl TemporaryFs {
 fn test_roundtrip_media_file() {
     let fs = TemporaryFs::new();
 
-    for file_type in MEDIA_FILE_TYPES {
+    for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
         let path = fs.create_media_file(
             concat_string!("test.", to_extension(&file_type)),

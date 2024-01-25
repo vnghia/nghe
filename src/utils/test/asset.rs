@@ -1,4 +1,4 @@
-use crate::utils::media::file_type::tests::to_extension;
+use crate::utils::song::file_type::tests::to_extension;
 
 use concat_string::concat_string;
 use lofty::FileType;

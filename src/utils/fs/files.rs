@@ -1,4 +1,4 @@
-use super::super::media::file_type::MEDIA_FILE_TYPES;
+use super::super::song::file_type::SONG_FILE_TYPES;
 use crate::OSResult;
 
 use itertools::Itertools;
@@ -14,7 +14,7 @@ pub fn scan_media_files<P: AsRef<Path>>(root: P) -> OSResult<Vec<(PathBuf, FileT
                 Ok(entry) => {
                     if let Some(extension) = entry.path().extension() {
                         if let Some(file_type) = FileType::from_ext(extension) {
-                            if MEDIA_FILE_TYPES.contains(&file_type) {
+                            if SONG_FILE_TYPES.contains(&file_type) {
                                 match entry.metadata() {
                                     Ok(metadata) => {
                                         if metadata.is_file() {
@@ -45,7 +45,7 @@ pub fn scan_media_files<P: AsRef<Path>>(root: P) -> OSResult<Vec<(PathBuf, FileT
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::{media::file_type::tests::to_extensions, test::fs::TemporaryFs};
+    use crate::utils::{song::file_type::tests::to_extensions, test::fs::TemporaryFs};
 
     use concat_string::concat_string;
     use fake::{Fake, Faker};

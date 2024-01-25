@@ -1,6 +1,6 @@
 use lofty::FileType;
 
-pub const MEDIA_FILE_TYPES: [FileType; 2] = [FileType::Flac, FileType::Mpeg];
+pub const SONG_FILE_TYPES: [FileType; 2] = [FileType::Flac, FileType::Mpeg];
 
 #[cfg(test)]
 pub mod tests {
@@ -17,6 +17,6 @@ pub mod tests {
     }
 
     pub fn to_extensions() -> Vec<&'static str> {
-        MEDIA_FILE_TYPES.iter().map(to_extension).collect_vec()
+        SONG_FILE_TYPES.iter().map(to_extension).collect_vec()
     }
 }

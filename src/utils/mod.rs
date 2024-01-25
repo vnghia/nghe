@@ -1,5 +1,5 @@
 pub mod fs;
-pub mod media;
+pub mod song;
 
 #[cfg(test)]
 pub mod test;

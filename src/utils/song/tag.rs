@@ -54,13 +54,13 @@ impl SongTag {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::{media::file_type::MEDIA_FILE_TYPES, test::asset::get_media_asset_path};
+    use crate::utils::{song::file_type::SONG_FILE_TYPES, test::asset::get_media_asset_path};
 
     use std::fs::read;
 
     #[test]
     fn test_parse_media_file() {
-        for file_type in MEDIA_FILE_TYPES {
+        for file_type in SONG_FILE_TYPES {
             let data = read(get_media_asset_path(&file_type)).unwrap();
             let tag = SongTag::parse(data, file_type).unwrap();
             assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
