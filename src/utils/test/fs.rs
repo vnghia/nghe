@@ -31,14 +31,26 @@ impl TemporaryFs {
         }
     }
 
+    fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        if path.as_ref().is_absolute() {
+            if !path.as_ref().starts_with(self.get_root_path()) {
+                panic!("path is not a children of root temp directory");
+            } else {
+                path.as_ref().into()
+            }
+        } else {
+            self.get_root_path().join(path)
+        }
+    }
+
     pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path = self.root.path().join(path);
+        let path = self.get_absolute_path(path);
         create_dir_all(&path).expect("can not create temporary dir");
         path
     }
 
     pub fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path = self.root.path().join(path);
+        let path = self.get_absolute_path(path);
         self.create_dir(path.parent().unwrap());
 
         File::create(&path)
@@ -54,7 +66,7 @@ impl TemporaryFs {
         file_type: &FileType,
         song_tag: SongTag,
     ) -> PathBuf {
-        let path = self.root.path().join(path);
+        let path = self.get_absolute_path(path);
         self.create_dir(path.parent().unwrap());
         std::fs::copy(get_media_asset_path(file_type), &path)
             .expect("can not copy original media file to temp directory");
@@ -92,7 +104,7 @@ impl TemporaryFs {
     pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
         paths
             .iter()
-            .map(|path| self.root.path().join(path))
+            .map(|path| self.get_absolute_path(path))
             .collect()
     }
 
