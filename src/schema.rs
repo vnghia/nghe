@@ -52,6 +52,7 @@ diesel::table! {
     songs_artists (song_id, artist_id) {
         song_id -> Uuid,
         artist_id -> Uuid,
+        upserted_at -> Timestamptz,
     }
 }
 

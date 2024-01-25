@@ -4,6 +4,7 @@ pub use crate::schema::songs_artists;
 pub use songs_artists::*;
 
 use diesel::prelude::*;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(
@@ -27,6 +28,7 @@ use uuid::Uuid;
 pub struct SongArtist {
     pub song_id: Uuid,
     pub artist_id: Uuid,
+    pub upserted_at: OffsetDateTime,
 }
 
 pub type NewSongArtist = SongArtist;
