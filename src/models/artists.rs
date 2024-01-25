@@ -14,6 +14,7 @@ pub struct Artist {
     pub name: String,
     pub index: String,
     pub updated_at: OffsetDateTime,
+    pub scanned_at: OffsetDateTime,
 }
 
 #[derive(Insertable)]

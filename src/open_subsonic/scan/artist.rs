@@ -1,7 +1,7 @@
 use crate::models::*;
 use crate::{DatabasePool, OSResult};
 
-use diesel::SelectableHelper;
+use diesel::{ExpressionMethods, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 
@@ -20,7 +20,9 @@ pub async fn upsert_artists<TI: AsRef<str>, TN: AsRef<str>>(
                 })
                 .collect_vec(),
         )
-        .on_conflict_do_nothing()
+        .on_conflict(artists::name)
+        .do_update()
+        .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
         .returning(artists::Artist::as_returning())
         .get_results(&mut pool.get().await?)
         .await?)

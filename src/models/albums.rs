@@ -13,6 +13,7 @@ pub struct Album {
     pub id: Uuid,
     pub name: String,
     pub updated_at: OffsetDateTime,
+    pub scanned_at: OffsetDateTime,
 }
 
 #[derive(Insertable)]
