@@ -1,15 +1,16 @@
 use crate::models::*;
 use crate::{DatabasePool, OSResult};
 
-use diesel::{ExpressionMethods, SelectableHelper};
+use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
+use uuid::Uuid;
 
 pub async fn upsert_artists<TI: AsRef<str>, TN: AsRef<str>>(
     pool: &DatabasePool,
     ignored_prefixes: &[TI],
     names: &[TN],
-) -> OSResult<Vec<artists::Artist>> {
+) -> OSResult<Vec<Uuid>> {
     Ok(diesel::insert_into(artists::table)
         .values(
             names
@@ -23,7 +24,7 @@ pub async fn upsert_artists<TI: AsRef<str>, TN: AsRef<str>>(
         .on_conflict(artists::name)
         .do_update()
         .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
-        .returning(artists::Artist::as_returning())
+        .returning(artists::id)
         .get_results(&mut pool.get().await?)
         .await?)
 }

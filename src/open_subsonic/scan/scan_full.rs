@@ -1,4 +1,4 @@
-use super::{album::upsert_album, artist::upsert_artists};
+use super::{album::upsert_album, artist::upsert_artists, song::upsert_song_artists};
 use crate::{
     models::*,
     utils::{fs::files::scan_media_files, song::tag::SongTag},
@@ -48,26 +48,27 @@ pub async fn scan_full<'a, T: AsRef<str>>(
             };
 
             let song_tag = SongTag::parse(&song_data, song_file_type)?;
-            let artists = upsert_artists(pool, ignored_prefixes, &song_tag.artists).await?;
-            let album = upsert_album(pool, song_tag.album.into()).await?;
+            let artist_ids = upsert_artists(pool, ignored_prefixes, &song_tag.artists).await?;
+            let album_id = upsert_album(pool, song_tag.album.into()).await?;
 
-            if let Some(song_id) = song_id {
+            let song_id = if let Some(song_id) = song_id {
                 let update_song = songs::UpdateSong {
                     id: song_id,
                     title: song_tag.title.into(),
-                    album_id: album.id,
+                    album_id,
                     music_folder_id: music_folder.id,
                     file_hash: song_file_hash as i64,
                     file_size: song_file_size as i64,
                 };
                 diesel::update(&update_song)
                     .set(&update_song)
-                    .execute(&mut pool.get().await?)
-                    .await?;
+                    .returning(songs::id)
+                    .get_result::<Uuid>(&mut pool.get().await?)
+                    .await?
             } else {
                 let new_song = songs::NewSong {
                     title: song_tag.title.into(),
-                    album_id: album.id,
+                    album_id,
                     music_folder_id: music_folder.id,
                     path: song_relative_path.to_string_lossy(),
                     file_hash: song_file_hash as i64,
@@ -75,9 +76,12 @@ pub async fn scan_full<'a, T: AsRef<str>>(
                 };
                 diesel::insert_into(songs::table)
                     .values(&new_song)
-                    .execute(&mut pool.get().await?)
-                    .await?;
-            }
+                    .returning(songs::id)
+                    .get_result::<Uuid>(&mut pool.get().await?)
+                    .await?
+            };
+
+            upsert_song_artists(pool, song_id, &artist_ids).await?;
         }
     }
 
