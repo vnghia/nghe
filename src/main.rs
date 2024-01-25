@@ -13,6 +13,7 @@ use nghe::migration;
 use nghe::open_subsonic::{
     browsing,
     browsing::{refresh_music_folders, refresh_permissions},
+    scan::scan_full,
     system, user,
 };
 use nghe::ServerState;
@@ -63,6 +64,15 @@ async fn main() {
     )
     .await
     .expect("can not set music folders permissions");
+
+    // scan song
+    scan_full(
+        &server_state.database.pool,
+        &server_state.artist.ignored_prefixes,
+        &upserted_music_folders,
+    )
+    .await
+    .expect("can not scan song");
 
     // run it
     let listener =

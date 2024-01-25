@@ -31,3 +31,14 @@ pub struct NewSong<'a> {
     pub file_hash: i64,
     pub file_size: i64,
 }
+
+#[derive(Identifiable, AsChangeset)]
+#[diesel(table_name = songs)]
+pub struct UpdateSong<'a> {
+    pub id: Uuid,
+    pub title: Cow<'a, str>,
+    pub album_id: Uuid,
+    pub music_folder_id: Uuid,
+    pub file_hash: i64,
+    pub file_size: i64,
+}
