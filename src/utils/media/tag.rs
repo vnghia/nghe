@@ -62,9 +62,14 @@ mod tests {
         for file_type in MEDIA_FILE_TYPES {
             let data = read(get_media_asset_path(&file_type)).unwrap();
             let tag = SongTag::parse(data, file_type).unwrap();
-            assert_eq!(tag.title, "Sample");
-            assert_eq!(tag.album, "Album");
-            assert_eq!(tag.artists, ["Artist1", "Artist2"]);
+            assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
+            assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
+            assert_eq!(
+                tag.artists,
+                ["Artist1", "Artist2"],
+                "{:?} artists does not match",
+                file_type
+            );
         }
     }
 }
