@@ -9,6 +9,7 @@ use std::io::Cursor;
 pub struct SongTag {
     pub title: String,
     pub album: String,
+    #[cfg_attr(test, dummy(faker = "(fake::Faker, 2..4)"))]
     pub artists: Vec<String>,
 }
 
