@@ -1,30 +1,29 @@
 use crate::models::*;
 use crate::{DatabasePool, OSResult};
 
-use diesel::{ExpressionMethods, SelectableHelper};
+use diesel::SelectableHelper;
 use diesel_async::RunQueryDsl;
-use std::borrow::Cow;
+use itertools::Itertools;
 
-pub async fn upsert_artist<'a, T: AsRef<str>>(
+pub async fn upsert_artists<TI: AsRef<str>, TN: AsRef<str>>(
     pool: &DatabasePool,
-    ignored_prefixes: &[T],
-    name: Cow<'a, str>,
-) -> OSResult<artists::Artist> {
-    let artist = diesel::insert_into(artists::table)
-        .values(&artists::NewArtist { name })
+    ignored_prefixes: &[TI],
+    names: &[TN],
+) -> OSResult<Vec<artists::Artist>> {
+    Ok(diesel::insert_into(artists::table)
+        .values(
+            names
+                .iter()
+                .map(|name| artists::NewArtist {
+                    name: std::borrow::Cow::Borrowed(name.as_ref()),
+                    index: build_artist_index(ignored_prefixes, name.as_ref()).into(),
+                })
+                .collect_vec(),
+        )
         .on_conflict_do_nothing()
         .returning(artists::Artist::as_returning())
-        .get_result(&mut pool.get().await?)
-        .await?;
-    if artist.index == "?" {
-        Ok(diesel::update(&artist)
-            .set(artists::index.eq(build_artist_index(ignored_prefixes, &artist.name)))
-            .returning(artists::Artist::as_returning())
-            .get_result(&mut pool.get().await?)
-            .await?)
-    } else {
-        Ok(artist)
-    }
+        .get_results(&mut pool.get().await?)
+        .await?)
 }
 
 // TODO: better index building mechanism
