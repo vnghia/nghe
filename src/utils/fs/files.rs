@@ -6,7 +6,9 @@ use lofty::FileType;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-pub fn scan_media_files<P: AsRef<Path>>(root: P) -> OSResult<Vec<(PathBuf, FileType, u64)>> {
+pub fn scan_media_files<P: AsRef<Path>>(
+    root: P,
+) -> OSResult<Vec<(PathBuf, PathBuf, FileType, u64)>> {
     Ok(WalkDir::new(&root)
         .into_iter()
         .filter_map(|entry| {
@@ -18,8 +20,15 @@ pub fn scan_media_files<P: AsRef<Path>>(root: P) -> OSResult<Vec<(PathBuf, FileT
                                 match entry.metadata() {
                                     Ok(metadata) => {
                                         if metadata.is_file() {
-                                            return Some(Ok((
-                                                entry.path().to_path_buf(),
+                                            return Some(Ok((entry
+                                              .path().into(),
+                                                entry
+                                                    .path()
+                                                    .strip_prefix(&root)
+                                                    .expect(
+                                                        "this path should always contains the root path",
+                                                    )
+                                                    .into(),
                                                 file_type,
                                                 metadata.len(),
                                             )));
@@ -66,7 +75,7 @@ mod tests {
         let scanned_lens = scanned_results
             .iter()
             .cloned()
-            .map(|result| result.2)
+            .map(|result| result.3)
             .collect_vec();
         let scanned_paths = scanned_results
             .iter()
@@ -82,6 +91,34 @@ mod tests {
                 .collect_vec(),
             scanned_lens.into_iter().sorted().collect_vec()
         );
+        assert_eq!(
+            media_paths.into_iter().sorted().collect_vec(),
+            scanned_paths.into_iter().sorted().collect_vec()
+        );
+    }
+
+    #[test]
+    fn test_scan_media_files_relative_path() {
+        let fs = TemporaryFs::new();
+
+        let media_paths = to_extensions()
+            .iter()
+            .cartesian_product(0..3)
+            .map(|(extension, _)| {
+                let relative_path =
+                    PathBuf::from(concat_string!(Faker.fake::<String>(), ".", extension));
+                fs.create_file(&relative_path);
+                relative_path
+            })
+            .collect_vec();
+
+        let scanned_paths = scan_media_files(fs.get_root_path())
+            .unwrap()
+            .iter()
+            .cloned()
+            .map(|result| result.1)
+            .collect_vec();
+
         assert_eq!(
             media_paths.into_iter().sorted().collect_vec(),
             scanned_paths.into_iter().sorted().collect_vec()
