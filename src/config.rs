@@ -5,7 +5,10 @@ mod built_info {
 use derivative::Derivative;
 use libaes::AES_128_KEY_LEN;
 use serde::Deserialize;
-use serde_with::serde_as;
+use serde_with::{
+    formats::{ColonSeparator, CommaSeparator},
+    serde_as, StringWithSeparator,
+};
 use std::{net::IpAddr, path::PathBuf};
 
 pub type EncryptionKey = [u8; AES_128_KEY_LEN];
@@ -29,10 +32,13 @@ pub struct Database {
     pub key: EncryptionKey,
 }
 
+#[serde_as]
 #[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Folder {
+    #[serde_as(as = "StringWithSeparator::<ColonSeparator, PathBuf>")]
     pub top_paths: Vec<PathBuf>,
+    #[serde_as(as = "StringWithSeparator::<CommaSeparator, u8>")]
     pub depth_levels: Vec<u8>,
 }
 
@@ -65,11 +71,7 @@ impl Config {
             .add_source(
                 config::Environment::with_prefix(built_info::PKG_NAME)
                     .prefix_separator("_")
-                    .separator("__")
-                    .list_separator(":")
-                    .try_parsing(true)
-                    .with_list_parse_key("folder.top_paths")
-                    .with_list_parse_key("folder.depth_levels"),
+                    .separator("__"),
             )
             .build()?;
         s.try_deserialize()
