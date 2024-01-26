@@ -54,7 +54,7 @@ pub fn scan_media_files<P: AsRef<Path>>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::{song::file_type::tests::to_extensions, test::fs::TemporaryFs};
+    use crate::utils::{song::file_type::to_extensions, test::fs::TemporaryFs};
 
     use concat_string::concat_string;
     use fake::{Fake, Faker};
