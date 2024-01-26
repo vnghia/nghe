@@ -1,4 +1,6 @@
-use super::song::upsert_song;
+use super::{
+    album::upsert_album, artist::upsert_artists, song::refresh_song_artists, song::upsert_song,
+};
 use crate::{
     models::*,
     utils::{fs::files::scan_media_files, song::tag::SongTag},
@@ -48,17 +50,29 @@ pub async fn scan_full<T: AsRef<str>>(
             };
 
             let song_tag = SongTag::parse(&song_data, song_file_type)?;
-            upsert_song(
+
+            let artist_ids = upsert_artists(pool, ignored_prefixes, &song_tag.artists).await?;
+            let album_id = upsert_album(pool, std::borrow::Cow::Borrowed(&song_tag.album)).await?;
+
+            let song_id = upsert_song(
                 pool,
-                ignored_prefixes,
-                music_folder.id,
                 song_id,
-                song_tag,
-                song_file_hash,
-                song_file_size,
-                song_relative_path,
+                song_tag.into_new_or_update_song(
+                    music_folder.id,
+                    album_id,
+                    song_file_hash,
+                    song_file_size,
+                    // only supply path if song id is none
+                    // i.e: we are inserting a new song.
+                    if song_id.is_none() {
+                        Some(&song_relative_path)
+                    } else {
+                        None
+                    },
+                ),
             )
             .await?;
+            refresh_song_artists(pool, song_id, &artist_ids).await?;
         }
     }
 

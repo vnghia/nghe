@@ -1,9 +1,4 @@
-use std::path::Path;
-
-use super::{album::upsert_album, artist::upsert_artists};
-use crate::models::*;
-use crate::utils::song::tag::SongTag;
-use crate::{DatabasePool, OSResult};
+use crate::{models::*, DatabasePool, OSResult};
 
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
@@ -38,65 +33,44 @@ pub async fn refresh_song_artists(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub async fn upsert_song<TI: AsRef<str>, TP: AsRef<Path>>(
+pub async fn upsert_song<'a>(
     pool: &DatabasePool,
-    ignored_prefixes: &[TI],
-    music_folder_id: Uuid,
     song_id: Option<Uuid>,
-    song_tag: SongTag,
-    song_file_hash: u64,
-    song_file_size: u64,
-    song_relative_path: TP,
+    new_or_update_song: songs::NewOrUpdateSong<'a>,
 ) -> OSResult<Uuid> {
-    let artist_ids = upsert_artists(pool, ignored_prefixes, &song_tag.artists).await?;
-    let album_id = upsert_album(pool, song_tag.album.into()).await?;
-
+    if (song_id.is_some() && new_or_update_song.path.is_some())
+        || (song_id.is_none() && new_or_update_song.path.is_none())
+    {
+        unreachable!("id (updating) or path (inserting) is mutually exclusive")
+    }
     let song_id = if let Some(song_id) = song_id {
-        let update_song = songs::UpdateSong {
-            id: song_id,
-            title: song_tag.title.into(),
-            album_id,
-            music_folder_id,
-            file_hash: song_file_hash as i64,
-            file_size: song_file_size as i64,
-        };
-        diesel::update(&update_song)
-            .set(&update_song)
+        diesel::update(songs::table)
+            .filter(songs::id.eq(song_id))
+            .set(new_or_update_song)
             .returning(songs::id)
             .get_result::<Uuid>(&mut pool.get().await?)
             .await?
     } else {
-        let new_song = songs::NewSong {
-            title: song_tag.title.into(),
-            album_id,
-            music_folder_id,
-            path: song_relative_path.as_ref().to_string_lossy(),
-            file_hash: song_file_hash as i64,
-            file_size: song_file_size as i64,
-        };
         diesel::insert_into(songs::table)
-            .values(&new_song)
+            .values(new_or_update_song)
             .returning(songs::id)
             .get_result::<Uuid>(&mut pool.get().await?)
             .await?
     };
-
-    refresh_song_artists(pool, song_id, &artist_ids).await?;
-
     Ok(song_id)
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::album::upsert_album;
     use super::*;
+    use crate::utils::song::tag::SongTag;
     use crate::{
         open_subsonic::browsing::test::setup_user_and_music_folders,
         utils::test::song::query_all_song_information,
     };
 
     use fake::{Fake, Faker};
-    use itertools::Itertools;
     use std::path::PathBuf;
 
     #[tokio::test]
@@ -105,36 +79,34 @@ mod tests {
             setup_user_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
+        let album_id = upsert_album(db.get_pool(), std::borrow::Cow::Borrowed(&song_tag.album))
+            .await
+            .unwrap();
+
         let song_path = Faker.fake::<PathBuf>();
         let song_hash: u64 = rand::random();
         let song_size: u64 = rand::random();
+
         let song_id = upsert_song(
             db.get_pool(),
-            &[""],
-            music_folders[0].id,
             None,
-            song_tag.clone(),
-            song_hash,
-            song_size,
-            &song_path,
+            song_tag.clone().into_new_or_update_song(
+                music_folders[0].id,
+                album_id,
+                song_hash,
+                song_size,
+                &song_path,
+            ),
         )
         .await
         .unwrap();
 
-        let (song, album, artists) = query_all_song_information(db.get_pool(), song_id).await;
+        let (song, _, _) = query_all_song_information(db.get_pool(), song_id).await;
 
         assert_eq!(song_tag.title, song.title);
+        assert_eq!(song_path, PathBuf::from(song.path));
         assert_eq!(song_hash, song.file_hash as u64);
         assert_eq!(song_size, song.file_size as u64);
-        assert_eq!(song_tag.album, album.name);
-        assert_eq!(
-            song_tag.artists.into_iter().sorted().collect_vec(),
-            artists
-                .into_iter()
-                .map(|artist| artist.name)
-                .sorted()
-                .collect_vec()
-        );
     }
 
     #[tokio::test]
@@ -143,52 +115,59 @@ mod tests {
             setup_user_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
+        let album_id = upsert_album(db.get_pool(), std::borrow::Cow::Borrowed(&song_tag.album))
+            .await
+            .unwrap();
+
         let song_path = Faker.fake::<PathBuf>();
         let song_hash: u64 = rand::random();
         let song_size: u64 = rand::random();
+
         let song_id = upsert_song(
             db.get_pool(),
-            &[""],
-            music_folders[0].id,
             None,
-            song_tag.clone(),
-            song_hash,
-            song_size,
-            &song_path,
+            song_tag.clone().into_new_or_update_song(
+                music_folders[0].id,
+                album_id,
+                song_hash,
+                song_size,
+                &song_path,
+            ),
         )
         .await
         .unwrap();
 
         let new_song_tag = Faker.fake::<SongTag>();
+        let new_album_id = upsert_album(
+            db.get_pool(),
+            std::borrow::Cow::Borrowed(&new_song_tag.album),
+        )
+        .await
+        .unwrap();
+
         let new_song_hash: u64 = rand::random();
         let new_song_size: u64 = rand::random();
+
         let new_song_id = upsert_song(
             db.get_pool(),
-            &[""],
-            music_folders[0].id,
             Some(song_id),
-            new_song_tag.clone(),
-            new_song_hash,
-            new_song_size,
-            &song_path,
+            new_song_tag.clone().into_new_or_update_song(
+                music_folders[0].id,
+                new_album_id,
+                new_song_hash,
+                new_song_size,
+                Option::<&PathBuf>::None,
+            ),
         )
         .await
         .unwrap();
 
         assert_eq!(song_id, new_song_id);
-        let (song, album, artists) = query_all_song_information(db.get_pool(), new_song_id).await;
+        let (song, _, _) = query_all_song_information(db.get_pool(), new_song_id).await;
 
         assert_eq!(new_song_tag.title, song.title);
-        assert_eq!(new_song_tag.album, album.name);
+        assert_eq!(song_path, PathBuf::from(song.path));
         assert_eq!(new_song_hash, song.file_hash as u64);
         assert_eq!(new_song_size, song.file_size as u64);
-        assert_eq!(
-            new_song_tag.artists.into_iter().sorted().collect_vec(),
-            artists
-                .into_iter()
-                .map(|artist| artist.name)
-                .sorted()
-                .collect_vec()
-        );
     }
 }

@@ -21,24 +21,13 @@ pub struct Song {
     pub scanned_at: OffsetDateTime,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = songs)]
-pub struct NewSong<'a> {
+pub struct NewOrUpdateSong<'a> {
     pub title: Cow<'a, str>,
     pub album_id: Uuid,
     pub music_folder_id: Uuid,
-    pub path: Cow<'a, str>,
-    pub file_hash: i64,
-    pub file_size: i64,
-}
-
-#[derive(Identifiable, AsChangeset)]
-#[diesel(table_name = songs)]
-pub struct UpdateSong<'a> {
-    pub id: Uuid,
-    pub title: Cow<'a, str>,
-    pub album_id: Uuid,
-    pub music_folder_id: Uuid,
+    pub path: Option<Cow<'a, str>>,
     pub file_hash: i64,
     pub file_size: i64,
 }
