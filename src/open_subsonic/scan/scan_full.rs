@@ -32,7 +32,8 @@ pub async fn scan_full<T: AsRef<str>>(
                 .optional()?;
 
             let song_data = tokio::fs::read(&song_absolute_path).await?;
-            let song_file_hash = xxh3_64(&song_data);
+            let (song_file_hash, song_data) =
+                tokio::task::spawn_blocking(move || (xxh3_64(&song_data), song_data)).await?;
 
             let song_id = if let Some((song_id_db, song_file_hash_db, song_file_size_db)) =
                 song_file_metadata_db
