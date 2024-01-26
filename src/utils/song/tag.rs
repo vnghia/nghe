@@ -2,7 +2,7 @@ use crate::{models::*, OSResult, OpenSubsonicError};
 
 use itertools::Itertools;
 use lofty::{Accessor, FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
-use std::{io::Cursor, path::Path};
+use std::io::Cursor;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -51,21 +51,19 @@ impl SongTag {
         })
     }
 
-    pub fn into_new_or_update_song<'a, TP: AsRef<Path> + 'a, TO: Into<Option<&'a TP>>>(
+    pub fn into_new_or_update_song<'a, T: AsRef<str> + 'a>(
         self: SongTag,
         music_folder_id: Uuid,
         album_id: Uuid,
         song_file_hash: u64,
         song_file_size: u64,
-        song_relative_path: TO,
+        song_relative_path: Option<&'a T>,
     ) -> songs::NewOrUpdateSong<'a> {
         songs::NewOrUpdateSong {
             title: self.title.into(),
             album_id,
             music_folder_id,
-            path: song_relative_path
-                .into()
-                .map(|path| path.as_ref().to_string_lossy()),
+            path: song_relative_path.map(|path| std::borrow::Cow::Borrowed(path.as_ref())),
             file_hash: song_file_hash as i64,
             file_size: song_file_size as i64,
         }

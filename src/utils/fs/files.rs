@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 pub fn scan_media_files<P: AsRef<Path>>(
     root: P,
-) -> OSResult<Vec<(PathBuf, PathBuf, FileType, u64)>> {
+) -> OSResult<Vec<(PathBuf, String, FileType, u64)>> {
     Ok(WalkDir::new(&root)
         .into_iter()
         .filter_map(|entry| {
@@ -28,7 +28,7 @@ pub fn scan_media_files<P: AsRef<Path>>(
                                                     .expect(
                                                         "this path should always contains the root path",
                                                     )
-                                                    .into(),
+                                                    .to_string_lossy().to_string(),
                                                 file_type,
                                                 metadata.len(),
                                             )));
@@ -116,7 +116,7 @@ mod tests {
             .unwrap()
             .iter()
             .cloned()
-            .map(|result| result.1)
+            .map(|result| PathBuf::from(result.1))
             .collect_vec();
 
         assert_eq!(

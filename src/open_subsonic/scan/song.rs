@@ -71,7 +71,6 @@ mod tests {
     };
 
     use fake::{Fake, Faker};
-    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_upsert_song_insert() {
@@ -83,7 +82,7 @@ mod tests {
             .await
             .unwrap();
 
-        let song_path = Faker.fake::<PathBuf>();
+        let song_path = Faker.fake::<String>();
         let song_hash: u64 = rand::random();
         let song_size: u64 = rand::random();
 
@@ -95,7 +94,7 @@ mod tests {
                 album_id,
                 song_hash,
                 song_size,
-                &song_path,
+                Some(&song_path),
             ),
         )
         .await
@@ -104,7 +103,7 @@ mod tests {
         let (song, _, _) = query_all_song_information(db.get_pool(), song_id).await;
 
         assert_eq!(song_tag.title, song.title);
-        assert_eq!(song_path, PathBuf::from(song.path));
+        assert_eq!(song_path, song.path);
         assert_eq!(song_hash, song.file_hash as u64);
         assert_eq!(song_size, song.file_size as u64);
     }
@@ -119,7 +118,7 @@ mod tests {
             .await
             .unwrap();
 
-        let song_path = Faker.fake::<PathBuf>();
+        let song_path = Faker.fake::<String>();
         let song_hash: u64 = rand::random();
         let song_size: u64 = rand::random();
 
@@ -131,7 +130,7 @@ mod tests {
                 album_id,
                 song_hash,
                 song_size,
-                &song_path,
+                Some(&song_path),
             ),
         )
         .await
@@ -156,7 +155,7 @@ mod tests {
                 new_album_id,
                 new_song_hash,
                 new_song_size,
-                Option::<&PathBuf>::None,
+                Option::<&String>::None,
             ),
         )
         .await
@@ -166,7 +165,7 @@ mod tests {
         let (song, _, _) = query_all_song_information(db.get_pool(), new_song_id).await;
 
         assert_eq!(new_song_tag.title, song.title);
-        assert_eq!(song_path, PathBuf::from(song.path));
+        assert_eq!(song_path, song.path);
         assert_eq!(new_song_hash, song.file_hash as u64);
         assert_eq!(new_song_size, song.file_size as u64);
     }
