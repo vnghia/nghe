@@ -75,19 +75,14 @@ mod tests {
     use super::*;
     use crate::utils::{song::file_type::to_extensions, test::fs::TemporaryFs};
 
-    use concat_string::concat_string;
-    use fake::{Fake, Faker};
-
     #[test]
     fn test_scan_media_files_no_filter() {
         let fs = TemporaryFs::new();
 
-        let media_paths = to_extensions()
-            .iter()
-            .cartesian_product(0..3)
-            .map(|(extension, _)| {
-                fs.create_file(concat_string!(Faker.fake::<String>(), ".", extension))
-            })
+        let media_paths = fs
+            .create_random_paths(50, 3, &to_extensions())
+            .into_iter()
+            .map(|(path, _)| fs.create_file(&path))
             .collect_vec();
 
         let scanned_results = scan_media_files(fs.get_root_path()).unwrap();
@@ -120,14 +115,14 @@ mod tests {
     fn test_scan_media_files_relative_path() {
         let fs = TemporaryFs::new();
 
-        let media_paths = to_extensions()
-            .iter()
-            .cartesian_product(0..3)
-            .map(|(extension, _)| {
-                let relative_path =
-                    PathBuf::from(concat_string!(Faker.fake::<String>(), ".", extension));
-                fs.create_file(&relative_path);
-                relative_path
+        let media_paths = fs
+            .create_random_paths(50, 3, &to_extensions())
+            .into_iter()
+            .map(|(path, _)| {
+                fs.create_file(&path)
+                    .strip_prefix(fs.get_root_path())
+                    .unwrap()
+                    .to_path_buf()
             })
             .collect_vec();
 
@@ -150,14 +145,21 @@ mod tests {
 
         let supported_extensions = to_extensions();
 
-        let media_paths = [supported_extensions.as_slice(), &["txt", "rs"]]
-            .concat()
-            .iter()
-            .cartesian_product(0..3)
-            .filter_map(|(extension, _)| {
-                let path = fs.create_file(concat_string!(Faker.fake::<String>(), ".", extension));
-                if supported_extensions.contains(extension) {
-                    Some(path)
+        let media_paths = fs
+            .create_random_paths(
+                50,
+                3,
+                &[supported_extensions.as_slice(), &["txt", "rs"]].concat(),
+            )
+            .into_iter()
+            .filter_map(|(path, ext)| {
+                let path = fs.create_file(&path);
+                if let Some(ext) = ext {
+                    if SONG_FILE_TYPES.contains(&ext) {
+                        Some(path)
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }
@@ -180,14 +182,14 @@ mod tests {
     fn test_scan_media_files_filter_dir() {
         let fs = TemporaryFs::new();
 
-        let media_paths = to_extensions()
-            .iter()
-            .cartesian_product(0..5)
-            .filter_map(|(extension, i)| {
-                if i < 3 {
-                    Some(fs.create_file(concat_string!(Faker.fake::<String>(), ".", extension)))
+        let media_paths = fs
+            .create_random_paths(50, 3, &to_extensions())
+            .into_iter()
+            .filter_map(|(path, _)| {
+                if rand::random::<bool>() {
+                    Some(fs.create_file(&path))
                 } else {
-                    fs.create_dir(concat_string!(Faker.fake::<String>(), ".", extension));
+                    fs.create_dir(&path);
                     None
                 }
             })
