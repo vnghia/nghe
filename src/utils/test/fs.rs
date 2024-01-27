@@ -15,6 +15,8 @@ use itertools::Itertools;
 use lofty::{
     id3::v2::Id3v2Tag, ogg::VorbisComments, Accessor, FileType, TagExt, TagType, TaggedFileExt,
 };
+use rand::seq::SliceRandom;
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::{fs::*, io::Write};
 use tempdir::TempDir;
@@ -99,6 +101,30 @@ impl TemporaryFs {
         };
 
         path
+    }
+
+    pub fn create_random_paths<T: AsRef<OsStr>>(
+        &self,
+        n_path: u8,
+        max_depth: u8,
+        extensions: &[T],
+    ) -> Vec<(PathBuf, Option<FileType>)> {
+        (0..n_path)
+            .into_iter()
+            .map(|_| {
+                let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
+                (
+                    self.get_absolute_path(
+                        PathBuf::from(
+                            fake::vec![String; 1..(max_depth as usize + 1)]
+                                .join(std::path::MAIN_SEPARATOR_STR),
+                        )
+                        .with_extension(ext),
+                    ),
+                    FileType::from_ext(ext),
+                )
+            })
+            .collect_vec()
     }
 
     pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
