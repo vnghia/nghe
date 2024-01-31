@@ -27,33 +27,69 @@ pub struct TemporaryFs {
 
 #[allow(clippy::new_without_default)]
 impl TemporaryFs {
+    pub const NONE_PATH: Option<&'static PathBuf> = None;
+
     pub fn new() -> Self {
         Self {
             root: TempDir::new(built_info::PKG_NAME).expect("can not create temporary directory"),
         }
     }
 
-    fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+    fn get_absolute_path<TR: AsRef<Path>, TP: AsRef<Path>>(
+        &self,
+        root_path: Option<&TR>,
+        path: TP,
+    ) -> PathBuf {
+        let root_path = match root_path {
+            Some(root_path) => root_path.as_ref(),
+            None => self.get_root_path(),
+        };
+
         if path.as_ref().is_absolute() {
-            if !path.as_ref().starts_with(self.get_root_path()) {
+            if !path.as_ref().starts_with(root_path) {
                 panic!("path is not a children of root temp directory");
             } else {
                 path.as_ref().into()
             }
         } else {
-            self.get_root_path().join(path)
+            root_path.join(path)
         }
     }
 
-    pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path = self.get_absolute_path(path);
+    fn create_nested_parent_dir<TR: AsRef<Path>, TP: AsRef<Path>>(
+        &self,
+        root_path: Option<&TR>,
+        path: TP,
+    ) -> PathBuf {
+        let path = self.get_absolute_path(root_path, path);
+        self.create_nested_dir(root_path, path.parent().unwrap());
+        path
+    }
+
+    pub fn get_root_path(&self) -> &Path {
+        self.root.path()
+    }
+
+    pub fn create_nested_dir<TR: AsRef<Path>, TP: AsRef<Path>>(
+        &self,
+        root_path: Option<&TR>,
+        path: TP,
+    ) -> PathBuf {
+        let path = self.get_absolute_path(root_path, path);
         create_dir_all(&path).expect("can not create temporary dir");
         path
     }
 
-    pub fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path = self.get_absolute_path(path);
-        self.create_dir(path.parent().unwrap());
+    pub fn create_dir<TP: AsRef<Path>>(&self, path: TP) -> PathBuf {
+        self.create_nested_dir(Self::NONE_PATH, path)
+    }
+
+    pub fn create_nested_file<TR: AsRef<Path>, TP: AsRef<Path>>(
+        &self,
+        root_path: Option<&TR>,
+        path: TP,
+    ) -> PathBuf {
+        let path = self.create_nested_parent_dir(root_path, path);
 
         File::create(&path)
             .expect("can not open temporary file")
@@ -62,14 +98,19 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_media_file<P: AsRef<Path>>(
+    pub fn create_file<TP: AsRef<Path>>(&self, path: TP) -> PathBuf {
+        self.create_nested_file(Self::NONE_PATH, path)
+    }
+
+    pub fn create_nested_media_file<TR: AsRef<Path>, TP: AsRef<Path>>(
         &self,
-        path: P,
+        root_path: Option<&TR>,
+        path: TP,
         file_type: &FileType,
         song_tag: SongTag,
     ) -> PathBuf {
-        let path = self.get_absolute_path(path);
-        self.create_dir(path.parent().unwrap());
+        let path = self.create_nested_parent_dir(root_path, path);
+
         std::fs::copy(get_media_asset_path(file_type), &path)
             .expect("can not copy original media file to temp directory");
 
@@ -103,11 +144,21 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_random_paths<T: AsRef<OsStr>>(
+    pub fn create_media_file<TP: AsRef<Path>>(
         &self,
+        path: TP,
+        file_type: &FileType,
+        song_tag: SongTag,
+    ) -> PathBuf {
+        self.create_nested_media_file(Self::NONE_PATH, path, file_type, song_tag)
+    }
+
+    pub fn create_nested_random_paths<TP: AsRef<Path>, TE: AsRef<OsStr>>(
+        &self,
+        root_path: Option<&TP>,
         n_path: u8,
         max_depth: u8,
-        extensions: &[T],
+        extensions: &[TE],
     ) -> Vec<(PathBuf, Option<FileType>)> {
         (0..n_path)
             .into_iter()
@@ -115,6 +166,7 @@ impl TemporaryFs {
                 let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
                 (
                     self.get_absolute_path(
+                        root_path,
                         PathBuf::from(
                             fake::vec![String; 1..(max_depth as usize + 1)]
                                 .join(std::path::MAIN_SEPARATOR_STR),
@@ -127,10 +179,19 @@ impl TemporaryFs {
             .collect_vec()
     }
 
+    pub fn create_random_paths<TE: AsRef<OsStr>>(
+        &self,
+        n_path: u8,
+        max_depth: u8,
+        extensions: &[TE],
+    ) -> Vec<(PathBuf, Option<FileType>)> {
+        self.create_nested_random_paths(Self::NONE_PATH, n_path, max_depth, extensions)
+    }
+
     pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
         paths
             .iter()
-            .map(|path| self.get_absolute_path(path))
+            .map(|path| self.get_absolute_path(Self::NONE_PATH, path))
             .collect()
     }
 
@@ -140,10 +201,6 @@ impl TemporaryFs {
             .map(std::fs::canonicalize)
             .collect::<Result<Vec<_>, _>>()
             .expect("can not canonicalize temp path")
-    }
-
-    pub fn get_root_path(&self) -> &Path {
-        self.root.path()
     }
 
     pub async fn create_music_folders(

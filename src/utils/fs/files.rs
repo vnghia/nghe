@@ -74,6 +74,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
 mod tests {
     use super::*;
     use crate::utils::{song::file_type::to_extensions, test::fs::TemporaryFs};
+    use std::path::PathBuf;
 
     #[test]
     fn test_scan_media_files_no_filter() {
