@@ -1,5 +1,5 @@
 use super::{
-    album::upsert_album, artist::upsert_artists, song::refresh_song_artists, song::upsert_song,
+    album::upsert_album, artist::upsert_artists, song::upsert_song, song::upsert_song_artists,
 };
 use crate::{
     models::*,
@@ -17,6 +17,8 @@ pub async fn scan_full<T: AsRef<str>>(
     ignored_prefixes: &[T],
     music_folders: &[music_folders::MusicFolder],
 ) -> OSResult<()> {
+    let scan_start_time = time::OffsetDateTime::now_utc();
+
     for music_folder in music_folders {
         let music_folder_path = music_folder.path.clone();
         for (song_absolute_path, song_relative_path, song_file_type, song_file_size) in
@@ -73,9 +75,13 @@ pub async fn scan_full<T: AsRef<str>>(
                 ),
             )
             .await?;
-            refresh_song_artists(pool, song_id, &artist_ids).await?;
+            upsert_song_artists(pool, song_id, &artist_ids).await?;
         }
     }
+    diesel::delete(songs_artists::table)
+        .filter(songs_artists::upserted_at.lt(scan_start_time))
+        .execute(&mut pool.get().await?)
+        .await?;
 
     tracing::info!("done scanning songs");
     Ok(())

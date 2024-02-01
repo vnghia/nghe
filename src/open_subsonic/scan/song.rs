@@ -5,12 +5,11 @@ use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use uuid::Uuid;
 
-pub async fn refresh_song_artists(
+pub async fn upsert_song_artists(
     pool: &DatabasePool,
     song_id: Uuid,
     artist_ids: &[Uuid],
 ) -> OSResult<()> {
-    let upsert_start_time = time::OffsetDateTime::now_utc();
     diesel::insert_into(songs_artists::table)
         .values(
             artist_ids
@@ -24,11 +23,6 @@ pub async fn refresh_song_artists(
                 .collect_vec(),
         )
         .on_conflict_do_nothing()
-        .execute(&mut pool.get().await?)
-        .await?;
-    diesel::delete(songs_artists::table)
-        .filter(songs_artists::song_id.eq(song_id))
-        .filter(songs_artists::upserted_at.lt(upsert_start_time))
         .execute(&mut pool.get().await?)
         .await?;
     Ok(())
