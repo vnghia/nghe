@@ -27,6 +27,7 @@ pub async fn refresh_song_artists(
         .execute(&mut pool.get().await?)
         .await?;
     diesel::delete(songs_artists::table)
+        .filter(songs_artists::song_id.eq(song_id))
         .filter(songs_artists::upserted_at.lt(upsert_start_time))
         .execute(&mut pool.get().await?)
         .await?;
