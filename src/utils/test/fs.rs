@@ -108,7 +108,7 @@ impl TemporaryFs {
         &self,
         root_path: Option<&TR>,
         path: TP,
-        song_tag: SongTag,
+        song_tag: &SongTag,
     ) -> PathBuf {
         let path = self.create_nested_parent_dir(root_path, path);
         let file_type = FileType::from_path(&path).unwrap();
@@ -164,7 +164,7 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_media_file<TP: AsRef<Path>>(&self, path: TP, song_tag: SongTag) -> PathBuf {
+    pub fn create_media_file<TP: AsRef<Path>>(&self, path: TP, song_tag: &SongTag) -> PathBuf {
         self.create_nested_media_file(Self::NONE_PATH, path, song_tag)
     }
 
@@ -237,10 +237,8 @@ fn test_roundtrip_media_file() {
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
-        let path = fs.create_media_file(
-            concat_string!("test.", to_extension(&file_type)),
-            song_tag.clone(),
-        );
+        let path =
+            fs.create_media_file(concat_string!("test.", to_extension(&file_type)), &song_tag);
         let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), file_type).unwrap();
         assert_eq!(
             song_tag, read_song_tag,

@@ -125,7 +125,7 @@ mod tests {
             fs.create_random_paths(1, 1, &[to_extension(&FileType::Flac)])[0].clone();
         fs.create_media_file(
             &path,
-            SongTag {
+            &SongTag {
                 album_artists: Vec::default(),
                 ..Faker.fake()
             },

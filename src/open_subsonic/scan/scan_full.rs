@@ -113,17 +113,13 @@ mod tests {
         let song_fs_info = temp_fs
             .create_nested_random_paths(Some(&music_folder_path), n_song, 3, &to_extensions())
             .iter()
-            .zip(fake::vec![SongTag; n_song as usize].iter().cloned())
+            .zip(fake::vec![SongTag; n_song as usize].into_iter())
             .map(|((path, _), song_tag)| {
                 (
                     (
                         music_folder_id,
                         temp_fs
-                            .create_nested_media_file(
-                                Some(&music_folder_path),
-                                path,
-                                song_tag.clone(),
-                            )
+                            .create_nested_media_file(Some(&music_folder_path), path, &song_tag)
                             .strip_prefix(&music_folder_path)
                             .unwrap()
                             .to_path_buf(),
@@ -168,14 +164,10 @@ mod tests {
         let song_fs_info = temp_fs
             .create_nested_random_paths(Some(&music_folder_path), n_song, 3, &to_extensions())
             .iter()
-            .zip(fake::vec![SongTag; n_song as usize].iter().cloned())
+            .zip(fake::vec![SongTag; n_song as usize].into_iter())
             .map(|((path, _), song_tag)| {
                 (
-                    temp_fs.create_nested_media_file(
-                        Some(&music_folder_path),
-                        path,
-                        song_tag.clone(),
-                    ),
+                    temp_fs.create_nested_media_file(Some(&music_folder_path), path, &song_tag),
                     song_tag,
                 )
             })
@@ -193,7 +185,7 @@ mod tests {
                     let new_path = temp_fs.create_nested_media_file(
                         Some(&music_folder_path),
                         &path,
-                        new_song_tag.clone(),
+                        &new_song_tag,
                     );
                     (new_path, new_song_tag)
                 } else {
@@ -252,7 +244,7 @@ mod tests {
                         &to_extensions(),
                     )
                     .iter()
-                    .zip(fake::vec![SongTag; n_song as usize].iter().cloned())
+                    .zip(fake::vec![SongTag; n_song as usize].into_iter())
                     .map(|((path, _), song_tag)| {
                         (
                             (
@@ -261,7 +253,7 @@ mod tests {
                                     .create_nested_media_file(
                                         Some(&music_folder_path),
                                         path,
-                                        song_tag.clone(),
+                                        &song_tag,
                                     )
                                     .strip_prefix(&music_folder_path)
                                     .unwrap()
