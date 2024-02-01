@@ -12,6 +12,8 @@ pub struct SongTag {
     pub album: String,
     #[cfg_attr(test, dummy(faker = "(fake::Faker, 2..4)"))]
     pub artists: Vec<String>,
+    #[cfg_attr(test, dummy(faker = "(fake::Faker, 1..2)"))]
+    pub album_artists: Vec<String>,
 }
 
 impl SongTag {
@@ -43,11 +45,23 @@ impl SongTag {
             .get_strings(&ItemKey::TrackArtist)
             .map(std::string::ToString::to_string)
             .collect_vec();
+        let album_artists = {
+            let album_artists = tag
+                .get_strings(&ItemKey::AlbumArtist)
+                .map(std::string::ToString::to_string)
+                .collect_vec();
+            if album_artists.is_empty() {
+                artists.clone()
+            } else {
+                album_artists
+            }
+        };
 
         Ok(SongTag {
             title,
             album,
             artists,
+            album_artists,
         })
     }
 
@@ -72,8 +86,13 @@ impl SongTag {
 
 #[cfg(test)]
 mod tests {
+    use fake::{Fake, Faker};
+
     use super::*;
-    use crate::utils::{song::file_type::SONG_FILE_TYPES, test::asset::get_media_asset_path};
+    use crate::utils::{
+        song::file_type::{to_extension, SONG_FILE_TYPES},
+        test::{asset::get_media_asset_path, fs::TemporaryFs},
+    };
 
     use std::fs::read;
 
@@ -90,6 +109,29 @@ mod tests {
                 "{:?} artists does not match",
                 file_type
             );
+            assert_eq!(
+                tag.album_artists,
+                ["Artist1", "Artist3"],
+                "{:?} artists does not match",
+                file_type
+            );
         }
+    }
+
+    #[test]
+    fn test_parse_media_file_default_value() {
+        let fs = TemporaryFs::new();
+        let (path, file_type) =
+            fs.create_random_paths(1, 1, &[to_extension(&FileType::Flac)])[0].clone();
+        fs.create_media_file(
+            &path,
+            SongTag {
+                album_artists: Vec::default(),
+                ..Faker.fake()
+            },
+        );
+        let new_song_tag = SongTag::parse(read(path).unwrap(), file_type.unwrap()).unwrap();
+
+        assert_eq!(new_song_tag.album_artists, new_song_tag.artists);
     }
 }

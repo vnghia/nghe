@@ -13,7 +13,9 @@ use concat_string::concat_string;
 use fake::{Fake, Faker};
 use itertools::Itertools;
 use lofty::{
-    id3::v2::Id3v2Tag, ogg::VorbisComments, Accessor, FileType, TagExt, TagType, TaggedFileExt,
+    id3::v2::{Frame, FrameFlags, Id3v2Tag, TextInformationFrame},
+    ogg::VorbisComments,
+    Accessor, FileType, TagExt, TagType, TaggedFileExt,
 };
 use rand::seq::SliceRandom;
 use std::ffi::OsStr;
@@ -125,6 +127,19 @@ impl TemporaryFs {
             TagType::Id3v2 => {
                 let mut tag = Id3v2Tag::from(tag);
                 tag.set_artist(song_tag.artists.join("\0"));
+                if !song_tag.album_artists.is_empty() {
+                    tag.insert(
+                        Frame::new(
+                            "TPE2",
+                            TextInformationFrame {
+                                encoding: lofty::TextEncoding::UTF8,
+                                value: song_tag.album_artists.join("\0"),
+                            },
+                            FrameFlags::default(),
+                        )
+                        .unwrap(),
+                    );
+                }
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");
             }
@@ -135,6 +150,11 @@ impl TemporaryFs {
                     .iter()
                     .cloned()
                     .for_each(|artist| tag.push("ARTIST".to_owned(), artist));
+                song_tag
+                    .album_artists
+                    .iter()
+                    .cloned()
+                    .for_each(|artist| tag.push("ALBUMARTIST".to_owned(), artist));
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");
             }
