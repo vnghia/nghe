@@ -13,6 +13,7 @@ diesel::table! {
     albums_artists (album_id, artist_id) {
         album_id -> Uuid,
         artist_id -> Uuid,
+        upserted_at -> Timestamptz,
     }
 }
 

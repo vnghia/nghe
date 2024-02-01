@@ -11,7 +11,12 @@ use uuid::Uuid;
 pub async fn query_all_song_information(
     pool: &DatabasePool,
     song_id: Uuid,
-) -> (songs::Song, albums::Album, Vec<artists::Artist>) {
+) -> (
+    songs::Song,
+    albums::Album,
+    Vec<artists::Artist>,
+    Vec<artists::Artist>,
+) {
     let song = songs::table
         .filter(songs::id.eq(song_id))
         .select(songs::Song::as_select())
@@ -49,12 +54,33 @@ pub async fn query_all_song_information(
         .await
         .expect("can not query song artists");
 
-    (song, album, artists)
+    let album_artists = artists::table
+        .inner_join(albums_artists::table)
+        .filter(albums_artists::album_id.eq(album.id))
+        .select(artists::Artist::as_select())
+        .get_results(
+            &mut pool
+                .get()
+                .await
+                .expect("can not check out connection to the database"),
+        )
+        .await
+        .expect("can not query song artists");
+
+    (song, album, artists, album_artists)
 }
 
 pub async fn query_all_songs_information(
     pool: &DatabasePool,
-) -> HashMap<(Uuid, PathBuf), (songs::Song, albums::Album, Vec<artists::Artist>)> {
+) -> HashMap<
+    (Uuid, PathBuf),
+    (
+        songs::Song,
+        albums::Album,
+        Vec<artists::Artist>,
+        Vec<artists::Artist>,
+    ),
+> {
     let song_ids = songs::table
         .select(songs::id)
         .get_results(
