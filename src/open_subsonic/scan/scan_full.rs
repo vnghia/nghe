@@ -231,4 +231,69 @@ mod tests {
             );
         }
     }
+
+    #[tokio::test]
+    async fn test_simple_scan_with_mutiple_folders() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 2, &[]).await;
+
+        let n_song = 25;
+        let song_fs_info = music_folders
+            .iter()
+            .map(|music_folder| {
+                let music_folder_id = music_folder.id;
+                let music_folder_path = PathBuf::from(&music_folder.path);
+                temp_fs
+                    .create_nested_random_paths(
+                        Some(&music_folder_path),
+                        n_song,
+                        3,
+                        &to_extensions(),
+                    )
+                    .iter()
+                    .zip(fake::vec![SongTag; n_song as usize].iter().cloned())
+                    .map(|((path, _), song_tag)| {
+                        (
+                            (
+                                music_folder_id,
+                                temp_fs
+                                    .create_nested_media_file(
+                                        Some(&music_folder_path),
+                                        path,
+                                        song_tag.clone(),
+                                    )
+                                    .strip_prefix(&music_folder_path)
+                                    .unwrap()
+                                    .to_path_buf(),
+                            ),
+                            song_tag,
+                        )
+                    })
+                    .collect_vec()
+            })
+            .flatten()
+            .collect::<HashMap<_, _>>();
+        scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        let song_db_info = query_all_songs_information(db.get_pool()).await;
+
+        assert_eq!(
+            song_fs_info.keys().into_iter().sorted().collect_vec(),
+            song_db_info.keys().into_iter().sorted().collect_vec(),
+        );
+
+        for (song_key, song_tag) in song_fs_info {
+            let (song, album, artists) = song_db_info.get(&song_key).unwrap();
+            assert_eq!(song_tag.title, song.title);
+            assert_eq!(song_tag.album, album.name);
+            assert_eq!(
+                song_tag.artists.into_iter().sorted().collect_vec(),
+                artists
+                    .into_iter()
+                    .map(|artist| artist.name.clone())
+                    .sorted()
+                    .collect_vec()
+            );
+        }
+    }
 }
