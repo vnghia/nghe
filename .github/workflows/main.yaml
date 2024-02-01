@@ -84,13 +84,22 @@ jobs:
           DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
 
   build-macos:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: x86_64-apple-darwin
+            os: macos-13
+          - target: aarch64-apple-darwin
+            os: macos-14
+
+    runs-on: ${{ matrix.platform.os }}
 
     steps:
       - uses: actions/checkout@v4
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
       - name: Build and test
-        run: cargo test --locked --target x86_64-apple-darwin
+        run: cargo test --locked --target ${{ matrix.platform.target }}
         env:
           DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
