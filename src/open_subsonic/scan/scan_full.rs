@@ -1,5 +1,6 @@
 use super::{
-    album::upsert_album, artist::upsert_artists, song::upsert_song, song::upsert_song_artists,
+    album::upsert_album, artist::build_artist_indices, artist::upsert_artists, song::upsert_song,
+    song::upsert_song_artists,
 };
 use crate::{
     models::*,
@@ -54,7 +55,7 @@ pub async fn scan_full<T: AsRef<str>>(
 
             let song_tag = SongTag::parse(&song_data, song_file_type)?;
 
-            let artist_ids = upsert_artists(pool, ignored_prefixes, &song_tag.artists).await?;
+            let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
             let album_id = upsert_album(pool, std::borrow::Cow::Borrowed(&song_tag.album)).await?;
 
             let song_id = upsert_song(
@@ -83,6 +84,7 @@ pub async fn scan_full<T: AsRef<str>>(
                 .await?;
         }
     }
+    build_artist_indices(pool, ignored_prefixes).await?;
 
     tracing::info!("done scanning songs");
     Ok(())

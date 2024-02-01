@@ -1,14 +1,15 @@
 use crate::models::*;
 use crate::{DatabasePool, OSResult};
 
-use diesel::ExpressionMethods;
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use futures::stream::{self, StreamExt};
+use futures::TryStreamExt;
 use itertools::Itertools;
 use uuid::Uuid;
 
-pub async fn upsert_artists<TI: AsRef<str>, TN: AsRef<str>>(
+pub async fn upsert_artists<TN: AsRef<str>>(
     pool: &DatabasePool,
-    ignored_prefixes: &[TI],
     names: &[TN],
 ) -> OSResult<Vec<Uuid>> {
     Ok(diesel::insert_into(artists::table)
@@ -17,7 +18,6 @@ pub async fn upsert_artists<TI: AsRef<str>, TN: AsRef<str>>(
                 .iter()
                 .map(|name| artists::NewArtist {
                     name: std::borrow::Cow::Borrowed(name.as_ref()),
-                    index: build_artist_index(ignored_prefixes, name.as_ref()).into(),
                 })
                 .collect_vec(),
         )
@@ -30,7 +30,7 @@ pub async fn upsert_artists<TI: AsRef<str>, TN: AsRef<str>>(
 }
 
 // TODO: better index building mechanism
-pub fn build_artist_index<T: AsRef<str>>(ignored_prefixes: &[T], name: &str) -> String {
+fn build_artist_index<T: AsRef<str>>(ignored_prefixes: &[T], name: &str) -> String {
     for ignored_prefix in ignored_prefixes {
         if let Some(stripped) = name.strip_prefix(ignored_prefix.as_ref()) {
             if let Some(index_char) = stripped.chars().next() {
@@ -46,6 +46,30 @@ pub fn build_artist_index<T: AsRef<str>>(ignored_prefixes: &[T], name: &str) -> 
     }
 }
 
+pub async fn build_artist_indices<T: AsRef<str>>(
+    pool: &DatabasePool,
+    ignored_prefixes: &[T],
+) -> OSResult<()> {
+    stream::iter(
+        artists::table
+            .select((artists::id, artists::name))
+            .filter(artists::index.eq("?"))
+            .load::<(Uuid, String)>(&mut pool.get().await?)
+            .await?,
+    )
+    .then(|(id, name)| async move {
+        diesel::update(artists::table)
+            .filter(artists::id.eq(id))
+            .set(artists::index.eq(build_artist_index(ignored_prefixes, &name)))
+            .execute(&mut pool.get().await?)
+            .await?;
+        OSResult::Ok(())
+    })
+    .try_collect()
+    .await?;
+    Ok(())
+}
+
 fn index_char_to_string(index_char: char) -> String {
     if index_char.is_ascii_alphabetic() {
         index_char.to_ascii_uppercase().to_string()
@@ -59,6 +83,9 @@ fn index_char_to_string(index_char: char) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::test::db::TemporaryDatabase;
+
+    use fake;
 
     #[test]
     fn test_index_char_to_string_numeric() {
@@ -93,5 +120,33 @@ mod tests {
     #[test]
     fn test_build_artist_index_no_article() {
         assert_eq!(build_artist_index(&["The ", "A "], "test"), "T");
+    }
+
+    #[tokio::test]
+    async fn test_build_artist_indices() {
+        let db = TemporaryDatabase::new_from_env().await;
+        let artist_names = fake::vec![String; 10];
+        let ignored_prefixes = ["The ", "A "];
+
+        upsert_artists(db.get_pool(), &artist_names).await.unwrap();
+        build_artist_indices(db.get_pool(), &ignored_prefixes)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            artist_names
+                .iter()
+                .map(|name| build_artist_index(&ignored_prefixes, name))
+                .sorted()
+                .collect_vec(),
+            artists::table
+                .select(artists::index)
+                .load::<String>(&mut db.get_pool().get().await.unwrap())
+                .await
+                .unwrap()
+                .into_iter()
+                .sorted()
+                .collect_vec()
+        );
     }
 }

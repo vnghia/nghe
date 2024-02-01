@@ -21,5 +21,4 @@ pub struct Artist {
 #[diesel(table_name = artists)]
 pub struct NewArtist<'a> {
     pub name: Cow<'a, str>,
-    pub index: Cow<'a, str>,
 }
