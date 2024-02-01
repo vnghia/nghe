@@ -97,6 +97,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Install postgres
+        run: brew install postgresql@14
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
       - name: Build and test
