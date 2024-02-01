@@ -110,7 +110,7 @@ mod tests {
             .create_nested_random_paths(Some(&music_folder_path), n_song, 3, &to_extensions())
             .iter()
             .zip(fake::vec![SongTag; n_song as usize].iter().cloned())
-            .map(|((path, file_type), song_tag)| {
+            .map(|((path, _), song_tag)| {
                 (
                     (
                         music_folder_id,
@@ -118,7 +118,6 @@ mod tests {
                             .create_nested_media_file(
                                 Some(&music_folder_path),
                                 path,
-                                &file_type.unwrap(),
                                 song_tag.clone(),
                             )
                             .strip_prefix(&music_folder_path)

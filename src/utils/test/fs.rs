@@ -106,12 +106,12 @@ impl TemporaryFs {
         &self,
         root_path: Option<&TR>,
         path: TP,
-        file_type: &FileType,
         song_tag: SongTag,
     ) -> PathBuf {
         let path = self.create_nested_parent_dir(root_path, path);
+        let file_type = FileType::from_path(&path).unwrap();
 
-        std::fs::copy(get_media_asset_path(file_type), &path)
+        std::fs::copy(get_media_asset_path(&file_type), &path)
             .expect("can not copy original media file to temp directory");
 
         let tag_type = lofty::read_from_path(&path)
@@ -144,13 +144,8 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_media_file<TP: AsRef<Path>>(
-        &self,
-        path: TP,
-        file_type: &FileType,
-        song_tag: SongTag,
-    ) -> PathBuf {
-        self.create_nested_media_file(Self::NONE_PATH, path, file_type, song_tag)
+    pub fn create_media_file<TP: AsRef<Path>>(&self, path: TP, song_tag: SongTag) -> PathBuf {
+        self.create_nested_media_file(Self::NONE_PATH, path, song_tag)
     }
 
     pub fn create_nested_random_paths<TP: AsRef<Path>, TE: AsRef<OsStr>>(
@@ -224,7 +219,6 @@ fn test_roundtrip_media_file() {
         let song_tag = Faker.fake::<SongTag>();
         let path = fs.create_media_file(
             concat_string!("test.", to_extension(&file_type)),
-            &file_type,
             song_tag.clone(),
         );
         let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), file_type).unwrap();
