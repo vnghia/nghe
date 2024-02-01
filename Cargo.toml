@@ -55,7 +55,7 @@ fake = { version = "2.9.2", features = [
 ] }
 http-body-util = "0.1.0"
 serde_json = "1.0.113"
-tempdir = "0.3.7"
+tempfile = "3.9.0"
 url = "2.5.0"
 uuid = { version = "1.7.0", features = ["v4", "fast-rng"] }
 

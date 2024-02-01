@@ -21,7 +21,7 @@ use rand::seq::SliceRandom;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::{fs::*, io::Write};
-use tempdir::TempDir;
+use tempfile::{Builder, TempDir};
 
 pub struct TemporaryFs {
     root: TempDir,
@@ -33,7 +33,10 @@ impl TemporaryFs {
 
     pub fn new() -> Self {
         Self {
-            root: TempDir::new(built_info::PKG_NAME).expect("can not create temporary directory"),
+            root: Builder::new()
+                .prefix(built_info::PKG_NAME)
+                .tempdir()
+                .expect("can not create temporary directory"),
         }
     }
 
