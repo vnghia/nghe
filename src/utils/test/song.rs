@@ -3,6 +3,9 @@ use crate::DatabasePool;
 
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use futures::stream::{self, StreamExt};
+use std::collections::HashMap;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 pub async fn query_all_song_information(
@@ -47,4 +50,29 @@ pub async fn query_all_song_information(
         .expect("can not query song artists");
 
     (song, album, artists)
+}
+
+pub async fn query_all_songs_information(
+    pool: &DatabasePool,
+) -> HashMap<(Uuid, PathBuf), (songs::Song, albums::Album, Vec<artists::Artist>)> {
+    let song_ids = songs::table
+        .select(songs::id)
+        .get_results(
+            &mut pool
+                .get()
+                .await
+                .expect("can not check out connection to the database"),
+        )
+        .await
+        .expect("can not query song ids");
+    stream::iter(song_ids)
+        .then(|song_id| async move {
+            let result = query_all_song_information(pool, song_id).await;
+            (
+                (result.0.music_folder_id, PathBuf::from(&result.0.path)),
+                result,
+            )
+        })
+        .collect::<HashMap<_, _>>()
+        .await
 }
