@@ -1,6 +1,6 @@
 use super::{
-    album::upsert_album, artist::build_artist_indices, artist::upsert_artists, song::upsert_song,
-    song::upsert_song_artists,
+    album::upsert_album, album::upsert_album_artists, artist::build_artist_indices,
+    artist::upsert_artists, song::upsert_song, song::upsert_song_artists,
 };
 use crate::{
     models::*,
@@ -58,6 +58,25 @@ pub async fn scan_full<T: AsRef<str>>(
             let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
             let album_id = upsert_album(pool, std::borrow::Cow::Borrowed(&song_tag.album)).await?;
 
+            upsert_album_artists(
+                pool,
+                album_id,
+                &upsert_artists(pool, &song_tag.album_artists).await?,
+            )
+            .await?;
+            // album artists for the same album
+            // that are extracted from multiple songs
+            // will be combined into a list.
+            // for example:
+            // song1 -> album -> album_artist1
+            // song2 -> album -> album_artist2
+            // album -> [album_artist1, album_artist2]
+            diesel::delete(albums_artists::table)
+                .filter(albums_artists::album_id.eq(album_id))
+                .filter(albums_artists::upserted_at.lt(scan_start_time))
+                .execute(&mut pool.get().await?)
+                .await?;
+
             let song_id = upsert_song(
                 pool,
                 song_id,
@@ -92,15 +111,19 @@ pub async fn scan_full<T: AsRef<str>>(
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
-    use itertools::Itertools;
-
     use super::*;
     use crate::{
         open_subsonic::browsing::test::setup_user_and_music_folders,
-        utils::{song::file_type::to_extensions, test::song::query_all_songs_information},
+        utils::{
+            song::file_type::{to_extension, to_extensions},
+            test::song::query_all_songs_information,
+        },
     };
 
+    use diesel::QueryDsl;
+    use fake::{Fake, Faker};
+    use itertools::Itertools;
+    use lofty::FileType;
     use std::{collections::HashMap, path::PathBuf};
 
     #[tokio::test]
@@ -139,12 +162,20 @@ mod tests {
         );
 
         for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists) = song_db_info.get(&song_key).unwrap();
+            let (song, album, artists, album_artists) = song_db_info.get(&song_key).unwrap();
             assert_eq!(song_tag.title, song.title);
             assert_eq!(song_tag.album, album.name);
             assert_eq!(
                 song_tag.artists.into_iter().sorted().collect_vec(),
                 artists
+                    .into_iter()
+                    .map(|artist| artist.name.clone())
+                    .sorted()
+                    .collect_vec()
+            );
+            assert_eq!(
+                song_tag.album_artists.into_iter().sorted().collect_vec(),
+                album_artists
                     .into_iter()
                     .map(|artist| artist.name.clone())
                     .sorted()
@@ -212,12 +243,20 @@ mod tests {
         );
 
         for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists) = song_db_info.get(&song_key).unwrap();
+            let (song, album, artists, album_artists) = song_db_info.get(&song_key).unwrap();
             assert_eq!(song_tag.title, song.title);
             assert_eq!(song_tag.album, album.name);
             assert_eq!(
                 song_tag.artists.into_iter().sorted().collect_vec(),
                 artists
+                    .into_iter()
+                    .map(|artist| artist.name.clone())
+                    .sorted()
+                    .collect_vec()
+            );
+            assert_eq!(
+                song_tag.album_artists.into_iter().sorted().collect_vec(),
+                album_artists
                     .into_iter()
                     .map(|artist| artist.name.clone())
                     .sorted()
@@ -277,7 +316,7 @@ mod tests {
         );
 
         for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists) = song_db_info.get(&song_key).unwrap();
+            let (song, album, artists, album_artists) = song_db_info.get(&song_key).unwrap();
             assert_eq!(song_tag.title, song.title);
             assert_eq!(song_tag.album, album.name);
             assert_eq!(
@@ -288,6 +327,77 @@ mod tests {
                     .sorted()
                     .collect_vec()
             );
+            assert_eq!(
+                song_tag.album_artists.into_iter().sorted().collect_vec(),
+                album_artists
+                    .into_iter()
+                    .map(|artist| artist.name.clone())
+                    .sorted()
+                    .collect_vec()
+            );
         }
+    }
+
+    #[tokio::test]
+    async fn test_scan_combine_album_artists() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+
+        let album_name = "album".to_owned();
+        let song_tags = vec![
+            SongTag {
+                album: album_name.clone(),
+                album_artists: ["artist1", "artist2"]
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect_vec(),
+                ..Faker.fake()
+            },
+            SongTag {
+                album: album_name.clone(),
+                album_artists: ["artist1", "artist3"]
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect_vec(),
+                ..Faker.fake()
+            },
+        ];
+        temp_fs
+            .create_nested_random_paths(
+                Some(&music_folder_path),
+                2,
+                1,
+                &[to_extension(&FileType::Flac)],
+            )
+            .iter()
+            .zip(song_tags.iter())
+            .for_each(|((path, _), song_tag)| {
+                temp_fs.create_nested_media_file(Some(&music_folder_path), path, song_tag);
+            });
+        scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            song_tags
+                .into_iter()
+                .map(|song_tag| song_tag.album_artists)
+                .flatten()
+                .unique()
+                .sorted()
+                .collect_vec(),
+            albums_artists::table
+                .inner_join(artists::table)
+                .inner_join(albums::table)
+                .select(artists::name)
+                .filter(albums::name.eq(&album_name))
+                .load::<String>(&mut db.get_pool().get().await.unwrap())
+                .await
+                .unwrap()
+                .into_iter()
+                .sorted()
+                .collect_vec(),
+        );
     }
 }

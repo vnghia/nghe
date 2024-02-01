@@ -95,7 +95,7 @@ mod tests {
         .await
         .unwrap();
 
-        let (song, _, _) = query_all_song_information(db.get_pool(), song_id).await;
+        let (song, _, _, _) = query_all_song_information(db.get_pool(), song_id).await;
 
         assert_eq!(song_tag.title, song.title);
         assert_eq!(song_path, song.path);
@@ -157,7 +157,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(song_id, new_song_id);
-        let (song, _, _) = query_all_song_information(db.get_pool(), new_song_id).await;
+        let (song, _, _, _) = query_all_song_information(db.get_pool(), new_song_id).await;
 
         assert_eq!(new_song_tag.title, song.title);
         assert_eq!(song_path, song.path);
