@@ -147,24 +147,12 @@ mod tests {
         let n_song = 50;
         let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let song_fs_info = temp_fs
-            .create_nested_random_paths(Some(&music_folder_path), n_song, 3, &to_extensions())
-            .iter()
-            .zip(fake::vec![SongTag; n_song as usize].into_iter())
-            .map(|((path, _), song_tag)| {
-                (
-                    (
-                        music_folder_id,
-                        temp_fs
-                            .create_nested_media_file(Some(&music_folder_path), path, &song_tag)
-                            .strip_prefix(&music_folder_path)
-                            .unwrap()
-                            .to_path_buf(),
-                    ),
-                    song_tag,
-                )
-            })
-            .collect::<HashMap<_, _>>();
+        let song_fs_info = temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            fake::vec![SongTag; n_song as usize],
+            &to_extensions(),
+        );
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
@@ -195,24 +183,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_simple_scan_with_update() {
+    async fn test_simple_scan_with_update_same_path() {
         let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
 
         let n_song = 50;
         let n_new_song = 20;
         let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let song_fs_info = temp_fs
-            .create_nested_random_paths(Some(&music_folder_path), n_song, 3, &to_extensions())
-            .iter()
-            .zip(fake::vec![SongTag; n_song as usize].into_iter())
-            .map(|((path, _), song_tag)| {
-                (
-                    temp_fs.create_nested_media_file(Some(&music_folder_path), path, &song_tag),
-                    song_tag,
-                )
-            })
-            .collect_vec();
+        let song_fs_info = temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            fake::vec![SongTag; n_song as usize],
+            &to_extensions(),
+        );
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
@@ -220,7 +203,7 @@ mod tests {
         let song_fs_info = song_fs_info
             .into_iter()
             .enumerate()
-            .map(|(i, (path, song_tag))| {
+            .map(|(i, ((_, path), song_tag))| {
                 let (path, song_tag) = if i < n_new_song {
                     let new_song_tag = Faker.fake::<SongTag>();
                     let new_path = temp_fs.create_nested_media_file(
@@ -228,17 +211,17 @@ mod tests {
                         &path,
                         &new_song_tag,
                     );
-                    (new_path, new_song_tag)
+                    (
+                        new_path
+                            .strip_prefix(&music_folder_path)
+                            .unwrap()
+                            .to_path_buf(),
+                        new_song_tag,
+                    )
                 } else {
                     (path, song_tag)
                 };
-                (
-                    (
-                        music_folder_id,
-                        path.strip_prefix(&music_folder_path).unwrap().to_path_buf(),
-                    ),
-                    song_tag,
-                )
+                ((music_folder_id, path), song_tag)
             })
             .collect::<HashMap<_, _>>();
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -281,33 +264,12 @@ mod tests {
             .flat_map(|music_folder| {
                 let music_folder_id = music_folder.id;
                 let music_folder_path = PathBuf::from(&music_folder.path);
-                temp_fs
-                    .create_nested_random_paths(
-                        Some(&music_folder_path),
-                        n_song,
-                        3,
-                        &to_extensions(),
-                    )
-                    .iter()
-                    .zip(fake::vec![SongTag; n_song as usize].into_iter())
-                    .map(|((path, _), song_tag)| {
-                        (
-                            (
-                                music_folder_id,
-                                temp_fs
-                                    .create_nested_media_file(
-                                        Some(&music_folder_path),
-                                        path,
-                                        &song_tag,
-                                    )
-                                    .strip_prefix(&music_folder_path)
-                                    .unwrap()
-                                    .to_path_buf(),
-                            ),
-                            song_tag,
-                        )
-                    })
-                    .collect_vec()
+                temp_fs.create_nested_media_files(
+                    music_folder_id,
+                    &music_folder_path,
+                    fake::vec![SongTag; n_song as usize],
+                    &to_extensions(),
+                )
             })
             .collect::<HashMap<_, _>>();
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -343,6 +305,7 @@ mod tests {
     async fn test_scan_combine_album_artists() {
         let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
 
+        let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
 
         let album_name = "album".to_owned();
@@ -364,18 +327,12 @@ mod tests {
                 ..Faker.fake()
             },
         ];
-        temp_fs
-            .create_nested_random_paths(
-                Some(&music_folder_path),
-                2,
-                1,
-                &[to_extension(&FileType::Flac)],
-            )
-            .iter()
-            .zip(song_tags.iter())
-            .for_each(|((path, _), song_tag)| {
-                temp_fs.create_nested_media_file(Some(&music_folder_path), path, song_tag);
-            });
+        temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            song_tags.clone(),
+            &[to_extension(&FileType::Flac)],
+        );
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
@@ -407,21 +364,17 @@ mod tests {
 
         let n_song = 10;
         let n_new_song = 4;
+        let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let song_fs_info = temp_fs
-            .create_nested_random_paths(Some(&music_folder_path), n_song, 3, &to_extensions())
-            .iter()
-            .zip(fake::vec![SongTag; n_song as usize].into_iter())
-            .map(|((path, _), song_tag)| {
-                (
-                    temp_fs.create_nested_media_file(Some(&music_folder_path), path, &song_tag),
-                    song_tag,
-                )
-            })
-            .collect_vec();
+        let song_fs_info = temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            fake::vec![SongTag; n_song as usize],
+            &to_extensions(),
+        );
         let song_fs_albums = song_fs_info
-            .iter()
-            .map(|(_, song_tag)| song_tag.album.clone())
+            .values()
+            .map(|song_tag| song_tag.album.clone())
             .unique()
             .sorted()
             .collect_vec();
@@ -443,7 +396,7 @@ mod tests {
         let song_fs_albums = song_fs_info
             .into_iter()
             .enumerate()
-            .map(|(i, (path, song_tag))| {
+            .map(|(i, ((_, path), song_tag))| {
                 if i < n_new_song {
                     let new_song_tag = Faker.fake::<SongTag>();
                     temp_fs.create_nested_media_file(Some(&music_folder_path), path, &new_song_tag);

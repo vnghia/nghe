@@ -18,10 +18,12 @@ use lofty::{
     Accessor, FileType, TagExt, TagType, TaggedFileExt,
 };
 use rand::seq::SliceRandom;
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::{fs::*, io::Write};
 use tempfile::{Builder, TempDir};
+use uuid::Uuid;
 
 pub struct TemporaryFs {
     root: TempDir,
@@ -203,6 +205,33 @@ impl TemporaryFs {
         extensions: &[TE],
     ) -> Vec<(PathBuf, Option<FileType>)> {
         self.create_nested_random_paths(Self::NONE_PATH, n_path, max_depth, extensions)
+    }
+
+    pub fn create_nested_media_files<TP: AsRef<Path>, TE: AsRef<OsStr>>(
+        &self,
+        music_folder_id: Uuid,
+        music_folder_path: &TP,
+        song_tags: Vec<SongTag>,
+        extensions: &[TE],
+    ) -> HashMap<(Uuid, PathBuf), SongTag> {
+        let n_song = song_tags.len() as u8;
+
+        self.create_nested_random_paths(Some(music_folder_path), n_song, 3, extensions)
+            .iter()
+            .zip(song_tags)
+            .map(|((path, _), song_tag)| {
+                (
+                    (
+                        music_folder_id,
+                        self.create_nested_media_file(Some(music_folder_path), path, &song_tag)
+                            .strip_prefix(music_folder_path)
+                            .unwrap()
+                            .to_path_buf(),
+                    ),
+                    song_tag,
+                )
+            })
+            .collect::<HashMap<_, _>>()
     }
 
     pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
