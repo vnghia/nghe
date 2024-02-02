@@ -130,7 +130,7 @@ mod tests {
         open_subsonic::browsing::test::setup_user_and_music_folders,
         utils::{
             song::file_type::{to_extension, to_extensions},
-            test::song::query_all_songs_information,
+            test::media::query_all_songs_information,
         },
     };
 

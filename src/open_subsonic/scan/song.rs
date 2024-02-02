@@ -62,7 +62,7 @@ mod tests {
     use crate::utils::song::tag::SongTag;
     use crate::{
         open_subsonic::browsing::test::setup_user_and_music_folders,
-        utils::test::song::query_all_song_information,
+        utils::test::media::query_all_song_information,
     };
 
     use fake::{Fake, Faker};
