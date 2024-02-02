@@ -8,7 +8,7 @@ use crate::{
     DatabasePool, OSResult,
 };
 
-use diesel::{ExpressionMethods, OptionalExtension};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
@@ -103,6 +103,20 @@ pub async fn scan_full<T: AsRef<str>>(
                 .await?;
         }
     }
+
+    let albums_no_song = diesel::alias!(albums as albums_no_song);
+    diesel::delete(albums::table)
+        .filter(
+            albums::id.eq_any(
+                albums_no_song
+                    .left_join(songs::table)
+                    .filter(songs::id.is_null())
+                    .select(albums_no_song.field(albums::id)),
+            ),
+        )
+        .execute(&mut pool.get().await?)
+        .await?;
+
     build_artist_indices(pool, ignored_prefixes).await?;
 
     tracing::info!("done scanning songs");
@@ -378,6 +392,76 @@ mod tests {
                 .inner_join(albums::table)
                 .select(artists::name)
                 .filter(albums::name.eq(&album_name))
+                .load::<String>(&mut db.get_pool().get().await.unwrap())
+                .await
+                .unwrap()
+                .into_iter()
+                .sorted()
+                .collect_vec(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_simple_scan_delete_old_albums() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let n_song = 10;
+        let n_new_song = 4;
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+        let song_fs_info = temp_fs
+            .create_nested_random_paths(Some(&music_folder_path), n_song, 3, &to_extensions())
+            .iter()
+            .zip(fake::vec![SongTag; n_song as usize].into_iter())
+            .map(|((path, _), song_tag)| {
+                (
+                    temp_fs.create_nested_media_file(Some(&music_folder_path), path, &song_tag),
+                    song_tag,
+                )
+            })
+            .collect_vec();
+        let song_fs_albums = song_fs_info
+            .iter()
+            .map(|(_, song_tag)| song_tag.album.clone())
+            .unique()
+            .sorted()
+            .collect_vec();
+        scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(
+            song_fs_albums,
+            albums::table
+                .select(albums::name)
+                .load::<String>(&mut db.get_pool().get().await.unwrap())
+                .await
+                .unwrap()
+                .into_iter()
+                .sorted()
+                .collect_vec(),
+        );
+
+        let song_fs_albums = song_fs_info
+            .into_iter()
+            .enumerate()
+            .map(|(i, (path, song_tag))| {
+                if i < n_new_song {
+                    let new_song_tag = Faker.fake::<SongTag>();
+                    temp_fs.create_nested_media_file(Some(&music_folder_path), path, &new_song_tag);
+                    new_song_tag.album
+                } else {
+                    song_tag.album
+                }
+            })
+            .unique()
+            .sorted()
+            .collect_vec();
+        scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(
+            song_fs_albums,
+            albums::table
+                .select(albums::name)
                 .load::<String>(&mut db.get_pool().get().await.unwrap())
                 .await
                 .unwrap()
