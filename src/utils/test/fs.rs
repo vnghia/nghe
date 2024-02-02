@@ -207,19 +207,17 @@ impl TemporaryFs {
         self.create_nested_random_paths(Self::NONE_PATH, n_path, max_depth, extensions)
     }
 
-    pub fn create_nested_media_files<TP: AsRef<Path>, TE: AsRef<OsStr>>(
+    pub fn create_nested_media_files<TMP: AsRef<Path>, TP: AsRef<Path>>(
         &self,
         music_folder_id: Uuid,
-        music_folder_path: &TP,
+        music_folder_path: &TMP,
+        paths: &[TP],
         song_tags: Vec<SongTag>,
-        extensions: &[TE],
     ) -> HashMap<(Uuid, PathBuf), SongTag> {
-        let n_song = song_tags.len() as u8;
-
-        self.create_nested_random_paths(Some(music_folder_path), n_song, 3, extensions)
+        paths
             .iter()
             .zip(song_tags)
-            .map(|((path, _), song_tag)| {
+            .map(|(path, song_tag)| {
                 (
                     (
                         music_folder_id,
@@ -232,6 +230,26 @@ impl TemporaryFs {
                 )
             })
             .collect::<HashMap<_, _>>()
+    }
+
+    pub fn create_nested_random_paths_media_files<TMP: AsRef<Path>, TE: AsRef<OsStr>>(
+        &self,
+        music_folder_id: Uuid,
+        music_folder_path: &TMP,
+        song_tags: Vec<SongTag>,
+        extensions: &[TE],
+    ) -> HashMap<(Uuid, PathBuf), SongTag> {
+        let n_song = song_tags.len() as u8;
+        self.create_nested_media_files(
+            music_folder_id,
+            music_folder_path,
+            &self
+                .create_nested_random_paths(Some(music_folder_path), n_song, 3, extensions)
+                .into_iter()
+                .map(|(path, _)| path)
+                .collect_vec(),
+            song_tags,
+        )
     }
 
     pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
