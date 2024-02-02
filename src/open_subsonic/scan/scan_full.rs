@@ -135,11 +135,10 @@ mod tests {
         open_subsonic::browsing::test::setup_user_and_music_folders,
         utils::{
             song::file_type::{to_extension, to_extensions},
-            test::media::assert_song_info,
+            test::media::{assert_albums_artists_info, assert_albums_info, assert_songs_info},
         },
     };
 
-    use diesel::QueryDsl;
     use fake::{Fake, Faker};
     use itertools::{concat, Itertools};
     use lofty::FileType;
@@ -164,7 +163,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(upserted_song_count, n_song);
-        assert_song_info(db.get_pool(), song_fs_info).await;
+        assert_songs_info(db.get_pool(), song_fs_info).await;
     }
 
     #[tokio::test]
@@ -205,7 +204,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(upserted_song_count, n_new_song);
-        assert_song_info(db.get_pool(), song_fs_info).await;
+        assert_songs_info(db.get_pool(), song_fs_info).await;
     }
 
     #[tokio::test]
@@ -231,7 +230,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(upserted_song_count, n_song + n_song);
-        assert_song_info(db.get_pool(), song_fs_info).await;
+        assert_songs_info(db.get_pool(), song_fs_info).await;
     }
 
     #[tokio::test]
@@ -260,7 +259,7 @@ mod tests {
                 ..Faker.fake()
             },
         ];
-        temp_fs.create_nested_random_paths_media_files(
+        let song_fs_info = temp_fs.create_nested_random_paths_media_files(
             music_folder_id,
             &music_folder_path,
             song_tags.clone(),
@@ -270,25 +269,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(
-            song_tags
-                .into_iter()
-                .flat_map(|song_tag| song_tag.album_artists)
-                .unique()
-                .sorted()
-                .collect_vec(),
-            albums_artists::table
-                .inner_join(artists::table)
-                .inner_join(albums::table)
-                .select(artists::name)
-                .filter(albums::name.eq(&album_name))
-                .load::<String>(&mut db.get_pool().get().await.unwrap())
-                .await
-                .unwrap()
-                .into_iter()
-                .sorted()
-                .collect_vec(),
-        );
+        assert_albums_artists_info(db.get_pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -305,30 +286,14 @@ mod tests {
             fake::vec![SongTag; n_song as usize],
             &to_extensions(),
         );
-        let song_fs_albums = song_fs_info
-            .values()
-            .map(|song_tag| song_tag.album.clone())
-            .unique()
-            .sorted()
-            .collect_vec();
         let (_, deleted_album_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
 
         assert_eq!(deleted_album_count, 0);
-        assert_eq!(
-            song_fs_albums,
-            albums::table
-                .select(albums::name)
-                .load::<String>(&mut db.get_pool().get().await.unwrap())
-                .await
-                .unwrap()
-                .into_iter()
-                .sorted()
-                .collect_vec(),
-        );
+        assert_albums_info(db.get_pool(), &song_fs_info).await;
 
-        let song_fs_albums = concat(vec![
+        let song_fs_info = concat(vec![
             song_fs_info.clone(),
             temp_fs.create_nested_media_files(
                 music_folder_id,
@@ -341,27 +306,12 @@ mod tests {
                     .collect_vec(),
                 fake::vec![SongTag; n_new_song],
             ),
-        ])
-        .into_values()
-        .map(|song_tag| song_tag.album)
-        .unique()
-        .sorted()
-        .collect_vec();
+        ]);
         let (_, deleted_album_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
 
         assert_eq!(deleted_album_count, n_new_song);
-        assert_eq!(
-            song_fs_albums,
-            albums::table
-                .select(albums::name)
-                .load::<String>(&mut db.get_pool().get().await.unwrap())
-                .await
-                .unwrap()
-                .into_iter()
-                .sorted()
-                .collect_vec(),
-        );
+        assert_albums_info(db.get_pool(), &song_fs_info).await;
     }
 }

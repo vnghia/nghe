@@ -105,7 +105,53 @@ pub async fn query_all_songs_information(
         .await
 }
 
-pub async fn assert_song_info(
+pub async fn assert_albums_artists_info(
+    pool: &DatabasePool,
+    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+) {
+    assert_eq!(
+        song_fs_info
+            .values()
+            .flat_map(|song_tag| song_tag.album_artists.clone())
+            .unique()
+            .sorted()
+            .collect_vec(),
+        artists::table
+            .left_join(albums_artists::table)
+            .filter(albums_artists::album_id.is_not_null())
+            .select(artists::name)
+            .load::<String>(&mut pool.get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec(),
+    );
+}
+
+pub async fn assert_albums_info(
+    pool: &DatabasePool,
+    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+) {
+    assert_eq!(
+        song_fs_info
+            .values()
+            .map(|song_tag| song_tag.album.clone())
+            .unique()
+            .sorted()
+            .collect_vec(),
+        albums::table
+            .select(albums::name)
+            .load::<String>(&mut pool.get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec(),
+    );
+}
+
+pub async fn assert_songs_info(
     pool: &DatabasePool,
     song_fs_info: HashMap<(Uuid, PathBuf), SongTag>,
 ) {
