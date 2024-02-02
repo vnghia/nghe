@@ -179,7 +179,6 @@ impl TemporaryFs {
         extensions: &[TE],
     ) -> Vec<(PathBuf, Option<FileType>)> {
         (0..n_path)
-            .into_iter()
             .map(|_| {
                 let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
                 (

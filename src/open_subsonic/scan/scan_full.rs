@@ -154,22 +154,17 @@ mod tests {
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
-        let song_db_info = query_all_songs_information(db.get_pool()).await;
-
-        assert_eq!(
-            song_fs_info.keys().into_iter().sorted().collect_vec(),
-            song_db_info.keys().into_iter().sorted().collect_vec(),
-        );
+        let mut song_db_info = query_all_songs_information(db.get_pool()).await;
 
         for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists, album_artists) = song_db_info.get(&song_key).unwrap();
+            let (song, album, artists, album_artists) = song_db_info.remove(&song_key).unwrap();
             assert_eq!(song_tag.title, song.title);
             assert_eq!(song_tag.album, album.name);
             assert_eq!(
                 song_tag.artists.into_iter().sorted().collect_vec(),
                 artists
                     .into_iter()
-                    .map(|artist| artist.name.clone())
+                    .map(|artist| artist.name)
                     .sorted()
                     .collect_vec()
             );
@@ -177,11 +172,12 @@ mod tests {
                 song_tag.album_artists.into_iter().sorted().collect_vec(),
                 album_artists
                     .into_iter()
-                    .map(|artist| artist.name.clone())
+                    .map(|artist| artist.name)
                     .sorted()
                     .collect_vec()
             );
         }
+        assert!(song_db_info.is_empty());
     }
 
     #[tokio::test]
@@ -235,22 +231,17 @@ mod tests {
             .await
             .unwrap();
 
-        let song_db_info = query_all_songs_information(db.get_pool()).await;
-
-        assert_eq!(
-            song_fs_info.keys().into_iter().sorted().collect_vec(),
-            song_db_info.keys().into_iter().sorted().collect_vec(),
-        );
+        let mut song_db_info = query_all_songs_information(db.get_pool()).await;
 
         for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists, album_artists) = song_db_info.get(&song_key).unwrap();
+            let (song, album, artists, album_artists) = song_db_info.remove(&song_key).unwrap();
             assert_eq!(song_tag.title, song.title);
             assert_eq!(song_tag.album, album.name);
             assert_eq!(
                 song_tag.artists.into_iter().sorted().collect_vec(),
                 artists
                     .into_iter()
-                    .map(|artist| artist.name.clone())
+                    .map(|artist| artist.name)
                     .sorted()
                     .collect_vec()
             );
@@ -258,21 +249,22 @@ mod tests {
                 song_tag.album_artists.into_iter().sorted().collect_vec(),
                 album_artists
                     .into_iter()
-                    .map(|artist| artist.name.clone())
+                    .map(|artist| artist.name)
                     .sorted()
                     .collect_vec()
             );
         }
+        assert!(song_db_info.is_empty());
     }
 
     #[tokio::test]
-    async fn test_simple_scan_with_mutiple_folders() {
+    async fn test_simple_scan_with_multiple_folders() {
         let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 2, &[]).await;
 
         let n_song = 25;
         let song_fs_info = music_folders
             .iter()
-            .map(|music_folder| {
+            .flat_map(|music_folder| {
                 let music_folder_id = music_folder.id;
                 let music_folder_path = PathBuf::from(&music_folder.path);
                 temp_fs
@@ -303,27 +295,21 @@ mod tests {
                     })
                     .collect_vec()
             })
-            .flatten()
             .collect::<HashMap<_, _>>();
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
-        let song_db_info = query_all_songs_information(db.get_pool()).await;
-
-        assert_eq!(
-            song_fs_info.keys().into_iter().sorted().collect_vec(),
-            song_db_info.keys().into_iter().sorted().collect_vec(),
-        );
+        let mut song_db_info = query_all_songs_information(db.get_pool()).await;
 
         for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists, album_artists) = song_db_info.get(&song_key).unwrap();
+            let (song, album, artists, album_artists) = song_db_info.remove(&song_key).unwrap();
             assert_eq!(song_tag.title, song.title);
             assert_eq!(song_tag.album, album.name);
             assert_eq!(
                 song_tag.artists.into_iter().sorted().collect_vec(),
                 artists
                     .into_iter()
-                    .map(|artist| artist.name.clone())
+                    .map(|artist| artist.name)
                     .sorted()
                     .collect_vec()
             );
@@ -331,11 +317,12 @@ mod tests {
                 song_tag.album_artists.into_iter().sorted().collect_vec(),
                 album_artists
                     .into_iter()
-                    .map(|artist| artist.name.clone())
+                    .map(|artist| artist.name)
                     .sorted()
                     .collect_vec()
             );
         }
+        assert!(song_db_info.is_empty());
     }
 
     #[tokio::test]
@@ -382,8 +369,7 @@ mod tests {
         assert_eq!(
             song_tags
                 .into_iter()
-                .map(|song_tag| song_tag.album_artists)
-                .flatten()
+                .flat_map(|song_tag| song_tag.album_artists)
                 .unique()
                 .sorted()
                 .collect_vec(),

@@ -83,7 +83,7 @@ mod tests {
         let media_paths = fs
             .create_random_paths(50, 3, &to_extensions())
             .into_iter()
-            .map(|(path, _)| fs.create_file(&path))
+            .map(|(path, _)| fs.create_file(path))
             .collect_vec();
 
         let scanned_results = scan_media_files(fs.get_root_path()).unwrap();
@@ -120,7 +120,7 @@ mod tests {
             .create_random_paths(50, 3, &to_extensions())
             .into_iter()
             .map(|(path, _)| {
-                fs.create_file(&path)
+                fs.create_file(path)
                     .strip_prefix(fs.get_root_path())
                     .unwrap()
                     .to_path_buf()
@@ -154,7 +154,7 @@ mod tests {
             )
             .into_iter()
             .filter_map(|(path, ext)| {
-                let path = fs.create_file(&path);
+                let path = fs.create_file(path);
                 if let Some(ext) = ext {
                     if SONG_FILE_TYPES.contains(&ext) {
                         Some(path)
