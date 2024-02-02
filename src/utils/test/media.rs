@@ -1,9 +1,11 @@
 use crate::models::*;
+use crate::utils::song::tag::SongTag;
 use crate::DatabasePool;
 
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -101,4 +103,34 @@ pub async fn query_all_songs_information(
         })
         .collect::<HashMap<_, _>>()
         .await
+}
+
+pub async fn assert_song_info(
+    pool: &DatabasePool,
+    song_fs_info: HashMap<(Uuid, PathBuf), SongTag>,
+) {
+    let mut song_db_info = query_all_songs_information(pool).await;
+
+    for (song_key, song_tag) in song_fs_info {
+        let (song, album, artists, album_artists) = song_db_info.remove(&song_key).unwrap();
+        assert_eq!(song_tag.title, song.title);
+        assert_eq!(song_tag.album, album.name);
+        assert_eq!(
+            song_tag.artists.into_iter().sorted().collect_vec(),
+            artists
+                .into_iter()
+                .map(|artist| artist.name)
+                .sorted()
+                .collect_vec()
+        );
+        assert_eq!(
+            song_tag.album_artists.into_iter().sorted().collect_vec(),
+            album_artists
+                .into_iter()
+                .map(|artist| artist.name)
+                .sorted()
+                .collect_vec()
+        );
+    }
+    assert!(song_db_info.is_empty());
 }

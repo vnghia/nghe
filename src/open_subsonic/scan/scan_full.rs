@@ -130,7 +130,7 @@ mod tests {
         open_subsonic::browsing::test::setup_user_and_music_folders,
         utils::{
             song::file_type::{to_extension, to_extensions},
-            test::media::query_all_songs_information,
+            test::media::assert_song_info,
         },
     };
 
@@ -156,30 +156,8 @@ mod tests {
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
-        let mut song_db_info = query_all_songs_information(db.get_pool()).await;
 
-        for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists, album_artists) = song_db_info.remove(&song_key).unwrap();
-            assert_eq!(song_tag.title, song.title);
-            assert_eq!(song_tag.album, album.name);
-            assert_eq!(
-                song_tag.artists.into_iter().sorted().collect_vec(),
-                artists
-                    .into_iter()
-                    .map(|artist| artist.name)
-                    .sorted()
-                    .collect_vec()
-            );
-            assert_eq!(
-                song_tag.album_artists.into_iter().sorted().collect_vec(),
-                album_artists
-                    .into_iter()
-                    .map(|artist| artist.name)
-                    .sorted()
-                    .collect_vec()
-            );
-        }
-        assert!(song_db_info.is_empty());
+        assert_song_info(db.get_pool(), song_fs_info).await;
     }
 
     #[tokio::test]
@@ -228,30 +206,7 @@ mod tests {
             .await
             .unwrap();
 
-        let mut song_db_info = query_all_songs_information(db.get_pool()).await;
-
-        for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists, album_artists) = song_db_info.remove(&song_key).unwrap();
-            assert_eq!(song_tag.title, song.title);
-            assert_eq!(song_tag.album, album.name);
-            assert_eq!(
-                song_tag.artists.into_iter().sorted().collect_vec(),
-                artists
-                    .into_iter()
-                    .map(|artist| artist.name)
-                    .sorted()
-                    .collect_vec()
-            );
-            assert_eq!(
-                song_tag.album_artists.into_iter().sorted().collect_vec(),
-                album_artists
-                    .into_iter()
-                    .map(|artist| artist.name)
-                    .sorted()
-                    .collect_vec()
-            );
-        }
-        assert!(song_db_info.is_empty());
+        assert_song_info(db.get_pool(), song_fs_info).await;
     }
 
     #[tokio::test]
@@ -275,30 +230,8 @@ mod tests {
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
-        let mut song_db_info = query_all_songs_information(db.get_pool()).await;
 
-        for (song_key, song_tag) in song_fs_info {
-            let (song, album, artists, album_artists) = song_db_info.remove(&song_key).unwrap();
-            assert_eq!(song_tag.title, song.title);
-            assert_eq!(song_tag.album, album.name);
-            assert_eq!(
-                song_tag.artists.into_iter().sorted().collect_vec(),
-                artists
-                    .into_iter()
-                    .map(|artist| artist.name)
-                    .sorted()
-                    .collect_vec()
-            );
-            assert_eq!(
-                song_tag.album_artists.into_iter().sorted().collect_vec(),
-                album_artists
-                    .into_iter()
-                    .map(|artist| artist.name)
-                    .sorted()
-                    .collect_vec()
-            );
-        }
-        assert!(song_db_info.is_empty());
+        assert_song_info(db.get_pool(), song_fs_info).await;
     }
 
     #[tokio::test]
