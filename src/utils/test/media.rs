@@ -189,9 +189,9 @@ pub async fn assert_songs_info(
     assert!(song_db_info.is_empty());
 }
 
-pub async fn assert_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist_names: &[T]) {
+pub async fn assert_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        artist_names
+        names
             .iter()
             .map(|name| name.as_ref().to_string())
             .unique()
@@ -208,9 +208,9 @@ pub async fn assert_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist_name
     );
 }
 
-pub async fn assert_song_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist_names: &[T]) {
+pub async fn assert_song_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        artist_names
+        names
             .iter()
             .map(|name| name.as_ref().to_string())
             .unique()
@@ -230,9 +230,9 @@ pub async fn assert_song_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist
     );
 }
 
-pub async fn assert_album_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist_names: &[T]) {
+pub async fn assert_album_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        artist_names
+        names
             .iter()
             .map(|name| name.as_ref().to_string())
             .unique()
@@ -252,9 +252,9 @@ pub async fn assert_album_artist_names<T: AsRef<str>>(pool: &DatabasePool, artis
     );
 }
 
-pub async fn assert_album_names<T: AsRef<str>>(pool: &DatabasePool, album_names: &[T]) {
+pub async fn assert_album_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        album_names
+        names
             .iter()
             .map(|name| name.as_ref().to_string())
             .unique()

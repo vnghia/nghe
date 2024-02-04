@@ -8,9 +8,9 @@ use futures::TryStreamExt;
 use itertools::Itertools;
 use uuid::Uuid;
 
-pub async fn upsert_artists<TN: AsRef<str>>(
+pub async fn upsert_artists<S: AsRef<str>>(
     pool: &DatabasePool,
-    names: &[TN],
+    names: &[S],
 ) -> OSResult<Vec<Uuid>> {
     Ok(diesel::insert_into(artists::table)
         .values(
@@ -30,7 +30,7 @@ pub async fn upsert_artists<TN: AsRef<str>>(
 }
 
 // TODO: better index building mechanism
-fn build_artist_index<T: AsRef<str>>(ignored_prefixes: &[T], name: &str) -> String {
+fn build_artist_index<S: AsRef<str>>(ignored_prefixes: &[S], name: &str) -> String {
     for ignored_prefix in ignored_prefixes {
         if let Some(stripped) = name.strip_prefix(ignored_prefix.as_ref()) {
             if let Some(index_char) = stripped.chars().next() {
@@ -46,9 +46,9 @@ fn build_artist_index<T: AsRef<str>>(ignored_prefixes: &[T], name: &str) -> Stri
     }
 }
 
-pub async fn build_artist_indices<T: AsRef<str>>(
+pub async fn build_artist_indices<S: AsRef<str>>(
     pool: &DatabasePool,
-    ignored_prefixes: &[T],
+    ignored_prefixes: &[S],
 ) -> OSResult<()> {
     stream::iter(
         artists::table

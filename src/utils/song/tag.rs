@@ -17,7 +17,7 @@ pub struct SongTag {
 }
 
 impl SongTag {
-    pub fn parse<T: AsRef<[u8]>>(data: T, file_type: FileType) -> OSResult<SongTag> {
+    pub fn parse<B: AsRef<[u8]>>(data: B, file_type: FileType) -> OSResult<SongTag> {
         let mut tagged_file = Probe::new(Cursor::new(data))
             .options(ParseOptions::new().parsing_mode(ParsingMode::Strict))
             .set_file_type(file_type)
@@ -72,13 +72,13 @@ impl SongTag {
         })
     }
 
-    pub fn to_new_or_update_song<'a, T: AsRef<str> + 'a>(
+    pub fn to_new_or_update_song<'a, S: AsRef<str> + 'a>(
         self: &'a SongTag,
         music_folder_id: Uuid,
         album_id: Uuid,
         song_file_hash: u64,
         song_file_size: u64,
-        song_relative_path: Option<&'a T>,
+        song_relative_path: Option<&'a S>,
     ) -> songs::NewOrUpdateSong<'a> {
         songs::NewOrUpdateSong {
             title: std::borrow::Cow::Borrowed(&self.title),

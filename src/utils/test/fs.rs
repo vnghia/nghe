@@ -42,10 +42,10 @@ impl TemporaryFs {
         }
     }
 
-    fn get_absolute_path<TR: AsRef<Path>, TP: AsRef<Path>>(
+    fn get_absolute_path<PR: AsRef<Path>, P: AsRef<Path>>(
         &self,
-        root_path: Option<&TR>,
-        path: TP,
+        root_path: Option<&PR>,
+        path: P,
     ) -> PathBuf {
         let root_path = match root_path {
             Some(root_path) => root_path.as_ref(),
@@ -63,10 +63,10 @@ impl TemporaryFs {
         }
     }
 
-    fn create_nested_parent_dir<TR: AsRef<Path>, TP: AsRef<Path>>(
+    fn create_nested_parent_dir<PR: AsRef<Path>, P: AsRef<Path>>(
         &self,
-        root_path: Option<&TR>,
-        path: TP,
+        root_path: Option<&PR>,
+        path: P,
     ) -> PathBuf {
         let path = self.get_absolute_path(root_path, path);
         self.create_nested_dir(root_path, path.parent().unwrap());
@@ -77,24 +77,24 @@ impl TemporaryFs {
         self.root.path()
     }
 
-    pub fn create_nested_dir<TR: AsRef<Path>, TP: AsRef<Path>>(
+    pub fn create_nested_dir<PR: AsRef<Path>, P: AsRef<Path>>(
         &self,
-        root_path: Option<&TR>,
-        path: TP,
+        root_path: Option<&PR>,
+        path: P,
     ) -> PathBuf {
         let path = self.get_absolute_path(root_path, path);
         create_dir_all(&path).expect("can not create temporary dir");
         path
     }
 
-    pub fn create_dir<TP: AsRef<Path>>(&self, path: TP) -> PathBuf {
+    pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         self.create_nested_dir(Self::NONE_PATH, path)
     }
 
-    pub fn create_nested_file<TR: AsRef<Path>, TP: AsRef<Path>>(
+    pub fn create_nested_file<PR: AsRef<Path>, P: AsRef<Path>>(
         &self,
-        root_path: Option<&TR>,
-        path: TP,
+        root_path: Option<&PR>,
+        path: P,
     ) -> PathBuf {
         let path = self.create_nested_parent_dir(root_path, path);
 
@@ -105,14 +105,14 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_file<TP: AsRef<Path>>(&self, path: TP) -> PathBuf {
+    pub fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         self.create_nested_file(Self::NONE_PATH, path)
     }
 
-    pub fn create_nested_media_file<TR: AsRef<Path>, TP: AsRef<Path>>(
+    pub fn create_nested_media_file<PR: AsRef<Path>, P: AsRef<Path>>(
         &self,
-        root_path: Option<&TR>,
-        path: TP,
+        root_path: Option<&PR>,
+        path: P,
         song_tag: &SongTag,
     ) -> PathBuf {
         let path = self.create_nested_parent_dir(root_path, path);
@@ -169,16 +169,16 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_media_file<TP: AsRef<Path>>(&self, path: TP, song_tag: &SongTag) -> PathBuf {
+    pub fn create_media_file<P: AsRef<Path>>(&self, path: P, song_tag: &SongTag) -> PathBuf {
         self.create_nested_media_file(Self::NONE_PATH, path, song_tag)
     }
 
-    pub fn create_nested_random_paths<TP: AsRef<Path>, TE: AsRef<OsStr>>(
+    pub fn create_nested_random_paths<PR: AsRef<Path>, OS: AsRef<OsStr>>(
         &self,
-        root_path: Option<&TP>,
+        root_path: Option<&PR>,
         n_path: u8,
         max_depth: u8,
-        extensions: &[TE],
+        extensions: &[OS],
     ) -> Vec<(PathBuf, Option<FileType>)> {
         (0..n_path)
             .map(|_| {
@@ -198,20 +198,20 @@ impl TemporaryFs {
             .collect_vec()
     }
 
-    pub fn create_random_paths<TE: AsRef<OsStr>>(
+    pub fn create_random_paths<OS: AsRef<OsStr>>(
         &self,
         n_path: u8,
         max_depth: u8,
-        extensions: &[TE],
+        extensions: &[OS],
     ) -> Vec<(PathBuf, Option<FileType>)> {
         self.create_nested_random_paths(Self::NONE_PATH, n_path, max_depth, extensions)
     }
 
-    pub fn create_nested_media_files<TMP: AsRef<Path>, TP: AsRef<Path>>(
+    pub fn create_nested_media_files<PM: AsRef<Path>, P: AsRef<Path>>(
         &self,
         music_folder_id: Uuid,
-        music_folder_path: &TMP,
-        paths: &[TP],
+        music_folder_path: &PM,
+        paths: &[P],
         song_tags: Vec<SongTag>,
     ) -> HashMap<(Uuid, PathBuf), SongTag> {
         paths
@@ -232,12 +232,12 @@ impl TemporaryFs {
             .collect::<HashMap<_, _>>()
     }
 
-    pub fn create_nested_random_paths_media_files<TMP: AsRef<Path>, TE: AsRef<OsStr>>(
+    pub fn create_nested_random_paths_media_files<PM: AsRef<Path>, OS: AsRef<OsStr>>(
         &self,
         music_folder_id: Uuid,
-        music_folder_path: &TMP,
+        music_folder_path: &PM,
         song_tags: Vec<SongTag>,
-        extensions: &[TE],
+        extensions: &[OS],
     ) -> HashMap<(Uuid, PathBuf), SongTag> {
         let n_song = song_tags.len() as u8;
         self.create_nested_media_files(

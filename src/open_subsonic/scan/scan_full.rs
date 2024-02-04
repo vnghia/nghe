@@ -13,9 +13,9 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
-pub async fn scan_full<T: AsRef<str>>(
+pub async fn scan_full<S: AsRef<str>>(
     pool: &DatabasePool,
-    ignored_prefixes: &[T],
+    ignored_prefixes: &[S],
     music_folders: &[music_folders::MusicFolder],
 ) -> OSResult<(usize, usize, usize, usize)> {
     let scan_start_time = time::OffsetDateTime::now_utc();
