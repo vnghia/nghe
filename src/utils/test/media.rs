@@ -120,6 +120,7 @@ pub async fn assert_albums_artists_info(
             .left_join(albums_artists::table)
             .filter(albums_artists::album_id.is_not_null())
             .select(artists::name)
+            .distinct()
             .load::<String>(&mut pool.get().await.unwrap())
             .await
             .unwrap()

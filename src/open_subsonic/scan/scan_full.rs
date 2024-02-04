@@ -60,25 +60,6 @@ pub async fn scan_full<T: AsRef<str>>(
             let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
             let album_id = upsert_album(pool, std::borrow::Cow::Borrowed(&song_tag.album)).await?;
 
-            upsert_album_artists(
-                pool,
-                album_id,
-                &upsert_artists(pool, &song_tag.album_artists).await?,
-            )
-            .await?;
-            // album artists for the same album
-            // that are extracted from multiple songs
-            // will be combined into a list.
-            // for example:
-            // song1 -> album -> album_artist1
-            // song2 -> album -> album_artist2
-            // album -> [album_artist1, album_artist2]
-            diesel::delete(albums_artists::table)
-                .filter(albums_artists::album_id.eq(album_id))
-                .filter(albums_artists::upserted_at.lt(scan_start_time))
-                .execute(&mut pool.get().await?)
-                .await?;
-
             let song_id = upsert_song(
                 pool,
                 song_id,
@@ -97,6 +78,26 @@ pub async fn scan_full<T: AsRef<str>>(
                 ),
             )
             .await?;
+
+            upsert_album_artists(
+                pool,
+                album_id,
+                song_id,
+                &upsert_artists(pool, &song_tag.album_artists).await?,
+            )
+            .await?;
+            // album artists for the same album
+            // that are extracted from multiple songs
+            // will be combined into a list.
+            // for example:
+            // song1 -> album -> album_artist1
+            // song2 -> album -> album_artist2
+            // album -> [album_artist1, album_artist2]
+            diesel::delete(albums_artists::table)
+                .filter(albums_artists::album_id.eq(album_id))
+                .filter(albums_artists::upserted_at.lt(scan_start_time))
+                .execute(&mut pool.get().await?)
+                .await?;
 
             upsert_song_artists(pool, song_id, &artist_ids).await?;
             diesel::delete(songs_artists::table)

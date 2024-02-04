@@ -10,9 +10,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    albums_artists (album_id, artist_id) {
+    albums_artists (album_id, artist_id, song_id) {
         album_id -> Uuid,
         artist_id -> Uuid,
+        song_id -> Uuid,
         upserted_at -> Timestamptz,
     }
 }
@@ -81,6 +82,7 @@ diesel::table! {
 
 diesel::joinable!(albums_artists -> albums (album_id));
 diesel::joinable!(albums_artists -> artists (artist_id));
+diesel::joinable!(albums_artists -> songs (song_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
 diesel::joinable!(songs_artists -> artists (artist_id));
