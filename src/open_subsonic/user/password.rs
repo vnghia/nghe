@@ -21,12 +21,11 @@ pub fn encrypt_password(key: &EncryptionKey, data: &str) -> Vec<u8> {
 pub fn decrypt_password(key: &EncryptionKey, data: &[u8]) -> OSResult<String> {
     let cipher_text = &data[IV_LEN..];
     let iv = &data[..IV_LEN];
-    match String::from_utf8(Cipher::new_128(key).cbc_decrypt(iv, cipher_text)) {
-        Ok(plain_text) => Ok(plain_text),
-        Err(_) => Err(OpenSubsonicError::BadRequest {
+    String::from_utf8(Cipher::new_128(key).cbc_decrypt(iv, cipher_text)).map_err(|_| {
+        OpenSubsonicError::BadRequest {
             message: Some("can not decrypt password".to_owned()),
-        }),
-    }
+        }
+    })
 }
 
 pub fn to_password_token(password: &str, client_salt: &str) -> MD5Token {
