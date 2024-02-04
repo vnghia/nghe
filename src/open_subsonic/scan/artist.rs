@@ -6,6 +6,7 @@ use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
 use futures::TryStreamExt;
 use itertools::Itertools;
+use std::borrow::Cow;
 use uuid::Uuid;
 
 pub async fn upsert_artists<S: AsRef<str>>(
@@ -30,7 +31,7 @@ pub async fn upsert_artists<S: AsRef<str>>(
 }
 
 // TODO: better index building mechanism
-fn build_artist_index<S: AsRef<str>>(ignored_prefixes: &[S], name: &str) -> String {
+fn build_artist_index<S: AsRef<str>>(ignored_prefixes: &[S], name: &str) -> Cow<'static, str> {
     for ignored_prefix in ignored_prefixes {
         if let Some(stripped) = name.strip_prefix(ignored_prefix.as_ref()) {
             if let Some(index_char) = stripped.chars().next() {
@@ -70,13 +71,13 @@ pub async fn build_artist_indices<S: AsRef<str>>(
     Ok(())
 }
 
-fn index_char_to_string(index_char: char) -> String {
+fn index_char_to_string(index_char: char) -> Cow<'static, str> {
     if index_char.is_ascii_alphabetic() {
-        index_char.to_ascii_uppercase().to_string()
+        index_char.to_ascii_uppercase().to_string().into()
     } else if index_char.is_numeric() {
-        "#".to_owned()
+        Cow::Borrowed("#")
     } else {
-        "*".to_owned()
+        Cow::Borrowed("*")
     }
 }
 
