@@ -1,7 +1,7 @@
 use crate::{models::*, OSResult, OpenSubsonicError};
 
 use itertools::Itertools;
-use lofty::{Accessor, FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
+use lofty::{FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
 use std::io::Cursor;
 use uuid::Uuid;
 
@@ -18,38 +18,45 @@ pub struct SongTag {
 
 impl SongTag {
     pub fn parse<T: AsRef<[u8]>>(data: T, file_type: FileType) -> OSResult<SongTag> {
-        let tagged_file = Probe::new(Cursor::new(data))
+        let mut tagged_file = Probe::new(Cursor::new(data))
             .options(ParseOptions::new().parsing_mode(ParsingMode::Strict))
             .set_file_type(file_type)
             .read()?;
 
         let tag = tagged_file
-            .primary_tag()
+            .primary_tag_mut()
             .ok_or_else(|| OpenSubsonicError::NotFound {
                 message: Some("file does not have the correct tag type".to_owned()),
             })?;
 
         let title = tag
-            .title()
+            .take(&ItemKey::TrackTitle)
+            .next()
             .ok_or_else(|| OpenSubsonicError::NotFound {
                 message: Some("title tag not found".to_owned()),
             })?
-            .to_string();
+            .into_value()
+            .into_string()
+            .ok_or_else(|| OpenSubsonicError::NotFound {
+                message: Some("title tag is not string".to_owned()),
+            })?;
+
         let album = tag
-            .album()
+            .take(&ItemKey::AlbumTitle)
+            .next()
             .ok_or_else(|| OpenSubsonicError::NotFound {
                 message: Some("album tag not found".to_owned()),
             })?
-            .to_string();
-        let artists = tag
-            .get_strings(&ItemKey::TrackArtist)
-            .map(std::string::ToString::to_string)
-            .collect_vec();
+            .into_value()
+            .into_string()
+            .ok_or_else(|| OpenSubsonicError::NotFound {
+                message: Some("album tag is not string".to_owned()),
+            })?;
+
+        let artists = tag.take_strings(&ItemKey::TrackArtist).collect_vec();
+
         let album_artists = {
-            let album_artists = tag
-                .get_strings(&ItemKey::AlbumArtist)
-                .map(std::string::ToString::to_string)
-                .collect_vec();
+            let album_artists = tag.take_strings(&ItemKey::AlbumArtist).collect_vec();
             if album_artists.is_empty() {
                 artists.clone()
             } else {
@@ -104,15 +111,15 @@ mod tests {
             assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
             assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
             assert_eq!(
-                tag.artists,
+                tag.artists.iter().sorted().collect_vec(),
                 ["Artist1", "Artist2"],
                 "{:?} artists does not match",
                 file_type
             );
             assert_eq!(
-                tag.album_artists,
+                tag.album_artists.iter().sorted().collect_vec(),
                 ["Artist1", "Artist3"],
-                "{:?} artists does not match",
+                "{:?} album artists does not match",
                 file_type
             );
         }
@@ -132,6 +139,9 @@ mod tests {
         );
         let new_song_tag = SongTag::parse(read(path).unwrap(), file_type.unwrap()).unwrap();
 
-        assert_eq!(new_song_tag.album_artists, new_song_tag.artists);
+        assert_eq!(
+            new_song_tag.album_artists.iter().sorted().collect_vec(),
+            new_song_tag.artists.iter().sorted().collect_vec()
+        );
     }
 }
