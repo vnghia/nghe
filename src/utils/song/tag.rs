@@ -65,8 +65,8 @@ impl SongTag {
         })
     }
 
-    pub fn into_new_or_update_song<'a, T: AsRef<str> + 'a>(
-        self: SongTag,
+    pub fn to_new_or_update_song<'a, T: AsRef<str> + 'a>(
+        self: &'a SongTag,
         music_folder_id: Uuid,
         album_id: Uuid,
         song_file_hash: u64,
@@ -74,7 +74,7 @@ impl SongTag {
         song_relative_path: Option<&'a T>,
     ) -> songs::NewOrUpdateSong<'a> {
         songs::NewOrUpdateSong {
-            title: self.title.into(),
+            title: std::borrow::Cow::Borrowed(&self.title),
             album_id,
             music_folder_id,
             path: song_relative_path.map(|path| std::borrow::Cow::Borrowed(path.as_ref())),

@@ -84,7 +84,7 @@ mod tests {
         let song_id = upsert_song(
             db.get_pool(),
             None,
-            song_tag.clone().into_new_or_update_song(
+            song_tag.to_new_or_update_song(
                 music_folders[0].id,
                 album_id,
                 song_hash,
@@ -120,7 +120,7 @@ mod tests {
         let song_id = upsert_song(
             db.get_pool(),
             None,
-            song_tag.clone().into_new_or_update_song(
+            song_tag.to_new_or_update_song(
                 music_folders[0].id,
                 album_id,
                 song_hash,
@@ -145,7 +145,7 @@ mod tests {
         let new_song_id = upsert_song(
             db.get_pool(),
             Some(song_id),
-            new_song_tag.clone().into_new_or_update_song(
+            new_song_tag.to_new_or_update_song(
                 music_folders[0].id,
                 new_album_id,
                 new_song_hash,

@@ -82,7 +82,7 @@ pub async fn scan_full<T: AsRef<str>>(
             let song_id = upsert_song(
                 pool,
                 song_id,
-                song_tag.into_new_or_update_song(
+                song_tag.to_new_or_update_song(
                     music_folder.id,
                     album_id,
                     song_file_hash,
