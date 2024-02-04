@@ -23,7 +23,7 @@ pub fn decrypt_password(key: &EncryptionKey, data: &[u8]) -> OSResult<String> {
     let iv = &data[..IV_LEN];
     String::from_utf8(Cipher::new_128(key).cbc_decrypt(iv, cipher_text)).map_err(|_| {
         OpenSubsonicError::BadRequest {
-            message: Some("can not decrypt password".to_owned()),
+            message: Some(std::borrow::Cow::Borrowed("can not decrypt password")),
         }
     })
 }

@@ -2,6 +2,7 @@ use crate::{models::*, OSResult, OpenSubsonicError};
 
 use itertools::Itertools;
 use lofty::{FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
+use std::borrow::Cow;
 use std::io::Cursor;
 use uuid::Uuid;
 
@@ -25,32 +26,32 @@ impl SongTag {
 
         let tag = tagged_file
             .primary_tag_mut()
-            .ok_or_else(|| OpenSubsonicError::NotFound {
-                message: Some("file does not have the correct tag type".to_owned()),
+            .ok_or(OpenSubsonicError::NotFound {
+                message: Some(Cow::Borrowed("file does not have the correct tag type")),
             })?;
 
         let title = tag
             .take(&ItemKey::TrackTitle)
             .next()
-            .ok_or_else(|| OpenSubsonicError::NotFound {
-                message: Some("title tag not found".to_owned()),
+            .ok_or(OpenSubsonicError::NotFound {
+                message: Some(Cow::Borrowed("title tag not found")),
             })?
             .into_value()
             .into_string()
-            .ok_or_else(|| OpenSubsonicError::NotFound {
-                message: Some("title tag is not string".to_owned()),
+            .ok_or(OpenSubsonicError::NotFound {
+                message: Some(Cow::Borrowed("title tag is not string")),
             })?;
 
         let album = tag
             .take(&ItemKey::AlbumTitle)
             .next()
-            .ok_or_else(|| OpenSubsonicError::NotFound {
-                message: Some("album tag not found".to_owned()),
+            .ok_or(OpenSubsonicError::NotFound {
+                message: Some(Cow::Borrowed("album tag not found")),
             })?
             .into_value()
             .into_string()
-            .ok_or_else(|| OpenSubsonicError::NotFound {
-                message: Some("album tag is not string".to_owned()),
+            .ok_or(OpenSubsonicError::NotFound {
+                message: Some(Cow::Borrowed("album tag is not string")),
             })?;
 
         let artists = tag.take_strings(&ItemKey::TrackArtist).collect_vec();

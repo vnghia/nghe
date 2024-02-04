@@ -33,7 +33,9 @@ pub async fn setup_handler(
         != 0
     {
         return Err(OpenSubsonicError::Forbidden {
-            message: Some("setup can only be used when there is no user".to_owned()),
+            message: Some(std::borrow::Cow::Borrowed(
+                "setup can only be used when there is no user",
+            )),
         });
     }
     create_user(

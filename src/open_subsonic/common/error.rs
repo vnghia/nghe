@@ -1,5 +1,6 @@
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
+use std::borrow::Cow;
 
 use nghe_proc_macros::wrap_subsonic_response;
 
@@ -11,10 +12,10 @@ const NOT_FOUND_MESSAGE: &str = "the requested data was not found";
 #[derive(Debug)]
 pub enum OpenSubsonicError {
     Generic { source: anyhow::Error },
-    BadRequest { message: Option<String> },
-    Unauthorized { message: Option<String> },
-    Forbidden { message: Option<String> },
-    NotFound { message: Option<String> },
+    BadRequest { message: Option<Cow<'static, str>> },
+    Unauthorized { message: Option<Cow<'static, str>> },
+    Forbidden { message: Option<Cow<'static, str>> },
+    NotFound { message: Option<Cow<'static, str>> },
 }
 
 pub type OSResult<T> = Result<T, OpenSubsonicError>;
@@ -22,7 +23,7 @@ pub type OSResult<T> = Result<T, OpenSubsonicError>;
 #[derive(Debug, Default, Serialize)]
 struct ActualError {
     code: u8,
-    message: String,
+    message: Cow<'static, str>,
 }
 
 #[wrap_subsonic_response(success = false)]
@@ -31,8 +32,8 @@ struct ErrorBody {
     error: ActualError,
 }
 
-fn error_to_json(code: u8, message: String) -> ErrorResponse {
-    tracing::error!(message);
+fn error_to_json(code: u8, message: Cow<'static, str>) -> ErrorResponse {
+    tracing::error!("{}", message);
     ErrorBody {
         error: ActualError { code, message },
         ..Default::default()
@@ -52,18 +53,18 @@ where
 impl IntoResponse for OpenSubsonicError {
     fn into_response(self) -> Response {
         match self {
-            OpenSubsonicError::Generic { source } => error_to_json(0, source.to_string()),
+            OpenSubsonicError::Generic { source } => error_to_json(0, source.to_string().into()),
             OpenSubsonicError::BadRequest { message } => {
-                error_to_json(10, message.unwrap_or(BAD_REQUEST_MESSAGE.to_owned()))
+                error_to_json(10, message.unwrap_or(Cow::Borrowed(BAD_REQUEST_MESSAGE)))
             }
             OpenSubsonicError::Unauthorized { message } => {
-                error_to_json(40, message.unwrap_or(UNAUTHORIZED_MESSAGE.to_owned()))
+                error_to_json(40, message.unwrap_or(Cow::Borrowed(UNAUTHORIZED_MESSAGE)))
             }
             OpenSubsonicError::Forbidden { message } => {
-                error_to_json(50, message.unwrap_or(FORBIDDEN_MESSAGE.to_owned()))
+                error_to_json(50, message.unwrap_or(Cow::Borrowed(FORBIDDEN_MESSAGE)))
             }
             OpenSubsonicError::NotFound { message } => {
-                error_to_json(70, message.unwrap_or(NOT_FOUND_MESSAGE.to_owned()))
+                error_to_json(70, message.unwrap_or(Cow::Borrowed(NOT_FOUND_MESSAGE)))
             }
         }
         .into_response()
@@ -81,7 +82,7 @@ mod tests {
         let e: OpenSubsonicError = std::io::Error::new(std::io::ErrorKind::Other, message).into();
         assert_eq!(
             to_bytes(e.into_response()).await,
-            to_bytes(error_to_json(0, message.to_owned()).into_response()).await
+            to_bytes(error_to_json(0, Cow::Borrowed(message)).into_response()).await
         );
     }
 
@@ -91,10 +92,10 @@ mod tests {
               #[tokio::test]
               async fn [<test_ $error_type:snake _custom_message>]() {
                   let message = stringify!($error_type);
-                  let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: Some(message.to_owned()) };
+                  let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: Some(Cow::Borrowed(message)) };
                   assert_eq!(
                     to_bytes(e.into_response()).await,
-                    to_bytes(error_to_json($error_code, message.to_owned()).into_response()).await
+                    to_bytes(error_to_json($error_code, Cow::Borrowed(message)).into_response()).await
                   );
               }
             }
@@ -109,7 +110,7 @@ mod tests {
                   let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: None };
                   assert_eq!(
                     to_bytes(e.into_response()).await,
-                    to_bytes(error_to_json($error_code, [<$error_type:snake:upper _MESSAGE>].to_owned()).into_response()).await
+                    to_bytes(error_to_json($error_code, Cow::Borrowed([<$error_type:snake:upper _MESSAGE>])).into_response()).await
                   );
               }
             }
