@@ -196,7 +196,7 @@ mod tests {
 
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(db.get_pool(), song_fs_info).await;
+        assert_songs_info(db.get_pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -241,7 +241,7 @@ mod tests {
 
         assert_eq!(upserted_song_count, n_new_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(db.get_pool(), song_fs_info).await;
+        assert_songs_info(db.get_pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -298,7 +298,7 @@ mod tests {
 
         assert_eq!(upserted_song_count, n_new_song);
         assert_eq!(deleted_song_count, n_delete_song);
-        assert_songs_info(db.get_pool(), song_fs_info).await;
+        assert_songs_info(db.get_pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -326,7 +326,7 @@ mod tests {
 
         assert_eq!(upserted_song_count, n_song + n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(db.get_pool(), song_fs_info).await;
+        assert_songs_info(db.get_pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
