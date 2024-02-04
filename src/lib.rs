@@ -13,6 +13,7 @@ pub mod utils;
 pub use open_subsonic::{OSResult, OpenSubsonicError};
 pub use state::ServerState;
 
+pub type DatabaseType = diesel::pg::Pg;
 pub type DatabasePool =
     diesel_async::pooled_connection::deadpool::Pool<diesel_async::AsyncPgConnection>;
 
