@@ -193,7 +193,7 @@ pub async fn assert_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]
     assert_eq!(
         names
             .iter()
-            .map(|name| name.as_ref().to_string())
+            .map(|name| name.as_ref())
             .unique()
             .sorted()
             .collect_vec(),
@@ -202,7 +202,8 @@ pub async fn assert_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]
             .load::<String>(&mut pool.get().await.unwrap())
             .await
             .unwrap()
-            .into_iter()
+            .iter()
+            .map(std::string::String::as_str)
             .sorted()
             .collect_vec(),
     );
@@ -212,7 +213,7 @@ pub async fn assert_song_artist_names<S: AsRef<str>>(pool: &DatabasePool, names:
     assert_eq!(
         names
             .iter()
-            .map(|name| name.as_ref().to_string())
+            .map(|name| name.as_ref())
             .unique()
             .sorted()
             .collect_vec(),
@@ -224,7 +225,8 @@ pub async fn assert_song_artist_names<S: AsRef<str>>(pool: &DatabasePool, names:
             .load::<String>(&mut pool.get().await.unwrap())
             .await
             .unwrap()
-            .into_iter()
+            .iter()
+            .map(std::string::String::as_str)
             .sorted()
             .collect_vec(),
     );
@@ -234,7 +236,7 @@ pub async fn assert_album_artist_names<S: AsRef<str>>(pool: &DatabasePool, names
     assert_eq!(
         names
             .iter()
-            .map(|name| name.as_ref().to_string())
+            .map(|name| name.as_ref())
             .unique()
             .sorted()
             .collect_vec(),
@@ -246,7 +248,8 @@ pub async fn assert_album_artist_names<S: AsRef<str>>(pool: &DatabasePool, names
             .load::<String>(&mut pool.get().await.unwrap())
             .await
             .unwrap()
-            .into_iter()
+            .iter()
+            .map(std::string::String::as_str)
             .sorted()
             .collect_vec(),
     );
@@ -256,7 +259,7 @@ pub async fn assert_album_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S])
     assert_eq!(
         names
             .iter()
-            .map(|name| name.as_ref().to_string())
+            .map(|name| name.as_ref())
             .unique()
             .sorted()
             .collect_vec(),
@@ -265,7 +268,8 @@ pub async fn assert_album_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S])
             .load::<String>(&mut pool.get().await.unwrap())
             .await
             .unwrap()
-            .into_iter()
+            .iter()
+            .map(std::string::String::as_str)
             .sorted()
             .collect_vec(),
     );
