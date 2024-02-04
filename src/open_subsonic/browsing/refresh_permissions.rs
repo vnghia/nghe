@@ -93,7 +93,7 @@ mod tests {
             setup_user_and_music_folders(2, 2, &[true, false, true, true]).await;
 
         diesel::insert_into(user_music_folder_permissions::table)
-            .values(&[permissions[1].clone(), permissions[3].clone()])
+            .values(&[permissions[1], permissions[3]])
             .execute(&mut db.get_pool().get().await.unwrap())
             .await
             .unwrap();

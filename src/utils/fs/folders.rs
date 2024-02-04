@@ -128,7 +128,7 @@ mod tests {
         let temp_fs = TemporaryFs::new();
         let file = temp_fs.create_file("test.txt");
 
-        let result = catch_unwind(|| build_music_folders(&[file.clone()], &[0]));
+        let result = catch_unwind(|| build_music_folders(&[&file], &[0]));
 
         assert!(result
             .err()
@@ -144,8 +144,7 @@ mod tests {
         let parent = temp_fs.create_dir("test1/");
         let child = temp_fs.create_dir("test1/test2/");
 
-        let result =
-            catch_unwind(|| build_music_folders(&[parent.clone(), child.clone()], &[0, 0]));
+        let result = catch_unwind(|| build_music_folders(&[&parent, &child], &[0, 0]));
 
         assert_eq!(
             *result.err().unwrap().downcast_ref::<String>().unwrap(),

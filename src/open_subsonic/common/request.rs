@@ -105,13 +105,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_success() {
-        let (db, key, user_tokens) = create_db_key_users(1, 0).await;
+        let (db, key, mut user_tokens) = create_db_key_users(1, 0).await;
 
+        let user_token = user_tokens.remove(0);
         assert!(TestParams {
             common: CommonParams {
-                username: user_tokens[0].0.username.clone(),
-                salt: user_tokens[0].1.clone(),
-                token: user_tokens[0].2,
+                username: user_token.0.username,
+                salt: user_token.1,
+                token: user_token.2,
             }
         }
         .validate(db.get_pool(), &key)
@@ -121,15 +122,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_username() {
-        let (db, key, user_tokens) = create_db_key_users(1, 0).await;
+        let (db, key, mut user_tokens) = create_db_key_users(1, 0).await;
         let wrong_username: String = Username().fake();
 
+        let user_token = user_tokens.remove(0);
         assert!(matches!(
             TestParams {
                 common: CommonParams {
-                    username: wrong_username.clone(),
-                    salt: user_tokens[0].1.clone(),
-                    token: user_tokens[0].2,
+                    username: wrong_username,
+                    salt: user_token.1,
+                    token: user_token.2,
                 }
             }
             .validate(db.get_pool(), &key)
@@ -157,7 +159,7 @@ mod tests {
         assert!(matches!(
             TestParams {
                 common: CommonParams {
-                    username: username.clone(),
+                    username,
                     token: client_token,
                     salt: client_salt
                 }
@@ -170,13 +172,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_admin_success() {
-        let (db, key, user_tokens) = create_db_key_users(1, 1).await;
+        let (db, key, mut user_tokens) = create_db_key_users(1, 1).await;
 
+        let user_token = user_tokens.remove(0);
         assert!(AdminTestParams {
             common: CommonParams {
-                username: user_tokens[0].0.username.clone(),
-                salt: user_tokens[0].1.clone(),
-                token: user_tokens[0].2,
+                username: user_token.0.username,
+                salt: user_token.1,
+                token: user_token.2,
             }
         }
         .validate(db.get_pool(), &key)
@@ -186,14 +189,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_no_admin() {
-        let (db, key, user_tokens) = create_db_key_users(1, 0).await;
+        let (db, key, mut user_tokens) = create_db_key_users(1, 0).await;
 
+        let user_token = user_tokens.remove(0);
         assert!(matches!(
             AdminTestParams {
                 common: CommonParams {
-                    username: user_tokens[0].0.username.clone(),
-                    salt: user_tokens[0].1.clone(),
-                    token: user_tokens[0].2,
+                    username: user_token.0.username,
+                    salt: user_token.1,
+                    token: user_token.2,
                 }
             }
             .validate(db.get_pool(), &key)

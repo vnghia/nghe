@@ -171,7 +171,7 @@ mod tests {
     };
 
     use fake::{Fake, Faker};
-    use itertools::{concat, Itertools};
+    use itertools::Itertools;
     use lofty::FileType;
     use rand::seq::IteratorRandom;
     use std::{collections::HashMap, path::PathBuf};
@@ -207,7 +207,7 @@ mod tests {
         let n_new_song = 20_usize;
         let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let song_fs_info = temp_fs.create_nested_random_paths_media_files(
+        let mut song_fs_info = temp_fs.create_nested_random_paths_media_files(
             music_folder_id,
             &music_folder_path,
             fake::vec![SongTag; n_song],
@@ -220,8 +220,7 @@ mod tests {
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
-        let song_fs_info = concat(vec![
-            song_fs_info.clone(),
+        song_fs_info.extend(
             temp_fs.create_nested_media_files(
                 music_folder_id,
                 &music_folder_path,
@@ -233,7 +232,8 @@ mod tests {
                     .collect_vec(),
                 fake::vec![SongTag; n_new_song],
             ),
-        ]);
+        );
+
         let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
@@ -268,8 +268,8 @@ mod tests {
         assert_eq!(deleted_song_count, 0);
 
         song_fs_info
-            .clone()
-            .into_keys()
+            .keys()
+            .cloned()
             .choose_multiple(&mut rand::thread_rng(), n_delete_song)
             .into_iter()
             .for_each(|key| {
@@ -277,8 +277,7 @@ mod tests {
                 song_fs_info.remove(&key).unwrap();
             });
 
-        let song_fs_info = concat(vec![
-            song_fs_info.clone(),
+        song_fs_info.extend(
             temp_fs.create_nested_media_files(
                 music_folder_id,
                 &music_folder_path,
@@ -290,7 +289,8 @@ mod tests {
                     .collect_vec(),
                 fake::vec![SongTag; n_new_song],
             ),
-        ]);
+        );
+
         let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
@@ -351,7 +351,7 @@ mod tests {
         let song_fs_info = temp_fs.create_nested_random_paths_media_files(
             music_folder_id,
             &music_folder_path,
-            song_tags.clone(),
+            song_tags,
             &[to_extension(&FileType::Flac)],
         );
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -385,8 +385,8 @@ mod tests {
         assert_albums_info(db.get_pool(), &song_fs_info).await;
 
         song_fs_info
-            .clone()
-            .into_keys()
+            .keys()
+            .cloned()
             .choose_multiple(&mut rand::thread_rng(), n_delete_song)
             .into_iter()
             .for_each(|key| {
@@ -394,8 +394,7 @@ mod tests {
                 song_fs_info.remove(&key).unwrap();
             });
 
-        let song_fs_info = concat(vec![
-            song_fs_info.clone(),
+        song_fs_info.extend(
             temp_fs.create_nested_media_files(
                 music_folder_id,
                 &music_folder_path,
@@ -407,7 +406,8 @@ mod tests {
                     .collect_vec(),
                 fake::vec![SongTag; n_new_song],
             ),
-        ]);
+        );
+
         let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
@@ -447,7 +447,7 @@ mod tests {
             music_folder_id,
             &music_folder_path,
             &song_paths,
-            song_tags.clone(),
+            song_tags,
         );
 
         let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -488,8 +488,8 @@ mod tests {
         assert_artists_info(db.get_pool(), &song_fs_info).await;
 
         song_fs_info
-            .clone()
-            .into_keys()
+            .keys()
+            .cloned()
             .choose_multiple(&mut rand::thread_rng(), n_delete_song)
             .into_iter()
             .for_each(|key| {
@@ -497,8 +497,7 @@ mod tests {
                 song_fs_info.remove(&key).unwrap();
             });
 
-        let song_fs_info = concat(vec![
-            song_fs_info.clone(),
+        song_fs_info.extend(
             temp_fs.create_nested_media_files(
                 music_folder_id,
                 &music_folder_path,
@@ -510,7 +509,8 @@ mod tests {
                     .collect_vec(),
                 fake::vec![SongTag; n_new_song],
             ),
-        ]);
+        );
+
         scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
@@ -557,7 +557,7 @@ mod tests {
             music_folder_id,
             &music_folder_path,
             &song_paths,
-            song_tags.clone(),
+            song_tags,
         );
 
         let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -569,7 +569,7 @@ mod tests {
         temp_fs.create_nested_media_file(
             Some(&music_folder_path),
             &song_paths[0],
-            &SongTag {
+            SongTag {
                 artists: vec!["artist2".to_string()],
                 ..Faker.fake()
             },
@@ -616,7 +616,7 @@ mod tests {
             music_folder_id,
             &music_folder_path,
             &song_paths,
-            song_tags.clone(),
+            song_tags,
         );
 
         let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -676,7 +676,7 @@ mod tests {
             music_folder_id,
             &music_folder_path,
             &song_paths,
-            song_tags.clone(),
+            song_tags,
         );
 
         let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -722,6 +722,8 @@ mod tests {
                 ..Faker.fake()
             },
         ];
+        let first_song_tag = song_tags[0].clone();
+
         let song_paths = temp_fs
             .create_nested_random_paths(
                 Some(&music_folder_path),
@@ -736,7 +738,7 @@ mod tests {
             music_folder_id,
             &music_folder_path,
             &song_paths,
-            song_tags.clone(),
+            song_tags,
         );
 
         let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
@@ -748,10 +750,10 @@ mod tests {
         temp_fs.create_nested_media_file(
             Some(&music_folder_path),
             &song_paths[0],
-            &SongTag {
+            SongTag {
                 artists: vec!["artist2".to_string()],
                 album_artists: vec!["artist2".to_string()],
-                ..song_tags[0].clone()
+                ..first_song_tag
             },
         );
 

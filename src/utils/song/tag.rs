@@ -128,11 +128,12 @@ mod tests {
     #[test]
     fn test_parse_media_file_default_value() {
         let fs = TemporaryFs::new();
-        let (path, file_type) =
-            fs.create_random_paths(1, 1, &[to_extension(&FileType::Flac)])[0].clone();
+        let (path, file_type) = fs
+            .create_random_paths(1, 1, &[to_extension(&FileType::Flac)])
+            .remove(0);
         fs.create_media_file(
             &path,
-            &SongTag {
+            SongTag {
                 album_artists: Vec::default(),
                 ..Faker.fake()
             },

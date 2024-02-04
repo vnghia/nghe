@@ -14,6 +14,7 @@ use uuid::Uuid;
     Selectable,
     Insertable,
     Clone,
+    Copy,
     PartialEq,
     Eq,
     PartialOrd,

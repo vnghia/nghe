@@ -88,7 +88,7 @@ mod tests {
             db.get_pool(),
             &key,
             CreateUserParams {
-                username: username.clone(),
+                username,
                 password,
                 ..Default::default()
             },

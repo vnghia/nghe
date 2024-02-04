@@ -113,7 +113,7 @@ impl TemporaryFs {
         &self,
         root_path: Option<&PR>,
         path: P,
-        song_tag: &SongTag,
+        song_tag: SongTag,
     ) -> PathBuf {
         let path = self.create_nested_parent_dir(root_path, path);
         let file_type = FileType::from_path(&path).unwrap();
@@ -125,8 +125,8 @@ impl TemporaryFs {
             .expect("can not read original media file")
             .primary_tag_type();
         let mut tag = lofty::Tag::new(tag_type);
-        tag.set_title(song_tag.title.clone());
-        tag.set_album(song_tag.album.clone());
+        tag.set_title(song_tag.title);
+        tag.set_album(song_tag.album);
 
         match tag_type {
             TagType::Id3v2 => {
@@ -152,13 +152,11 @@ impl TemporaryFs {
                 let mut tag = VorbisComments::from(tag);
                 song_tag
                     .artists
-                    .iter()
-                    .cloned()
+                    .into_iter()
                     .for_each(|artist| tag.push("ARTIST".to_owned(), artist));
                 song_tag
                     .album_artists
-                    .iter()
-                    .cloned()
+                    .into_iter()
                     .for_each(|artist| tag.push("ALBUMARTIST".to_owned(), artist));
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");
@@ -169,7 +167,7 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_media_file<P: AsRef<Path>>(&self, path: P, song_tag: &SongTag) -> PathBuf {
+    pub fn create_media_file<P: AsRef<Path>>(&self, path: P, song_tag: SongTag) -> PathBuf {
         self.create_nested_media_file(Self::NONE_PATH, path, song_tag)
     }
 
@@ -221,10 +219,14 @@ impl TemporaryFs {
                 (
                     (
                         music_folder_id,
-                        self.create_nested_media_file(Some(music_folder_path), path, &song_tag)
-                            .strip_prefix(music_folder_path)
-                            .unwrap()
-                            .to_path_buf(),
+                        self.create_nested_media_file(
+                            Some(music_folder_path),
+                            path,
+                            song_tag.clone(),
+                        )
+                        .strip_prefix(music_folder_path)
+                        .unwrap()
+                        .to_path_buf(),
                     ),
                     song_tag,
                 )
@@ -286,8 +288,10 @@ fn test_roundtrip_media_file() {
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
-        let path =
-            fs.create_media_file(concat_string!("test.", to_extension(&file_type)), &song_tag);
+        let path = fs.create_media_file(
+            concat_string!("test.", to_extension(&file_type)),
+            song_tag.clone(),
+        );
         let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), file_type).unwrap();
         assert_eq!(
             song_tag, read_song_tag,

@@ -74,7 +74,7 @@ mod tests {
         .await
         .unwrap();
 
-        let state = setup_state(db.get_pool(), key);
+        let sorted_music_folders = music_folders.into_iter().sorted().collect_vec();
 
         for user_token in user_tokens {
             let form = to_validated_form(
@@ -82,15 +82,16 @@ mod tests {
                 &key,
                 GetMusicFoldersParams {
                     common: CommonParams {
-                        username: user_token.0.username.clone(),
-                        salt: user_token.1.clone(),
+                        username: user_token.0.username,
+                        salt: user_token.1,
                         token: user_token.2,
                     },
                 },
             )
             .await;
 
-            let results = get_music_folders_handler(state.clone(), form)
+            let state = setup_state(db.get_pool(), key);
+            let results = get_music_folders_handler(state, form)
                 .await
                 .unwrap()
                 .0
@@ -101,10 +102,7 @@ mod tests {
                 .sorted()
                 .collect_vec();
 
-            assert_eq!(
-                results,
-                music_folders.clone().into_iter().sorted().collect_vec()
-            );
+            assert_eq!(&results, &sorted_music_folders);
         }
     }
 
@@ -132,48 +130,22 @@ mod tests {
         .await
         .unwrap();
 
-        let state = setup_state(db.get_pool(), key);
-
-        {
+        for (i, user_token) in user_tokens.into_iter().enumerate() {
             let form = to_validated_form(
                 db.get_pool(),
                 &key,
                 GetMusicFoldersParams {
                     common: CommonParams {
-                        username: user_tokens[0].0.username.clone(),
-                        salt: user_tokens[0].1.clone(),
-                        token: user_tokens[0].2,
+                        username: user_token.0.username,
+                        salt: user_token.1,
+                        token: user_token.2,
                     },
                 },
             )
             .await;
 
-            let results = get_music_folders_handler(state.clone(), form)
-                .await
-                .unwrap()
-                .0
-                .root
-                .music_folders
-                .music_folder;
-
-            assert_eq!(results, &music_folders[0..1]);
-        }
-
-        {
-            let form = to_validated_form(
-                db.get_pool(),
-                &key,
-                GetMusicFoldersParams {
-                    common: CommonParams {
-                        username: user_tokens[1].0.username.clone(),
-                        salt: user_tokens[1].1.clone(),
-                        token: user_tokens[1].2,
-                    },
-                },
-            )
-            .await;
-
-            let results = get_music_folders_handler(state.clone(), form)
+            let state = setup_state(db.get_pool(), key);
+            let results = get_music_folders_handler(state, form)
                 .await
                 .unwrap()
                 .0
@@ -184,7 +156,14 @@ mod tests {
                 .sorted()
                 .collect_vec();
 
-            assert_eq!(results, music_folders.into_iter().sorted().collect_vec());
+            match i {
+                0 => assert_eq!(results, &music_folders[0..1]),
+                1 => assert_eq!(
+                    results,
+                    music_folders.clone().into_iter().sorted().collect_vec()
+                ),
+                _ => panic!(),
+            };
         }
     }
 }

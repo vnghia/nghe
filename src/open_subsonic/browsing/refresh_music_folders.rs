@@ -91,7 +91,7 @@ mod tests {
         diesel::insert_into(music_folders::table)
             .values(
                 temp_fs
-                    .canonicalize_paths(&[dir_1.clone()])
+                    .canonicalize_paths(&[&dir_1])
                     .iter()
                     .map(|path| music_folders::NewMusicFolder {
                         path: Cow::Borrowed(path.to_str().expect("non utf-8 path encountered")),
@@ -130,7 +130,7 @@ mod tests {
         diesel::insert_into(music_folders::table)
             .values(
                 temp_fs
-                    .canonicalize_paths(&[dir_1.clone(), dir_3])
+                    .canonicalize_paths(&[&dir_1, &dir_3])
                     .iter()
                     .map(|path| music_folders::NewMusicFolder {
                         path: Cow::Borrowed(path.to_str().expect("non utf-8 path encountered")),
