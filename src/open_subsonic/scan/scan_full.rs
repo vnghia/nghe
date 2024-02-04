@@ -17,7 +17,7 @@ pub async fn scan_full<T: AsRef<str>>(
     pool: &DatabasePool,
     ignored_prefixes: &[T],
     music_folders: &[music_folders::MusicFolder],
-) -> OSResult<(usize, usize, usize)> {
+) -> OSResult<(usize, usize, usize, usize)> {
     let scan_start_time = time::OffsetDateTime::now_utc();
 
     let mut upserted_song_count: usize = 0;
@@ -95,6 +95,7 @@ pub async fn scan_full<T: AsRef<str>>(
             // album -> [album_artist1, album_artist2]
             diesel::delete(albums_artists::table)
                 .filter(albums_artists::album_id.eq(album_id))
+                .filter(albums_artists::song_id.eq(song_id))
                 .filter(albums_artists::upserted_at.lt(scan_start_time))
                 .execute(&mut pool.get().await?)
                 .await?;
@@ -128,10 +129,30 @@ pub async fn scan_full<T: AsRef<str>>(
         .execute(&mut pool.get().await?)
         .await?;
 
+    let artists_no_song_no_album = diesel::alias!(artists as artists_no_song_no_album);
+    let deleted_artist_count = diesel::delete(artists::table)
+        .filter(
+            artists::id.eq_any(
+                artists_no_song_no_album
+                    .left_join(albums_artists::table)
+                    .left_join(songs_artists::table)
+                    .filter(albums_artists::album_id.is_null())
+                    .filter(songs_artists::song_id.is_null())
+                    .select(artists_no_song_no_album.field(artists::id)),
+            ),
+        )
+        .execute(&mut pool.get().await?)
+        .await?;
+
     build_artist_indices(pool, ignored_prefixes).await?;
 
     tracing::info!("done scanning songs");
-    Ok((upserted_song_count, deleted_song_count, deleted_album_count))
+    Ok((
+        upserted_song_count,
+        deleted_song_count,
+        deleted_album_count,
+        deleted_artist_count,
+    ))
 }
 
 #[cfg(test)]
@@ -141,7 +162,11 @@ mod tests {
         open_subsonic::browsing::test::setup_user_and_music_folders,
         utils::{
             song::file_type::{to_extension, to_extensions},
-            test::media::{assert_albums_artists_info, assert_albums_info, assert_songs_info},
+            test::media::{
+                assert_album_artist_names, assert_album_names, assert_albums_artists_info,
+                assert_albums_info, assert_artists_info, assert_song_artist_names,
+                assert_songs_info,
+            },
         },
     };
 
@@ -164,7 +189,7 @@ mod tests {
             fake::vec![SongTag; n_song],
             &to_extensions(),
         );
-        let (upserted_song_count, deleted_song_count, _) =
+        let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
                 .unwrap();
@@ -188,7 +213,7 @@ mod tests {
             fake::vec![SongTag; n_song],
             &to_extensions(),
         );
-        let (upserted_song_count, deleted_song_count, _) =
+        let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
                 .unwrap();
@@ -209,7 +234,7 @@ mod tests {
                 fake::vec![SongTag; n_new_song],
             ),
         ]);
-        let (upserted_song_count, deleted_song_count, _) =
+        let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
                 .unwrap();
@@ -235,7 +260,7 @@ mod tests {
             fake::vec![SongTag; n_song],
             &to_extensions(),
         );
-        let (upserted_song_count, deleted_song_count, _) =
+        let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
                 .unwrap();
@@ -266,7 +291,7 @@ mod tests {
                 fake::vec![SongTag; n_new_song],
             ),
         ]);
-        let (upserted_song_count, deleted_song_count, _) =
+        let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
                 .unwrap();
@@ -294,7 +319,7 @@ mod tests {
                 )
             })
             .collect::<HashMap<_, _>>();
-        let (upserted_song_count, deleted_song_count, _) =
+        let (upserted_song_count, deleted_song_count, _, _) =
             scan_full::<&str>(db.get_pool(), &[], &music_folders)
                 .await
                 .unwrap();
@@ -311,22 +336,15 @@ mod tests {
         let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
 
-        let album_name = "album".to_owned();
         let song_tags = vec![
             SongTag {
-                album: album_name.clone(),
-                album_artists: ["artist1", "artist2"]
-                    .iter()
-                    .map(std::string::ToString::to_string)
-                    .collect_vec(),
+                album: "album".to_string(),
+                album_artists: vec!["artist1".to_string(), "artist2".to_string()],
                 ..Faker.fake()
             },
             SongTag {
-                album: album_name.clone(),
-                album_artists: ["artist1", "artist3"]
-                    .iter()
-                    .map(std::string::ToString::to_string)
-                    .collect_vec(),
+                album: "album".to_string(),
+                album_artists: vec!["artist1".to_string(), "artist3".to_string()],
                 ..Faker.fake()
             },
         ];
@@ -359,7 +377,7 @@ mod tests {
             fake::vec![SongTag; n_song as usize],
             &to_extensions(),
         );
-        let (_, _, deleted_album_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+        let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
 
@@ -390,11 +408,357 @@ mod tests {
                 fake::vec![SongTag; n_new_song],
             ),
         ]);
-        let (_, _, deleted_album_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+        let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
             .await
             .unwrap();
 
         assert_eq!(deleted_album_count, n_delete_song + n_new_song);
         assert_albums_info(db.get_pool(), &song_fs_info).await;
+    }
+
+    #[tokio::test]
+    async fn test_scan_delete_keep_album_with_songs() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let music_folder_id = music_folders[0].id;
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+
+        let song_tags = vec![
+            SongTag {
+                album: "album".to_string(),
+                ..Faker.fake()
+            },
+            SongTag {
+                album: "album".to_string(),
+                ..Faker.fake()
+            },
+        ];
+        let song_paths = temp_fs
+            .create_nested_random_paths(
+                Some(&music_folder_path),
+                song_tags.len() as u8,
+                3,
+                &[to_extension(&FileType::Flac)],
+            )
+            .into_iter()
+            .map(|(path, _)| path)
+            .collect_vec();
+        temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            &song_paths,
+            song_tags.clone(),
+        );
+
+        let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_album_count, 0);
+        assert_album_names(db.get_pool(), &["album"]).await;
+
+        std::fs::remove_file(music_folder_path.join(&song_paths[0])).unwrap();
+
+        let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_album_count, 0);
+        assert_album_names(db.get_pool(), &["album"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_scan_all_artist() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let n_song = 10;
+        let n_delete_song = 2;
+        let n_new_song = 4;
+        let music_folder_id = music_folders[0].id;
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+
+        let mut song_fs_info = temp_fs.create_nested_random_paths_media_files(
+            music_folder_id,
+            &music_folder_path,
+            fake::vec![SongTag; n_song as usize],
+            &to_extensions(),
+        );
+        scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+
+        assert_artists_info(db.get_pool(), &song_fs_info).await;
+
+        song_fs_info
+            .clone()
+            .into_keys()
+            .choose_multiple(&mut rand::thread_rng(), n_delete_song)
+            .into_iter()
+            .for_each(|key| {
+                std::fs::remove_file(music_folder_path.join(&key.1)).unwrap();
+                song_fs_info.remove(&key).unwrap();
+            });
+
+        let song_fs_info = concat(vec![
+            song_fs_info.clone(),
+            temp_fs.create_nested_media_files(
+                music_folder_id,
+                &music_folder_path,
+                &song_fs_info
+                    .keys()
+                    .choose_multiple(&mut rand::thread_rng(), n_new_song)
+                    .into_iter()
+                    .map(|(_, path)| path)
+                    .collect_vec(),
+                fake::vec![SongTag; n_new_song],
+            ),
+        ]);
+        scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+
+        assert_artists_info(db.get_pool(), &song_fs_info).await;
+    }
+
+    #[tokio::test]
+    async fn test_scan_delete_old_song_artists() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let music_folder_id = music_folders[0].id;
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+
+        let song_tags = vec![
+            // deleted
+            SongTag {
+                artists: vec!["artist1".to_string()],
+                album_artists: vec!["artist1".to_string()],
+                ..Faker.fake()
+            },
+            // not deleted but scanned (artist2)
+            SongTag {
+                artists: vec!["artist2".to_string()],
+                ..Faker.fake()
+            },
+            // not deleted nor scanned
+            SongTag {
+                artists: vec!["artist3".to_string()],
+                ..Faker.fake()
+            },
+        ];
+        let song_paths = temp_fs
+            .create_nested_random_paths(
+                Some(&music_folder_path),
+                song_tags.len() as u8,
+                3,
+                &[to_extension(&FileType::Flac)],
+            )
+            .into_iter()
+            .map(|(path, _)| path)
+            .collect_vec();
+        temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            &song_paths,
+            song_tags.clone(),
+        );
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 0);
+        assert_song_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+
+        temp_fs.create_nested_media_file(
+            Some(&music_folder_path),
+            &song_paths[0],
+            &SongTag {
+                artists: vec!["artist2".to_string()],
+                ..Faker.fake()
+            },
+        );
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 1);
+        assert_song_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_scan_delete_old_album_artists() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let music_folder_id = music_folders[0].id;
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+
+        let song_tags = vec![
+            SongTag {
+                album: "album1".to_string(),
+                artists: vec!["artist2".to_string()],
+                album_artists: vec!["artist1".to_string(), "artist2".to_string()],
+                ..Faker.fake()
+            },
+            SongTag {
+                album: "album2".to_string(),
+                album_artists: vec!["artist2".to_string(), "artist3".to_string()],
+                ..Faker.fake()
+            },
+        ];
+        let song_paths = temp_fs
+            .create_nested_random_paths(
+                Some(&music_folder_path),
+                song_tags.len() as u8,
+                3,
+                &[to_extension(&FileType::Flac)],
+            )
+            .into_iter()
+            .map(|(path, _)| path)
+            .collect_vec();
+        temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            &song_paths,
+            song_tags.clone(),
+        );
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 0);
+        assert_album_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+
+        std::fs::remove_file(music_folder_path.join(&song_paths[0])).unwrap();
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 1);
+        assert_album_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_scan_delete_old_combined_album_artists_with_delete() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let music_folder_id = music_folders[0].id;
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+
+        let song_tags = vec![
+            // deleted
+            SongTag {
+                album: "album".to_string(),
+                artists: vec!["artist1".to_string(), "artist2".to_string()],
+                album_artists: vec!["artist1".to_string()],
+                ..Faker.fake()
+            },
+            // not deleted but scanned (artist2)
+            SongTag {
+                album: "album".to_string(),
+                album_artists: vec!["artist2".to_string()],
+                ..Faker.fake()
+            },
+            // not deleted nor scanned
+            SongTag {
+                album: "album".to_string(),
+                album_artists: vec!["artist3".to_string()],
+                ..Faker.fake()
+            },
+        ];
+        let song_paths = temp_fs
+            .create_nested_random_paths(
+                Some(&music_folder_path),
+                song_tags.len() as u8,
+                3,
+                &[to_extension(&FileType::Flac)],
+            )
+            .into_iter()
+            .map(|(path, _)| path)
+            .collect_vec();
+        temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            &song_paths,
+            song_tags.clone(),
+        );
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 0);
+        assert_album_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+
+        std::fs::remove_file(music_folder_path.join(&song_paths[0])).unwrap();
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 1);
+        assert_album_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_scan_delete_old_combined_album_artists_with_update() {
+        let (db, _, _, temp_fs, music_folders, _) = setup_user_and_music_folders(0, 1, &[]).await;
+
+        let music_folder_id = music_folders[0].id;
+        let music_folder_path = PathBuf::from(&music_folders[0].path);
+
+        let song_tags = vec![
+            // deleted
+            SongTag {
+                album: "album".to_string(),
+                artists: vec!["artist1".to_string(), "artist2".to_string()],
+                album_artists: vec!["artist1".to_string()],
+                ..Faker.fake()
+            },
+            // not deleted but scanned (artist2)
+            SongTag {
+                album: "album".to_string(),
+                album_artists: vec!["artist2".to_string()],
+                ..Faker.fake()
+            },
+            // not deleted nor scanned
+            SongTag {
+                album: "album".to_string(),
+                album_artists: vec!["artist3".to_string()],
+                ..Faker.fake()
+            },
+        ];
+        let song_paths = temp_fs
+            .create_nested_random_paths(
+                Some(&music_folder_path),
+                song_tags.len() as u8,
+                3,
+                &[to_extension(&FileType::Flac)],
+            )
+            .into_iter()
+            .map(|(path, _)| path)
+            .collect_vec();
+        temp_fs.create_nested_media_files(
+            music_folder_id,
+            &music_folder_path,
+            &song_paths,
+            song_tags.clone(),
+        );
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 0);
+        assert_album_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+
+        temp_fs.create_nested_media_file(
+            Some(&music_folder_path),
+            &song_paths[0],
+            &SongTag {
+                artists: vec!["artist2".to_string()],
+                album_artists: vec!["artist2".to_string()],
+                ..song_tags[0].clone()
+            },
+        );
+
+        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            .await
+            .unwrap();
+        assert_eq!(deleted_artist_count, 1);
+        assert_album_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
     }
 }

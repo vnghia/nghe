@@ -105,51 +105,58 @@ pub async fn query_all_songs_information(
         .await
 }
 
+pub async fn assert_artists_info(
+    pool: &DatabasePool,
+    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+) {
+    assert_artist_names(
+        pool,
+        &song_fs_info
+            .values()
+            .flat_map(|song_tag| {
+                song_tag
+                    .album_artists
+                    .iter()
+                    .chain(song_tag.artists.iter())
+                    .collect_vec()
+            })
+            .unique()
+            .sorted()
+            .collect_vec(),
+    )
+    .await;
+}
+
 pub async fn assert_albums_artists_info(
     pool: &DatabasePool,
     song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
 ) {
-    assert_eq!(
-        song_fs_info
+    assert_album_artist_names(
+        pool,
+        &song_fs_info
             .values()
             .flat_map(|song_tag| song_tag.album_artists.clone())
             .unique()
             .sorted()
             .collect_vec(),
-        artists::table
-            .left_join(albums_artists::table)
-            .filter(albums_artists::album_id.is_not_null())
-            .select(artists::name)
-            .distinct()
-            .load::<String>(&mut pool.get().await.unwrap())
-            .await
-            .unwrap()
-            .into_iter()
-            .sorted()
-            .collect_vec(),
-    );
+    )
+    .await;
 }
 
 pub async fn assert_albums_info(
     pool: &DatabasePool,
     song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
 ) {
-    assert_eq!(
-        song_fs_info
+    assert_album_names(
+        pool,
+        &song_fs_info
             .values()
             .map(|song_tag| song_tag.album.clone())
             .unique()
             .sorted()
             .collect_vec(),
-        albums::table
-            .select(albums::name)
-            .load::<String>(&mut pool.get().await.unwrap())
-            .await
-            .unwrap()
-            .into_iter()
-            .sorted()
-            .collect_vec(),
-    );
+    )
+    .await;
 }
 
 pub async fn assert_songs_info(
@@ -180,4 +187,86 @@ pub async fn assert_songs_info(
         );
     }
     assert!(song_db_info.is_empty());
+}
+
+pub async fn assert_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist_names: &[T]) {
+    assert_eq!(
+        artist_names
+            .iter()
+            .map(|name| name.as_ref().to_string())
+            .unique()
+            .sorted()
+            .collect_vec(),
+        artists::table
+            .select(artists::name)
+            .load::<String>(&mut pool.get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec(),
+    );
+}
+
+pub async fn assert_song_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist_names: &[T]) {
+    assert_eq!(
+        artist_names
+            .iter()
+            .map(|name| name.as_ref().to_string())
+            .unique()
+            .sorted()
+            .collect_vec(),
+        artists::table
+            .left_join(songs_artists::table)
+            .filter(songs_artists::song_id.is_not_null())
+            .select(artists::name)
+            .distinct()
+            .load::<String>(&mut pool.get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec(),
+    );
+}
+
+pub async fn assert_album_artist_names<T: AsRef<str>>(pool: &DatabasePool, artist_names: &[T]) {
+    assert_eq!(
+        artist_names
+            .iter()
+            .map(|name| name.as_ref().to_string())
+            .unique()
+            .sorted()
+            .collect_vec(),
+        artists::table
+            .left_join(albums_artists::table)
+            .filter(albums_artists::album_id.is_not_null())
+            .select(artists::name)
+            .distinct()
+            .load::<String>(&mut pool.get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec(),
+    );
+}
+
+pub async fn assert_album_names<T: AsRef<str>>(pool: &DatabasePool, album_names: &[T]) {
+    assert_eq!(
+        album_names
+            .iter()
+            .map(|name| name.as_ref().to_string())
+            .unique()
+            .sorted()
+            .collect_vec(),
+        albums::table
+            .select(albums::name)
+            .load::<String>(&mut pool.get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec(),
+    );
 }
