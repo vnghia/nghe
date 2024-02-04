@@ -13,14 +13,14 @@ fn get_deepest_folders<P: AsRef<Path> + Sync>(root: P, max_depth: u8) -> Vec<Pat
                 .metadata()
                 .expect(&concat_string!(
                     "can not read metadata of ",
-                    entry.path().to_string_lossy()
+                    entry.path().to_str().expect("non utf-8 path encountered")
                 ))
                 .is_dir()
         })
         .collect::<Result<Vec<_>, _>>()
         .expect(&concat_string!(
             "can not traverse ",
-            root.as_ref().to_string_lossy()
+            root.as_ref().to_str().expect("non utf-8 path encountered")
         ));
 
     (0..entries.len())
@@ -48,7 +48,10 @@ pub fn build_music_folders<P: AsRef<Path> + Sync>(
             if !metadata(path)?.is_dir() {
                 Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
-                    concat_string!(path.as_ref().to_string_lossy(), " is not a directory"),
+                    concat_string!(
+                        path.as_ref().to_str().expect("non utf-8 path encountered"),
+                        " is not a directory"
+                    ),
                 ))
             } else {
                 canonicalize(path)
@@ -63,9 +66,13 @@ pub fn build_music_folders<P: AsRef<Path> + Sync>(
                 || canonicalized_top_paths[j].starts_with(&canonicalized_top_paths[i])
             {
                 std::panic::panic_any(concat_string!(
-                    &canonicalized_top_paths[i].to_string_lossy(),
+                    &canonicalized_top_paths[i]
+                        .to_str()
+                        .expect("non utf-8 path encountered"),
                     " and ",
-                    &canonicalized_top_paths[j].to_string_lossy(),
+                    &canonicalized_top_paths[j]
+                        .to_str()
+                        .expect("non utf-8 path encountered"),
                     " contain each other"
                 ))
             }
@@ -143,9 +150,17 @@ mod tests {
         assert_eq!(
             *result.err().unwrap().downcast_ref::<String>().unwrap(),
             concat_string!(
-                &parent.canonicalize().unwrap().to_string_lossy(),
+                &parent
+                    .canonicalize()
+                    .unwrap()
+                    .to_str()
+                    .expect("non utf-8 path encountered"),
                 " and ",
-                &child.canonicalize().unwrap().to_string_lossy(),
+                &child
+                    .canonicalize()
+                    .unwrap()
+                    .to_str()
+                    .expect("non utf-8 path encountered"),
                 " contain each other"
             )
         );

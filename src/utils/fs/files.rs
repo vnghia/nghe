@@ -39,7 +39,8 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
                                 entry_path
                                     .strip_prefix(&root)
                                     .expect("this path should always contains the root path")
-                                    .to_string_lossy()
+                                    .to_str()
+                                    .expect("non utf-8 path encountered")
                                     .to_string(),
                                 FileType::from_ext(
                                     entry_path
