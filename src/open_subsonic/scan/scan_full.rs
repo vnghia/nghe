@@ -338,13 +338,13 @@ mod tests {
 
         let song_tags = vec![
             SongTag {
-                album: "album".to_string(),
-                album_artists: vec!["artist1".to_string(), "artist2".to_string()],
+                album: "album".to_owned(),
+                album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
                 ..Faker.fake()
             },
             SongTag {
-                album: "album".to_string(),
-                album_artists: vec!["artist1".to_string(), "artist3".to_string()],
+                album: "album".to_owned(),
+                album_artists: vec!["artist1".to_owned(), "artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -425,11 +425,11 @@ mod tests {
 
         let song_tags = vec![
             SongTag {
-                album: "album".to_string(),
+                album: "album".to_owned(),
                 ..Faker.fake()
             },
             SongTag {
-                album: "album".to_string(),
+                album: "album".to_owned(),
                 ..Faker.fake()
             },
         ];
@@ -528,18 +528,18 @@ mod tests {
         let song_tags = vec![
             // deleted
             SongTag {
-                artists: vec!["artist1".to_string()],
-                album_artists: vec!["artist1".to_string()],
+                artists: vec!["artist1".to_owned()],
+                album_artists: vec!["artist1".to_owned()],
                 ..Faker.fake()
             },
             // not deleted but scanned (artist2)
             SongTag {
-                artists: vec!["artist2".to_string()],
+                artists: vec!["artist2".to_owned()],
                 ..Faker.fake()
             },
             // not deleted nor scanned
             SongTag {
-                artists: vec!["artist3".to_string()],
+                artists: vec!["artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -570,7 +570,7 @@ mod tests {
             Some(&music_folder_path),
             &song_paths[0],
             SongTag {
-                artists: vec!["artist2".to_string()],
+                artists: vec!["artist2".to_owned()],
                 ..Faker.fake()
             },
         );
@@ -591,14 +591,14 @@ mod tests {
 
         let song_tags = vec![
             SongTag {
-                album: "album1".to_string(),
-                artists: vec!["artist2".to_string()],
-                album_artists: vec!["artist1".to_string(), "artist2".to_string()],
+                album: "album1".to_owned(),
+                artists: vec!["artist2".to_owned()],
+                album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
                 ..Faker.fake()
             },
             SongTag {
-                album: "album2".to_string(),
-                album_artists: vec!["artist2".to_string(), "artist3".to_string()],
+                album: "album2".to_owned(),
+                album_artists: vec!["artist2".to_owned(), "artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -644,21 +644,21 @@ mod tests {
         let song_tags = vec![
             // deleted
             SongTag {
-                album: "album".to_string(),
-                artists: vec!["artist1".to_string(), "artist2".to_string()],
-                album_artists: vec!["artist1".to_string()],
+                album: "album".to_owned(),
+                artists: vec!["artist1".to_owned(), "artist2".to_owned()],
+                album_artists: vec!["artist1".to_owned()],
                 ..Faker.fake()
             },
             // not deleted but scanned (artist2)
             SongTag {
-                album: "album".to_string(),
-                album_artists: vec!["artist2".to_string()],
+                album: "album".to_owned(),
+                album_artists: vec!["artist2".to_owned()],
                 ..Faker.fake()
             },
             // not deleted nor scanned
             SongTag {
-                album: "album".to_string(),
-                album_artists: vec!["artist3".to_string()],
+                album: "album".to_owned(),
+                album_artists: vec!["artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -704,21 +704,21 @@ mod tests {
         let song_tags = vec![
             // deleted
             SongTag {
-                album: "album".to_string(),
-                artists: vec!["artist1".to_string(), "artist2".to_string()],
-                album_artists: vec!["artist1".to_string()],
+                album: "album".to_owned(),
+                artists: vec!["artist1".to_owned(), "artist2".to_owned()],
+                album_artists: vec!["artist1".to_owned()],
                 ..Faker.fake()
             },
             // not deleted but scanned (artist2)
             SongTag {
-                album: "album".to_string(),
-                album_artists: vec!["artist2".to_string()],
+                album: "album".to_owned(),
+                album_artists: vec!["artist2".to_owned()],
                 ..Faker.fake()
             },
             // not deleted nor scanned
             SongTag {
-                album: "album".to_string(),
-                album_artists: vec!["artist3".to_string()],
+                album: "album".to_owned(),
+                album_artists: vec!["artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -751,8 +751,8 @@ mod tests {
             Some(&music_folder_path),
             &song_paths[0],
             SongTag {
-                artists: vec!["artist2".to_string()],
-                album_artists: vec!["artist2".to_string()],
+                artists: vec!["artist2".to_owned()],
+                album_artists: vec!["artist2".to_owned()],
                 ..first_song_tag
             },
         );

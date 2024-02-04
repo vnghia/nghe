@@ -25,7 +25,7 @@ pub struct ServerState {
 impl ServerState {
     pub fn build_artist_state(ignored_articles: &str) -> ArtistState {
         ArtistState {
-            ignored_articles: ignored_articles.to_string(),
+            ignored_articles: ignored_articles.to_owned(),
             ignored_prefixes: ignored_articles
                 .split_ascii_whitespace()
                 .map(|v| concat_string::concat_string!(v, " "))
@@ -55,6 +55,8 @@ impl ServerState {
 mod tests {
     use super::*;
 
+    use itertools::Itertools;
+
     #[test]
     fn test_build_artists_state() {
         let ignored_articles = "The A An";
@@ -62,7 +64,10 @@ mod tests {
         assert_eq!(artists_state.ignored_articles, ignored_articles);
         assert_eq!(
             artists_state.ignored_prefixes,
-            vec!["The ".to_string(), "A ".to_string(), "An ".to_string()]
+            vec!["The ", "A ", "An "]
+                .into_iter()
+                .map(std::borrow::ToOwned::to_owned)
+                .collect_vec()
         );
     }
 }

@@ -6,7 +6,7 @@ use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 pub async fn run_pending_migrations(database_url: &str) {
-    let database_url = database_url.to_string();
+    let database_url = database_url.to_owned();
     tokio::task::spawn_blocking(move || {
         let mut async_wrapper =
             AsyncConnectionWrapper::<AsyncPgConnection>::establish(&database_url)
