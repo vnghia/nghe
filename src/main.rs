@@ -34,7 +34,7 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let config = Config::new().expect("configuration can not be parsed");
+    let config = Config::default();
     tracing::info!("configuration: {:?}", config);
 
     // state

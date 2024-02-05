@@ -3,12 +3,14 @@ mod built_info {
 }
 
 use derivative::Derivative;
+use figment::{
+    providers::{Env, Serialized},
+    util::map,
+    Figment,
+};
 use libaes::AES_128_KEY_LEN;
 use serde::Deserialize;
-use serde_with::{
-    formats::{ColonSeparator, CommaSeparator},
-    serde_as, StringWithSeparator,
-};
+use serde_with::serde_as;
 use std::{net::IpAddr, path::PathBuf};
 
 pub type EncryptionKey = [u8; AES_128_KEY_LEN];
@@ -36,9 +38,7 @@ pub struct Database {
 #[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Folder {
-    #[serde_as(as = "StringWithSeparator::<ColonSeparator, PathBuf>")]
     pub top_paths: Vec<PathBuf>,
-    #[serde_as(as = "StringWithSeparator::<CommaSeparator, u8>")]
     pub depth_levels: Vec<u8>,
 }
 
@@ -58,22 +58,31 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Result<Self, config::ConfigError> {
-        let s = config::Config::builder()
-            // server
-            .set_default("server.host", "127.0.0.1")?
-            .set_default("server.port", 3000)?
-            .set_default("folder.depth_levels", Vec::<u8>::default())?
-            .set_default(
-                "artist.ignored_articles",
-                "The An A Die Das Ein Eine Les Le La",
-            )?
-            .add_source(
-                config::Environment::with_prefix(built_info::PKG_NAME)
-                    .prefix_separator("_")
-                    .separator("__"),
+    pub fn new() -> Self {
+        Figment::new()
+            .merge(
+                Env::prefixed(&concat_string::concat_string!(built_info::PKG_NAME, "_"))
+                    .split("__"),
             )
-            .build()?;
-        s.try_deserialize()
+            .join(Serialized::default(
+                "server",
+                map!["host" => "127.0.0.1", "port" => "3000"],
+            ))
+            .join(Serialized::default(
+                "folder.depth_levels",
+                Vec::<u8>::default(),
+            ))
+            .join(Serialized::default(
+                "artist",
+                map!["ignored_articles" => "The An A Die Das Ein Eine Les Le La"],
+            ))
+            .extract()
+            .expect("can not parse initial config")
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
     }
 }
