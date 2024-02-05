@@ -23,7 +23,7 @@ pub async fn scan_full<S: AsRef<str>>(
     let mut upserted_song_count: usize = 0;
 
     for music_folder in music_folders {
-        let music_folder_path = music_folder.path.clone();
+        let music_folder_path = std::path::PathBuf::from(&music_folder.path);
         for (song_absolute_path, song_relative_path, song_file_size) in
             tokio::task::spawn_blocking(move || scan_media_files(music_folder_path)).await??
         {
