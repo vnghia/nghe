@@ -55,16 +55,16 @@ impl IntoResponse for OpenSubsonicError {
         match self {
             OpenSubsonicError::Generic { source } => error_to_json(0, source.to_string().into()),
             OpenSubsonicError::BadRequest { message } => {
-                error_to_json(10, message.unwrap_or(Cow::Borrowed(BAD_REQUEST_MESSAGE)))
+                error_to_json(10, message.unwrap_or(BAD_REQUEST_MESSAGE.into()))
             }
             OpenSubsonicError::Unauthorized { message } => {
-                error_to_json(40, message.unwrap_or(Cow::Borrowed(UNAUTHORIZED_MESSAGE)))
+                error_to_json(40, message.unwrap_or(UNAUTHORIZED_MESSAGE.into()))
             }
             OpenSubsonicError::Forbidden { message } => {
-                error_to_json(50, message.unwrap_or(Cow::Borrowed(FORBIDDEN_MESSAGE)))
+                error_to_json(50, message.unwrap_or(FORBIDDEN_MESSAGE.into()))
             }
             OpenSubsonicError::NotFound { message } => {
-                error_to_json(70, message.unwrap_or(Cow::Borrowed(NOT_FOUND_MESSAGE)))
+                error_to_json(70, message.unwrap_or(NOT_FOUND_MESSAGE.into()))
             }
         }
         .into_response()
@@ -82,7 +82,7 @@ mod tests {
         let e: OpenSubsonicError = std::io::Error::new(std::io::ErrorKind::Other, message).into();
         assert_eq!(
             to_bytes(e.into_response()).await,
-            to_bytes(error_to_json(0, Cow::Borrowed(message)).into_response()).await
+            to_bytes(error_to_json(0, message.into()).into_response()).await
         );
     }
 
@@ -92,10 +92,10 @@ mod tests {
               #[tokio::test]
               async fn [<test_ $error_type:snake _custom_message>]() {
                   let message = stringify!($error_type);
-                  let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: Some(Cow::Borrowed(message)) };
+                  let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: Some(message.into()) };
                   assert_eq!(
                     to_bytes(e.into_response()).await,
-                    to_bytes(error_to_json($error_code, Cow::Borrowed(message)).into_response()).await
+                    to_bytes(error_to_json($error_code, message.into()).into_response()).await
                   );
               }
             }
@@ -110,7 +110,7 @@ mod tests {
                   let e: OpenSubsonicError = OpenSubsonicError::$error_type { message: None };
                   assert_eq!(
                     to_bytes(e.into_response()).await,
-                    to_bytes(error_to_json($error_code, Cow::Borrowed([<$error_type:snake:upper _MESSAGE>])).into_response()).await
+                    to_bytes(error_to_json($error_code, [<$error_type:snake:upper _MESSAGE>].into()).into_response()).await
                   );
               }
             }

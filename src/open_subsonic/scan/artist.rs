@@ -18,7 +18,7 @@ pub async fn upsert_artists<S: AsRef<str>>(
             names
                 .iter()
                 .map(|name| artists::NewArtist {
-                    name: std::borrow::Cow::Borrowed(name.as_ref()),
+                    name: name.as_ref().into(),
                 })
                 .collect_vec(),
         )
@@ -75,9 +75,9 @@ fn index_char_to_string(index_char: char) -> Cow<'static, str> {
     if index_char.is_ascii_alphabetic() {
         index_char.to_ascii_uppercase().to_string().into()
     } else if index_char.is_numeric() {
-        Cow::Borrowed("#")
+        "#".into()
     } else {
-        Cow::Borrowed("*")
+        "*".into()
     }
 }
 

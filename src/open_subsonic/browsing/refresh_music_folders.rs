@@ -5,7 +5,6 @@ use crate::DatabasePool;
 use diesel::{ExpressionMethods, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use std::borrow::Cow;
 use std::path::Path;
 
 pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
@@ -20,7 +19,7 @@ pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
             build_music_folders(top_paths, depth_levels)
                 .iter()
                 .map(|path| music_folders::NewMusicFolder {
-                    path: Cow::Borrowed(path.to_str().expect("non utf-8 path encountered")),
+                    path: path.to_str().expect("non utf-8 path encountered").into(),
                 })
                 .collect_vec(),
         )
@@ -94,7 +93,7 @@ mod tests {
                     .canonicalize_paths(&[&dir_1])
                     .iter()
                     .map(|path| music_folders::NewMusicFolder {
-                        path: Cow::Borrowed(path.to_str().expect("non utf-8 path encountered")),
+                        path: path.to_str().expect("non utf-8 path encountered").into(),
                     })
                     .collect_vec(),
             )
@@ -133,7 +132,7 @@ mod tests {
                     .canonicalize_paths(&[&dir_1, &dir_3])
                     .iter()
                     .map(|path| music_folders::NewMusicFolder {
-                        path: Cow::Borrowed(path.to_str().expect("non utf-8 path encountered")),
+                        path: path.to_str().expect("non utf-8 path encountered").into(),
                     })
                     .collect_vec(),
             )

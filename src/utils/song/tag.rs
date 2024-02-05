@@ -2,7 +2,6 @@ use crate::{models::*, OSResult, OpenSubsonicError};
 
 use itertools::Itertools;
 use lofty::{FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
-use std::borrow::Cow;
 use std::io::Cursor;
 use uuid::Uuid;
 
@@ -27,31 +26,31 @@ impl SongTag {
         let tag = tagged_file
             .primary_tag_mut()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some(Cow::Borrowed("file does not have the correct tag type")),
+                message: Some("file does not have the correct tag type".into()),
             })?;
 
         let title = tag
             .take(&ItemKey::TrackTitle)
             .next()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some(Cow::Borrowed("title tag not found")),
+                message: Some("title tag not found".into()),
             })?
             .into_value()
             .into_string()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some(Cow::Borrowed("title tag is not string")),
+                message: Some("title tag is not string".into()),
             })?;
 
         let album = tag
             .take(&ItemKey::AlbumTitle)
             .next()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some(Cow::Borrowed("album tag not found")),
+                message: Some("album tag not found".into()),
             })?
             .into_value()
             .into_string()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some(Cow::Borrowed("album tag is not string")),
+                message: Some("album tag is not string".into()),
             })?;
 
         let artists = tag.take_strings(&ItemKey::TrackArtist).collect_vec();
@@ -82,10 +81,10 @@ impl SongTag {
         song_relative_path: Option<&'a S>,
     ) -> songs::NewOrUpdateSong<'a> {
         songs::NewOrUpdateSong {
-            title: std::borrow::Cow::Borrowed(&self.title),
+            title: (&self.title).into(),
             album_id,
             music_folder_id,
-            path: song_relative_path.map(|path| std::borrow::Cow::Borrowed(path.as_ref())),
+            path: song_relative_path.map(|path| path.as_ref().into()),
             file_hash: song_file_hash as i64,
             file_size: song_file_size as i64,
         }

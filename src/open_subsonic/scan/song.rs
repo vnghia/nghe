@@ -73,7 +73,7 @@ mod tests {
             setup_user_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(db.get_pool(), std::borrow::Cow::Borrowed(&song_tag.album))
+        let album_id = upsert_album(db.get_pool(), (&song_tag.album).into())
             .await
             .unwrap();
 
@@ -109,7 +109,7 @@ mod tests {
             setup_user_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(db.get_pool(), std::borrow::Cow::Borrowed(&song_tag.album))
+        let album_id = upsert_album(db.get_pool(), (&song_tag.album).into())
             .await
             .unwrap();
 
@@ -132,12 +132,9 @@ mod tests {
         .unwrap();
 
         let new_song_tag = Faker.fake::<SongTag>();
-        let new_album_id = upsert_album(
-            db.get_pool(),
-            std::borrow::Cow::Borrowed(&new_song_tag.album),
-        )
-        .await
-        .unwrap();
+        let new_album_id = upsert_album(db.get_pool(), (&new_song_tag.album).into())
+            .await
+            .unwrap();
 
         let new_song_hash: u64 = rand::random();
         let new_song_size: u64 = rand::random();

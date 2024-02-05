@@ -58,7 +58,7 @@ pub async fn scan_full<S: AsRef<str>>(
             let song_tag = SongTag::parse(&song_data, song_file_type)?;
 
             let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
-            let album_id = upsert_album(pool, std::borrow::Cow::Borrowed(&song_tag.album)).await?;
+            let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
 
             let song_id = upsert_song(
                 pool,

@@ -13,7 +13,7 @@ pub async fn refresh_permissions(
     music_folder_ids: Option<&[Uuid]>,
 ) -> OSResult<()> {
     let user_ids: Cow<[Uuid]> = match user_ids {
-        Some(user_ids) => Cow::Borrowed(user_ids),
+        Some(user_ids) => user_ids.into(),
         None => users::table
             .select(users::id)
             .load::<Uuid>(&mut pool.get().await?)
@@ -22,7 +22,7 @@ pub async fn refresh_permissions(
     };
 
     let music_folder_ids: Cow<[Uuid]> = match music_folder_ids {
-        Some(music_folder_ids) => Cow::Borrowed(music_folder_ids),
+        Some(music_folder_ids) => music_folder_ids.into(),
         None => music_folders::table
             .select(music_folders::id)
             .load::<Uuid>(&mut pool.get().await?)
