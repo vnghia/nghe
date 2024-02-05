@@ -6,13 +6,12 @@ use crate::{
 
 use ignore::{types::TypesBuilder, WalkBuilder};
 use itertools::Itertools;
-use lofty::FileType;
 use std::path::{Path, PathBuf};
 
 pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
     root: P,
-) -> OSResult<Vec<(PathBuf, String, FileType, u64)>> {
-    let (tx, rx) = crossbeam_channel::unbounded::<(PathBuf, String, FileType, u64)>();
+) -> OSResult<Vec<(PathBuf, String, u64)>> {
+    let (tx, rx) = crossbeam_channel::unbounded::<(PathBuf, String, u64)>();
 
     let mut types = TypesBuilder::new();
     for song_file_type in SONG_FILE_TYPES {
@@ -42,12 +41,6 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
                                     .to_str()
                                     .expect("non utf-8 path encountered")
                                     .to_string(),
-                                FileType::from_ext(
-                                    entry_path
-                                        .extension()
-                                        .expect("the file should have an extension"),
-                                )
-                                .expect("the extension should be covered in file type"),
                                 metadata.len(),
                             )) {
                                 tracing::info!("error {} while scanning for media files", e);
@@ -84,14 +77,14 @@ mod tests {
         let media_paths = fs
             .create_random_paths(50, 3, &to_extensions())
             .into_iter()
-            .map(|(path, _)| fs.create_file(path))
+            .map(|path| fs.create_file(path))
             .collect_vec();
 
         let scanned_results = scan_media_files(fs.get_root_path()).unwrap();
         let scanned_lens = scanned_results
             .iter()
             .cloned()
-            .map(|result| result.3)
+            .map(|result| result.2)
             .collect_vec();
         let scanned_paths = scanned_results
             .iter()
@@ -120,7 +113,7 @@ mod tests {
         let media_paths = fs
             .create_random_paths(50, 3, &to_extensions())
             .into_iter()
-            .map(|(path, _)| {
+            .map(|path| {
                 fs.create_file(path)
                     .strip_prefix(fs.get_root_path())
                     .unwrap()
@@ -154,8 +147,9 @@ mod tests {
                 &[supported_extensions.as_slice(), &["txt", "rs"]].concat(),
             )
             .into_iter()
-            .filter_map(|(path, ext)| {
+            .filter_map(|path| {
                 let path = fs.create_file(path);
+                let ext = lofty::FileType::from_path(&path);
                 if let Some(ext) = ext {
                     if SONG_FILE_TYPES.contains(&ext) {
                         Some(path)
@@ -187,7 +181,7 @@ mod tests {
         let media_paths = fs
             .create_random_paths(50, 3, &to_extensions())
             .into_iter()
-            .filter_map(|(path, _)| {
+            .filter_map(|path| {
                 if rand::random::<bool>() {
                     Some(fs.create_file(&path))
                 } else {

@@ -1,8 +1,10 @@
 use crate::{models::*, OSResult, OpenSubsonicError};
 
+use concat_string::concat_string;
 use itertools::Itertools;
 use lofty::{FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
 use std::io::Cursor;
+use std::path::Path;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -17,7 +19,20 @@ pub struct SongTag {
 }
 
 impl SongTag {
-    pub fn parse<B: AsRef<[u8]>>(data: B, file_type: FileType) -> OSResult<SongTag> {
+    pub fn parse<B: AsRef<[u8]>, P: AsRef<Path>>(data: B, song_path: P) -> OSResult<SongTag> {
+        let song_path_str = song_path
+            .as_ref()
+            .to_str()
+            .expect("non utf-8 path encountered");
+
+        let file_type =
+            FileType::from_path(song_path.as_ref()).ok_or(OpenSubsonicError::BadRequest {
+                message: Some(
+                    concat_string!(song_path_str, " does not have a valid supported extension")
+                        .into(),
+                ),
+            })?;
+
         let mut tagged_file = Probe::new(Cursor::new(data))
             .options(ParseOptions::new().parsing_mode(ParsingMode::Strict))
             .set_file_type(file_type)
@@ -26,31 +41,33 @@ impl SongTag {
         let tag = tagged_file
             .primary_tag_mut()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some("file does not have the correct tag type".into()),
+                message: Some(
+                    concat_string!(song_path_str, " does not have the correct tag type").into(),
+                ),
             })?;
 
         let title = tag
             .take(&ItemKey::TrackTitle)
             .next()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some("title tag not found".into()),
+                message: Some(concat_string!(song_path_str, " title tag not found").into()),
             })?
             .into_value()
             .into_string()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some("title tag is not string".into()),
+                message: Some(concat_string!(song_path_str, " title tag is not string").into()),
             })?;
 
         let album = tag
             .take(&ItemKey::AlbumTitle)
             .next()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some("album tag not found".into()),
+                message: Some(concat_string!(song_path_str, " album tag not found").into()),
             })?
             .into_value()
             .into_string()
             .ok_or(OpenSubsonicError::NotFound {
-                message: Some("album tag is not string".into()),
+                message: Some(concat_string!(song_path_str, " album tag is not string").into()),
             })?;
 
         let artists = tag.take_strings(&ItemKey::TrackArtist).collect_vec();
@@ -93,21 +110,21 @@ impl SongTag {
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
-
     use super::*;
     use crate::utils::{
         song::file_type::{to_extension, SONG_FILE_TYPES},
         test::{asset::get_media_asset_path, fs::TemporaryFs},
     };
 
+    use fake::{Fake, Faker};
     use std::fs::read;
 
     #[test]
     fn test_parse_media_file() {
         for file_type in SONG_FILE_TYPES {
-            let data = read(get_media_asset_path(&file_type)).unwrap();
-            let tag = SongTag::parse(data, file_type).unwrap();
+            let path = get_media_asset_path(&file_type);
+            let data = read(&path).unwrap();
+            let tag = SongTag::parse(data, &path).unwrap();
             assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
             assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
             assert_eq!(
@@ -128,7 +145,7 @@ mod tests {
     #[test]
     fn test_parse_media_file_default_value() {
         let fs = TemporaryFs::new();
-        let (path, file_type) = fs
+        let path = fs
             .create_random_paths(1, 1, &[to_extension(&FileType::Flac)])
             .remove(0);
         fs.create_media_file(
@@ -138,7 +155,7 @@ mod tests {
                 ..Faker.fake()
             },
         );
-        let new_song_tag = SongTag::parse(read(path).unwrap(), file_type.unwrap()).unwrap();
+        let new_song_tag = SongTag::parse(read(&path).unwrap(), &path).unwrap();
 
         assert_eq!(
             new_song_tag.album_artists.iter().sorted().collect_vec(),

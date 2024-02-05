@@ -177,20 +177,17 @@ impl TemporaryFs {
         n_path: u8,
         max_depth: u8,
         extensions: &[OS],
-    ) -> Vec<(PathBuf, Option<FileType>)> {
+    ) -> Vec<PathBuf> {
         (0..n_path)
             .map(|_| {
                 let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
-                (
-                    self.get_absolute_path(
-                        root_path,
-                        PathBuf::from(
-                            fake::vec![String; 1..(max_depth as usize + 1)]
-                                .join(std::path::MAIN_SEPARATOR_STR),
-                        )
-                        .with_extension(ext),
-                    ),
-                    FileType::from_ext(ext),
+                self.get_absolute_path(
+                    root_path,
+                    PathBuf::from(
+                        fake::vec![String; 1..(max_depth as usize + 1)]
+                            .join(std::path::MAIN_SEPARATOR_STR),
+                    )
+                    .with_extension(ext),
                 )
             })
             .collect_vec()
@@ -201,7 +198,7 @@ impl TemporaryFs {
         n_path: u8,
         max_depth: u8,
         extensions: &[OS],
-    ) -> Vec<(PathBuf, Option<FileType>)> {
+    ) -> Vec<PathBuf> {
         self.create_nested_random_paths(Self::NONE_PATH, n_path, max_depth, extensions)
     }
 
@@ -245,11 +242,7 @@ impl TemporaryFs {
         self.create_nested_media_files(
             music_folder_id,
             music_folder_path,
-            &self
-                .create_nested_random_paths(Some(music_folder_path), n_song, 3, extensions)
-                .into_iter()
-                .map(|(path, _)| path)
-                .collect_vec(),
+            &self.create_nested_random_paths(Some(music_folder_path), n_song, 3, extensions),
             song_tags,
         )
     }
@@ -292,7 +285,7 @@ fn test_roundtrip_media_file() {
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
-        let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), file_type).unwrap();
+        let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), &path).unwrap();
         assert_eq!(
             song_tag, read_song_tag,
             "{:?} tag does not match",
