@@ -11,7 +11,7 @@ pub async fn setup_user_and_music_folders(
 ) -> (
     TemporaryDatabase,
     EncryptionKey,
-    Vec<(users::User, String, EncryptionKey)>,
+    Vec<(users::User, Vec<u8>, EncryptionKey)>,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
     Vec<user_music_folder_permissions::UserMusicFolderPermission>,

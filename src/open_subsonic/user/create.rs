@@ -5,17 +5,23 @@ use crate::open_subsonic::browsing::refresh_permissions;
 use crate::{DatabasePool, OSResult, ServerState};
 
 use axum::extract::State;
+use derivative::Derivative;
 use diesel::SelectableHelper;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 
+#[serde_as]
 #[add_validate(admin = true)]
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Derivative, Default, Deserialize, PartialEq, Eq)]
+#[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateUserParams {
     pub username: String,
-    pub password: String,
+    #[derivative(Debug = "ignore")]
+    #[serde_as(as = "serde_with::Bytes")]
+    pub password: Vec<u8>,
     pub email: String,
     pub admin_role: bool,
     pub download_role: bool,

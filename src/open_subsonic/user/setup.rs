@@ -8,13 +8,16 @@ use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::wrap_subsonic_response;
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 
+#[serde_as]
 #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct SetupParams {
     pub username: String,
-    pub password: String,
+    #[serde_as(as = "serde_with::Bytes")]
+    pub password: Vec<u8>,
     pub email: String,
 }
 

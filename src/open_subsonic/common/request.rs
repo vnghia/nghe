@@ -18,7 +18,8 @@ pub struct CommonParams {
     pub username: String,
     #[derivative(Debug = "ignore")]
     #[serde(rename = "s")]
-    pub salt: String,
+    #[serde_as(as = "serde_with::Bytes")]
+    pub salt: Vec<u8>,
     #[derivative(Debug = "ignore")]
     #[serde(rename = "t")]
     #[serde_as(as = "serde_with::hex::Hex")]
@@ -144,7 +145,7 @@ mod tests {
     async fn test_validate_wrong_password() {
         let (db, key, _) = create_db_key_users(0, 0).await;
         let (username, _, client_salt, client_token) = create_user_token();
-        let wrong_password: String = Password(16..32).fake();
+        let wrong_password = Password(16..32).fake::<String>().into_bytes();
         let _ = create_user(
             db.get_pool(),
             &key,
