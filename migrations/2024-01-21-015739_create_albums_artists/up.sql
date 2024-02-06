@@ -10,3 +10,9 @@ create table
     constraint albums_artists_artist_id_fkey foreign key (artist_id) references artists (id) on delete cascade,
     constraint albums_artists_song_id_fkey foreign key (song_id) references songs (id) on delete cascade
   );
+
+create index albums_artists_album_id_idx on albums_artists (album_id);
+
+create index albums_artists_artist_id_idx on albums_artists (artist_id);
+
+create index albums_artists_song_id_idx on albums_artists (song_id);
