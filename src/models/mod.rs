@@ -1,6 +1,7 @@
 pub mod albums;
 pub mod albums_artists;
 pub mod artists;
+pub mod functions;
 pub mod music_folders;
 pub mod songs;
 pub mod songs_artists;

@@ -274,3 +274,24 @@ pub async fn assert_album_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S])
             .collect_vec(),
     );
 }
+
+pub async fn song_paths_to_ids(
+    pool: &DatabasePool,
+    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+) -> Vec<Uuid> {
+    stream::iter(song_fs_info.keys())
+        .then(|(music_folder_id, path)| async move {
+            songs::table
+                .select(songs::id)
+                .filter(songs::music_folder_id.eq(music_folder_id))
+                .filter(songs::path.eq(path.to_str().unwrap()))
+                .first::<Uuid>(&mut pool.get().await.unwrap())
+                .await
+                .unwrap()
+        })
+        .collect::<Vec<_>>()
+        .await
+        .into_iter()
+        .sorted()
+        .collect_vec()
+}
