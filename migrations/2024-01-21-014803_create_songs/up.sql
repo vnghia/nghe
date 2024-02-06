@@ -18,3 +18,7 @@ create table
 
 select
   add_updated_at_leave_scanned_at ('songs');
+
+create index songs_album_id_idx on songs (album_id);
+
+create index songs_music_folder_id_idx on songs (music_folder_id);
