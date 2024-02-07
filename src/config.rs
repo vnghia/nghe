@@ -39,7 +39,7 @@ pub struct Database {
 #[allow(unused)]
 pub struct Folder {
     pub top_paths: Vec<PathBuf>,
-    pub depth_levels: Vec<u8>,
+    pub depth_levels: Vec<usize>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -70,7 +70,7 @@ impl Config {
             ))
             .join(Serialized::default(
                 "folder.depth_levels",
-                Vec::<u8>::default(),
+                Vec::<usize>::default(),
             ))
             .join(Serialized::default(
                 "artist",

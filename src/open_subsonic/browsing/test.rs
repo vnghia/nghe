@@ -5,8 +5,8 @@ use crate::models::*;
 use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs, user::create_db_key_users};
 
 pub async fn setup_user_and_music_folders(
-    n_user: u8,
-    n_folder: u8,
+    n_user: usize,
+    n_folder: usize,
     allows: &[bool],
 ) -> (
     TemporaryDatabase,

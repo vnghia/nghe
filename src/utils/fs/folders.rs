@@ -4,9 +4,9 @@ use std::fs::*;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-fn get_deepest_folders<P: AsRef<Path> + Sync>(root: P, max_depth: u8) -> Vec<PathBuf> {
+fn get_deepest_folders<P: AsRef<Path> + Sync>(root: P, max_depth: usize) -> Vec<PathBuf> {
     let entries = WalkDir::new(&root)
-        .max_depth(max_depth.into())
+        .max_depth(max_depth)
         .into_iter()
         .filter_entry(|entry| {
             entry
@@ -40,7 +40,7 @@ fn get_deepest_folders<P: AsRef<Path> + Sync>(root: P, max_depth: u8) -> Vec<Pat
 
 pub fn build_music_folders<P: AsRef<Path> + Sync>(
     top_paths: &[P],
-    depth_levels: &[u8],
+    depth_levels: &[usize],
 ) -> Vec<PathBuf> {
     let canonicalized_top_paths: Vec<PathBuf> = top_paths
         .iter()
@@ -87,8 +87,8 @@ pub fn build_music_folders<P: AsRef<Path> + Sync>(
 
     canonicalized_top_paths
         .iter()
-        .zip(depth_levels.iter())
-        .flat_map(|(root, depth)| get_deepest_folders(root, *depth))
+        .zip(depth_levels.iter().copied())
+        .flat_map(|(root, depth)| get_deepest_folders(root, depth))
         .collect_vec()
 }
 
@@ -210,7 +210,7 @@ mod tests {
             "test1/test1.3/test1.3.1/test1.3.1.1/",
             "test2/",
         ]);
-        let results = get_deepest_folders(temp_fs.get_root_path(), u8::MAX);
+        let results = get_deepest_folders(temp_fs.get_root_path(), usize::MAX);
 
         assert_eq!(
             inputs.into_iter().sorted().collect_vec(),

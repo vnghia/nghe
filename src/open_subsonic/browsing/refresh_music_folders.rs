@@ -10,7 +10,7 @@ use std::path::Path;
 pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
     pool: &DatabasePool,
     top_paths: &[P],
-    depth_levels: &[u8],
+    depth_levels: &[usize],
 ) -> (Vec<music_folders::MusicFolder>, usize) {
     let scan_start_time = time::OffsetDateTime::now_utc();
 

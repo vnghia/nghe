@@ -16,8 +16,8 @@ pub fn create_user_token() -> (String, Vec<u8>, Vec<u8>, MD5Token) {
 }
 
 pub async fn create_db_key_users(
-    n_user: u8,
-    n_admin: u8,
+    n_user: usize,
+    n_admin: usize,
 ) -> (
     TemporaryDatabase,
     EncryptionKey,

@@ -174,8 +174,8 @@ impl TemporaryFs {
     pub fn create_nested_random_paths<PR: AsRef<Path>, OS: AsRef<OsStr>>(
         &self,
         root_path: Option<&PR>,
-        n_path: u8,
-        max_depth: u8,
+        n_path: usize,
+        max_depth: usize,
         extensions: &[OS],
     ) -> Vec<PathBuf> {
         (0..n_path)
@@ -184,8 +184,7 @@ impl TemporaryFs {
                 self.get_absolute_path(
                     root_path,
                     PathBuf::from(
-                        fake::vec![String; 1..(max_depth as usize + 1)]
-                            .join(std::path::MAIN_SEPARATOR_STR),
+                        fake::vec![String; 1..(max_depth + 1)].join(std::path::MAIN_SEPARATOR_STR),
                     )
                     .with_extension(ext),
                 )
@@ -195,8 +194,8 @@ impl TemporaryFs {
 
     pub fn create_random_paths<OS: AsRef<OsStr>>(
         &self,
-        n_path: u8,
-        max_depth: u8,
+        n_path: usize,
+        max_depth: usize,
         extensions: &[OS],
     ) -> Vec<PathBuf> {
         self.create_nested_random_paths(Self::NONE_PATH, n_path, max_depth, extensions)
@@ -238,7 +237,7 @@ impl TemporaryFs {
         song_tags: Vec<SongTag>,
         extensions: &[OS],
     ) -> HashMap<(Uuid, PathBuf), SongTag> {
-        let n_song = song_tags.len() as u8;
+        let n_song = song_tags.len();
         self.create_nested_media_files(
             music_folder_id,
             music_folder_path,
@@ -265,7 +264,7 @@ impl TemporaryFs {
     pub async fn create_music_folders(
         &self,
         pool: &DatabasePool,
-        n_folder: u8,
+        n_folder: usize,
     ) -> Vec<music_folders::MusicFolder> {
         let music_folder_paths = (0..n_folder)
             .map(|_| self.create_dir(Faker.fake::<String>()))

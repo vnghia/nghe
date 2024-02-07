@@ -435,7 +435,7 @@ mod tests {
         ];
         let song_paths = temp_fs.create_nested_random_paths(
             Some(&music_folder_path),
-            song_tags.len() as u8,
+            song_tags.len(),
             3,
             &[to_extension(&FileType::Flac)],
         );
@@ -541,7 +541,7 @@ mod tests {
         ];
         let song_paths = temp_fs.create_nested_random_paths(
             Some(&music_folder_path),
-            song_tags.len() as u8,
+            song_tags.len(),
             3,
             &[to_extension(&FileType::Flac)],
         );
@@ -596,7 +596,7 @@ mod tests {
         ];
         let song_paths = temp_fs.create_nested_random_paths(
             Some(&music_folder_path),
-            song_tags.len() as u8,
+            song_tags.len(),
             3,
             &[to_extension(&FileType::Flac)],
         );
@@ -652,7 +652,7 @@ mod tests {
         ];
         let song_paths = temp_fs.create_nested_random_paths(
             Some(&music_folder_path),
-            song_tags.len() as u8,
+            song_tags.len(),
             3,
             &[to_extension(&FileType::Flac)],
         );
@@ -710,7 +710,7 @@ mod tests {
 
         let song_paths = temp_fs.create_nested_random_paths(
             Some(&music_folder_path),
-            song_tags.len() as u8,
+            song_tags.len(),
             3,
             &[to_extension(&FileType::Flac)],
         );
