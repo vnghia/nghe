@@ -90,7 +90,7 @@ impl SongTag {
     }
 
     pub fn to_new_or_update_song<'a, S: AsRef<str> + 'a>(
-        self: &'a SongTag,
+        &'a self,
         music_folder_id: Uuid,
         album_id: Uuid,
         song_file_hash: u64,
