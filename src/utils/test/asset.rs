@@ -10,3 +10,11 @@ pub fn get_media_asset_path(file_type: &FileType) -> PathBuf {
         .join("test")
         .join(concat_string!("sample.", to_extension(file_type)))
 }
+
+pub const fn get_media_asset_duration(file_type: &FileType) -> i32 {
+    match file_type {
+        FileType::Flac => 15,
+        FileType::Mpeg => 4,
+        _ => unimplemented!(),
+    }
+}

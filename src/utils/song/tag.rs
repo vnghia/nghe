@@ -2,7 +2,7 @@ use crate::{models::*, OSResult, OpenSubsonicError};
 
 use concat_string::concat_string;
 use itertools::Itertools;
-use lofty::{FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
+use lofty::{AudioFile, FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
 use std::io::Cursor;
 use std::path::Path;
 use uuid::Uuid;
@@ -11,6 +11,7 @@ use uuid::Uuid;
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct SongTag {
     pub title: String,
+    pub duration: i32,
     pub album: String,
     #[cfg_attr(test, dummy(faker = "(fake::Faker, 2..4)"))]
     pub artists: Vec<String>,
@@ -37,6 +38,10 @@ impl SongTag {
             .options(ParseOptions::new().parsing_mode(ParsingMode::Strict))
             .set_file_type(file_type)
             .read()?;
+
+        let properties = tagged_file.properties();
+
+        let duration = properties.duration().as_secs_f32().ceil() as i32;
 
         let tag = tagged_file
             .primary_tag_mut()
@@ -83,6 +88,7 @@ impl SongTag {
 
         Ok(SongTag {
             title,
+            duration,
             album,
             artists,
             album_artists,
@@ -99,6 +105,7 @@ impl SongTag {
     ) -> songs::NewOrUpdateSong<'a> {
         songs::NewOrUpdateSong {
             title: (&self.title).into(),
+            duration: self.duration,
             album_id,
             music_folder_id,
             path: song_relative_path.map(|path| path.as_ref().into()),
@@ -113,7 +120,10 @@ mod tests {
     use super::*;
     use crate::utils::{
         song::file_type::{to_extension, SONG_FILE_TYPES},
-        test::{asset::get_media_asset_path, fs::TemporaryFs},
+        test::{
+            asset::{get_media_asset_duration, get_media_asset_path},
+            fs::TemporaryFs,
+        },
     };
 
     use fake::{Fake, Faker};
@@ -139,6 +149,7 @@ mod tests {
                 "{:?} album artists does not match",
                 file_type
             );
+            assert_eq!(tag.duration, get_media_asset_duration(&file_type))
         }
     }
 

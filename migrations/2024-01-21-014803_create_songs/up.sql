@@ -3,6 +3,7 @@ create table
   songs (
     id uuid not null default gen_random_uuid () constraint songs_pkey primary key,
     title text not null,
+    duration integer not null,
     album_id uuid not null,
     music_folder_id uuid not null,
     path text not null,
