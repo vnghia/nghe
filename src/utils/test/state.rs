@@ -1,16 +1,16 @@
+use super::db::TemporaryDatabase;
 use crate::{
-    config::EncryptionKey,
     state::{ArtistState, DatabaseState},
-    DatabasePool, ServerState,
+    ServerState,
 };
 
 use axum::extract::State;
 
-pub fn setup_state(pool: &DatabasePool, key: EncryptionKey) -> State<ServerState> {
+pub fn setup_state(db: &TemporaryDatabase) -> State<ServerState> {
     State(ServerState {
         database: DatabaseState {
-            pool: pool.clone(),
-            key,
+            pool: db.get_pool().to_owned(),
+            key: db.get_key().to_owned(),
         },
         artist: ArtistState::default(),
     })

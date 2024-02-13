@@ -65,8 +65,7 @@ mod tests {
 
         for user_token in user_tokens {
             let form = to_validated_form(
-                db.get_pool(),
-                db.get_key(),
+                &db,
                 GetMusicFoldersParams {
                     common: CommonParams {
                         username: user_token.0.username,
@@ -77,7 +76,7 @@ mod tests {
             )
             .await;
 
-            let state = setup_state(db.get_pool(), db.get_key().to_owned());
+            let state = setup_state(&db);
             let results = get_music_folders_handler(state, form)
                 .await
                 .unwrap()
@@ -100,8 +99,7 @@ mod tests {
 
         for (i, user_token) in user_tokens.into_iter().enumerate() {
             let form = to_validated_form(
-                db.get_pool(),
-                db.get_key(),
+                &db,
                 GetMusicFoldersParams {
                     common: CommonParams {
                         username: user_token.0.username,
@@ -112,7 +110,7 @@ mod tests {
             )
             .await;
 
-            let state = setup_state(db.get_pool(), db.get_key().to_owned());
+            let state = setup_state(&db);
             let results = get_music_folders_handler(state, form)
                 .await
                 .unwrap()

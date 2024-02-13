@@ -62,18 +62,16 @@ mod tests {
 
     use super::*;
     use crate::utils::test::{
-        db::TemporaryDatabase,
         state::setup_state,
         user::{create_user_token, create_users},
     };
 
     #[tokio::test]
     async fn test_setup_no_user() {
-        let db = TemporaryDatabase::new_from_env().await;
-        let key = rand::random();
+        let (db, _) = create_users(0, 0).await;
         let (username, password, _, _) = create_user_token();
 
-        let state = setup_state(db.get_pool(), key);
+        let state = setup_state(&db);
         let form = Form(SetupParams {
             username,
             password,
@@ -91,7 +89,7 @@ mod tests {
         let (db, _) = create_users(1, 1).await;
         let (username, password, _, _) = create_user_token();
 
-        let state = setup_state(db.get_pool(), db.get_key().to_owned());
+        let state = setup_state(&db);
         let form = Form(SetupParams {
             username,
             password,
