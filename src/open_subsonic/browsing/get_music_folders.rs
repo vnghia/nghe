@@ -49,7 +49,6 @@ pub async fn get_music_folders_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::open_subsonic::common::request::CommonParams;
     use crate::utils::test::http::to_validated_form;
     use crate::utils::test::setup::setup_users_and_music_folders;
     use crate::utils::test::state::setup_state;
@@ -58,20 +57,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_allow_all() {
-        let (db, user_tokens, _temp_fs, music_folders) =
+        let (db, users, _temp_fs, music_folders) =
             setup_users_and_music_folders(2, 2, &[true, true, true, true]).await;
 
         let sorted_music_folders = music_folders.into_iter().sorted().collect_vec();
 
-        for user_token in user_tokens {
+        for user in users {
             let form = to_validated_form(
                 &db,
                 GetMusicFoldersParams {
-                    common: CommonParams {
-                        username: user_token.0.username,
-                        salt: user_token.1,
-                        token: user_token.2,
-                    },
+                    common: user.to_common_params(db.get_key()),
                 },
             )
             .await;
@@ -94,18 +89,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_deny_some() {
-        let (db, user_tokens, _temp_fs, music_folders) =
+        let (db, users, _temp_fs, music_folders) =
             setup_users_and_music_folders(2, 2, &[true, false, true, true]).await;
 
-        for (i, user_token) in user_tokens.into_iter().enumerate() {
+        for (i, user) in users.into_iter().enumerate() {
             let form = to_validated_form(
                 &db,
                 GetMusicFoldersParams {
-                    common: CommonParams {
-                        username: user_token.0.username,
-                        salt: user_token.1,
-                        token: user_token.2,
-                    },
+                    common: user.to_common_params(db.get_key()),
                 },
             )
             .await;

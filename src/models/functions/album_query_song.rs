@@ -171,7 +171,7 @@ mod tests {
         let n_song: usize = n_songs.iter().sum();
         let album_name = "album".to_owned();
 
-        let (db, user_tokens, _temp_fs, music_folders, song_fs_info, _) = setup_users_and_songs(
+        let (db, users, _temp_fs, music_folders, song_fs_info, _) = setup_users_and_songs(
             1,
             2,
             &[true, false],
@@ -198,14 +198,14 @@ mod tests {
         )
         .await;
 
-        let song_ids = diesel::select(album_query_song_by_user(&user_tokens[0].0.id, &album_id))
+        let song_ids = diesel::select(album_query_song_by_user(&users[0].id, &album_id))
             .get_results::<Uuid>(&mut db.get_pool().get().await.unwrap())
             .await
             .unwrap()
             .into_iter()
             .sorted()
             .collect_vec();
-        let song_count = diesel::select(album_count_song_by_user(&user_tokens[0].0.id, &album_id))
+        let song_count = diesel::select(album_count_song_by_user(&users[0].id, &album_id))
             .first::<i64>(&mut db.get_pool().get().await.unwrap())
             .await
             .unwrap();

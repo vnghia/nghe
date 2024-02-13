@@ -87,9 +87,8 @@ where
 mod tests {
     use super::*;
     use crate::{
-        open_subsonic::user::create::create_user,
-        open_subsonic::user::create::CreateUserParams,
-        utils::test::user::{create_user_token, create_users},
+        open_subsonic::user::create::{create_user, CreateUserParams},
+        utils::test::user::{create_password_token, create_username_password, create_users},
     };
 
     use fake::{faker::internet::en::*, Fake};
@@ -106,15 +105,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_success() {
-        let (db, mut user_tokens) = create_users(1, 0).await;
-
-        let user_token = user_tokens.remove(0);
+        let (db, users) = create_users(1, 0).await;
         assert!(TestParams {
-            common: CommonParams {
-                username: user_token.0.username,
-                salt: user_token.1,
-                token: user_token.2,
-            }
+            common: users[0].to_common_params(db.get_key())
         }
         .validate(db.get_pool(), db.get_key())
         .await
@@ -123,16 +116,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_username() {
-        let (db, mut user_tokens) = create_users(1, 0).await;
+        let (db, users) = create_users(1, 0).await;
         let wrong_username: String = Username().fake();
-
-        let user_token = user_tokens.remove(0);
         assert!(matches!(
             TestParams {
                 common: CommonParams {
                     username: wrong_username,
-                    salt: user_token.1,
-                    token: user_token.2,
+                    ..users[0].to_common_params(db.get_key())
                 }
             }
             .validate(db.get_pool(), db.get_key())
@@ -144,14 +134,15 @@ mod tests {
     #[tokio::test]
     async fn test_validate_wrong_password() {
         let (db, _) = create_users(0, 0).await;
-        let (username, _, client_salt, client_token) = create_user_token();
+        let (username, password) = create_username_password();
         let wrong_password = Password(16..32).fake::<String>().into_bytes();
+        let (client_salt, client_token) = create_password_token(&wrong_password);
         let _ = create_user(
             db.get_pool(),
             db.get_key(),
             CreateUserParams {
                 username: username.clone(),
-                password: wrong_password,
+                password,
                 ..Default::default()
             },
         )
@@ -161,8 +152,8 @@ mod tests {
             TestParams {
                 common: CommonParams {
                     username,
-                    token: client_token,
-                    salt: client_salt
+                    salt: client_salt,
+                    token: client_token
                 }
             }
             .validate(db.get_pool(), db.get_key())
@@ -173,15 +164,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_admin_success() {
-        let (db, mut user_tokens) = create_users(1, 1).await;
-
-        let user_token = user_tokens.remove(0);
+        let (db, users) = create_users(1, 1).await;
         assert!(AdminTestParams {
-            common: CommonParams {
-                username: user_token.0.username,
-                salt: user_token.1,
-                token: user_token.2,
-            }
+            common: users[0].to_common_params(db.get_key())
         }
         .validate(db.get_pool(), db.get_key())
         .await
@@ -190,16 +175,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_no_admin() {
-        let (db, mut user_tokens) = create_users(1, 0).await;
-
-        let user_token = user_tokens.remove(0);
+        let (db, users) = create_users(1, 0).await;
         assert!(matches!(
             AdminTestParams {
-                common: CommonParams {
-                    username: user_token.0.username,
-                    salt: user_token.1,
-                    token: user_token.2,
-                }
+                common: users[0].to_common_params(db.get_key())
             }
             .validate(db.get_pool(), db.get_key())
             .await,

@@ -4,7 +4,6 @@ use super::user::create_users;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
 use crate::open_subsonic::scan::scan_full;
-use crate::open_subsonic::user::password::MD5Token;
 use crate::utils::song::file_type::to_extensions;
 use crate::utils::song::tag::SongTag;
 
@@ -20,19 +19,19 @@ pub async fn setup_users_and_music_folders_no_refresh(
     allows: &[bool],
 ) -> (
     TemporaryDatabase,
-    Vec<(users::User, Vec<u8>, MD5Token)>,
+    Vec<users::User>,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
     Vec<user_music_folder_permissions::UserMusicFolderPermission>,
 ) {
-    let (db, user_tokens) = create_users(n_user, 0).await;
+    let (db, users) = create_users(n_user, 0).await;
     let temp_fs = TemporaryFs::new();
     let upserted_folders = temp_fs.create_music_folders(db.get_pool(), n_folder).await;
-    let user_music_folder_permissions = (user_tokens.iter().cartesian_product(&upserted_folders))
+    let user_music_folder_permissions = (users.iter().cartesian_product(&upserted_folders))
         .zip(allows.iter())
-        .map(|((user_token, upserted_folder), allow)| {
+        .map(|((user, upserted_folder), allow)| {
             user_music_folder_permissions::UserMusicFolderPermission {
-                user_id: user_token.0.id,
+                user_id: user.id,
                 music_folder_id: upserted_folder.id,
                 allow: *allow,
             }
@@ -41,7 +40,7 @@ pub async fn setup_users_and_music_folders_no_refresh(
 
     (
         db,
-        user_tokens,
+        users,
         temp_fs,
         upserted_folders,
         user_music_folder_permissions,
@@ -54,11 +53,11 @@ pub async fn setup_users_and_music_folders(
     allows: &[bool],
 ) -> (
     TemporaryDatabase,
-    Vec<(users::User, Vec<u8>, MD5Token)>,
+    Vec<users::User>,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
 ) {
-    let (db, user_tokens, temp_fs, music_folders, user_music_folder_permissions) =
+    let (db, users, temp_fs, music_folders, user_music_folder_permissions) =
         setup_users_and_music_folders_no_refresh(n_user, n_folder, allows).await;
 
     diesel::insert_into(user_music_folder_permissions::table)
@@ -71,7 +70,7 @@ pub async fn setup_users_and_music_folders(
         .await
         .unwrap();
 
-    (db, user_tokens, temp_fs, music_folders)
+    (db, users, temp_fs, music_folders)
 }
 
 pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
@@ -82,14 +81,14 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
     song_tags: S,
 ) -> (
     TemporaryDatabase,
-    Vec<(users::User, Vec<u8>, MD5Token)>,
+    Vec<users::User>,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
     HashMap<(Uuid, PathBuf), SongTag>,
     (usize, usize, usize, usize),
 ) {
     assert_eq!(n_songs.len(), n_folder);
-    let (db, user_tokens, temp_fs, music_folders) =
+    let (db, users, temp_fs, music_folders) =
         setup_users_and_music_folders(n_user, n_folder, allows).await;
 
     let n_song_total: usize = n_songs.iter().sum();
@@ -127,7 +126,7 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
 
     (
         db,
-        user_tokens,
+        users,
         temp_fs,
         music_folders,
         song_fs_info,

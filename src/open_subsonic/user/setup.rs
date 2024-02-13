@@ -63,13 +63,13 @@ mod tests {
     use super::*;
     use crate::utils::test::{
         state::setup_state,
-        user::{create_user_token, create_users},
+        user::{create_username_password, create_users},
     };
 
     #[tokio::test]
     async fn test_setup_no_user() {
         let (db, _) = create_users(0, 0).await;
-        let (username, password, _, _) = create_user_token();
+        let (username, password) = create_username_password();
 
         let state = setup_state(&db);
         let form = Form(SetupParams {
@@ -87,7 +87,7 @@ mod tests {
     #[tokio::test]
     async fn test_setup_with_user() {
         let (db, _) = create_users(1, 1).await;
-        let (username, password, _, _) = create_user_token();
+        let (username, password) = create_username_password();
 
         let state = setup_state(&db);
         let form = Form(SetupParams {

@@ -1,31 +1,34 @@
 use super::db::TemporaryDatabase;
+use crate::config::EncryptionKey;
 use crate::models::*;
+use crate::open_subsonic::common::request::CommonParams;
 use crate::open_subsonic::user::create::{create_user, CreateUserParams};
-use crate::open_subsonic::user::password::{to_password_token, MD5Token};
+use crate::open_subsonic::user::password::{decrypt_password, to_password_token, MD5Token};
 
 use fake::{faker::internet::en::*, Fake};
 use futures::stream::{self, StreamExt};
 
-pub fn create_user_token() -> (String, Vec<u8>, Vec<u8>, MD5Token) {
+pub fn create_username_password() -> (String, Vec<u8>) {
     let username: String = Username().fake();
     let password = Password(16..32).fake::<String>().into_bytes();
-    let client_salt = Password(8..16).fake::<String>().into_bytes();
-    let client_token = to_password_token(&password, &client_salt);
-    (username, password, client_salt, client_token)
+    (username, password)
 }
 
-pub async fn create_users(
-    n_user: usize,
-    n_admin: usize,
-) -> (TemporaryDatabase, Vec<(users::User, Vec<u8>, MD5Token)>) {
+pub fn create_password_token(password: &[u8]) -> (Vec<u8>, MD5Token) {
+    let client_salt = Password(8..16).fake::<String>().into_bytes();
+    let client_token = to_password_token(password, &client_salt);
+    (client_salt, client_token)
+}
+
+pub async fn create_users(n_user: usize, n_admin: usize) -> (TemporaryDatabase, Vec<users::User>) {
     let db = TemporaryDatabase::new_from_env().await;
     let key = db.get_key();
 
     let user_tokens = stream::iter(0..n_user)
         .zip(stream::repeat(db.get_pool()))
         .then(|(i, pool)| async move {
-            let (username, password, client_salt, client_token) = create_user_token();
-            let user = create_user(
+            let (username, password) = create_username_password();
+            create_user(
                 pool,
                 key,
                 CreateUserParams {
@@ -36,11 +39,22 @@ pub async fn create_users(
                 },
             )
             .await
-            .unwrap();
-            (user, client_salt, client_token)
+            .unwrap()
         })
         .collect::<Vec<_>>()
         .await;
 
     (db, user_tokens)
+}
+
+impl users::User {
+    pub fn to_common_params(&self, key: &EncryptionKey) -> CommonParams {
+        let decrypted_password = decrypt_password(key, &self.password).unwrap();
+        let (salt, token) = create_password_token(&decrypted_password);
+        CommonParams {
+            username: self.username.to_owned(),
+            salt,
+            token,
+        }
+    }
 }
