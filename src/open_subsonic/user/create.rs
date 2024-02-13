@@ -75,10 +75,7 @@ pub async fn create_user(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        open_subsonic::browsing::test::setup_user_and_music_folders,
-        utils::test::user::create_user_token,
-    };
+    use crate::utils::test::{setup::setup_users_and_music_folders, user::create_user_token};
 
     use diesel::{ExpressionMethods, QueryDsl};
     use itertools::Itertools;
@@ -86,13 +83,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_user_with_music_folders() {
-        let (db, key, _, _temp_fs, music_folders, _) =
-            setup_user_and_music_folders(0, 2, &[]).await;
+        let (db, _, _temp_fs, music_folders) = setup_users_and_music_folders(0, 2, &[]).await;
         let (username, password, _, _) = create_user_token();
 
         let user = create_user(
             db.get_pool(),
-            &key,
+            db.get_key(),
             CreateUserParams {
                 username,
                 password,

@@ -1,3 +1,4 @@
+use crate::config::EncryptionKey;
 use crate::migration;
 use crate::DatabasePool;
 
@@ -12,6 +13,7 @@ pub struct TemporaryDatabase {
     name: String,
     pool: DatabasePool,
     root_url: String,
+    key: EncryptionKey,
 }
 
 impl TemporaryDatabase {
@@ -43,6 +45,7 @@ impl TemporaryDatabase {
             name,
             pool,
             root_url: url,
+            key: rand::random(),
         }
     }
 
@@ -55,6 +58,10 @@ impl TemporaryDatabase {
 
     pub fn get_pool(&self) -> &DatabasePool {
         &self.pool
+    }
+
+    pub fn get_key(&self) -> &EncryptionKey {
+        &self.key
     }
 }
 

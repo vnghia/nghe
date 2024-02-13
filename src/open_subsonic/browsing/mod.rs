@@ -17,6 +17,3 @@ pub fn router(server_state: ServerState) -> Router<ServerState> {
         )
         .with_state(server_state)
 }
-
-#[cfg(test)]
-pub mod test;

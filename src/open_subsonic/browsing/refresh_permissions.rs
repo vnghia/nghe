@@ -55,13 +55,13 @@ pub async fn refresh_permissions(
 
 #[cfg(test)]
 mod tests {
-    use super::super::test::setup_user_and_music_folders;
     use super::*;
+    use crate::utils::test::setup::setup_users_and_music_folders_no_refresh;
 
     #[tokio::test]
     async fn test_refresh_insert() {
-        let (db, _, _, _temp_fs, music_folders, permissions) =
-            setup_user_and_music_folders(2, 2, &[true, true, true, true]).await;
+        let (db, _, _temp_fs, music_folders, permissions) =
+            setup_users_and_music_folders_no_refresh(2, 2, &[true, true, true, true]).await;
 
         refresh_permissions(
             db.get_pool(),
@@ -89,8 +89,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_do_nothing() {
-        let (db, _, _, _temp_fs, music_folders, permissions) =
-            setup_user_and_music_folders(2, 2, &[true, false, true, true]).await;
+        let (db, _, _temp_fs, music_folders, permissions) =
+            setup_users_and_music_folders_no_refresh(2, 2, &[true, false, true, true]).await;
 
         diesel::insert_into(user_music_folder_permissions::table)
             .values(&[permissions[1], permissions[3]])

@@ -59,18 +59,14 @@ pub async fn upsert_song<'a>(
 mod tests {
     use super::super::album::upsert_album;
     use super::*;
-    use crate::utils::song::tag::SongTag;
-    use crate::{
-        open_subsonic::browsing::test::setup_user_and_music_folders,
-        utils::test::media::query_all_song_information,
-    };
+    use crate::utils::test::media::query_all_song_information;
+    use crate::utils::{song::tag::SongTag, test::setup::setup_users_and_music_folders};
 
     use fake::{Fake, Faker};
 
     #[tokio::test]
     async fn test_upsert_song_insert() {
-        let (db, _, _, _temp_fs, music_folders, _) =
-            setup_user_and_music_folders(1, 1, &[true]).await;
+        let (db, _, _temp_fs, music_folders) = setup_users_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
         let album_id = upsert_album(db.get_pool(), (&song_tag.album).into())
@@ -105,8 +101,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_upsert_song_update() {
-        let (db, _, _, _temp_fs, music_folders, _) =
-            setup_user_and_music_folders(1, 1, &[true]).await;
+        let (db, _, _temp_fs, music_folders) = setup_users_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
         let album_id = upsert_album(db.get_pool(), (&song_tag.album).into())

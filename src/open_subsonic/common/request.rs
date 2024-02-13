@@ -89,7 +89,7 @@ mod tests {
     use crate::{
         open_subsonic::user::create::create_user,
         open_subsonic::user::create::CreateUserParams,
-        utils::test::user::{create_db_key_users, create_user_token},
+        utils::test::user::{create_user_token, create_users},
     };
 
     use fake::{faker::internet::en::*, Fake};
@@ -106,7 +106,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_success() {
-        let (db, key, mut user_tokens) = create_db_key_users(1, 0).await;
+        let (db, mut user_tokens) = create_users(1, 0).await;
 
         let user_token = user_tokens.remove(0);
         assert!(TestParams {
@@ -116,14 +116,14 @@ mod tests {
                 token: user_token.2,
             }
         }
-        .validate(db.get_pool(), &key)
+        .validate(db.get_pool(), db.get_key())
         .await
         .is_ok());
     }
 
     #[tokio::test]
     async fn test_validate_wrong_username() {
-        let (db, key, mut user_tokens) = create_db_key_users(1, 0).await;
+        let (db, mut user_tokens) = create_users(1, 0).await;
         let wrong_username: String = Username().fake();
 
         let user_token = user_tokens.remove(0);
@@ -135,7 +135,7 @@ mod tests {
                     token: user_token.2,
                 }
             }
-            .validate(db.get_pool(), &key)
+            .validate(db.get_pool(), db.get_key())
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
@@ -143,12 +143,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_password() {
-        let (db, key, _) = create_db_key_users(0, 0).await;
+        let (db, _) = create_users(0, 0).await;
         let (username, _, client_salt, client_token) = create_user_token();
         let wrong_password = Password(16..32).fake::<String>().into_bytes();
         let _ = create_user(
             db.get_pool(),
-            &key,
+            db.get_key(),
             CreateUserParams {
                 username: username.clone(),
                 password: wrong_password,
@@ -165,7 +165,7 @@ mod tests {
                     salt: client_salt
                 }
             }
-            .validate(db.get_pool(), &key)
+            .validate(db.get_pool(), db.get_key())
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
@@ -173,7 +173,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_admin_success() {
-        let (db, key, mut user_tokens) = create_db_key_users(1, 1).await;
+        let (db, mut user_tokens) = create_users(1, 1).await;
 
         let user_token = user_tokens.remove(0);
         assert!(AdminTestParams {
@@ -183,14 +183,14 @@ mod tests {
                 token: user_token.2,
             }
         }
-        .validate(db.get_pool(), &key)
+        .validate(db.get_pool(), db.get_key())
         .await
         .is_ok());
     }
 
     #[tokio::test]
     async fn test_validate_no_admin() {
-        let (db, key, mut user_tokens) = create_db_key_users(1, 0).await;
+        let (db, mut user_tokens) = create_users(1, 0).await;
 
         let user_token = user_tokens.remove(0);
         assert!(matches!(
@@ -201,7 +201,7 @@ mod tests {
                     token: user_token.2,
                 }
             }
-            .validate(db.get_pool(), &key)
+            .validate(db.get_pool(), db.get_key())
             .await,
             Err(OpenSubsonicError::Forbidden { message: _ })
         ));

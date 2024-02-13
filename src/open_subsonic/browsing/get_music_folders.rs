@@ -48,38 +48,25 @@ pub async fn get_music_folders_handler(
 
 #[cfg(test)]
 mod tests {
-    use super::super::{refresh_permissions, test::setup_user_and_music_folders};
     use super::*;
     use crate::open_subsonic::common::request::CommonParams;
     use crate::utils::test::http::to_validated_form;
+    use crate::utils::test::setup::setup_users_and_music_folders;
     use crate::utils::test::state::setup_state;
 
     use itertools::Itertools;
 
     #[tokio::test]
     async fn test_allow_all() {
-        let (db, key, user_tokens, _temp_fs, music_folders, _) =
-            setup_user_and_music_folders(2, 2, &[true, true, true, true]).await;
-
-        refresh_permissions(
-            db.get_pool(),
-            None,
-            Some(
-                &music_folders
-                    .iter()
-                    .map(|music_folder| music_folder.id)
-                    .collect_vec(),
-            ),
-        )
-        .await
-        .unwrap();
+        let (db, user_tokens, _temp_fs, music_folders) =
+            setup_users_and_music_folders(2, 2, &[true, true, true, true]).await;
 
         let sorted_music_folders = music_folders.into_iter().sorted().collect_vec();
 
         for user_token in user_tokens {
             let form = to_validated_form(
                 db.get_pool(),
-                &key,
+                db.get_key(),
                 GetMusicFoldersParams {
                     common: CommonParams {
                         username: user_token.0.username,
@@ -90,7 +77,7 @@ mod tests {
             )
             .await;
 
-            let state = setup_state(db.get_pool(), key);
+            let state = setup_state(db.get_pool(), db.get_key().to_owned());
             let results = get_music_folders_handler(state, form)
                 .await
                 .unwrap()
@@ -108,32 +95,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_deny_some() {
-        let (db, key, user_tokens, _temp_fs, music_folders, permissions) =
-            setup_user_and_music_folders(2, 2, &[true, false, true, true]).await;
-
-        diesel::insert_into(user_music_folder_permissions::table)
-            .values(&permissions[1])
-            .execute(&mut db.get_pool().get().await.unwrap())
-            .await
-            .unwrap();
-
-        refresh_permissions(
-            db.get_pool(),
-            None,
-            Some(
-                &music_folders
-                    .iter()
-                    .map(|music_folder| music_folder.id)
-                    .collect_vec(),
-            ),
-        )
-        .await
-        .unwrap();
+        let (db, user_tokens, _temp_fs, music_folders) =
+            setup_users_and_music_folders(2, 2, &[true, false, true, true]).await;
 
         for (i, user_token) in user_tokens.into_iter().enumerate() {
             let form = to_validated_form(
                 db.get_pool(),
-                &key,
+                db.get_key(),
                 GetMusicFoldersParams {
                     common: CommonParams {
                         username: user_token.0.username,
@@ -144,7 +112,7 @@ mod tests {
             )
             .await;
 
-            let state = setup_state(db.get_pool(), key);
+            let state = setup_state(db.get_pool(), db.get_key().to_owned());
             let results = get_music_folders_handler(state, form)
                 .await
                 .unwrap()
