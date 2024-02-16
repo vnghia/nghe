@@ -86,11 +86,11 @@ async fn main() {
 fn app(server_state: ServerState) -> Router {
     Router::new()
         // system
-        .merge(system::router(server_state.clone()))
+        .merge(system::router())
         // browsing
-        .merge(browsing::router(server_state.clone()))
+        .merge(browsing::router())
         // user
-        .merge(user::router(server_state.clone()))
+        .merge(user::router())
         // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(server_state)
