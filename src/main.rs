@@ -62,13 +62,9 @@ async fn main() {
     .expect("can not set music folders permissions");
 
     // scan song
-    scan_full(
-        &database.pool,
-        &config.artist.ignored_prefixes,
-        &upserted_music_folders,
-    )
-    .await
-    .expect("can not scan song");
+    scan_full(&database.pool, &upserted_music_folders)
+        .await
+        .expect("can not scan song");
 
     // run it
     let listener = tokio::net::TcpListener::bind(config.server.bind_addr)

@@ -119,9 +119,7 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
         })
         .collect::<HashMap<_, _>>();
 
-    let scan_statistics = scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-        .await
-        .unwrap();
+    let scan_statistics = scan_full(temp_db.pool(), &music_folders).await.unwrap();
 
     (
         temp_db,

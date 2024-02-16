@@ -1,6 +1,6 @@
 use super::{
-    album::upsert_album, album::upsert_album_artists, artist::build_artist_indices,
-    artist::upsert_artists, song::upsert_song, song::upsert_song_artists,
+    album::upsert_album, album::upsert_album_artists, artist::upsert_artists, song::upsert_song,
+    song::upsert_song_artists,
 };
 use crate::{
     models::*,
@@ -16,9 +16,8 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
-pub async fn scan_full<S: AsRef<str>>(
+pub async fn scan_full(
     pool: &DatabasePool,
-    ignored_prefixes: &[S],
     music_folders: &[music_folders::MusicFolder],
 ) -> OSResult<(usize, usize, usize, usize)> {
     let scan_start_time = time::OffsetDateTime::now_utc();
@@ -150,8 +149,6 @@ pub async fn scan_full<S: AsRef<str>>(
         .execute(&mut pool.get().await?)
         .await?;
 
-    build_artist_indices(pool, ignored_prefixes).await?;
-
     tracing::info!("done scanning songs");
     Ok((
         upserted_song_count,
@@ -224,9 +221,7 @@ mod tests {
         );
 
         let (upserted_song_count, deleted_song_count, _, _) =
-            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-                .await
-                .unwrap();
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
 
         assert_eq!(upserted_song_count, n_new_song);
         assert_eq!(deleted_song_count, 0);
@@ -278,9 +273,7 @@ mod tests {
         );
 
         let (upserted_song_count, deleted_song_count, _, _) =
-            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-                .await
-                .unwrap();
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
 
         assert_eq!(upserted_song_count, n_new_song);
         assert_eq!(deleted_song_count, n_delete_song);
@@ -367,9 +360,8 @@ mod tests {
             ),
         );
 
-        let (_, _, deleted_album_count, _) = scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-            .await
-            .unwrap();
+        let (_, _, deleted_album_count, _) =
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
 
         assert_eq!(deleted_album_count, n_delete_song + n_new_song);
         assert_albums_info(temp_db.pool(), &song_fs_info).await;
@@ -403,9 +395,8 @@ mod tests {
         )
         .unwrap();
 
-        let (_, _, deleted_album_count, _) = scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-            .await
-            .unwrap();
+        let (_, _, deleted_album_count, _) =
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
         assert_eq!(deleted_album_count, 0);
         assert_album_names(temp_db.pool(), &["album"]).await;
     }
@@ -448,9 +439,7 @@ mod tests {
             ),
         );
 
-        scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-            .await
-            .unwrap();
+        scan_full(temp_db.pool(), &music_folders).await.unwrap();
 
         assert_artists_info(temp_db.pool(), &song_fs_info).await;
     }
@@ -503,9 +492,7 @@ mod tests {
         );
 
         let (_, _, _, deleted_artist_count) =
-            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-                .await
-                .unwrap();
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
         assert_eq!(deleted_artist_count, 1);
         assert_song_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
@@ -546,9 +533,7 @@ mod tests {
         std::fs::remove_file(music_folder_path.join(&first_song_path)).unwrap();
 
         let (_, _, _, deleted_artist_count) =
-            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-                .await
-                .unwrap();
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
         assert_eq!(deleted_artist_count, 1);
         assert_album_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
@@ -597,9 +582,7 @@ mod tests {
         std::fs::remove_file(music_folder_path.join(&first_song_path)).unwrap();
 
         let (_, _, _, deleted_artist_count) =
-            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-                .await
-                .unwrap();
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
         assert_eq!(deleted_artist_count, 1);
         assert_album_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
@@ -656,9 +639,7 @@ mod tests {
         );
 
         let (_, _, _, deleted_artist_count) =
-            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
-                .await
-                .unwrap();
+            scan_full(temp_db.pool(), &music_folders).await.unwrap();
         assert_eq!(deleted_artist_count, 1);
         assert_album_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
