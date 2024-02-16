@@ -60,11 +60,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_insert() {
-        let (db, _, _temp_fs, music_folders, permissions) =
+        let (temp_db, _, _temp_fs, music_folders, permissions) =
             setup_users_and_music_folders_no_refresh(2, 2, &[true, true, true, true]).await;
 
         refresh_permissions(
-            db.get_pool(),
+            temp_db.pool(),
             None,
             Some(
                 &music_folders
@@ -77,7 +77,7 @@ mod tests {
         .unwrap();
 
         let results = user_music_folder_permissions::table
-            .load(&mut db.get_pool().get().await.unwrap())
+            .load(&mut temp_db.pool().get().await.unwrap())
             .await
             .unwrap();
 
@@ -89,17 +89,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_do_nothing() {
-        let (db, _, _temp_fs, music_folders, permissions) =
+        let (temp_db, _, _temp_fs, music_folders, permissions) =
             setup_users_and_music_folders_no_refresh(2, 2, &[true, false, true, true]).await;
 
         diesel::insert_into(user_music_folder_permissions::table)
             .values(&[permissions[1], permissions[3]])
-            .execute(&mut db.get_pool().get().await.unwrap())
+            .execute(&mut temp_db.pool().get().await.unwrap())
             .await
             .unwrap();
 
         refresh_permissions(
-            db.get_pool(),
+            temp_db.pool(),
             None,
             Some(
                 &music_folders
@@ -112,7 +112,7 @@ mod tests {
         .unwrap();
 
         let results = user_music_folder_permissions::table
-            .load(&mut db.get_pool().get().await.unwrap())
+            .load(&mut temp_db.pool().get().await.unwrap())
             .await
             .unwrap();
 

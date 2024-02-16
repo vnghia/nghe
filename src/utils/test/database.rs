@@ -52,11 +52,11 @@ impl TemporaryDatabase {
         State(self.database.clone())
     }
 
-    pub fn get_pool(&self) -> &DatabasePool {
+    pub fn pool(&self) -> &DatabasePool {
         &self.database().pool
     }
 
-    pub fn get_key(&self) -> &EncryptionKey {
+    pub fn key(&self) -> &EncryptionKey {
         &self.database().key
     }
 }

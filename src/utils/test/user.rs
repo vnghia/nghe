@@ -1,4 +1,4 @@
-use super::db::TemporaryDatabase;
+use super::database::TemporaryDatabase;
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::common::request::CommonParams;
@@ -21,10 +21,10 @@ pub fn create_password_token(password: &[u8]) -> (Vec<u8>, MD5Token) {
 }
 
 pub async fn create_users(n_user: usize, n_admin: usize) -> (TemporaryDatabase, Vec<users::User>) {
-    let db = TemporaryDatabase::new_from_env().await;
+    let temp_db = TemporaryDatabase::new_from_env().await;
 
-    let user_tokens = stream::iter(0..n_user)
-        .zip(stream::repeat(db.database()))
+    let users = stream::iter(0..n_user)
+        .zip(stream::repeat(temp_db.database()))
         .then(|(i, database)| async move {
             let (username, password) = create_username_password();
             create_user(
@@ -42,7 +42,7 @@ pub async fn create_users(n_user: usize, n_admin: usize) -> (TemporaryDatabase, 
         .collect::<Vec<_>>()
         .await;
 
-    (db, user_tokens)
+    (temp_db, users)
 }
 
 impl users::User {

@@ -180,11 +180,17 @@ mod tests {
     #[tokio::test]
     async fn test_simple_scan() {
         let n_song = 50_usize;
-        let (db, _, _temp_fs, _, song_fs_info, (upserted_song_count, deleted_song_count, _, _)) =
-            setup_users_and_songs(0, 1, &[], &[n_song], None).await;
+        let (
+            temp_db,
+            _,
+            _temp_fs,
+            _,
+            song_fs_info,
+            (upserted_song_count, deleted_song_count, _, _),
+        ) = setup_users_and_songs(0, 1, &[], &[n_song], None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(db.get_pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -193,7 +199,7 @@ mod tests {
         let n_new_song = 20_usize;
 
         let (
-            db,
+            temp_db,
             _,
             temp_fs,
             music_folders,
@@ -218,13 +224,13 @@ mod tests {
         );
 
         let (upserted_song_count, deleted_song_count, _, _) =
-            scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
                 .await
                 .unwrap();
 
         assert_eq!(upserted_song_count, n_new_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(db.get_pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -234,7 +240,7 @@ mod tests {
         let n_new_song = 20_usize;
 
         let (
-            db,
+            temp_db,
             _,
             temp_fs,
             music_folders,
@@ -272,29 +278,35 @@ mod tests {
         );
 
         let (upserted_song_count, deleted_song_count, _, _) =
-            scan_full::<&str>(db.get_pool(), &[], &music_folders)
+            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
                 .await
                 .unwrap();
 
         assert_eq!(upserted_song_count, n_new_song);
         assert_eq!(deleted_song_count, n_delete_song);
-        assert_songs_info(db.get_pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
     async fn test_simple_scan_with_multiple_folders() {
         let n_song = 25_usize;
 
-        let (db, _, _temp_fs, _, song_fs_info, (upserted_song_count, deleted_song_count, _, _)) =
-            setup_users_and_songs(0, 2, &[], &[n_song, n_song], None).await;
+        let (
+            temp_db,
+            _,
+            _temp_fs,
+            _,
+            song_fs_info,
+            (upserted_song_count, deleted_song_count, _, _),
+        ) = setup_users_and_songs(0, 2, &[], &[n_song, n_song], None).await;
         assert_eq!(upserted_song_count, n_song + n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(db.get_pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
     async fn test_scan_combine_album_artists() {
-        let (db, _, _temp_fs, _, song_fs_info, _) = setup_users_and_songs(
+        let (temp_db, _, _temp_fs, _, song_fs_info, _) = setup_users_and_songs(
             0,
             1,
             &[],
@@ -314,7 +326,7 @@ mod tests {
         )
         .await;
 
-        assert_albums_artists_info(db.get_pool(), &song_fs_info).await;
+        assert_albums_artists_info(temp_db.pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -323,10 +335,10 @@ mod tests {
         let n_delete_song = 2;
         let n_new_song = 4;
 
-        let (db, _, temp_fs, music_folders, mut song_fs_info, (_, _, deleted_album_count, _)) =
+        let (temp_db, _, temp_fs, music_folders, mut song_fs_info, (_, _, deleted_album_count, _)) =
             setup_users_and_songs(0, 1, &[], &[n_song], None).await;
         assert_eq!(deleted_album_count, 0);
-        assert_albums_info(db.get_pool(), &song_fs_info).await;
+        assert_albums_info(temp_db.pool(), &song_fs_info).await;
 
         let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
@@ -355,17 +367,17 @@ mod tests {
             ),
         );
 
-        let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+        let (_, _, deleted_album_count, _) = scan_full::<&str>(temp_db.pool(), &[], &music_folders)
             .await
             .unwrap();
 
         assert_eq!(deleted_album_count, n_delete_song + n_new_song);
-        assert_albums_info(db.get_pool(), &song_fs_info).await;
+        assert_albums_info(temp_db.pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
     async fn test_scan_delete_keep_album_with_songs() {
-        let (db, _, _temp_fs, music_folders, song_fs_info, (_, _, deleted_album_count, _)) =
+        let (temp_db, _, _temp_fs, music_folders, song_fs_info, (_, _, deleted_album_count, _)) =
             setup_users_and_songs(
                 0,
                 1,
@@ -384,18 +396,18 @@ mod tests {
             )
             .await;
         assert_eq!(deleted_album_count, 0);
-        assert_album_names(db.get_pool(), &["album"]).await;
+        assert_album_names(temp_db.pool(), &["album"]).await;
 
         std::fs::remove_file(
             PathBuf::from(&music_folders[0].path).join(&song_fs_info.keys().next().unwrap().1),
         )
         .unwrap();
 
-        let (_, _, deleted_album_count, _) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+        let (_, _, deleted_album_count, _) = scan_full::<&str>(temp_db.pool(), &[], &music_folders)
             .await
             .unwrap();
         assert_eq!(deleted_album_count, 0);
-        assert_album_names(db.get_pool(), &["album"]).await;
+        assert_album_names(temp_db.pool(), &["album"]).await;
     }
 
     #[tokio::test]
@@ -404,13 +416,13 @@ mod tests {
         let n_delete_song = 2;
         let n_new_song = 4;
 
-        let (db, _, temp_fs, music_folders, mut song_fs_info, _) =
+        let (temp_db, _, temp_fs, music_folders, mut song_fs_info, _) =
             setup_users_and_songs(0, 1, &[], &[n_song], None).await;
 
         let music_folder_id = music_folders[0].id;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
 
-        assert_artists_info(db.get_pool(), &song_fs_info).await;
+        assert_artists_info(temp_db.pool(), &song_fs_info).await;
 
         song_fs_info
             .keys()
@@ -436,11 +448,11 @@ mod tests {
             ),
         );
 
-        scan_full::<&str>(db.get_pool(), &[], &music_folders)
+        scan_full::<&str>(temp_db.pool(), &[], &music_folders)
             .await
             .unwrap();
 
-        assert_artists_info(db.get_pool(), &song_fs_info).await;
+        assert_artists_info(temp_db.pool(), &song_fs_info).await;
     }
 
     #[tokio::test]
@@ -465,7 +477,7 @@ mod tests {
         ];
         let first_song_title = song_tags[0].title.clone();
 
-        let (db, _, temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
+        let (temp_db, _, temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
             setup_users_and_songs(0, 1, &[], &[3], song_tags).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
@@ -479,7 +491,7 @@ mod tests {
             })
             .unwrap();
         assert_eq!(deleted_artist_count, 0);
-        assert_song_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_song_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
         temp_fs.create_nested_media_file(
             Some(&music_folder_path),
@@ -490,11 +502,12 @@ mod tests {
             },
         );
 
-        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
-            .await
-            .unwrap();
+        let (_, _, _, deleted_artist_count) =
+            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
+                .await
+                .unwrap();
         assert_eq!(deleted_artist_count, 1);
-        assert_song_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
+        assert_song_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
 
     #[tokio::test]
@@ -514,7 +527,7 @@ mod tests {
         ];
         let first_song_title = song_tags[0].title.clone();
 
-        let (db, _, _temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
+        let (temp_db, _, _temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
             setup_users_and_songs(0, 1, &[], &[2], song_tags).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
@@ -528,15 +541,16 @@ mod tests {
             })
             .unwrap();
         assert_eq!(deleted_artist_count, 0);
-        assert_album_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_album_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
         std::fs::remove_file(music_folder_path.join(&first_song_path)).unwrap();
 
-        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
-            .await
-            .unwrap();
+        let (_, _, _, deleted_artist_count) =
+            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
+                .await
+                .unwrap();
         assert_eq!(deleted_artist_count, 1);
-        assert_album_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
+        assert_album_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
 
     #[tokio::test]
@@ -564,7 +578,7 @@ mod tests {
         ];
         let first_song_title = song_tags[0].title.clone();
 
-        let (db, _, _temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
+        let (temp_db, _, _temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
             setup_users_and_songs(0, 1, &[], &[3], song_tags).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
@@ -578,15 +592,16 @@ mod tests {
             })
             .unwrap();
         assert_eq!(deleted_artist_count, 0);
-        assert_album_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_album_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
         std::fs::remove_file(music_folder_path.join(&first_song_path)).unwrap();
 
-        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
-            .await
-            .unwrap();
+        let (_, _, _, deleted_artist_count) =
+            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
+                .await
+                .unwrap();
         assert_eq!(deleted_artist_count, 1);
-        assert_album_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
+        assert_album_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
 
     #[tokio::test]
@@ -614,7 +629,7 @@ mod tests {
         ];
         let first_song_tag = song_tags[0].clone();
 
-        let (db, _, temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
+        let (temp_db, _, temp_fs, music_folders, song_fs_info, (_, _, _, deleted_artist_count)) =
             setup_users_and_songs(0, 1, &[], &[3], song_tags).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
@@ -628,7 +643,7 @@ mod tests {
             })
             .unwrap();
         assert_eq!(deleted_artist_count, 0);
-        assert_album_artist_names(db.get_pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_album_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
         temp_fs.create_nested_media_file(
             Some(&music_folder_path),
@@ -640,10 +655,11 @@ mod tests {
             },
         );
 
-        let (_, _, _, deleted_artist_count) = scan_full::<&str>(db.get_pool(), &[], &music_folders)
-            .await
-            .unwrap();
+        let (_, _, _, deleted_artist_count) =
+            scan_full::<&str>(temp_db.pool(), &[], &music_folders)
+                .await
+                .unwrap();
         assert_eq!(deleted_artist_count, 1);
-        assert_album_artist_names(db.get_pool(), &["artist2", "artist3"]).await;
+        assert_album_artist_names(temp_db.pool(), &["artist2", "artist3"]).await;
     }
 }

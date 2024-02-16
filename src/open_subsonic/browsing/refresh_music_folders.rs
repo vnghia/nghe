@@ -51,13 +51,13 @@ pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::{db::TemporaryDatabase, fs::TemporaryFs};
+    use crate::utils::test::{TemporaryDatabase, TemporaryFs};
 
     use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_refresh_insert() {
-        let db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDatabase::new_from_env().await;
 
         let temp_fs = TemporaryFs::new();
         let dir_1 = temp_fs.create_dir("test1/");
@@ -66,7 +66,7 @@ mod tests {
         let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(db.get_pool(), &inputs, &[]).await;
+            refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
         let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
@@ -81,7 +81,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_upsert() {
-        let db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDatabase::new_from_env().await;
 
         let temp_fs = TemporaryFs::new();
         let dir_1 = temp_fs.create_dir("test1/");
@@ -97,14 +97,14 @@ mod tests {
                     })
                     .collect_vec(),
             )
-            .execute(&mut db.get_pool().get().await.unwrap())
+            .execute(&mut temp_db.pool().get().await.unwrap())
             .await
             .unwrap();
 
         let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(db.get_pool(), &inputs, &[]).await;
+            refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
         let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))
@@ -119,7 +119,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_delete() {
-        let db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDatabase::new_from_env().await;
 
         let temp_fs = TemporaryFs::new();
         let dir_1 = temp_fs.create_dir("test1/");
@@ -136,14 +136,14 @@ mod tests {
                     })
                     .collect_vec(),
             )
-            .execute(&mut db.get_pool().get().await.unwrap())
+            .execute(&mut temp_db.pool().get().await.unwrap())
             .await
             .unwrap();
 
         let inputs = vec![dir_1, dir_2];
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(db.get_pool(), &inputs, &[]).await;
+            refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
         let results = upserted_folders
             .iter()
             .map(|model| PathBuf::from(&model.path))

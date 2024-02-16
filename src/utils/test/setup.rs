@@ -1,6 +1,5 @@
-use super::db::TemporaryDatabase;
-use super::fs::TemporaryFs;
 use super::user::create_users;
+use super::{TemporaryDatabase, TemporaryFs};
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
 use crate::open_subsonic::scan::scan_full;
@@ -24,9 +23,9 @@ pub async fn setup_users_and_music_folders_no_refresh(
     Vec<music_folders::MusicFolder>,
     Vec<user_music_folder_permissions::UserMusicFolderPermission>,
 ) {
-    let (db, users) = create_users(n_user, 0).await;
+    let (temp_db, users) = create_users(n_user, 0).await;
     let temp_fs = TemporaryFs::new();
-    let upserted_folders = temp_fs.create_music_folders(db.get_pool(), n_folder).await;
+    let upserted_folders = temp_fs.create_music_folders(temp_db.pool(), n_folder).await;
     let user_music_folder_permissions = (users.iter().cartesian_product(&upserted_folders))
         .zip(allows.iter())
         .map(|((user, upserted_folder), allow)| {
@@ -39,7 +38,7 @@ pub async fn setup_users_and_music_folders_no_refresh(
         .collect_vec();
 
     (
-        db,
+        temp_db,
         users,
         temp_fs,
         upserted_folders,
@@ -57,20 +56,20 @@ pub async fn setup_users_and_music_folders(
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
 ) {
-    let (db, users, temp_fs, music_folders, user_music_folder_permissions) =
+    let (temp_db, users, temp_fs, music_folders, user_music_folder_permissions) =
         setup_users_and_music_folders_no_refresh(n_user, n_folder, allows).await;
 
     diesel::insert_into(user_music_folder_permissions::table)
         .values(&user_music_folder_permissions)
-        .execute(&mut db.get_pool().get().await.unwrap())
+        .execute(&mut temp_db.pool().get().await.unwrap())
         .await
         .unwrap();
 
-    refresh_permissions(db.get_pool(), None, None)
+    refresh_permissions(temp_db.pool(), None, None)
         .await
         .unwrap();
 
-    (db, users, temp_fs, music_folders)
+    (temp_db, users, temp_fs, music_folders)
 }
 
 pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
@@ -88,7 +87,7 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
     (usize, usize, usize, usize),
 ) {
     assert_eq!(n_songs.len(), n_folder);
-    let (db, users, temp_fs, music_folders) =
+    let (temp_db, users, temp_fs, music_folders) =
         setup_users_and_music_folders(n_user, n_folder, allows).await;
 
     let n_song_total: usize = n_songs.iter().sum();
@@ -120,12 +119,12 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
         })
         .collect::<HashMap<_, _>>();
 
-    let scan_statistics = scan_full::<&str>(db.get_pool(), &[], &music_folders)
+    let scan_statistics = scan_full::<&str>(temp_db.pool(), &[], &music_folders)
         .await
         .unwrap();
 
     (
-        db,
+        temp_db,
         users,
         temp_fs,
         music_folders,

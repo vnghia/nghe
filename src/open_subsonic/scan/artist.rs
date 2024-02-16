@@ -84,7 +84,7 @@ fn index_char_to_string(index_char: char) -> Cow<'static, str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::db::TemporaryDatabase;
+    use crate::utils::test::TemporaryDatabase;
 
     use fake;
 
@@ -125,12 +125,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_artist_indices() {
-        let db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDatabase::new_from_env().await;
         let artist_names = fake::vec![String; 10];
         let ignored_prefixes = ["The ", "A "];
 
-        upsert_artists(db.get_pool(), &artist_names).await.unwrap();
-        build_artist_indices(db.get_pool(), &ignored_prefixes)
+        upsert_artists(temp_db.pool(), &artist_names).await.unwrap();
+        build_artist_indices(temp_db.pool(), &ignored_prefixes)
             .await
             .unwrap();
 
@@ -142,7 +142,7 @@ mod tests {
                 .collect_vec(),
             artists::table
                 .select(artists::index)
-                .load::<String>(&mut db.get_pool().get().await.unwrap())
+                .load::<String>(&mut temp_db.pool().get().await.unwrap())
                 .await
                 .unwrap()
                 .into_iter()

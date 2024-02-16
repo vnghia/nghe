@@ -66,10 +66,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_upsert_song_insert() {
-        let (db, _, _temp_fs, music_folders) = setup_users_and_music_folders(1, 1, &[true]).await;
+        let (temp_db, _, _temp_fs, music_folders) =
+            setup_users_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(db.get_pool(), (&song_tag.album).into())
+        let album_id = upsert_album(temp_db.pool(), (&song_tag.album).into())
             .await
             .unwrap();
 
@@ -78,7 +79,7 @@ mod tests {
         let song_size: u64 = rand::random();
 
         let song_id = upsert_song(
-            db.get_pool(),
+            temp_db.pool(),
             None,
             song_tag.to_new_or_update_song(
                 music_folders[0].id,
@@ -91,7 +92,7 @@ mod tests {
         .await
         .unwrap();
 
-        let (song, _, _, _) = query_all_song_information(db.get_pool(), song_id).await;
+        let (song, _, _, _) = query_all_song_information(temp_db.pool(), song_id).await;
 
         assert_eq!(song_tag.title, song.title);
         assert_eq!(song_path, song.path);
@@ -101,10 +102,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_upsert_song_update() {
-        let (db, _, _temp_fs, music_folders) = setup_users_and_music_folders(1, 1, &[true]).await;
+        let (temp_db, _, _temp_fs, music_folders) =
+            setup_users_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(db.get_pool(), (&song_tag.album).into())
+        let album_id = upsert_album(temp_db.pool(), (&song_tag.album).into())
             .await
             .unwrap();
 
@@ -113,7 +115,7 @@ mod tests {
         let song_size: u64 = rand::random();
 
         let song_id = upsert_song(
-            db.get_pool(),
+            temp_db.pool(),
             None,
             song_tag.to_new_or_update_song(
                 music_folders[0].id,
@@ -127,7 +129,7 @@ mod tests {
         .unwrap();
 
         let new_song_tag = Faker.fake::<SongTag>();
-        let new_album_id = upsert_album(db.get_pool(), (&new_song_tag.album).into())
+        let new_album_id = upsert_album(temp_db.pool(), (&new_song_tag.album).into())
             .await
             .unwrap();
 
@@ -135,7 +137,7 @@ mod tests {
         let new_song_size: u64 = rand::random();
 
         let new_song_id = upsert_song(
-            db.get_pool(),
+            temp_db.pool(),
             Some(song_id),
             new_song_tag.to_new_or_update_song(
                 music_folders[0].id,
@@ -149,7 +151,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(song_id, new_song_id);
-        let (song, _, _, _) = query_all_song_information(db.get_pool(), new_song_id).await;
+        let (song, _, _, _) = query_all_song_information(temp_db.pool(), new_song_id).await;
 
         assert_eq!(new_song_tag.title, song.title);
         assert_eq!(song_path, song.path);

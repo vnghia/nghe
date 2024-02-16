@@ -83,12 +83,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_user_with_music_folders() {
-        let (db, _, _temp_fs, music_folders) = setup_users_and_music_folders(0, 2, &[]).await;
+        let (temp_db, _, _temp_fs, music_folders) = setup_users_and_music_folders(0, 2, &[]).await;
         let (username, password) = create_username_password();
 
         // should re-trigger the refreshing of music folders
         let user = create_user(
-            db.database(),
+            temp_db.database(),
             CreateUserParams {
                 username,
                 password,
@@ -101,7 +101,7 @@ mod tests {
         let results = user_music_folder_permissions::table
             .select(user_music_folder_permissions::music_folder_id)
             .filter(user_music_folder_permissions::user_id.eq(user.id))
-            .load::<Uuid>(&mut db.get_pool().get().await.unwrap())
+            .load::<Uuid>(&mut temp_db.pool().get().await.unwrap())
             .await
             .unwrap()
             .into_iter()

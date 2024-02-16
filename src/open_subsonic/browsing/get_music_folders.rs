@@ -56,21 +56,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_allow_all() {
-        let (db, users, _temp_fs, music_folders) =
+        let (temp_db, users, _temp_fs, music_folders) =
             setup_users_and_music_folders(2, 2, &[true, true, true, true]).await;
 
         let sorted_music_folders = music_folders.into_iter().sorted().collect_vec();
 
         for user in users {
             let form = to_validated_form(
-                &db,
+                temp_db.database(),
                 GetMusicFoldersParams {
-                    common: user.to_common_params(db.get_key()),
+                    common: user.to_common_params(temp_db.key()),
                 },
             )
             .await;
 
-            let results = get_music_folders_handler(db.state(), form)
+            let results = get_music_folders_handler(temp_db.state(), form)
                 .await
                 .unwrap()
                 .0
@@ -87,19 +87,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_deny_some() {
-        let (db, users, _temp_fs, music_folders) =
+        let (temp_db, users, _temp_fs, music_folders) =
             setup_users_and_music_folders(2, 2, &[true, false, true, true]).await;
 
         for (i, user) in users.into_iter().enumerate() {
             let form = to_validated_form(
-                &db,
+                temp_db.database(),
                 GetMusicFoldersParams {
-                    common: user.to_common_params(db.get_key()),
+                    common: user.to_common_params(temp_db.key()),
                 },
             )
             .await;
 
-            let results = get_music_folders_handler(db.state(), form)
+            let results = get_music_folders_handler(temp_db.state(), form)
                 .await
                 .unwrap()
                 .0

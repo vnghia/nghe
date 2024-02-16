@@ -64,7 +64,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_setup_no_user() {
-        let (db, _) = create_users(0, 0).await;
+        let (temp_db, _) = create_users(0, 0).await;
         let (username, password) = create_username_password();
 
         let form = Form(SetupParams {
@@ -74,14 +74,14 @@ mod tests {
         });
 
         assert_eq!(
-            setup_handler(db.state(), form).await.unwrap().0,
+            setup_handler(temp_db.state(), form).await.unwrap().0,
             SetupBody::default().into()
         );
     }
 
     #[tokio::test]
     async fn test_setup_with_user() {
-        let (db, _) = create_users(1, 1).await;
+        let (temp_db, _) = create_users(1, 1).await;
         let (username, password) = create_username_password();
 
         let form = Form(SetupParams {
@@ -91,7 +91,7 @@ mod tests {
         });
 
         assert!(matches!(
-            setup_handler(db.state(), form).await,
+            setup_handler(temp_db.state(), form).await,
             Err(OpenSubsonicError::Forbidden { message: _ })
         ));
     }

@@ -1,5 +1,5 @@
-use super::db::TemporaryDatabase;
 use crate::open_subsonic::common::request::{Validate, ValidatedForm};
+use crate::Database;
 
 use axum::{body::Bytes, response::Response};
 use http_body_util::BodyExt;
@@ -9,9 +9,9 @@ pub async fn to_bytes(res: Response) -> Bytes {
 }
 
 pub async fn to_validated_form<P: Validate + Sync>(
-    db: &TemporaryDatabase,
+    database: &Database,
     params: P,
 ) -> ValidatedForm<P> {
-    let user = params.validate(db.database()).await.unwrap();
+    let user = params.validate(database).await.unwrap();
     ValidatedForm { params, user }
 }
