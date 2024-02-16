@@ -9,14 +9,13 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
-use nghe::migration;
 use nghe::open_subsonic::{
     browsing,
     browsing::{refresh_music_folders, refresh_permissions},
     scan::scan_full,
     system, user,
 };
-use nghe::ServerState;
+use nghe::Database;
 
 #[tokio::main]
 async fn main() {
@@ -37,15 +36,12 @@ async fn main() {
     let config = Config::default();
     tracing::info!("configuration: {:?}", config);
 
-    // state
-    let server_state = ServerState::new(&config).await;
-
-    // db migration
-    migration::run_pending_migrations(&config.database.url).await;
+    // database
+    let database = Database::new(&config.database.url, config.database.key).await;
 
     // music folders
     let (upserted_music_folders, _) = refresh_music_folders(
-        &server_state.database.pool,
+        &database.pool,
         &config.folder.top_paths,
         &config.folder.depth_levels,
     )
@@ -53,7 +49,7 @@ async fn main() {
 
     // user music folders
     refresh_permissions(
-        &server_state.database.pool,
+        &database.pool,
         None,
         Some(
             &upserted_music_folders
@@ -67,23 +63,22 @@ async fn main() {
 
     // scan song
     scan_full(
-        &server_state.database.pool,
-        &server_state.artist.ignored_prefixes,
+        &database.pool,
+        &config.artist.ignored_prefixes,
         &upserted_music_folders,
     )
     .await
     .expect("can not scan song");
 
     // run it
-    let listener =
-        tokio::net::TcpListener::bind(format!("{}:{}", config.server.host, config.server.port))
-            .await
-            .unwrap();
+    let listener = tokio::net::TcpListener::bind(config.server.bind_addr)
+        .await
+        .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app(server_state)).await.unwrap();
+    axum::serve(listener, app(database)).await.unwrap();
 }
 
-fn app(server_state: ServerState) -> Router {
+fn app(database: Database) -> Router {
     Router::new()
         // system
         .merge(system::router())
@@ -93,5 +88,5 @@ fn app(server_state: ServerState) -> Router {
         .merge(user::router())
         // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
-        .with_state(server_state)
+        .with_state(database)
 }

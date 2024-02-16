@@ -12,6 +12,6 @@ pub async fn to_validated_form<P: Validate + Sync>(
     db: &TemporaryDatabase,
     params: P,
 ) -> ValidatedForm<P> {
-    let user = params.validate(db.get_pool(), db.get_key()).await.unwrap();
+    let user = params.validate(db.database()).await.unwrap();
     ValidatedForm { params, user }
 }

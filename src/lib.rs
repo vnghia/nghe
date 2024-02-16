@@ -3,15 +3,15 @@
 use mimalloc::MiMalloc;
 
 pub mod config;
+pub mod database;
 pub mod migration;
 pub mod models;
 pub mod open_subsonic;
 pub mod schema;
-pub mod state;
 pub mod utils;
 
+pub use database::Database;
 pub use open_subsonic::{OSResult, OpenSubsonicError};
-pub use state::ServerState;
 
 pub type DatabaseType = diesel::pg::Pg;
 pub type DatabasePool =

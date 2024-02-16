@@ -1,5 +1,5 @@
 use crate::models::*;
-use crate::{OSResult, ServerState};
+use crate::{Database, OSResult};
 
 use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
@@ -26,7 +26,7 @@ pub struct GetMusicFoldersBody {
 }
 
 pub async fn get_music_folders_handler(
-    State(state): State<ServerState>,
+    State(database): State<Database>,
     req: GetMusicFoldersRequest,
 ) -> OSResult<GetMusicFoldersResponse> {
     let music_folders = music_folders::table
@@ -34,7 +34,7 @@ pub async fn get_music_folders_handler(
         .select(music_folders::MusicFolder::as_select())
         .filter(user_music_folder_permissions::user_id.eq(req.user.id))
         .filter(user_music_folder_permissions::allow.eq(true))
-        .load(&mut state.database.pool.get().await?)
+        .load(&mut database.pool.get().await?)
         .await?;
 
     Ok(GetMusicFoldersBody {
@@ -51,7 +51,6 @@ mod tests {
     use super::*;
     use crate::utils::test::http::to_validated_form;
     use crate::utils::test::setup::setup_users_and_music_folders;
-    use crate::utils::test::state::setup_state;
 
     use itertools::Itertools;
 
@@ -71,8 +70,7 @@ mod tests {
             )
             .await;
 
-            let state = setup_state(&db);
-            let results = get_music_folders_handler(state, form)
+            let results = get_music_folders_handler(db.state(), form)
                 .await
                 .unwrap()
                 .0
@@ -101,8 +99,7 @@ mod tests {
             )
             .await;
 
-            let state = setup_state(&db);
-            let results = get_music_folders_handler(state, form)
+            let results = get_music_folders_handler(db.state(), form)
                 .await
                 .unwrap()
                 .0

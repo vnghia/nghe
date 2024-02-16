@@ -1,19 +1,17 @@
-use crate::config::EncryptionKey;
-use crate::migration;
+use crate::database::EncryptionKey;
+use crate::Database;
 use crate::DatabasePool;
 
+use axum::extract::State;
 use concat_string::concat_string;
-use diesel_async::{
-    pooled_connection::AsyncDieselConnectionManager, AsyncConnection, AsyncPgConnection,
-};
+use diesel_async::{AsyncConnection, AsyncPgConnection};
 use url::Url;
 use uuid::Uuid;
 
 pub struct TemporaryDatabase {
     name: String,
-    pool: DatabasePool,
     root_url: String,
-    key: EncryptionKey,
+    database: Database,
 }
 
 impl TemporaryDatabase {
@@ -32,20 +30,10 @@ impl TemporaryDatabase {
         .await
         .expect("can not create new database");
 
-        let pool = DatabasePool::builder(AsyncDieselConnectionManager::<
-            diesel_async::AsyncPgConnection,
-        >::new(new_url.as_str()))
-        .build()
-        .expect("can not connect to the new database");
-        println!("create new database with name \"{}\"", name);
-
-        migration::run_pending_migrations(new_url.as_str()).await;
-
         Self {
             name,
-            pool,
             root_url: url,
-            key: rand::random(),
+            database: Database::new(new_url.as_str(), rand::random()).await,
         }
     }
 
@@ -56,12 +44,20 @@ impl TemporaryDatabase {
         .await
     }
 
+    pub fn database(&self) -> &Database {
+        &self.database
+    }
+
+    pub fn state(&self) -> State<Database> {
+        State(self.database.clone())
+    }
+
     pub fn get_pool(&self) -> &DatabasePool {
-        &self.pool
+        &self.database().pool
     }
 
     pub fn get_key(&self) -> &EncryptionKey {
-        &self.key
+        &self.database().key
     }
 }
 

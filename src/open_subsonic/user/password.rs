@@ -1,6 +1,6 @@
 use libaes::Cipher;
 
-use crate::config::EncryptionKey;
+use crate::database::EncryptionKey;
 use crate::{OSResult, OpenSubsonicError};
 
 const IV_LEN: usize = 16;

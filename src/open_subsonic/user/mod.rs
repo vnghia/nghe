@@ -4,9 +4,7 @@ pub mod setup;
 
 use axum::{routing::get, Router};
 
-use crate::ServerState;
-
-pub fn router() -> Router<ServerState> {
+pub fn router() -> Router<crate::Database> {
     Router::new()
         .route("/rest/setup", get(setup::setup_handler))
         .route("/rest/createUser", get(create::create_user_handler))

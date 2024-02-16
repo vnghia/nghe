@@ -1,6 +1,6 @@
 use super::create::{create_user, CreateUserParams};
 use crate::models::*;
-use crate::{OSResult, OpenSubsonicError, ServerState};
+use crate::{Database, OSResult, OpenSubsonicError};
 
 use axum::extract::State;
 use axum::Form;
@@ -26,12 +26,12 @@ pub struct SetupParams {
 pub struct SetupBody {}
 
 pub async fn setup_handler(
-    State(state): State<ServerState>,
+    State(database): State<Database>,
     Form(params): Form<SetupParams>,
 ) -> OSResult<SetupResponse> {
     if users::table
         .count()
-        .first::<i64>(&mut state.database.pool.get().await?)
+        .first::<i64>(&mut database.pool.get().await?)
         .await?
         != 0
     {
@@ -40,8 +40,7 @@ pub async fn setup_handler(
         });
     }
     create_user(
-        &state.database.pool,
-        &state.database.key,
+        &database,
         CreateUserParams {
             username: params.username,
             password: params.password,
@@ -58,20 +57,16 @@ pub async fn setup_handler(
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
-
     use super::*;
-    use crate::utils::test::{
-        state::setup_state,
-        user::{create_username_password, create_users},
-    };
+    use crate::utils::test::user::{create_username_password, create_users};
+
+    use fake::{Fake, Faker};
 
     #[tokio::test]
     async fn test_setup_no_user() {
         let (db, _) = create_users(0, 0).await;
         let (username, password) = create_username_password();
 
-        let state = setup_state(&db);
         let form = Form(SetupParams {
             username,
             password,
@@ -79,7 +74,7 @@ mod tests {
         });
 
         assert_eq!(
-            setup_handler(state, form).await.unwrap().0,
+            setup_handler(db.state(), form).await.unwrap().0,
             SetupBody::default().into()
         );
     }
@@ -89,7 +84,6 @@ mod tests {
         let (db, _) = create_users(1, 1).await;
         let (username, password) = create_username_password();
 
-        let state = setup_state(&db);
         let form = Form(SetupParams {
             username,
             password,
@@ -97,7 +91,7 @@ mod tests {
         });
 
         assert!(matches!(
-            setup_handler(state, form).await,
+            setup_handler(db.state(), form).await,
             Err(OpenSubsonicError::Forbidden { message: _ })
         ));
     }

@@ -2,31 +2,27 @@ mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
+use crate::database::EncryptionKey;
+
 use derivative::Derivative;
 use figment::{
     providers::{Env, Serialized},
-    util::map,
     Figment,
 };
-use libaes::AES_128_KEY_LEN;
 use serde::Deserialize;
 use serde_with::serde_as;
 use std::{net::IpAddr, path::PathBuf};
 
-pub type EncryptionKey = [u8; AES_128_KEY_LEN];
-
-#[derive(Debug, Deserialize, Clone)]
-#[allow(unused)]
-pub struct Server {
+#[derive(Debug, Deserialize)]
+pub struct ServerConfig {
     pub host: IpAddr,
     pub port: u16,
 }
 
 #[serde_as]
-#[derive(Derivative, Deserialize, Clone)]
+#[derive(Derivative, Deserialize)]
 #[derivative(Debug)]
-#[allow(unused)]
-pub struct Database {
+pub struct DatabaseConfig {
     #[derivative(Debug = "ignore")]
     pub url: String,
     #[derivative(Debug = "ignore")]
@@ -35,26 +31,23 @@ pub struct Database {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize, Clone)]
-#[allow(unused)]
-pub struct Folder {
+#[derive(Debug, Deserialize)]
+pub struct FolderConfig {
     pub top_paths: Vec<PathBuf>,
     pub depth_levels: Vec<usize>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[allow(unused)]
-pub struct Artist {
+#[derive(Debug, Deserialize)]
+pub struct ArtistConfig {
     pub ignored_articles: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
-#[allow(unused)]
+#[derive(Debug, Deserialize)]
 pub struct Config {
-    pub server: Server,
-    pub database: Database,
-    pub folder: Folder,
-    pub artist: Artist,
+    pub server: ServerConfig,
+    pub database: DatabaseConfig,
+    pub folder: FolderConfig,
+    pub artist: ArtistConfig,
 }
 
 impl Config {
@@ -64,17 +57,15 @@ impl Config {
                 Env::prefixed(&concat_string::concat_string!(built_info::PKG_NAME, "_"))
                     .split("__"),
             )
-            .join(Serialized::default(
-                "server",
-                map!["host" => "127.0.0.1", "port" => "3000"],
-            ))
+            .join(Serialized::default("server.host", "127.0.0.1"))
+            .join(Serialized::default("server.port", 3000))
             .join(Serialized::default(
                 "folder.depth_levels",
                 Vec::<usize>::default(),
             ))
             .join(Serialized::default(
-                "artist",
-                map!["ignored_articles" => "The An A Die Das Ein Eine Les Le La"],
+                "artist.ignored_articles",
+                "The An A Die Das Ein Eine Les Le La",
             ))
             .extract()
             .expect("can not parse initial config")

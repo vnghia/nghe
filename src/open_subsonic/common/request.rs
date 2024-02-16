@@ -1,7 +1,6 @@
 use super::super::user::password::*;
-use crate::config::EncryptionKey;
 use crate::models::*;
-use crate::{DatabasePool, OSResult, OpenSubsonicError, ServerState};
+use crate::{Database, OSResult, OpenSubsonicError};
 
 use axum::extract::{rejection::FormRejection, Form, FromRef, FromRequest, Request};
 use derivative::Derivative;
@@ -32,7 +31,7 @@ pub trait Validate {
 
     fn need_admin(&self) -> bool;
 
-    async fn validate(&self, pool: &DatabasePool, key: &EncryptionKey) -> OSResult<users::User> {
+    async fn validate(&self, Database { pool, key }: &Database) -> OSResult<users::User> {
         let common_params = self.get_common_params();
         let user = match users::table
             .filter(users::username.eq(&common_params.username))
@@ -66,7 +65,7 @@ pub struct ValidatedForm<T> {
 impl<T, S> FromRequest<S> for ValidatedForm<T>
 where
     T: DeserializeOwned + Validate + Send + Sync + std::fmt::Debug,
-    ServerState: FromRef<S>,
+    Database: FromRef<S>,
     S: Send + Sync,
     Form<T>: FromRequest<S, Rejection = FormRejection>,
 {
@@ -75,10 +74,8 @@ where
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let Form(params) = Form::<T>::from_request(req, state).await?;
         tracing::debug!("deserialized form {:?}", params);
-        let state = ServerState::from_ref(state);
-        let user = params
-            .validate(&state.database.pool, &state.database.key)
-            .await?;
+        let database = Database::from_ref(state);
+        let user = params.validate(&database).await?;
         Ok(ValidatedForm { params, user })
     }
 }
@@ -109,7 +106,7 @@ mod tests {
         assert!(TestParams {
             common: users[0].to_common_params(db.get_key())
         }
-        .validate(db.get_pool(), db.get_key())
+        .validate(db.database())
         .await
         .is_ok());
     }
@@ -125,7 +122,7 @@ mod tests {
                     ..users[0].to_common_params(db.get_key())
                 }
             }
-            .validate(db.get_pool(), db.get_key())
+            .validate(db.database())
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
@@ -138,8 +135,7 @@ mod tests {
         let wrong_password = Password(16..32).fake::<String>().into_bytes();
         let (client_salt, client_token) = create_password_token(&wrong_password);
         let _ = create_user(
-            db.get_pool(),
-            db.get_key(),
+            db.database(),
             CreateUserParams {
                 username: username.clone(),
                 password,
@@ -156,7 +152,7 @@ mod tests {
                     token: client_token
                 }
             }
-            .validate(db.get_pool(), db.get_key())
+            .validate(db.database())
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
@@ -168,7 +164,7 @@ mod tests {
         assert!(AdminTestParams {
             common: users[0].to_common_params(db.get_key())
         }
-        .validate(db.get_pool(), db.get_key())
+        .validate(db.database())
         .await
         .is_ok());
     }
@@ -180,7 +176,7 @@ mod tests {
             AdminTestParams {
                 common: users[0].to_common_params(db.get_key())
             }
-            .validate(db.get_pool(), db.get_key())
+            .validate(db.database())
             .await,
             Err(OpenSubsonicError::Forbidden { message: _ })
         ));

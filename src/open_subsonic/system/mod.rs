@@ -2,8 +2,6 @@ mod ping;
 
 use axum::{routing::get, Router};
 
-use crate::ServerState;
-
-pub fn router() -> Router<ServerState> {
+pub fn router() -> Router<crate::Database> {
     Router::new().route("/rest/ping", get(ping::ping_handler))
 }

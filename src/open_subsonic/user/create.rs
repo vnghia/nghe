@@ -1,8 +1,7 @@
 use super::password::encrypt_password;
-use crate::config::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
-use crate::{DatabasePool, OSResult, ServerState};
+use crate::{Database, OSResult};
 
 use axum::extract::State;
 use derivative::Derivative;
@@ -33,16 +32,15 @@ pub struct CreateUserParams {
 pub struct CreateUserBody {}
 
 pub async fn create_user_handler(
-    State(state): State<ServerState>,
+    State(database): State<Database>,
     req: CreateUserRequest,
 ) -> OSResult<CreateUserResponse> {
-    create_user(&state.database.pool, &state.database.key, req.params).await?;
+    create_user(&database, req.params).await?;
     Ok(CreateUserBody::default().into())
 }
 
 pub async fn create_user(
-    pool: &DatabasePool,
-    key: &EncryptionKey,
+    Database { pool, key }: &Database,
     params: CreateUserParams,
 ) -> OSResult<users::User> {
     let CreateUserParams {
@@ -90,8 +88,7 @@ mod tests {
 
         // should re-trigger the refreshing of music folders
         let user = create_user(
-            db.get_pool(),
-            db.get_key(),
+            db.database(),
             CreateUserParams {
                 username,
                 password,
