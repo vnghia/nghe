@@ -29,6 +29,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    configs (key) {
+        key -> Text,
+        text -> Nullable<Text>,
+        byte -> Nullable<Bytea>,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     music_folders (id) {
         id -> Uuid,
         path -> Text,
@@ -95,6 +104,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     albums,
     albums_artists,
     artists,
+    configs,
     music_folders,
     songs,
     songs_artists,
