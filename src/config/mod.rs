@@ -14,7 +14,7 @@ pub type DatabaseConfig = raw::DatabaseConfig;
 pub type FolderConfig = raw::FolderConfig;
 
 #[derive(Debug, Clone, Default)]
-pub struct ArtistConfig {
+pub struct ArtistIndexConfig {
     pub ignored_articles: String,
     pub ignored_prefixes: Vec<String>,
 }
@@ -26,7 +26,7 @@ pub struct Config {
     #[derivative(Debug = "ignore")]
     pub database: DatabaseConfig,
     pub folder: FolderConfig,
-    pub artist: ArtistConfig,
+    pub artist_index: ArtistIndexConfig,
 }
 
 impl ServerConfig {
@@ -37,7 +37,7 @@ impl ServerConfig {
     }
 }
 
-impl ArtistConfig {
+impl ArtistIndexConfig {
     pub fn new(ignored_articles: String) -> Self {
         let ignored_prefixes = ignored_articles
             .split_ascii_whitespace()
@@ -60,13 +60,13 @@ impl Config {
 
         let folder = raw_config.folder;
 
-        let artist = ArtistConfig::new(raw_config.artist.ignored_articles);
+        let artist_index = ArtistIndexConfig::new(raw_config.artist.ignored_articles);
 
         Self {
             server,
             database,
             folder,
-            artist,
+            artist_index,
         }
     }
 }
@@ -84,9 +84,9 @@ mod tests {
     #[test]
     fn test_new_artist_config() {
         let ignored_articles = "The A An".to_owned();
-        let artist_config = ArtistConfig::new(ignored_articles);
+        let artist_index_config = ArtistIndexConfig::new(ignored_articles);
         assert_eq!(
-            artist_config.ignored_prefixes,
+            artist_index_config.ignored_prefixes,
             vec!["The ", "A ", "An "]
                 .into_iter()
                 .map(std::borrow::ToOwned::to_owned)
