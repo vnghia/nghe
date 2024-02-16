@@ -2,7 +2,7 @@ use crate::models::*;
 use crate::utils::song::tag::SongTag;
 use crate::DatabasePool;
 
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{dsl::exists, ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
 use itertools::Itertools;
@@ -218,8 +218,9 @@ pub async fn assert_song_artist_names<S: AsRef<str>>(pool: &DatabasePool, names:
             .sorted()
             .collect_vec(),
         artists::table
-            .left_join(songs_artists::table)
-            .filter(songs_artists::song_id.is_not_null())
+            .filter(exists(
+                songs_artists::table.filter(songs_artists::artist_id.eq(artists::id))
+            ))
             .select(artists::name)
             .distinct()
             .load::<String>(&mut pool.get().await.unwrap())
@@ -241,8 +242,9 @@ pub async fn assert_album_artist_names<S: AsRef<str>>(pool: &DatabasePool, names
             .sorted()
             .collect_vec(),
         artists::table
-            .left_join(albums_artists::table)
-            .filter(albums_artists::album_id.is_not_null())
+            .filter(exists(
+                albums_artists::table.filter(albums_artists::artist_id.eq(artists::id))
+            ))
             .select(artists::name)
             .distinct()
             .load::<String>(&mut pool.get().await.unwrap())

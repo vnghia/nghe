@@ -8,7 +8,10 @@ use crate::{
     DatabasePool, OSResult,
 };
 
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{
+    dsl::{exists, not},
+    ExpressionMethods, OptionalExtension, QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
@@ -121,8 +124,9 @@ pub async fn scan_full<S: AsRef<str>>(
         .filter(
             albums::id.eq_any(
                 albums_no_song
-                    .left_join(songs::table)
-                    .filter(songs::id.is_null())
+                    .filter(not(exists(
+                        songs::table.filter(songs::album_id.eq(albums_no_song.field(albums::id))),
+                    )))
                     .select(albums_no_song.field(albums::id)),
             ),
         )
@@ -134,10 +138,12 @@ pub async fn scan_full<S: AsRef<str>>(
         .filter(
             artists::id.eq_any(
                 artists_no_song_no_album
-                    .left_join(albums_artists::table)
-                    .left_join(songs_artists::table)
-                    .filter(albums_artists::album_id.is_null())
-                    .filter(songs_artists::song_id.is_null())
+                    .filter(not(exists(albums_artists::table.filter(
+                        albums_artists::artist_id.eq(artists_no_song_no_album.field(artists::id)),
+                    ))))
+                    .filter(not(exists(songs_artists::table.filter(
+                        songs_artists::artist_id.eq(artists_no_song_no_album.field(artists::id)),
+                    ))))
                     .select(artists_no_song_no_album.field(artists::id)),
             ),
         )
