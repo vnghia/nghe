@@ -12,12 +12,7 @@ axum = { version = "0.7.4", features = ["macros"] }
 concat-string = "1.0.1"
 crossbeam-channel = "0.5.11"
 derivative = "2.2.0"
-diesel = { version = "2.1.4", features = [
-  "uuid",
-  "time",
-  # TODO: delete this after https://github.com/diesel-rs/diesel/pull/3937
-  "i-implement-a-third-party-backend-and-opt-into-breaking-changes",
-] }
+diesel = { version = "2.1.4", features = ["uuid", "time"] }
 diesel-async = { version = "0.4.1", features = [
   "postgres",
   "deadpool",
