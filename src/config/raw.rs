@@ -50,6 +50,10 @@ pub struct Config {
     pub artist: ArtistConfig,
 }
 
+impl ArtistConfig {
+    pub const IGNORED_ARTICLES_DEFAULT_VALUE: &'static str = "The An A Die Das Ein Eine Les Le La";
+}
+
 impl Config {
     pub fn new() -> Self {
         Figment::new()
@@ -65,7 +69,7 @@ impl Config {
             ))
             .join(Serialized::default(
                 "artist.ignored_articles",
-                "The An A Die Das Ein Eine Les Le La",
+                ArtistConfig::IGNORED_ARTICLES_DEFAULT_VALUE,
             ))
             .extract()
             .expect("can not parse initial config")

@@ -13,7 +13,7 @@ pub type DatabaseConfig = raw::DatabaseConfig;
 
 pub type FolderConfig = raw::FolderConfig;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ArtistIndexConfig {
     pub ignored_articles: String,
     pub ignored_prefixes: Vec<String>,
@@ -38,6 +38,8 @@ impl ServerConfig {
 }
 
 impl ArtistIndexConfig {
+    pub const IGNORED_ARTICLES_CONFIG_KEY: &'static str = "ignored_articles";
+
     pub fn new(ignored_articles: String) -> Self {
         let ignored_prefixes = ignored_articles
             .split_ascii_whitespace()
@@ -47,6 +49,13 @@ impl ArtistIndexConfig {
             ignored_articles,
             ignored_prefixes,
         }
+    }
+}
+
+#[cfg(test)]
+impl Default for ArtistIndexConfig {
+    fn default() -> Self {
+        Self::new(raw::ArtistConfig::IGNORED_ARTICLES_DEFAULT_VALUE.to_owned())
     }
 }
 
