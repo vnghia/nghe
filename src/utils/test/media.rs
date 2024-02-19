@@ -56,9 +56,10 @@ pub async fn query_all_song_information(
         .await
         .expect("can not query song artists");
 
-    let album_artists = artists::table
-        .inner_join(albums_artists::table)
-        .filter(albums_artists::album_id.eq(album.id))
+    let album_artists = songs_album_artists::table
+        .inner_join(artists::table)
+        .inner_join(songs::table)
+        .filter(songs::album_id.eq(album.id))
         .select(artists::Artist::as_select())
         .get_results(
             &mut pool
@@ -243,7 +244,8 @@ pub async fn assert_album_artist_names<S: AsRef<str>>(pool: &DatabasePool, names
             .collect_vec(),
         artists::table
             .filter(exists(
-                albums_artists::table.filter(albums_artists::artist_id.eq(artists::id))
+                songs_album_artists::table
+                    .filter(songs_album_artists::album_artist_id.eq(artists::id))
             ))
             .select(artists::name)
             .distinct()

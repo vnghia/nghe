@@ -1,6 +1,6 @@
 use super::{
-    album::upsert_album, album::upsert_album_artists, artist::upsert_artists, song::upsert_song,
-    song::upsert_song_artists,
+    album::upsert_album, album::upsert_song_album_artists, artist::upsert_artists,
+    song::upsert_song, song::upsert_song_artists,
 };
 use crate::{
     models::*,
@@ -81,10 +81,9 @@ pub async fn scan_full(
             )
             .await?;
 
-            upsert_album_artists(
+            upsert_song_album_artists(
                 pool,
-                album_id,
-                song_id,
+                &song_id,
                 &upsert_artists(pool, &song_tag.album_artists).await?,
             )
             .await?;
@@ -95,10 +94,9 @@ pub async fn scan_full(
             // song1 -> album -> album_artist1
             // song2 -> album -> album_artist2
             // album -> [album_artist1, album_artist2]
-            diesel::delete(albums_artists::table)
-                .filter(albums_artists::album_id.eq(album_id))
-                .filter(albums_artists::song_id.eq(song_id))
-                .filter(albums_artists::upserted_at.lt(scan_start_time))
+            diesel::delete(songs_album_artists::table)
+                .filter(songs_album_artists::song_id.eq(song_id))
+                .filter(songs_album_artists::upserted_at.lt(scan_start_time))
                 .execute(&mut pool.get().await?)
                 .await?;
 
@@ -137,9 +135,12 @@ pub async fn scan_full(
         .filter(
             artists::id.eq_any(
                 artists_no_song_no_album
-                    .filter(not(exists(albums_artists::table.filter(
-                        albums_artists::artist_id.eq(artists_no_song_no_album.field(artists::id)),
-                    ))))
+                    .filter(not(exists(
+                        songs_album_artists::table.filter(
+                            songs_album_artists::album_artist_id
+                                .eq(artists_no_song_no_album.field(artists::id)),
+                        ),
+                    )))
                     .filter(not(exists(songs_artists::table.filter(
                         songs_artists::artist_id.eq(artists_no_song_no_album.field(artists::id)),
                     ))))

@@ -18,31 +18,27 @@ pub async fn upsert_album<'a>(pool: &DatabasePool, name: Cow<'a, str>) -> OSResu
         .await?)
 }
 
-pub async fn upsert_album_artists(
+pub async fn upsert_song_album_artists(
     pool: &DatabasePool,
-    album_id: Uuid,
-    song_id: Uuid,
-    artist_ids: &[Uuid],
+    song_id: &Uuid,
+    album_artist_ids: &[Uuid],
 ) -> OSResult<()> {
-    diesel::insert_into(albums_artists::table)
+    diesel::insert_into(songs_album_artists::table)
         .values(
-            artist_ids
+            album_artist_ids
                 .iter()
-                .cloned()
-                .map(|artist_id| albums_artists::NewAlbumArtist {
-                    album_id,
-                    artist_id,
+                .map(|album_artist_id| songs_album_artists::NewSongAlbumArtist {
                     song_id,
+                    album_artist_id,
                 })
                 .collect_vec(),
         )
         .on_conflict((
-            albums_artists::album_id,
-            albums_artists::artist_id,
-            albums_artists::song_id,
+            songs_album_artists::song_id,
+            songs_album_artists::album_artist_id,
         ))
         .do_update()
-        .set(albums_artists::upserted_at.eq(time::OffsetDateTime::now_utc()))
+        .set(songs_album_artists::upserted_at.eq(time::OffsetDateTime::now_utc()))
         .execute(&mut pool.get().await?)
         .await?;
     Ok(())
