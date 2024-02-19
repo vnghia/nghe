@@ -100,7 +100,7 @@ pub async fn scan_full(
                 .execute(&mut pool.get().await?)
                 .await?;
 
-            upsert_song_artists(pool, song_id, &artist_ids).await?;
+            upsert_song_artists(pool, &song_id, &artist_ids).await?;
             diesel::delete(songs_artists::table)
                 .filter(songs_artists::song_id.eq(song_id))
                 .filter(songs_artists::upserted_at.lt(scan_start_time))
