@@ -1,4 +1,5 @@
 pub mod albums;
+pub mod alias;
 pub mod artists;
 pub mod configs;
 pub mod music_folders;
