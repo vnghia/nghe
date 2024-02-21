@@ -6,66 +6,46 @@ use diesel::{
 };
 use uuid::Uuid;
 
-pub type SelectDistinctAlbumId = Distinct<Select<alias::SongsTable, alias::SongsAlbumId>>;
+pub type SelectDistinctAlbumId = Distinct<Select<songs::table, songs::album_id>>;
 
 pub type SelectDistinctAlbumIdInMusicFolder<'a> =
-    Filter<SelectDistinctAlbumId, EqAny<alias::SongsMusicFolderId, &'a [Uuid]>>;
+    Filter<SelectDistinctAlbumId, EqAny<songs::music_folder_id, &'a [Uuid]>>;
 
 pub type SongsAlbumArtistsWithAlbumArtistIdAndSongId<'a> = Filter<
-    Filter<alias::SongsAlbumArtistsTable, Eq<alias::SongsAlbumArtistsAlbumArtistId, &'a Uuid>>,
-    Eq<alias::SongsAlbumArtistsSongId, alias::SongsId>,
+    Filter<songs_album_artists::table, Eq<songs_album_artists::album_artist_id, &'a Uuid>>,
+    Eq<songs_album_artists::song_id, songs::id>,
 >;
 
 pub type SongsArtistsWithArtistIdAndSongId<'a> = Filter<
-    Filter<alias::SongsArtistsTable, Eq<alias::SongsArtistsArtistId, &'a Uuid>>,
-    Eq<alias::SongsArtistsSongId, alias::SongsId>,
+    Filter<songs_artists::table, Eq<songs_artists::artist_id, &'a Uuid>>,
+    Eq<songs_artists::song_id, songs::id>,
 >;
 
-pub type GetArtistAlbums<'a> = OrFilter<
-    Filter<
-        SelectDistinctAlbumIdInMusicFolder<'a>,
-        exists<SongsAlbumArtistsWithAlbumArtistIdAndSongId<'a>>,
-    >,
-    exists<SongsArtistsWithArtistIdAndSongId<'a>>,
+pub type GetArtistOwnALbums<'a> = Filter<
+    SelectDistinctAlbumIdInMusicFolder<'a>,
+    exists<SongsAlbumArtistsWithAlbumArtistIdAndSongId<'a>>,
 >;
+
+pub type GetArtistAlbums<'a> =
+    OrFilter<GetArtistOwnALbums<'a>, exists<SongsArtistsWithArtistIdAndSongId<'a>>>;
 
 pub fn get_artist_albums_query<'a>(
     music_folder_ids: &'a [Uuid],
     artist_id: &'a Uuid,
 ) -> GetArtistAlbums<'a> {
-    alias::songs
-        .select(alias::songs.field(songs::album_id))
+    songs::table
+        .select(songs::album_id)
         .distinct()
-        .filter(
-            alias::songs
-                .field(songs::music_folder_id)
-                .eq_any(music_folder_ids),
-        )
+        .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(exists(
-            alias::songs_album_artists
-                .filter(
-                    alias::songs_album_artists
-                        .field(songs_album_artists::album_artist_id)
-                        .eq(artist_id),
-                )
-                .filter(
-                    alias::songs_album_artists
-                        .field(songs_album_artists::song_id)
-                        .eq(alias::songs.field(songs::id)),
-                ),
+            songs_album_artists::table
+                .filter(songs_album_artists::album_artist_id.eq(artist_id))
+                .filter(songs_album_artists::song_id.eq(songs::id)),
         ))
         .or_filter(exists(
-            alias::songs_artists
-                .filter(
-                    alias::songs_artists
-                        .field(songs_artists::artist_id)
-                        .eq(artist_id),
-                )
-                .filter(
-                    alias::songs_artists
-                        .field(songs_artists::song_id)
-                        .eq(alias::songs.field(songs::id)),
-                ),
+            songs_artists::table
+                .filter(songs_artists::artist_id.eq(artist_id))
+                .filter(songs_artists::song_id.eq(songs::id)),
         ))
 }
 
