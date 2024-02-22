@@ -29,10 +29,10 @@ pub type GetArtistOwnALbums<'a> = Filter<
 pub type GetArtistAlbums<'a> =
     OrFilter<GetArtistOwnALbums<'a>, exists<SongsArtistsWithArtistIdAndSongId<'a>>>;
 
-pub fn get_artist_albums_query<'a>(
+pub fn get_artist_own_albums_query<'a>(
     music_folder_ids: &'a [Uuid],
     artist_id: &'a Uuid,
-) -> GetArtistAlbums<'a> {
+) -> GetArtistOwnALbums<'a> {
     songs::table
         .select(songs::album_id)
         .distinct()
@@ -42,11 +42,17 @@ pub fn get_artist_albums_query<'a>(
                 .filter(songs_album_artists::album_artist_id.eq(artist_id))
                 .filter(songs_album_artists::song_id.eq(songs::id)),
         ))
-        .or_filter(exists(
-            songs_artists::table
-                .filter(songs_artists::artist_id.eq(artist_id))
-                .filter(songs_artists::song_id.eq(songs::id)),
-        ))
+}
+
+pub fn get_artist_albums_query<'a>(
+    music_folder_ids: &'a [Uuid],
+    artist_id: &'a Uuid,
+) -> GetArtistAlbums<'a> {
+    get_artist_own_albums_query(music_folder_ids, artist_id).or_filter(exists(
+        songs_artists::table
+            .filter(songs_artists::artist_id.eq(artist_id))
+            .filter(songs_artists::song_id.eq(songs::id)),
+    ))
 }
 
 #[cfg(test)]
@@ -103,6 +109,16 @@ mod tests {
             .collect_vec();
         let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
 
+        let own_album_ids = get_artist_own_albums_query(&music_folder_ids, &artist_id)
+            .get_results::<Uuid>(&mut temp_db.pool().get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec();
+
+        assert_eq!(own_album_ids, album_fs_ids);
+
         let album_ids = get_artist_albums_query(&music_folder_ids, &artist_id)
             .get_results::<Uuid>(&mut temp_db.pool().get().await.unwrap())
             .await
@@ -153,6 +169,13 @@ mod tests {
             .collect_vec();
         let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
 
+        let own_album_ids = get_artist_own_albums_query(&music_folder_ids, &artist_id)
+            .get_results::<Uuid>(&mut temp_db.pool().get().await.unwrap())
+            .await
+            .unwrap();
+
+        assert!(own_album_ids.is_empty());
+
         let album_ids = get_artist_albums_query(&music_folder_ids, &artist_id)
             .get_results::<Uuid>(&mut temp_db.pool().get().await.unwrap())
             .await
@@ -201,6 +224,27 @@ mod tests {
             .map(|music_folder| music_folder.id)
             .collect_vec();
         let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
+
+        let own_album_ids = get_artist_own_albums_query(&music_folder_ids, &artist_id)
+            .get_results::<Uuid>(&mut temp_db.pool().get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec();
+
+        assert_eq!(
+            own_album_ids,
+            song_paths_to_album_ids(
+                temp_db.pool(),
+                &song_fs_info
+                    .clone()
+                    .into_iter()
+                    .filter(|(_, v)| v.album_artists.contains(&artist_name.to_owned()))
+                    .collect()
+            )
+            .await
+        );
 
         let album_ids = get_artist_albums_query(&music_folder_ids, &artist_id)
             .get_results::<Uuid>(&mut temp_db.pool().get().await.unwrap())
