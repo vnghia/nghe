@@ -2,7 +2,7 @@ use crate::config::ArtistIndexConfig;
 use crate::models::*;
 use crate::{DatabasePool, OSResult};
 
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
 use futures::TryStreamExt;
@@ -61,13 +61,12 @@ pub async fn build_artist_indices(
             .into_boxed();
 
         let need_full_rebuild = configs::table
-            .select(configs::text.ne(ignored_articles))
+            .select(configs::text.is_distinct_from(ignored_articles))
             .filter(configs::key.eq(ArtistIndexConfig::IGNORED_ARTICLES_CONFIG_KEY))
-            .first::<Option<bool>>(&mut pool.get().await?)
+            .first::<bool>(&mut pool.get().await?)
             .await
             .optional()?
-            .unwrap_or(Some(true)) // None if the key hasn't been added to the table yet.
-            .unwrap_or(true); // None if the current value in the table is null.
+            .unwrap_or(true); // None if the key hasn't been added to the table yet.
         if !need_full_rebuild {
             artist_query = artist_query.filter(artists::index.eq("?"));
         }
