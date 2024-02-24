@@ -105,6 +105,29 @@ mod tests {
     }
 
     #[test]
+    fn test_ser_success_camel_case() {
+        #[wrap_subsonic_response]
+        struct TestBody {
+            camel_case: u16,
+        }
+        let camel_case = 10;
+
+        assert_eq!(
+            to_value(Into::<SubsonicTestBody>::into(TestBody { camel_case })).unwrap(),
+            json!({
+                "subsonic-response": {
+                    "camelCase": camel_case,
+                    "status": "ok",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_TYPE,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        )
+    }
+
+    #[test]
     fn test_ser_error_empty() {
         #[wrap_subsonic_response(success = false)]
         struct TestBody {}
