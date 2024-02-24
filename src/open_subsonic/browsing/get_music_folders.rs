@@ -5,11 +5,9 @@ use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[add_validate]
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GetMusicFoldersParams {}
 
 #[derive(Debug, Serialize)]
@@ -18,7 +16,7 @@ pub struct MusicFolders {
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct GetMusicFoldersBody {
     music_folders: MusicFolders,
 }

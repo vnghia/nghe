@@ -7,12 +7,11 @@ use axum::Form;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::wrap_subsonic_response;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_with::serde_as;
 
 #[serde_as]
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct SetupParams {
     pub username: String,
@@ -22,7 +21,7 @@ pub struct SetupParams {
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub struct SetupBody {}
 
 pub async fn setup_handler(

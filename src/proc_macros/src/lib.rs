@@ -65,9 +65,11 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     );
 
     quote! {
+        #[derive(serde::Serialize)]
+        #[serde(rename_all = "camelCase")]
         #old_struct
 
-        #[derive(Serialize)]
+        #[derive(serde::Serialize)]
         pub struct #root_struct_ident {
             #[serde(flatten)]
             constant: #constant_type_token,
@@ -75,7 +77,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             body: #old_struct_ident,
         }
 
-        #[derive(Serialize)]
+        #[derive(serde::Serialize)]
         #[serde(rename_all = "camelCase")]
         pub struct #subsonic_struct_ident {
             #[serde(rename = "subsonic-response")]
@@ -155,6 +157,8 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     );
 
     quote!(
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
         #item_struct
 
         pub type #validated_type_ident = #validated_form_token<#item_struct_ident, #need_admin_token>;

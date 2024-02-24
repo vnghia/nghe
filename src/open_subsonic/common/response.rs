@@ -57,7 +57,6 @@ emit_constant_serialize!(status_failed, str, "failed");
 #[cfg(test)]
 mod tests {
     use super::constant;
-    use super::*;
 
     use serde_json::{json, to_value};
 
@@ -66,7 +65,6 @@ mod tests {
     #[test]
     fn test_ser_success_empty() {
         #[wrap_subsonic_response]
-        #[derive(Debug, Serialize)]
         struct TestBody {}
 
         assert_eq!(
@@ -86,7 +84,6 @@ mod tests {
     #[test]
     fn test_ser_success() {
         #[wrap_subsonic_response]
-        #[derive(Debug, Serialize)]
         struct TestBody {
             a: u16,
         }
@@ -110,7 +107,6 @@ mod tests {
     #[test]
     fn test_ser_error_empty() {
         #[wrap_subsonic_response(success = false)]
-        #[derive(Debug, Serialize)]
         struct TestBody {}
 
         assert_eq!(
@@ -130,7 +126,6 @@ mod tests {
     #[test]
     fn test_ser_error() {
         #[wrap_subsonic_response(success = false)]
-        #[derive(Debug, Serialize)]
         struct TestBody {
             a: u16,
         }

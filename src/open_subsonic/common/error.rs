@@ -27,7 +27,7 @@ struct ActualError {
 }
 
 #[wrap_subsonic_response(success = false)]
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 struct ErrorBody {
     error: ActualError,
 }

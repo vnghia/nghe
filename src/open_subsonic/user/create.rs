@@ -8,14 +8,12 @@ use derivative::Derivative;
 use diesel::SelectableHelper;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
-use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
 #[serde_as]
 #[add_validate(admin = true)]
-#[derive(Derivative, Deserialize)]
+#[derive(Derivative)]
 #[derivative(Debug)]
-#[serde(rename_all = "camelCase")]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct CreateUserParams {
     pub username: String,
@@ -29,7 +27,6 @@ pub struct CreateUserParams {
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Serialize)]
 pub struct CreateUserBody {}
 
 pub async fn create_user_handler(
