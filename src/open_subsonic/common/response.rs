@@ -66,11 +66,11 @@ mod tests {
     #[test]
     fn test_ser_success_empty() {
         #[wrap_subsonic_response]
-        #[derive(Debug, Default, Serialize)]
+        #[derive(Debug, Serialize)]
         struct TestBody {}
 
         assert_eq!(
-            to_value(Into::<WrappedTestBody>::into(TestBody::default())).unwrap(),
+            to_value(Into::<SubsonicTestBody>::into(TestBody {})).unwrap(),
             json!({
                 "subsonic-response": {
                     "status": "ok",
@@ -86,18 +86,14 @@ mod tests {
     #[test]
     fn test_ser_success() {
         #[wrap_subsonic_response]
-        #[derive(Debug, Default, Serialize)]
+        #[derive(Debug, Serialize)]
         struct TestBody {
             a: u16,
         }
         let a = 10;
 
         assert_eq!(
-            to_value(Into::<WrappedTestBody>::into(TestBody {
-                a,
-                ..Default::default()
-            }))
-            .unwrap(),
+            to_value(Into::<SubsonicTestBody>::into(TestBody { a })).unwrap(),
             json!({
                 "subsonic-response": {
                     "a": a,
@@ -114,11 +110,11 @@ mod tests {
     #[test]
     fn test_ser_error_empty() {
         #[wrap_subsonic_response(success = false)]
-        #[derive(Debug, Default, Serialize)]
+        #[derive(Debug, Serialize)]
         struct TestBody {}
 
         assert_eq!(
-            to_value(Into::<WrappedTestBody>::into(TestBody::default())).unwrap(),
+            to_value(Into::<SubsonicTestBody>::into(TestBody {})).unwrap(),
             json!({
                 "subsonic-response": {
                     "status": "failed",
@@ -134,18 +130,14 @@ mod tests {
     #[test]
     fn test_ser_error() {
         #[wrap_subsonic_response(success = false)]
-        #[derive(Debug, Default, Serialize)]
+        #[derive(Debug, Serialize)]
         struct TestBody {
             a: u16,
         }
         let a = 10;
 
         assert_eq!(
-            to_value(Into::<WrappedTestBody>::into(TestBody {
-                a,
-                ..Default::default()
-            }))
-            .unwrap(),
+            to_value(Into::<SubsonicTestBody>::into(TestBody { a })).unwrap(),
             json!({
                 "subsonic-response": {
                     "a": a,

@@ -15,8 +15,7 @@ struct WrapSubsonicResponse {
 
 #[proc_macro_attribute]
 pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStream {
-    let mut old_struct = parse_macro_input!(input as ItemStruct);
-    let mut new_struct = old_struct.clone();
+    let old_struct = parse_macro_input!(input as ItemStruct);
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
         Ok(v) => v,
@@ -38,12 +37,15 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     };
     let constant_type_token: proc_macro2::TokenStream = constant_type.parse().unwrap();
 
-    let mut new_struct_name = new_struct.ident.to_string();
-    new_struct_name.insert_str(0, "Wrapped");
-    new_struct.ident = Ident::new(&new_struct_name, new_struct.ident.span());
-
     let old_struct_ident = old_struct.ident.clone();
-    let new_struct_ident = new_struct.ident.clone();
+
+    let mut root_struct_name = old_struct.ident.to_string();
+    root_struct_name.insert_str(0, "Root");
+    let root_struct_ident = Ident::new(&root_struct_name, old_struct.ident.span());
+
+    let mut subsonic_struct_name = old_struct.ident.to_string();
+    subsonic_struct_name.insert_str(0, "Subsonic");
+    let subsonic_struct_ident = Ident::new(&subsonic_struct_name, old_struct.ident.span());
 
     let mut json_type = old_struct_ident.to_string();
     json_type = match json_type.strip_suffix("Body") {
@@ -62,39 +64,33 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
         old_struct.ident.span(),
     );
 
-    if let syn::Fields::Named(ref mut old_fields) = old_struct.fields {
-        if let syn::Fields::Named(ref mut new_fields) = new_struct.fields {
-            old_fields.named.push(
-                syn::Field::parse_named
-                    .parse2(quote! {
-                        #[serde(flatten)]
-                        constant: #constant_type_token
-                    })
-                    .unwrap(),
-            );
-            new_fields.named.clear();
-            new_fields.named.push(
-                syn::Field::parse_named
-                    .parse2(quote! {
-                        #[serde(rename = "subsonic-response")]
-                        root: #old_struct_ident
-                    })
-                    .unwrap(),
-            )
-        }
-    }
-
     quote! {
         #old_struct
 
-        #new_struct
+        #[derive(Serialize)]
+        pub struct #root_struct_ident {
+            #[serde(flatten)]
+            constant: #constant_type_token,
+            #[serde(flatten)]
+            body: #old_struct_ident,
+        }
 
-        pub type #json_type_ident = axum::Json<#new_struct_ident>;
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        pub struct #subsonic_struct_ident {
+            #[serde(rename = "subsonic-response")]
+            root: #root_struct_ident
+        }
 
-        impl From<#old_struct_ident> for #new_struct_ident {
+        pub type #json_type_ident = axum::Json<#subsonic_struct_ident>;
+
+        impl From<#old_struct_ident> for #subsonic_struct_ident {
             fn from(old: #old_struct_ident) -> Self {
                 Self {
-                    root: old
+                    root: #root_struct_ident {
+                        constant: Default::default(),
+                        body: old,
+                    }
                 }
             }
         }

@@ -28,7 +28,7 @@ pub struct CreateUserParams {
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Debug, Serialize)]
 pub struct CreateUserBody {}
 
 pub async fn create_user_handler(
@@ -36,7 +36,7 @@ pub async fn create_user_handler(
     req: CreateUserRequest,
 ) -> OSResult<CreateUserResponse> {
     create_user(&database, req.params).await?;
-    Ok(CreateUserBody::default().into())
+    Ok(CreateUserBody {}.into())
 }
 
 pub async fn create_user(

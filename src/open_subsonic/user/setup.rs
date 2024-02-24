@@ -22,7 +22,7 @@ pub struct SetupParams {
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Default, Serialize, PartialEq, Eq)]
+#[derive(Debug, Serialize)]
 pub struct SetupBody {}
 
 pub async fn setup_handler(
@@ -52,7 +52,7 @@ pub async fn setup_handler(
         },
     )
     .await?;
-    Ok(SetupBody::default().into())
+    Ok(SetupBody {}.into())
 }
 
 #[cfg(test)]
@@ -73,10 +73,7 @@ mod tests {
             ..Faker.fake()
         });
 
-        assert_eq!(
-            setup_handler(temp_db.state(), form).await.unwrap().0,
-            SetupBody::default().into()
-        );
+        assert!(setup_handler(temp_db.state(), form).await.is_ok());
     }
 
     #[tokio::test]

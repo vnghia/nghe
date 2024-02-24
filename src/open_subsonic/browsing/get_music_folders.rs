@@ -12,15 +12,13 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct GetMusicFoldersParams {}
 
-#[derive(Debug, Default, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Serialize)]
 pub struct MusicFolders {
     music_folder: Vec<music_folders::MusicFolder>,
 }
 
 #[wrap_subsonic_response]
-#[derive(Debug, Default, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Serialize)]
 pub struct GetMusicFoldersBody {
     music_folders: MusicFolders,
 }
@@ -41,7 +39,6 @@ pub async fn get_music_folders_handler(
         music_folders: MusicFolders {
             music_folder: music_folders,
         },
-        ..Default::default()
     }
     .into())
 }
@@ -75,6 +72,7 @@ mod tests {
                 .unwrap()
                 .0
                 .root
+                .body
                 .music_folders
                 .music_folder
                 .into_iter()
@@ -104,6 +102,7 @@ mod tests {
                 .unwrap()
                 .0
                 .root
+                .body
                 .music_folders
                 .music_folder
                 .into_iter()

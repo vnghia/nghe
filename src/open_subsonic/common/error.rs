@@ -20,14 +20,14 @@ pub enum OpenSubsonicError {
 
 pub type OSResult<T> = Result<T, OpenSubsonicError>;
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Serialize)]
 struct ActualError {
     code: u8,
     message: Cow<'static, str>,
 }
 
 #[wrap_subsonic_response(success = false)]
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Serialize)]
 struct ErrorBody {
     error: ActualError,
 }
@@ -36,7 +36,6 @@ fn error_to_json(code: u8, message: Cow<'static, str>) -> ErrorResponse {
     tracing::error!("{}", message);
     ErrorBody {
         error: ActualError { code, message },
-        ..Default::default()
     }
     .into()
 }
