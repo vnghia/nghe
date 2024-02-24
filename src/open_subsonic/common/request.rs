@@ -10,7 +10,7 @@ use serde::{de::DeserializeOwned, Deserialize};
 use serde_with::serde_as;
 
 #[serde_as]
-#[derive(Derivative, Default, Deserialize, PartialEq, Eq)]
+#[derive(Derivative, Deserialize)]
 #[derivative(Debug)]
 pub struct CommonParams {
     #[serde(rename = "u")]
@@ -25,14 +25,21 @@ pub struct CommonParams {
     pub token: MD5Token,
 }
 
-#[async_trait::async_trait]
-pub trait Validate {
-    fn get_common_params(&self) -> &CommonParams;
+#[derive(Debug, Deserialize)]
+pub struct RequestParams<T> {
+    #[serde(flatten)]
+    #[serde(rename = "camelCase")]
+    pub params: T,
+    #[serde(flatten)]
+    pub common: CommonParams,
+}
 
-    fn need_admin(&self) -> bool;
-
-    async fn validate(&self, Database { pool, key }: &Database) -> OSResult<users::User> {
-        let common_params = self.get_common_params();
+impl<T> RequestParams<T> {
+    pub async fn validate<const A: bool>(
+        &self,
+        Database { pool, key }: &Database,
+    ) -> OSResult<users::User> {
+        let common_params = &self.common;
         let user = match users::table
             .filter(users::username.eq(&common_params.username))
             .select(users::User::as_select())
@@ -48,7 +55,7 @@ pub trait Validate {
             &common_params.salt,
             &common_params.token,
         )?;
-        if self.need_admin() && !user.admin_role {
+        if A && !user.admin_role {
             return Err(OpenSubsonicError::Forbidden { message: None });
         }
         Ok(user)
@@ -56,15 +63,15 @@ pub trait Validate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidatedForm<T> {
+pub struct ValidatedForm<T, const A: bool> {
     pub params: T,
     pub user: users::User,
 }
 
 #[async_trait::async_trait]
-impl<T, S> FromRequest<S> for ValidatedForm<T>
+impl<T, const A: bool, S> FromRequest<S> for ValidatedForm<T, A>
 where
-    T: DeserializeOwned + Validate + Send + Sync + std::fmt::Debug,
+    RequestParams<T>: DeserializeOwned + Send + Sync,
     Database: FromRef<S>,
     S: Send + Sync,
     Form<T>: FromRequest<S, Rejection = FormRejection>,
@@ -72,11 +79,13 @@ where
     type Rejection = OpenSubsonicError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(params) = Form::<T>::from_request(req, state).await?;
-        tracing::debug!("deserialized form {:?}", params);
+        let Form(request_params) = Form::<RequestParams<T>>::from_request(req, state).await?;
         let database = Database::from_ref(state);
-        let user = params.validate(&database).await?;
-        Ok(ValidatedForm { params, user })
+        let user = request_params.validate::<A>(&database).await?;
+        Ok(ValidatedForm {
+            params: request_params.params,
+            user,
+        })
     }
 }
 
@@ -88,25 +97,18 @@ mod tests {
         utils::test::user::{create_password_token, create_username_password, create_users},
     };
 
-    use fake::{faker::internet::en::*, Fake};
+    use fake::{faker::internet::en::*, Fake, Faker};
 
-    use nghe_proc_macros::add_validate;
-
-    #[add_validate]
-    #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
     struct TestParams {}
-
-    #[add_validate(admin = true)]
-    #[derive(Debug, Default, Deserialize, PartialEq, Eq)]
-    struct AdminTestParams {}
 
     #[tokio::test]
     async fn test_validate_success() {
         let (temp_db, users) = create_users(1, 0).await;
-        assert!(TestParams {
+        assert!(RequestParams::<TestParams> {
+            params: TestParams {},
             common: users[0].to_common_params(temp_db.key())
         }
-        .validate(temp_db.database())
+        .validate::<false>(temp_db.database())
         .await
         .is_ok());
     }
@@ -116,13 +118,14 @@ mod tests {
         let (temp_db, users) = create_users(1, 0).await;
         let wrong_username: String = Username().fake();
         assert!(matches!(
-            TestParams {
+            RequestParams::<TestParams> {
+                params: TestParams {},
                 common: CommonParams {
                     username: wrong_username,
                     ..users[0].to_common_params(temp_db.key())
                 }
             }
-            .validate(temp_db.database())
+            .validate::<false>(temp_db.database())
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
@@ -139,20 +142,21 @@ mod tests {
             CreateUserParams {
                 username: username.clone(),
                 password,
-                ..Default::default()
+                ..Faker.fake()
             },
         )
         .await;
 
         assert!(matches!(
-            TestParams {
+            RequestParams::<TestParams> {
+                params: TestParams {},
                 common: CommonParams {
                     username,
                     salt: client_salt,
                     token: client_token
                 }
             }
-            .validate(temp_db.database())
+            .validate::<false>(temp_db.database())
             .await,
             Err(OpenSubsonicError::Unauthorized { message: _ })
         ));
@@ -161,10 +165,11 @@ mod tests {
     #[tokio::test]
     async fn test_validate_admin_success() {
         let (temp_db, users) = create_users(1, 1).await;
-        assert!(AdminTestParams {
+        assert!(RequestParams::<TestParams> {
+            params: TestParams {},
             common: users[0].to_common_params(temp_db.key())
         }
-        .validate(temp_db.database())
+        .validate::<true>(temp_db.database())
         .await
         .is_ok());
     }
@@ -173,10 +178,11 @@ mod tests {
     async fn test_validate_no_admin() {
         let (temp_db, users) = create_users(1, 0).await;
         assert!(matches!(
-            AdminTestParams {
+            RequestParams::<TestParams> {
+                params: TestParams {},
                 common: users[0].to_common_params(temp_db.key())
             }
-            .validate(temp_db.database())
+            .validate::<true>(temp_db.database())
             .await,
             Err(OpenSubsonicError::Forbidden { message: _ })
         ));

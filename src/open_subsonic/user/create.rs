@@ -13,9 +13,10 @@ use serde_with::serde_as;
 
 #[serde_as]
 #[add_validate(admin = true)]
-#[derive(Derivative, Default, Deserialize, PartialEq, Eq)]
+#[derive(Derivative, Deserialize)]
 #[derivative(Debug)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(test, derive(fake::Dummy))]
 pub struct CreateUserParams {
     pub username: String,
     #[derivative(Debug = "ignore")]
@@ -78,6 +79,7 @@ mod tests {
     };
 
     use diesel::{ExpressionMethods, QueryDsl};
+    use fake::{Fake, Faker};
     use itertools::Itertools;
     use uuid::Uuid;
 
@@ -92,7 +94,7 @@ mod tests {
             CreateUserParams {
                 username,
                 password,
-                ..Default::default()
+                ..Faker.fake()
             },
         )
         .await

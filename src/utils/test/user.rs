@@ -5,7 +5,7 @@ use crate::open_subsonic::common::request::CommonParams;
 use crate::open_subsonic::user::create::{create_user, CreateUserParams};
 use crate::open_subsonic::user::password::{decrypt_password, to_password_token, MD5Token};
 
-use fake::{faker::internet::en::*, Fake};
+use fake::{faker::internet::en::*, Fake, Faker};
 use futures::stream::{self, StreamExt};
 
 pub fn create_username_password() -> (String, Vec<u8>) {
@@ -33,7 +33,7 @@ pub async fn create_users(n_user: usize, n_admin: usize) -> (TemporaryDatabase, 
                     username,
                     password,
                     admin_role: i < n_admin,
-                    ..Default::default()
+                    ..Faker.fake()
                 },
             )
             .await

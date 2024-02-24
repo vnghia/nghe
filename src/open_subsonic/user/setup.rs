@@ -48,7 +48,6 @@ pub async fn setup_handler(
             admin_role: true,
             download_role: true,
             share_role: true,
-            ..Default::default()
         },
     )
     .await?;

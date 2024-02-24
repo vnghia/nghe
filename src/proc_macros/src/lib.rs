@@ -2,7 +2,7 @@ use concat_string::concat_string;
 use darling::{ast::NestedMeta, Error, FromMeta};
 use proc_macro::{self, TokenStream};
 use quote::quote;
-use syn::{parse::Parser, parse_macro_input, Ident, ItemStruct};
+use syn::{parse_macro_input, Ident, ItemStruct};
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
 const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
@@ -112,7 +112,7 @@ struct AddValidateResponse {
 
 #[proc_macro_attribute]
 pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
-    let mut item_struct = parse_macro_input!(input as ItemStruct);
+    let item_struct = parse_macro_input!(input as ItemStruct);
     let item_struct_ident = item_struct.ident.clone();
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
@@ -132,18 +132,11 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         .parse()
         .unwrap();
 
-    let common_type_token: proc_macro2::TokenStream =
-        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams")
-            .parse()
-            .unwrap();
-    let validate_trait_token: proc_macro2::TokenStream =
-        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::Validate")
-            .parse()
-            .unwrap();
     let validated_form_token: proc_macro2::TokenStream =
         concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::ValidatedForm")
             .parse()
             .unwrap();
+
     let mut validated_type = item_struct_ident.to_string();
     validated_type = match validated_type.strip_suffix("Params") {
         Some(result) => result.to_owned(),
@@ -161,32 +154,10 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         item_struct_ident.span(),
     );
 
-    if let syn::Fields::Named(ref mut fields) = item_struct.fields {
-        fields.named.push(
-            syn::Field::parse_named
-                .parse2(quote! {
-                    #[serde(flatten)]
-                    pub common: #common_type_token
-                })
-                .unwrap(),
-        );
-    }
-
     quote!(
         #item_struct
 
-        impl #validate_trait_token for #item_struct_ident {
-            fn get_common_params(&self) -> &#common_type_token {
-                &self.common
-            }
-
-            #[inline(always)]
-            fn need_admin(&self) -> bool {
-                #need_admin_token
-            }
-        }
-
-        pub type #validated_type_ident = #validated_form_token<#item_struct_ident>;
+        pub type #validated_type_ident = #validated_form_token<#item_struct_ident, #need_admin_token>;
     )
     .into()
 }

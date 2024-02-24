@@ -8,7 +8,7 @@ use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::{Deserialize, Serialize};
 
 #[add_validate]
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetMusicFoldersParams {}
 
@@ -46,7 +46,7 @@ pub async fn get_music_folders_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::http::to_validated_form;
+    use crate::open_subsonic::common::request::ValidatedForm;
     use crate::utils::test::setup::setup_users_and_music_folders;
 
     use itertools::Itertools;
@@ -59,13 +59,10 @@ mod tests {
         let sorted_music_folders = music_folders.into_iter().sorted().collect_vec();
 
         for user in users {
-            let form = to_validated_form(
-                temp_db.database(),
-                GetMusicFoldersParams {
-                    common: user.to_common_params(temp_db.key()),
-                },
-            )
-            .await;
+            let form = ValidatedForm {
+                params: GetMusicFoldersParams {},
+                user,
+            };
 
             let results = get_music_folders_handler(temp_db.state(), form)
                 .await
@@ -89,13 +86,10 @@ mod tests {
             setup_users_and_music_folders(2, 2, &[true, false, true, true]).await;
 
         for (i, user) in users.into_iter().enumerate() {
-            let form = to_validated_form(
-                temp_db.database(),
-                GetMusicFoldersParams {
-                    common: user.to_common_params(temp_db.key()),
-                },
-            )
-            .await;
+            let form = ValidatedForm {
+                params: GetMusicFoldersParams {},
+                user,
+            };
 
             let results = get_music_folders_handler(temp_db.state(), form)
                 .await
