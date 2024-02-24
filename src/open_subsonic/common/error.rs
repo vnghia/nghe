@@ -21,6 +21,7 @@ pub enum OpenSubsonicError {
 pub type OSResult<T> = Result<T, OpenSubsonicError>;
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ActualError {
     code: u8,
     message: Cow<'static, str>,
