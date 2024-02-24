@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
 #[serde_as]
-#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct SetupParams {
