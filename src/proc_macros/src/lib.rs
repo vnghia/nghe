@@ -15,7 +15,8 @@ struct WrapSubsonicResponse {
 
 #[proc_macro_attribute]
 pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStream {
-    let old_struct = parse_macro_input!(input as ItemStruct);
+    let item_struct = parse_macro_input!(input as ItemStruct);
+    let item_struct_ident = &item_struct.ident;
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
         Ok(v) => v,
@@ -37,22 +38,21 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     };
     let constant_type_token: proc_macro2::TokenStream = constant_type.parse().unwrap();
 
-    let old_struct_ident = old_struct.ident.clone();
+    let root_struct_ident = Ident::new(
+        &concat_string!("Root", item_struct_ident.to_string()),
+        item_struct_ident.span(),
+    );
 
-    let mut root_struct_name = old_struct.ident.to_string();
-    root_struct_name.insert_str(0, "Root");
-    let root_struct_ident = Ident::new(&root_struct_name, old_struct.ident.span());
+    let subsonic_struct_ident = Ident::new(
+        &concat_string!("Subsonic", item_struct_ident.to_string()),
+        item_struct_ident.span(),
+    );
 
-    let mut subsonic_struct_name = old_struct.ident.to_string();
-    subsonic_struct_name.insert_str(0, "Subsonic");
-    let subsonic_struct_ident = Ident::new(&subsonic_struct_name, old_struct.ident.span());
-
-    let mut json_type = old_struct_ident.to_string();
-    json_type = match json_type.strip_suffix("Body") {
+    let json_type = match item_struct_ident.to_string().strip_suffix("Body") {
         Some(result) => result.to_owned(),
         _ => {
             return syn::Error::new(
-                old_struct_ident.span(),
+                item_struct_ident.span(),
                 "struct's name should end with `Body`",
             )
             .to_compile_error()
@@ -61,20 +61,20 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     };
     let json_type_ident = Ident::new(
         &concat_string!(json_type, "Response"),
-        old_struct.ident.span(),
+        item_struct_ident.span(),
     );
 
     quote! {
         #[derive(serde::Serialize)]
         #[serde(rename_all = "camelCase")]
-        #old_struct
+        #item_struct
 
         #[derive(serde::Serialize)]
         pub struct #root_struct_ident {
             #[serde(flatten)]
             constant: #constant_type_token,
             #[serde(flatten)]
-            body: #old_struct_ident,
+            body: #item_struct_ident,
         }
 
         #[derive(serde::Serialize)]
@@ -86,8 +86,8 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
 
         pub type #json_type_ident = axum::Json<#subsonic_struct_ident>;
 
-        impl From<#old_struct_ident> for #subsonic_struct_ident {
-            fn from(old: #old_struct_ident) -> Self {
+        impl From<#item_struct_ident> for #subsonic_struct_ident {
+            fn from(old: #item_struct_ident) -> Self {
                 Self {
                     root: #root_struct_ident {
                         constant: Default::default(),
@@ -97,8 +97,8 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             }
         }
 
-        impl From<#old_struct_ident> for #json_type_ident {
-            fn from(old: #old_struct_ident) -> Self {
+        impl From<#item_struct_ident> for #json_type_ident {
+            fn from(old: #item_struct_ident) -> Self {
                 Self(old.into())
             }
         }
@@ -115,7 +115,7 @@ struct AddValidateResponse {
 #[proc_macro_attribute]
 pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     let item_struct = parse_macro_input!(input as ItemStruct);
-    let item_struct_ident = item_struct.ident.clone();
+    let item_struct_ident = &item_struct.ident;
 
     let attr_args = match NestedMeta::parse_meta_list(args.into()) {
         Ok(v) => v,
@@ -139,8 +139,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             .parse()
             .unwrap();
 
-    let mut validated_type = item_struct_ident.to_string();
-    validated_type = match validated_type.strip_suffix("Params") {
+    let validated_type = match item_struct_ident.to_string().strip_suffix("Params") {
         Some(result) => result.to_owned(),
         _ => {
             return syn::Error::new(
