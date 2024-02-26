@@ -32,7 +32,7 @@ pub struct IndexedArtist {
 #[serde(rename_all = "camelCase")]
 pub struct Index {
     name: String,
-    artists: Vec<IndexedArtist>,
+    artist: Vec<IndexedArtist>,
 }
 
 #[derive(Serialize)]
@@ -95,10 +95,7 @@ pub async fn get_artists_handler(
         .into_iter()
         .into_group_map()
         .into_iter()
-        .map(|(k, v)| Index {
-            name: k,
-            artists: v,
-        })
+        .map(|(k, v)| Index { name: k, artist: v })
         .collect_vec();
 
     Ok(GetArtistsBody {
