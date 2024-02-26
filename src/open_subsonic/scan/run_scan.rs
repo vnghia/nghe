@@ -1,5 +1,5 @@
-use super::scan_full::scan_full;
-use crate::{models::*, DatabasePool, OSResult};
+use super::{artist::build_artist_indices, scan_full::scan_full};
+use crate::{config::ArtistIndexConfig, models::*, DatabasePool, OSResult};
 
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -42,6 +42,7 @@ pub async fn finish_scan(
 pub async fn run_scan(
     pool: &DatabasePool,
     scan_mode: ScanMode,
+    artist_index_config: &ArtistIndexConfig,
     music_folders: &[music_folders::MusicFolder],
 ) -> OSResult<()> {
     let scan_started_at = start_scan(pool).await?;
@@ -53,6 +54,8 @@ pub async fn run_scan(
     };
     if let Err(e) = &scanned_count_or_err {
         tracing::error!("error while scanning {:?}", e);
+    } else {
+        build_artist_indices(pool, artist_index_config).await?;
     }
 
     finish_scan(pool, &scan_started_at, scanned_count_or_err).await?;

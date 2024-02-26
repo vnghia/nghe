@@ -64,6 +64,7 @@ async fn main() {
     scan::run_scan(
         &database.pool,
         scan::ScanMode::Full,
+        &config.artist_index,
         &upserted_music_folders,
     )
     .await

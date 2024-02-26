@@ -1,5 +1,6 @@
 use super::user::create_users;
 use super::{TemporaryDatabase, TemporaryFs};
+use crate::config::ArtistIndexConfig;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
 use crate::open_subsonic::scan::{run_scan, ScanMode};
@@ -136,8 +137,13 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
 ) {
     let (temp_db, users, temp_fs, music_folders, song_fs_info) =
         setup_users_and_songs_no_scan(n_user, n_folder, allows, n_songs, song_tags).await;
-    run_scan(temp_db.pool(), ScanMode::Full, &music_folders)
-        .await
-        .unwrap();
+    run_scan(
+        temp_db.pool(),
+        ScanMode::Full,
+        &ArtistIndexConfig::default(),
+        &music_folders,
+    )
+    .await
+    .unwrap();
     (temp_db, users, temp_fs, music_folders, song_fs_info)
 }
