@@ -75,7 +75,7 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info, _) = setup_users_and_songs(
+        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs(
             0,
             1,
             &[],
@@ -135,7 +135,7 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info, _) = setup_users_and_songs(
+        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs(
             0,
             1,
             &[],
@@ -192,7 +192,7 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info, _) = setup_users_and_songs(
+        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs(
             0,
             1,
             &[],

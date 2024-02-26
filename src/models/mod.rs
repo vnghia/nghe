@@ -3,6 +3,7 @@ pub mod alias;
 pub mod artists;
 pub mod configs;
 pub mod music_folders;
+pub mod scans;
 pub mod songs;
 pub mod songs_album_artists;
 pub mod songs_artists;

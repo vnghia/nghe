@@ -2,7 +2,7 @@ use super::user::create_users;
 use super::{TemporaryDatabase, TemporaryFs};
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
-use crate::open_subsonic::scan::scan_full;
+use crate::open_subsonic::scan::{run_scan, ScanMode};
 use crate::utils::song::file_type::to_extensions;
 use crate::utils::song::tag::SongTag;
 
@@ -72,7 +72,7 @@ pub async fn setup_users_and_music_folders(
     (temp_db, users, temp_fs, music_folders)
 }
 
-pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
+pub async fn setup_users_and_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
     n_user: usize,
     n_folder: usize,
     allows: &[bool],
@@ -84,7 +84,6 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
     HashMap<(Uuid, PathBuf), SongTag>,
-    (usize, usize, usize, usize),
 ) {
     assert_eq!(n_songs.len(), n_folder);
     let (temp_db, users, temp_fs, music_folders) =
@@ -119,14 +118,26 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
         })
         .collect::<HashMap<_, _>>();
 
-    let scan_statistics = scan_full(temp_db.pool(), &music_folders).await.unwrap();
+    (temp_db, users, temp_fs, music_folders, song_fs_info)
+}
 
-    (
-        temp_db,
-        users,
-        temp_fs,
-        music_folders,
-        song_fs_info,
-        scan_statistics,
-    )
+pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
+    n_user: usize,
+    n_folder: usize,
+    allows: &[bool],
+    n_songs: &[usize],
+    song_tags: S,
+) -> (
+    TemporaryDatabase,
+    Vec<users::User>,
+    TemporaryFs,
+    Vec<music_folders::MusicFolder>,
+    HashMap<(Uuid, PathBuf), SongTag>,
+) {
+    let (temp_db, users, temp_fs, music_folders, song_fs_info) =
+        setup_users_and_songs_no_scan(n_user, n_folder, allows, n_songs, song_tags).await;
+    run_scan(temp_db.pool(), ScanMode::Full, &music_folders)
+        .await
+        .unwrap();
+    (temp_db, users, temp_fs, music_folders, song_fs_info)
 }

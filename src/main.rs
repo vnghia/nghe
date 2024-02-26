@@ -12,8 +12,7 @@ use nghe::config::Config;
 use nghe::open_subsonic::{
     browsing,
     browsing::{refresh_music_folders, refresh_permissions},
-    scan::scan_full,
-    system, user,
+    scan, system, user,
 };
 use nghe::Database;
 
@@ -62,9 +61,13 @@ async fn main() {
     .expect("can not set music folders permissions");
 
     // scan song
-    scan_full(&database.pool, &upserted_music_folders)
-        .await
-        .expect("can not scan song");
+    scan::run_scan(
+        &database.pool,
+        scan::ScanMode::Full,
+        &upserted_music_folders,
+    )
+    .await
+    .expect("can not scan song");
 
     // run it
     let listener = tokio::net::TcpListener::bind(config.server.bind_addr)

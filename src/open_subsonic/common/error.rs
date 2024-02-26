@@ -50,23 +50,34 @@ where
     }
 }
 
-impl IntoResponse for OpenSubsonicError {
-    fn into_response(self) -> Response {
+impl OpenSubsonicError {
+    pub fn into_cow_str(self) -> Cow<'static, str> {
         match self {
-            OpenSubsonicError::Generic { source } => error_to_json(0, source.to_string().into()),
+            OpenSubsonicError::Generic { source } => source.to_string().into(),
             OpenSubsonicError::BadRequest { message } => {
-                error_to_json(10, message.unwrap_or(BAD_REQUEST_MESSAGE.into()))
+                message.unwrap_or(BAD_REQUEST_MESSAGE.into())
             }
             OpenSubsonicError::Unauthorized { message } => {
-                error_to_json(40, message.unwrap_or(UNAUTHORIZED_MESSAGE.into()))
+                message.unwrap_or(UNAUTHORIZED_MESSAGE.into())
             }
-            OpenSubsonicError::Forbidden { message } => {
-                error_to_json(50, message.unwrap_or(FORBIDDEN_MESSAGE.into()))
-            }
-            OpenSubsonicError::NotFound { message } => {
-                error_to_json(70, message.unwrap_or(NOT_FOUND_MESSAGE.into()))
-            }
+            OpenSubsonicError::Forbidden { message } => message.unwrap_or(FORBIDDEN_MESSAGE.into()),
+            OpenSubsonicError::NotFound { message } => message.unwrap_or(NOT_FOUND_MESSAGE.into()),
         }
+    }
+}
+
+impl IntoResponse for OpenSubsonicError {
+    fn into_response(self) -> Response {
+        error_to_json(
+            match self {
+                OpenSubsonicError::Generic { .. } => 0,
+                OpenSubsonicError::BadRequest { .. } => 10,
+                OpenSubsonicError::Unauthorized { .. } => 40,
+                OpenSubsonicError::Forbidden { .. } => 50,
+                OpenSubsonicError::NotFound { .. } => 70,
+            },
+            self.into_cow_str(),
+        )
         .into_response()
     }
 }

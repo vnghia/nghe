@@ -37,6 +37,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    scans (started_at) {
+        started_at -> Timestamptz,
+        is_scanning -> Bool,
+        finished_at -> Nullable<Timestamptz>,
+        scanned_count -> Int8,
+        error_message -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
     songs (id) {
         id -> Uuid,
         title -> Text,
@@ -103,6 +113,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     artists,
     configs,
     music_folders,
+    scans,
     songs,
     songs_album_artists,
     songs_artists,
