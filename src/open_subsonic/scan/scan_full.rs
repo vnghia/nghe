@@ -20,7 +20,7 @@ pub async fn scan_full(
     pool: &DatabasePool,
     music_folders: &[music_folders::MusicFolder],
 ) -> OSResult<(usize, usize, usize, usize)> {
-    let scan_start_time = time::OffsetDateTime::now_utc();
+    let scan_started_at = time::OffsetDateTime::now_utc();
 
     let mut upserted_song_count: usize = 0;
 
@@ -96,14 +96,14 @@ pub async fn scan_full(
             // album -> [album_artist1, album_artist2]
             diesel::delete(songs_album_artists::table)
                 .filter(songs_album_artists::song_id.eq(song_id))
-                .filter(songs_album_artists::upserted_at.lt(scan_start_time))
+                .filter(songs_album_artists::upserted_at.lt(scan_started_at))
                 .execute(&mut pool.get().await?)
                 .await?;
 
             upsert_song_artists(pool, &song_id, &artist_ids).await?;
             diesel::delete(songs_artists::table)
                 .filter(songs_artists::song_id.eq(song_id))
-                .filter(songs_artists::upserted_at.lt(scan_start_time))
+                .filter(songs_artists::upserted_at.lt(scan_started_at))
                 .execute(&mut pool.get().await?)
                 .await?;
 
@@ -112,7 +112,7 @@ pub async fn scan_full(
     }
 
     let deleted_song_count = diesel::delete(songs::table)
-        .filter(songs::scanned_at.lt(scan_start_time))
+        .filter(songs::scanned_at.lt(scan_started_at))
         .execute(&mut pool.get().await?)
         .await?;
 
