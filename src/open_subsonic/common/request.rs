@@ -2,7 +2,8 @@ use super::super::user::password::*;
 use crate::models::*;
 use crate::{Database, OSResult, OpenSubsonicError};
 
-use axum::extract::{rejection::FormRejection, Form, FromRef, FromRequest, Request};
+use axum::extract::{FromRef, FromRequest, Request};
+use axum_extra::extract::Form;
 use derivative::Derivative;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
@@ -74,7 +75,6 @@ where
     RequestParams<T>: DeserializeOwned + Send + Sync,
     Database: FromRef<S>,
     S: Send + Sync,
-    Form<T>: FromRequest<S, Rejection = FormRejection>,
 {
     type Rejection = OpenSubsonicError;
 
