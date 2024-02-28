@@ -11,7 +11,7 @@ async-trait = "0.1.77"
 axum = { version = "0.7.4", features = ["macros"] }
 axum-extra = { version = "0.9.2", features = ["form"] }
 concat-string = "1.0.1"
-crossbeam-channel = "0.5.11"
+crossbeam-channel = "0.5.12"
 derivative = "2.2.0"
 diesel = { version = "2.1.4", features = ["uuid", "time"] }
 diesel-async = { version = "0.4.1", features = [
