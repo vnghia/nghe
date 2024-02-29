@@ -1,13 +1,11 @@
 use crate::{
-    config::ArtistIndexConfig, models::*,
+    config::ArtistIndexConfig, models::*, open_subsonic::common::id3::ArtistId3,
     open_subsonic::common::music_folder::check_user_music_folder_ids, Database, DatabasePool,
     OSResult, OpenSubsonicError,
 };
 
 use axum::extract::State;
-use diesel::{
-    dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, Queryable,
-};
+use diesel::{dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -20,19 +18,11 @@ pub struct GetArtistsParams {
     music_folder_id: Option<Uuid>,
 }
 
-#[derive(Debug, Queryable, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct IndexedArtist {
-    id: Uuid,
-    name: String,
-    album_count: i64,
-}
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Index {
     name: String,
-    artist: Vec<IndexedArtist>,
+    artist: Vec<ArtistId3>,
 }
 
 #[derive(Serialize)]
@@ -50,7 +40,7 @@ pub struct GetArtistsBody {
 async fn get_indexed_artists(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
-) -> OSResult<Vec<(String, IndexedArtist)>> {
+) -> OSResult<Vec<(String, ArtistId3)>> {
     Ok(artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
@@ -62,11 +52,8 @@ async fn get_indexed_artists(
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
-        .select((
-            artists::index,
-            (artists::id, artists::name, count_distinct(songs::album_id)),
-        ))
-        .get_results::<(String, IndexedArtist)>(&mut pool.get().await?)
+        .select((artists::index, (artists::id, artists::name)))
+        .get_results::<(String, ArtistId3)>(&mut pool.get().await?)
         .await?)
 }
 
