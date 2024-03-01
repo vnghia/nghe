@@ -1,5 +1,5 @@
 use crate::{
-    config::ArtistIndexConfig, models::*, open_subsonic::common::id3::ArtistId3,
+    config::ArtistIndexConfig, models::*, open_subsonic::common::id3::BasicArtistId3,
     open_subsonic::common::music_folder::check_user_music_folder_ids, Database, DatabasePool,
     OSResult, OpenSubsonicError,
 };
@@ -22,7 +22,7 @@ pub struct GetArtistsParams {
 #[serde(rename_all = "camelCase")]
 pub struct Index {
     name: String,
-    artist: Vec<ArtistId3>,
+    artist: Vec<BasicArtistId3>,
 }
 
 #[derive(Serialize)]
@@ -40,7 +40,7 @@ pub struct GetArtistsBody {
 async fn get_indexed_artists(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
-) -> OSResult<Vec<(String, ArtistId3)>> {
+) -> OSResult<Vec<(String, BasicArtistId3)>> {
     Ok(artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
@@ -53,7 +53,7 @@ async fn get_indexed_artists(
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
         .select((artists::index, (artists::id, artists::name)))
-        .get_results::<(String, ArtistId3)>(&mut pool.get().await?)
+        .get_results::<(String, BasicArtistId3)>(&mut pool.get().await?)
         .await?)
 }
 
