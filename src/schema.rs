@@ -52,7 +52,7 @@ diesel::table! {
     songs (id) {
         id -> Uuid,
         title -> Text,
-        duration -> Int4,
+        duration -> Float4,
         album_id -> Uuid,
         music_folder_id -> Uuid,
         path -> Text,

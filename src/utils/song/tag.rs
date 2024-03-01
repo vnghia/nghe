@@ -7,11 +7,11 @@ use std::io::Cursor;
 use std::path::Path;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct SongTag {
     pub title: String,
-    pub duration: i32,
+    pub duration: f32,
     pub album: String,
     #[cfg_attr(test, dummy(faker = "(fake::Faker, 2..4)"))]
     pub artists: Vec<String>,
@@ -41,7 +41,7 @@ impl SongTag {
 
         let properties = tagged_file.properties();
 
-        let duration = properties.duration().as_secs_f32().ceil() as i32;
+        let duration = properties.duration().as_secs_f32();
 
         let tag = tagged_file
             .primary_tag_mut()
