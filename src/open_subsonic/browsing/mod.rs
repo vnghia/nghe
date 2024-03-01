@@ -2,6 +2,7 @@ pub mod get_album;
 pub mod get_artist;
 pub mod get_artists;
 pub mod get_music_folders;
+pub mod get_song;
 pub mod refresh_music_folders;
 pub mod refresh_permissions;
 
@@ -19,4 +20,5 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/getArtists", get(get_artists::get_artists_handler))
         .route("/rest/getArtist", get(get_artist::get_artist_handler))
         .route("/rest/getAlbum", get(get_album::get_album_handler))
+        .route("/rest/getSong", get(get_song::get_song_handler))
 }

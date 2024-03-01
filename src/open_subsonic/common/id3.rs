@@ -53,6 +53,14 @@ pub struct BasicSongId3 {
     pub created: OffsetDateTime,
 }
 
+#[derive(Debug, Queryable, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SongId3 {
+    #[serde(flatten)]
+    pub basic: BasicSongId3,
+    pub artists: Vec<BasicArtistId3>,
+}
+
 pub type BasicArtistId3Record = sql_types::Record<(sql_types::Uuid, sql_types::Text)>;
 
 impl FromSql<BasicArtistId3Record, diesel::pg::Pg> for BasicArtistId3 {
