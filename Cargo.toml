@@ -41,7 +41,7 @@ tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
-walkdir = "2.4.0"
+walkdir = "2.5.0"
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
 
 [build-dependencies]
