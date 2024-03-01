@@ -40,6 +40,19 @@ pub struct AlbumId3 {
     pub artists: Vec<BasicArtistId3>,
 }
 
+#[derive(Derivative, Debug, Queryable, Serialize)]
+#[derivative(PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct BasicSongId3 {
+    pub id: Uuid,
+    pub title: String,
+    #[derivative(PartialEq = "ignore")]
+    pub duration: f32,
+    pub size: i64,
+    #[serde(with = "crate::utils::serde_format::time")]
+    pub created: OffsetDateTime,
+}
+
 pub type BasicArtistId3Record = sql_types::Record<(sql_types::Uuid, sql_types::Text)>;
 
 impl FromSql<BasicArtistId3Record, diesel::pg::Pg> for BasicArtistId3 {

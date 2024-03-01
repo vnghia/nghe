@@ -18,4 +18,5 @@ pub fn router() -> Router<crate::Database> {
         )
         .route("/rest/getArtists", get(get_artists::get_artists_handler))
         .route("/rest/getArtist", get(get_artist::get_artist_handler))
+        .route("/rest/getAlbum", get(get_album::get_album_handler))
 }

@@ -1,16 +1,41 @@
 use crate::{
     models::*,
-    open_subsonic::common::id3::{AlbumId3, BasicArtistId3Record},
-    DatabasePool, OSResult, OpenSubsonicError,
+    open_subsonic::common::{
+        id3::{AlbumId3, BasicArtistId3Record, BasicSongId3},
+        music_folder::check_user_music_folder_ids,
+    },
+    Database, DatabasePool, OSResult, OpenSubsonicError,
 };
 
+use axum::extract::State;
 use diesel::{
     dsl::{count, sql, sum},
     sql_types, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, OptionalExtension,
     QueryDsl,
 };
 use diesel_async::RunQueryDsl;
+use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use serde::Serialize;
 use uuid::Uuid;
+
+#[add_validate]
+#[derive(Debug)]
+pub struct GetAlbumParams {
+    id: Uuid,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AlbumId3WithSongs {
+    #[serde(flatten)]
+    album: AlbumId3,
+    song: Vec<BasicSongId3>,
+}
+
+#[wrap_subsonic_response]
+pub struct GetAlbumBody {
+    album: AlbumId3WithSongs,
+}
 
 async fn get_album_and_song_ids(
     pool: &DatabasePool,
@@ -46,6 +71,44 @@ async fn get_album_and_song_ids(
         .ok_or(OpenSubsonicError::NotFound {
             message: Some("album not found".into()),
         })
+}
+
+async fn get_basic_songs(
+    pool: &DatabasePool,
+    music_folder_ids: &[Uuid],
+    song_ids: &[Uuid],
+) -> OSResult<Vec<BasicSongId3>> {
+    Ok(songs::table
+        .filter(songs::music_folder_id.eq_any(music_folder_ids))
+        .filter(songs::id.eq_any(song_ids))
+        .select((
+            songs::id,
+            songs::title,
+            songs::duration,
+            songs::file_size,
+            songs::created_at,
+        ))
+        .get_results::<BasicSongId3>(&mut pool.get().await?)
+        .await?)
+}
+
+pub async fn get_album_handler(
+    State(database): State<Database>,
+    req: GetAlbumRequest,
+) -> OSResult<GetAlbumResponse> {
+    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user.id, None).await?;
+
+    let (album, song_ids) =
+        get_album_and_song_ids(&database.pool, &music_folder_ids, &req.params.id).await?;
+    let basic_songs = get_basic_songs(&database.pool, &music_folder_ids, &song_ids).await?;
+
+    Ok(GetAlbumBody {
+        album: AlbumId3WithSongs {
+            album,
+            song: basic_songs,
+        },
+    }
+    .into())
 }
 
 #[cfg(test)]
@@ -285,9 +348,6 @@ mod tests {
         let music_folder_ids = music_folders
             .iter()
             .map(|music_folder| music_folder.id)
-            .collect_vec()
-            .choose_multiple(&mut rand::thread_rng(), 1)
-            .cloned()
             .collect_vec();
         let album_id = upsert_album(temp_db.pool(), album_name.into())
             .await
