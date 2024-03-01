@@ -93,3 +93,183 @@ pub async fn get_artists_handler(
     }
     .into())
 }
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::*;
+    use crate::{
+        open_subsonic::scan::artist::upsert_artists,
+        utils::{
+            song::tag::SongTag,
+            test::{media::song_paths_to_artist_ids, setup::setup_users_and_songs},
+        },
+    };
+
+    #[tokio::test]
+    async fn test_get_artists() {
+        let n_song = 10_usize;
+
+        let (temp_db, _, _temp_fs, music_folders, song_fs_info) =
+            setup_users_and_songs(0, 1, &[], &[n_song], fake::vec![SongTag; n_song]).await;
+        let music_folder_ids = music_folders
+            .iter()
+            .map(|music_folder| music_folder.id)
+            .collect_vec();
+
+        let artist_ids = get_indexed_artists(temp_db.pool(), &music_folder_ids)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
+        let artist_fs_ids = song_paths_to_artist_ids(temp_db.pool(), &song_fs_info).await;
+
+        assert_eq!(artist_ids, artist_fs_ids);
+    }
+
+    #[tokio::test]
+    async fn test_get_song_artists() {
+        let artist_name = "artist";
+        let n_song = 10_usize;
+
+        let (temp_db, _, _temp_fs, music_folders, _) = setup_users_and_songs(
+            0,
+            1,
+            &[],
+            &[n_song],
+            (0..n_song)
+                .map(|_| SongTag {
+                    artists: vec![artist_name.to_owned()],
+                    ..Faker.fake()
+                })
+                .collect_vec(),
+        )
+        .await;
+        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+            .await
+            .unwrap()
+            .remove(0);
+
+        let artist_ids = get_indexed_artists(temp_db.pool(), &[music_folders[0].id])
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
+
+        assert!(artist_ids.contains(&artist_id));
+    }
+
+    #[tokio::test]
+    async fn test_get_album_artists() {
+        let artist_name = "artist";
+        let n_song = 10_usize;
+
+        let (temp_db, _, _temp_fs, music_folders, _) = setup_users_and_songs(
+            0,
+            1,
+            &[],
+            &[n_song],
+            (0..n_song)
+                .map(|_| SongTag {
+                    album_artists: vec![artist_name.to_owned()],
+                    ..Faker.fake()
+                })
+                .collect_vec(),
+        )
+        .await;
+        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+            .await
+            .unwrap()
+            .remove(0);
+
+        let artist_ids = get_indexed_artists(temp_db.pool(), &[music_folders[0].id])
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
+
+        assert!(artist_ids.contains(&artist_id));
+    }
+
+    #[tokio::test]
+    async fn test_get_artists_multiple_music_folders() {
+        let artist_name = "artist";
+        let n_folder = 5_usize;
+        let n_song = 10_usize;
+
+        let (temp_db, _, _temp_fs, music_folders, _) = setup_users_and_songs(
+            0,
+            n_folder,
+            &[],
+            &vec![n_song; n_folder],
+            (0..n_folder * n_song)
+                .map(|_| SongTag {
+                    artists: vec![artist_name.to_owned()],
+                    ..Faker.fake()
+                })
+                .collect_vec(),
+        )
+        .await;
+        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+            .await
+            .unwrap()
+            .remove(0);
+
+        let artist_ids = get_indexed_artists(temp_db.pool(), &[music_folders[0].id])
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
+
+        assert!(artist_ids.contains(&artist_id));
+    }
+
+    #[tokio::test]
+    async fn test_get_artists_deny_music_folders() {
+        let artist_name = "artist";
+        let n_folder = 5_usize;
+        let n_song = 10_usize;
+
+        let (temp_db, _, _temp_fs, music_folders, _) = setup_users_and_songs(
+            0,
+            n_folder,
+            &[],
+            &vec![n_song; n_folder],
+            (0..n_folder * n_song)
+                .map(|i| SongTag {
+                    artists: if i >= 2 * n_song {
+                        vec![artist_name.to_owned()]
+                    } else {
+                        fake::vec![String; 1..2]
+                    },
+                    ..Faker.fake()
+                })
+                .collect_vec(),
+        )
+        .await;
+        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+            .await
+            .unwrap()
+            .remove(0);
+
+        let artist_ids =
+            get_indexed_artists(temp_db.pool(), &[music_folders[0].id, music_folders[1].id])
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|(_, artist)| artist.id)
+                .sorted()
+                .collect_vec();
+
+        assert!(!artist_ids.contains(&artist_id));
+    }
+}

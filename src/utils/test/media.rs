@@ -300,6 +300,28 @@ pub async fn song_paths_to_ids(
         .collect_vec()
 }
 
+pub async fn song_paths_to_artist_ids(
+    pool: &DatabasePool,
+    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+) -> Vec<Uuid> {
+    let artist_names = song_fs_info
+        .clone()
+        .into_iter()
+        .flat_map(|(_, tag)| [tag.album_artists, tag.artists].concat())
+        .unique()
+        .collect_vec();
+
+    artists::table
+        .select(artists::id)
+        .filter(artists::name.eq_any(&artist_names))
+        .get_results::<Uuid>(&mut pool.get().await.unwrap())
+        .await
+        .unwrap()
+        .into_iter()
+        .sorted()
+        .collect_vec()
+}
+
 pub async fn song_paths_to_album_ids(
     pool: &DatabasePool,
     song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
