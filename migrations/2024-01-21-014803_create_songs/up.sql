@@ -9,6 +9,7 @@ create table
     path text not null,
     file_hash bigint not null default 0,
     file_size bigint not null default 0,
+    created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     scanned_at timestamptz not null default now(),
     constraint songs_album_id_fkey foreign key (album_id) references albums (id) on delete cascade,

@@ -4,6 +4,7 @@ diesel::table! {
     albums (id) {
         id -> Uuid,
         name -> Text,
+        created_at -> Timestamptz,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
     }
@@ -14,6 +15,7 @@ diesel::table! {
         id -> Uuid,
         name -> Text,
         index -> Text,
+        created_at -> Timestamptz,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
     }
@@ -56,6 +58,7 @@ diesel::table! {
         path -> Text,
         file_hash -> Int8,
         file_size -> Int8,
+        created_at -> Timestamptz,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
     }
