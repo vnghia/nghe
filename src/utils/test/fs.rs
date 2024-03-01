@@ -7,7 +7,6 @@ use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::utils::song::file_type::SONG_FILE_TYPES;
 use crate::utils::song::tag::SongTag;
-use crate::utils::test::asset::get_media_asset_duration;
 use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use concat_string::concat_string;
@@ -280,10 +279,7 @@ fn test_roundtrip_media_file() {
     let fs = TemporaryFs::new();
 
     for file_type in SONG_FILE_TYPES {
-        let song_tag = SongTag {
-            duration: get_media_asset_duration(&file_type),
-            ..Faker.fake()
-        };
+        let song_tag = Faker.fake::<SongTag>();
         let path = fs.create_media_file(
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),

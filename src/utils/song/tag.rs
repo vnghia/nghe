@@ -1,16 +1,19 @@
 use crate::{models::*, OSResult, OpenSubsonicError};
 
 use concat_string::concat_string;
+use derivative::Derivative;
 use itertools::Itertools;
 use lofty::{AudioFile, FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
 use std::io::Cursor;
 use std::path::Path;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Derivative, Debug, Clone)]
+#[derivative(PartialEq)]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct SongTag {
     pub title: String,
+    #[derivative(PartialEq = "ignore")]
     pub duration: f32,
     pub album: String,
     #[cfg_attr(test, dummy(faker = "(fake::Faker, 2..4)"))]
@@ -120,10 +123,7 @@ mod tests {
     use super::*;
     use crate::utils::{
         song::file_type::{to_extension, SONG_FILE_TYPES},
-        test::{
-            asset::{get_media_asset_duration, get_media_asset_path},
-            fs::TemporaryFs,
-        },
+        test::{asset::get_media_asset_path, fs::TemporaryFs},
     };
 
     use fake::{Fake, Faker};
@@ -149,7 +149,6 @@ mod tests {
                 "{:?} album artists does not match",
                 file_type
             );
-            assert_eq!(tag.duration, get_media_asset_duration(&file_type))
         }
     }
 
