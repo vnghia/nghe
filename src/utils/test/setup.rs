@@ -73,22 +73,19 @@ pub async fn setup_users_and_music_folders(
     (temp_db, users, temp_fs, music_folders)
 }
 
-pub async fn setup_users_and_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
-    n_user: usize,
+pub async fn setup_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
     n_folder: usize,
-    allows: &[bool],
     n_songs: &[usize],
     song_tags: S,
 ) -> (
     TemporaryDatabase,
-    Vec<users::User>,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
     HashMap<(Uuid, PathBuf), SongTag>,
 ) {
     assert_eq!(n_songs.len(), n_folder);
-    let (temp_db, users, temp_fs, music_folders) =
-        setup_users_and_music_folders(n_user, n_folder, allows).await;
+    let (temp_db, _, temp_fs, music_folders) =
+        setup_users_and_music_folders(0, n_folder, &[]).await;
 
     let n_song_total: usize = n_songs.iter().sum();
     let mut song_tags = match song_tags.into() {
@@ -119,24 +116,21 @@ pub async fn setup_users_and_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
         })
         .collect::<HashMap<_, _>>();
 
-    (temp_db, users, temp_fs, music_folders, song_fs_info)
+    (temp_db, temp_fs, music_folders, song_fs_info)
 }
 
-pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
-    n_user: usize,
+pub async fn setup_songs<S: Into<Option<Vec<SongTag>>>>(
     n_folder: usize,
-    allows: &[bool],
     n_songs: &[usize],
     song_tags: S,
 ) -> (
     TemporaryDatabase,
-    Vec<users::User>,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
     HashMap<(Uuid, PathBuf), SongTag>,
 ) {
-    let (temp_db, users, temp_fs, music_folders, song_fs_info) =
-        setup_users_and_songs_no_scan(n_user, n_folder, allows, n_songs, song_tags).await;
+    let (temp_db, temp_fs, music_folders, song_fs_info) =
+        setup_songs_no_scan(n_folder, n_songs, song_tags).await;
     run_scan(
         temp_db.pool(),
         ScanMode::Full,
@@ -145,5 +139,5 @@ pub async fn setup_users_and_songs<S: Into<Option<Vec<SongTag>>>>(
     )
     .await
     .unwrap();
-    (temp_db, users, temp_fs, music_folders, song_fs_info)
+    (temp_db, temp_fs, music_folders, song_fs_info)
 }

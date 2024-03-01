@@ -47,7 +47,7 @@ mod tests {
         open_subsonic::scan::artist::upsert_artists,
         utils::{
             song::tag::SongTag,
-            test::{media::song_paths_to_album_ids, setup::setup_users_and_songs},
+            test::{media::song_paths_to_album_ids, setup::setup_songs},
         },
     };
 
@@ -60,10 +60,8 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs(
-            0,
+        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
             1,
-            &[],
             &[n_song],
             (0..n_song)
                 .map(|i| SongTag {
@@ -111,10 +109,8 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs(
-            0,
+        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
             1,
-            &[],
             &[n_song],
             (0..n_song)
                 .map(|i| SongTag {
@@ -163,10 +159,8 @@ mod tests {
         let album_names = ["album1", "album2"];
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs(
-            0,
+        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
             1,
-            &[],
             &[n_song],
             (0..n_song)
                 .map(|i| SongTag {
@@ -217,10 +211,8 @@ mod tests {
         let n_folder = 5_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs(
-            0,
+        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
             n_folder,
-            &[],
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|_| SongTag {
@@ -269,10 +261,8 @@ mod tests {
         let n_scan_folder = 2_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, _) = setup_users_and_songs(
-            0,
+        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
             n_folder,
-            &[],
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|i| SongTag {

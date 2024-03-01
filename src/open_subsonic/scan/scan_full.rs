@@ -173,7 +173,7 @@ mod tests {
                 assert_albums_info, assert_artists_info, assert_song_artist_names,
                 assert_songs_info,
             },
-            setup::setup_users_and_songs_no_scan,
+            setup::setup_songs_no_scan,
         },
     };
 
@@ -210,8 +210,8 @@ mod tests {
     #[tokio::test]
     async fn test_simple_scan() {
         let n_song = 50_usize;
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[n_song], None).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_info) =
+            setup_songs_no_scan(1, &[n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders).await;
         assert_eq!(upserted_song_count, n_song);
@@ -224,8 +224,8 @@ mod tests {
         let n_song = 50_usize;
         let n_new_song = 20_usize;
 
-        let (temp_db, _, temp_fs, music_folders, mut song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[n_song], None).await;
+        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+            setup_songs_no_scan(1, &[n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders).await;
         assert_eq!(upserted_song_count, n_song);
@@ -259,8 +259,8 @@ mod tests {
         let n_delete_song = 10_usize;
         let n_new_song = 20_usize;
 
-        let (temp_db, _, temp_fs, music_folders, mut song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[n_song], None).await;
+        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+            setup_songs_no_scan(1, &[n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders).await;
         assert_eq!(upserted_song_count, n_song);
@@ -305,8 +305,8 @@ mod tests {
     async fn test_simple_scan_with_multiple_folders() {
         let n_song = 25_usize;
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) =
-            setup_users_and_songs_no_scan(0, 2, &[], &[n_song, n_song], None).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_info) =
+            setup_songs_no_scan(2, &[n_song, n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders).await;
         assert_eq!(upserted_song_count, n_song + n_song);
@@ -316,10 +316,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_combine_album_artists() {
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs_no_scan(
-            0,
+        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs_no_scan(
             1,
-            &[],
             &[2],
             vec![
                 SongTag {
@@ -346,8 +344,8 @@ mod tests {
         let n_delete_song = 2;
         let n_new_song = 4;
 
-        let (temp_db, _, temp_fs, music_folders, mut song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[n_song], None).await;
+        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+            setup_songs_no_scan(1, &[n_song], None).await;
         let (_, _, deleted_album_count, _) = wrap_scan_full(temp_db.pool(), &music_folders).await;
         assert_eq!(deleted_album_count, 0);
         assert_albums_info(temp_db.pool(), &song_fs_info).await;
@@ -387,10 +385,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_delete_keep_album_with_songs() {
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) = setup_users_and_songs_no_scan(
-            0,
+        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs_no_scan(
             1,
-            &[],
             &[2],
             vec![
                 SongTag {
@@ -424,8 +420,8 @@ mod tests {
         let n_delete_song = 2;
         let n_new_song = 4;
 
-        let (temp_db, _, temp_fs, music_folders, mut song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[n_song], None).await;
+        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+            setup_songs_no_scan(1, &[n_song], None).await;
         wrap_scan_full(temp_db.pool(), &music_folders).await;
 
         let music_folder_id = music_folders[0].id;
@@ -484,8 +480,8 @@ mod tests {
         ];
         let first_song_title = song_tags[0].title.clone();
 
-        let (temp_db, _, temp_fs, music_folders, song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[3], song_tags).await;
+        let (temp_db, temp_fs, music_folders, song_fs_info) =
+            setup_songs_no_scan(1, &[3], song_tags).await;
         let (_, _, _, deleted_artist_count) = wrap_scan_full(temp_db.pool(), &music_folders).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
@@ -532,8 +528,8 @@ mod tests {
         ];
         let first_song_title = song_tags[0].title.clone();
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[2], song_tags).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_info) =
+            setup_songs_no_scan(1, &[2], song_tags).await;
         let (_, _, _, deleted_artist_count) = wrap_scan_full(temp_db.pool(), &music_folders).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
@@ -581,8 +577,8 @@ mod tests {
         ];
         let first_song_title = song_tags[0].title.clone();
 
-        let (temp_db, _, _temp_fs, music_folders, song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[3], song_tags).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_info) =
+            setup_songs_no_scan(1, &[3], song_tags).await;
         let (_, _, _, deleted_artist_count) = wrap_scan_full(temp_db.pool(), &music_folders).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
@@ -630,8 +626,8 @@ mod tests {
         ];
         let first_song_tag = song_tags[0].clone();
 
-        let (temp_db, _, temp_fs, music_folders, song_fs_info) =
-            setup_users_and_songs_no_scan(0, 1, &[], &[3], song_tags).await;
+        let (temp_db, temp_fs, music_folders, song_fs_info) =
+            setup_songs_no_scan(1, &[3], song_tags).await;
         let (_, _, _, deleted_artist_count) = wrap_scan_full(temp_db.pool(), &music_folders).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
         let first_song_path = song_fs_info
