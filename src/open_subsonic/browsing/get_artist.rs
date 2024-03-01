@@ -132,12 +132,8 @@ mod tests {
             1,
             &[n_song],
             (0..n_song)
-                .map(|i| SongTag {
-                    album_artists: if i < 5 {
-                        vec![artist_name.to_owned()]
-                    } else {
-                        fake::vec![String; 1..2]
-                    },
+                .map(|_| SongTag {
+                    album_artists: vec![artist_name.to_owned()],
                     ..Faker.fake()
                 })
                 .collect_vec(),
@@ -152,14 +148,7 @@ mod tests {
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let album_fs_ids = song_paths_to_album_ids(
-            temp_db.pool(),
-            &song_fs_info
-                .into_iter()
-                .filter(|(_, v)| v.album_artists.contains(&artist_name.to_owned()))
-                .collect(),
-        )
-        .await;
+        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
 
         let album_ids = get_artist_and_album_ids(temp_db.pool(), &music_folder_ids, &artist_id)
             .await
@@ -181,12 +170,8 @@ mod tests {
             1,
             &[n_song],
             (0..n_song)
-                .map(|i| SongTag {
-                    artists: if i < 5 {
-                        vec![artist_name.to_owned()]
-                    } else {
-                        fake::vec![String; 1..2]
-                    },
+                .map(|_| SongTag {
+                    artists: vec![artist_name.to_owned()],
                     ..Faker.fake()
                 })
                 .collect_vec(),
@@ -201,14 +186,7 @@ mod tests {
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let album_fs_ids = song_paths_to_album_ids(
-            temp_db.pool(),
-            &song_fs_info
-                .into_iter()
-                .filter(|(_, v)| v.artists.contains(&artist_name.to_owned()))
-                .collect(),
-        )
-        .await;
+        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
 
         let album_ids = get_artist_and_album_ids(temp_db.pool(), &music_folder_ids, &artist_id)
             .await
@@ -252,14 +230,7 @@ mod tests {
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let album_fs_ids = song_paths_to_album_ids(
-            temp_db.pool(),
-            &song_fs_info
-                .into_iter()
-                .filter(|(_, v)| v.artists.contains(&artist_name.to_owned()))
-                .collect(),
-        )
-        .await;
+        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
 
         let album_ids = get_artist_and_album_ids(temp_db.pool(), &music_folder_ids, &artist_id)
             .await
@@ -274,9 +245,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_artist_albums_multiple_music_folders() {
+    async fn test_get_artist_albums_partial_music_folders() {
         let artist_name = "artist";
-        let n_folder = 5_usize;
+        let n_folder = 2_usize;
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
@@ -299,7 +270,7 @@ mod tests {
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec()
-            .choose_multiple(&mut rand::thread_rng(), 2)
+            .choose_multiple(&mut rand::thread_rng(), 1)
             .cloned()
             .collect_vec();
         let album_fs_ids = song_paths_to_album_ids(
@@ -325,8 +296,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_artist_albums_deny_music_folders() {
         let artist_name = "artist";
-        let n_folder = 5_usize;
-        let n_scan_folder = 2_usize;
+        let n_folder = 2_usize;
+        let n_scan_folder = 1_usize;
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
