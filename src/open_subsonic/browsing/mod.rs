@@ -16,4 +16,5 @@ pub fn router() -> Router<crate::Database> {
             get(get_music_folders::get_music_folders_handler),
         )
         .route("/rest/getArtists", get(get_artists::get_artists_handler))
+        .route("/rest/getArtist", get(get_artist::get_artist_handler))
 }
