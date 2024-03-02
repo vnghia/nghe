@@ -127,6 +127,18 @@ impl TemporaryFs {
         let mut tag = lofty::Tag::new(tag_type);
         tag.set_title(song_tag.title);
         tag.set_album(song_tag.album);
+        if let Some(track_number) = song_tag.track_number {
+            tag.set_track(track_number);
+        }
+        if let Some(track_total) = song_tag.track_total {
+            tag.set_track_total(track_total);
+        }
+        if let Some(disc_number) = song_tag.disc_number {
+            tag.set_disk(disc_number);
+        }
+        if let Some(disc_total) = song_tag.disc_total {
+            tag.set_disk_total(disc_total);
+        }
 
         match tag_type {
             TagType::Id3v2 => {

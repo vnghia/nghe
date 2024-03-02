@@ -3,7 +3,7 @@ use crate::{models::*, OSResult, OpenSubsonicError};
 use concat_string::concat_string;
 use derivative::Derivative;
 use itertools::Itertools;
-use lofty::{AudioFile, FileType, ItemKey, ParseOptions, ParsingMode, Probe, TaggedFileExt};
+use lofty::{AudioFile, FileType, ItemKey, ParseOptions, ParsingMode, Probe, Tag, TaggedFileExt};
 use std::io::Cursor;
 use std::path::Path;
 use uuid::Uuid;
@@ -20,6 +20,48 @@ pub struct SongTag {
     pub artists: Vec<String>,
     #[cfg_attr(test, dummy(faker = "(fake::Faker, 1..2)"))]
     pub album_artists: Vec<String>,
+    pub track_number: Option<u32>,
+    pub track_total: Option<u32>,
+    pub disc_number: Option<u32>,
+    pub disc_total: Option<u32>,
+}
+
+fn take_string(tag: &mut Tag, key: &ItemKey) -> Option<String> {
+    if let Some(item) = tag.take(key).next() {
+        item.into_value().into_string()
+    } else {
+        None
+    }
+}
+
+fn take_number_and_total(
+    tag: &mut Tag,
+    number_key: &ItemKey,
+    total_key: &ItemKey,
+) -> OSResult<(Option<u32>, Option<u32>)> {
+    if let Some(number_value) = take_string(tag, number_key) {
+        if let Some((number_value, total_value)) = number_value.split_once('/') {
+            Ok((Some(number_value.parse()?), Some(total_value.parse()?)))
+        } else {
+            Ok((
+                Some(number_value.parse()?),
+                if let Some(total_value) = take_string(tag, total_key) {
+                    Some(total_value.parse()?)
+                } else {
+                    None
+                },
+            ))
+        }
+    } else {
+        Ok((
+            None,
+            if let Some(total_value) = take_string(tag, total_key) {
+                Some(total_value.parse()?)
+            } else {
+                None
+            },
+        ))
+    }
 }
 
 impl SongTag {
@@ -54,29 +96,18 @@ impl SongTag {
                 ),
             })?;
 
-        let title = tag
-            .take(&ItemKey::TrackTitle)
-            .next()
-            .ok_or(OpenSubsonicError::NotFound {
-                message: Some(concat_string!(song_path_str, " title tag not found").into()),
-            })?
-            .into_value()
-            .into_string()
-            .ok_or(OpenSubsonicError::NotFound {
-                message: Some(concat_string!(song_path_str, " title tag is not string").into()),
-            })?;
+        let title = take_string(tag, &ItemKey::TrackTitle).ok_or(OpenSubsonicError::NotFound {
+            message: Some(concat_string!(song_path_str, " title tag not found").into()),
+        })?;
 
-        let album = tag
-            .take(&ItemKey::AlbumTitle)
-            .next()
-            .ok_or(OpenSubsonicError::NotFound {
-                message: Some(concat_string!(song_path_str, " album tag not found").into()),
-            })?
-            .into_value()
-            .into_string()
-            .ok_or(OpenSubsonicError::NotFound {
-                message: Some(concat_string!(song_path_str, " album tag is not string").into()),
-            })?;
+        let album = take_string(tag, &ItemKey::AlbumTitle).ok_or(OpenSubsonicError::NotFound {
+            message: Some(concat_string!(song_path_str, " album tag not found").into()),
+        })?;
+
+        let (track_number, track_total) =
+            take_number_and_total(tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal)?;
+        let (disc_number, disc_total) =
+            take_number_and_total(tag, &ItemKey::DiscNumber, &ItemKey::DiscTotal)?;
 
         let artists = tag.take_strings(&ItemKey::TrackArtist).collect_vec();
 
@@ -95,6 +126,10 @@ impl SongTag {
             album,
             artists,
             album_artists,
+            track_number,
+            track_total,
+            disc_number,
+            disc_total,
         })
     }
 
@@ -110,6 +145,10 @@ impl SongTag {
             title: (&self.title).into(),
             duration: self.duration,
             album_id,
+            track_number: self.track_number.map(|i| i as i32),
+            track_total: self.track_total.map(|i| i as i32),
+            disc_number: self.disc_number.map(|i| i as i32),
+            disc_total: self.track_total.map(|i| i as i32),
             music_folder_id,
             path: song_relative_path.map(|path| path.as_ref().into()),
             file_hash: song_file_hash as i64,
@@ -127,6 +166,7 @@ mod tests {
     };
 
     use fake::{Fake, Faker};
+    use lofty::TagType;
     use std::fs::read;
 
     #[test]
@@ -147,6 +187,29 @@ mod tests {
                 tag.album_artists.iter().sorted().collect_vec(),
                 ["Artist1", "Artist3"],
                 "{:?} album artists does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.track_number,
+                Some(10),
+                "{:?} track number does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.track_total, None,
+                "{:?} track total does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.disc_number,
+                Some(5),
+                "{:?} disc number does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.disc_total,
+                Some(10),
+                "{:?} disc total does not match",
                 file_type
             );
         }
@@ -171,5 +234,57 @@ mod tests {
             new_song_tag.album_artists.iter().sorted().collect_vec(),
             new_song_tag.artists.iter().sorted().collect_vec()
         );
+    }
+
+    #[test]
+    fn test_take_number_and_total_number_only() {
+        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.insert_text(ItemKey::TrackNumber, "10".to_owned());
+        let (number, total) =
+            take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
+        assert_eq!(number, Some(10));
+        assert!(total.is_none());
+    }
+
+    #[test]
+    fn test_take_number_and_total_total_only() {
+        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.insert_text(ItemKey::TrackTotal, "20".to_owned());
+        let (number, total) =
+            take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
+        assert!(number.is_none());
+        assert_eq!(total, Some(20));
+    }
+
+    #[test]
+    fn test_take_number_and_total_number() {
+        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.insert_text(ItemKey::TrackNumber, "10".to_owned());
+        tag.insert_text(ItemKey::TrackTotal, "20".to_owned());
+        let (number, total) =
+            take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
+        assert_eq!(number, Some(10));
+        assert_eq!(total, Some(20));
+    }
+
+    #[test]
+    fn test_take_number_and_total_with_separator() {
+        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.insert_text(ItemKey::TrackNumber, "10/20".to_owned());
+        let (number, total) =
+            take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
+        assert_eq!(number, Some(10));
+        assert_eq!(total, Some(20));
+    }
+
+    #[test]
+    fn test_take_number_and_total_take_separator() {
+        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.insert_text(ItemKey::TrackNumber, "10/20".to_owned());
+        tag.insert_text(ItemKey::TrackTotal, "30".to_owned());
+        let (number, total) =
+            take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
+        assert_eq!(number, Some(10));
+        assert_eq!(total, Some(20));
     }
 }
