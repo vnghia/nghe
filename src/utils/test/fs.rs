@@ -125,6 +125,7 @@ impl TemporaryFs {
             .expect("can not read original media file")
             .primary_tag_type();
         let mut tag = lofty::Tag::new(tag_type);
+
         tag.set_title(song_tag.title);
         tag.set_album(song_tag.album);
         if let Some(track_number) = song_tag.track_number {
@@ -143,7 +144,9 @@ impl TemporaryFs {
         match tag_type {
             TagType::Id3v2 => {
                 let mut tag = Id3v2Tag::from(tag);
-                tag.set_artist(song_tag.artists.join("\0"));
+                if !song_tag.album_artists.is_empty() {
+                    tag.set_artist(song_tag.artists.join("\0"));
+                }
                 if !song_tag.album_artists.is_empty() {
                     tag.insert(
                         Frame::new(
@@ -292,6 +295,33 @@ fn test_roundtrip_media_file() {
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
+        let path = fs.create_media_file(
+            concat_string!("test.", to_extension(&file_type)),
+            song_tag.clone(),
+        );
+        let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), &path).unwrap();
+        assert_eq!(
+            song_tag, read_song_tag,
+            "{:?} tag does not match",
+            file_type
+        );
+    }
+}
+
+#[test]
+fn test_roundtrip_media_file_empty_value() {
+    let fs = TemporaryFs::new();
+
+    for file_type in SONG_FILE_TYPES {
+        let song_tag = SongTag {
+            artists: vec![],
+            album_artists: vec![],
+            track_number: None,
+            track_total: None,
+            disc_number: None,
+            disc_total: None,
+            ..Faker.fake()
+        };
         let path = fs.create_media_file(
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
