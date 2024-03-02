@@ -10,15 +10,12 @@ use uuid::Uuid;
 
 #[derive(Derivative, Debug, Clone)]
 #[derivative(PartialEq)]
-#[cfg_attr(test, derive(fake::Dummy))]
 pub struct SongTag {
     pub title: String,
     #[derivative(PartialEq = "ignore")]
     pub duration: f32,
     pub album: String,
-    #[cfg_attr(test, dummy(faker = "(fake::Faker, 2..4)"))]
     pub artists: Vec<String>,
-    #[cfg_attr(test, dummy(faker = "(fake::Faker, 1..2)"))]
     pub album_artists: Vec<String>,
     pub track_number: Option<u32>,
     pub track_total: Option<u32>,
@@ -153,6 +150,44 @@ impl SongTag {
             path: song_relative_path.map(|path| path.as_ref().into()),
             file_hash: song_file_hash as i64,
             file_size: song_file_size as i64,
+        }
+    }
+}
+
+#[cfg(test)]
+impl fake::Dummy<fake::Faker> for SongTag {
+    fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &fake::Faker, rng: &mut R) -> Self {
+        use fake::{Fake, Faker};
+
+        // Id3v2 doesn't have a separate tag for total value,
+        // that value will be written with a separator.
+        // In that case, number value is set to 0 if empty.
+        // Hence the number value will never be None
+        // if the total value is not None.
+        let track_total: Option<u32> = Fake::fake_with_rng(&Faker, rng);
+        let track_number: Option<u32> = if track_total.is_none() {
+            Fake::fake_with_rng(&Faker, rng)
+        } else {
+            Some(Fake::fake_with_rng(&Faker, rng))
+        };
+
+        let disc_total: Option<u32> = Fake::fake_with_rng(&Faker, rng);
+        let disc_number: Option<u32> = if disc_total.is_none() {
+            Fake::fake_with_rng(&Faker, rng)
+        } else {
+            Some(Fake::fake_with_rng(&Faker, rng))
+        };
+
+        Self {
+            title: Fake::fake_with_rng(&Faker, rng),
+            duration: Fake::fake_with_rng(&Faker, rng),
+            album: Fake::fake_with_rng(&Faker, rng),
+            artists: Fake::fake_with_rng(&(Faker, 1..2), rng),
+            album_artists: Fake::fake_with_rng(&(Faker, 1..2), rng),
+            track_number,
+            track_total,
+            disc_number,
+            disc_total,
         }
     }
 }
