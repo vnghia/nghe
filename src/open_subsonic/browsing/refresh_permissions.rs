@@ -1,6 +1,7 @@
 use crate::models::*;
-use crate::{DatabasePool, OSResult};
+use crate::DatabasePool;
 
+use anyhow::Result;
 use diesel::query_dsl::methods::SelectDsl;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
@@ -11,7 +12,7 @@ pub async fn refresh_permissions(
     pool: &DatabasePool,
     user_ids: Option<&[Uuid]>,
     music_folder_ids: Option<&[Uuid]>,
-) -> OSResult<()> {
+) -> Result<()> {
     let user_ids: Cow<[Uuid]> = match user_ids {
         Some(user_ids) => user_ids.into(),
         None => users::table

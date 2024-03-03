@@ -1,9 +1,10 @@
 use crate::{
     config::ArtistIndexConfig, models::*, open_subsonic::common::id3::BasicArtistId3,
     open_subsonic::common::music_folder::check_user_music_folder_ids, Database, DatabasePool,
-    OSResult, OpenSubsonicError,
+    OSError,
 };
 
+use anyhow::Result;
 use axum::extract::State;
 use diesel::{dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -40,8 +41,8 @@ pub struct GetArtistsBody {
 async fn get_indexed_artists(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
-) -> OSResult<Vec<(String, BasicArtistId3)>> {
-    Ok(artists::table
+) -> Result<Vec<(String, BasicArtistId3)>> {
+    artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
         .inner_join(
@@ -54,13 +55,14 @@ async fn get_indexed_artists(
         .having(count_distinct(songs::album_id).gt(0))
         .select((artists::index, (artists::id, artists::name)))
         .get_results::<(String, BasicArtistId3)>(&mut pool.get().await?)
-        .await?)
+        .await
+        .map_err(anyhow::Error::from)
 }
 
 pub async fn get_artists_handler(
     State(database): State<Database>,
     req: GetArtistsRequest,
-) -> OSResult<GetArtistsResponse> {
+) -> GetArtistsJsonResponse {
     let music_folder_ids = check_user_music_folder_ids(
         &database.pool,
         &req.user.id,
@@ -73,9 +75,7 @@ pub async fn get_artists_handler(
         .filter(configs::key.eq(ArtistIndexConfig::IGNORED_ARTICLES_CONFIG_KEY))
         .first::<Option<String>>(&mut database.pool.get().await?)
         .await?
-        .ok_or(OpenSubsonicError::NotFound {
-            message: Some("ignored articles not found".into()),
-        })?;
+        .ok_or_else(|| OSError::NotFound("Ignored articles".into()))?;
 
     let index = get_indexed_artists(&database.pool, &music_folder_ids)
         .await?
@@ -85,13 +85,13 @@ pub async fn get_artists_handler(
         .map(|(k, v)| Index { name: k, artist: v })
         .collect_vec();
 
-    Ok(GetArtistsBody {
+    GetArtistsBody {
         artists: Indices {
             ignored_articles,
             index,
         },
     }
-    .into())
+    .into()
 }
 
 #[cfg(test)]

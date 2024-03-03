@@ -1,16 +1,14 @@
 use super::super::song::file_type::SONG_FILE_TYPES;
-use crate::{
-    utils::song::file_type::{to_extension, to_glob_pattern},
-    OSResult,
-};
+use crate::utils::song::file_type::{to_extension, to_glob_pattern};
 
+use anyhow::Result;
 use ignore::{types::TypesBuilder, WalkBuilder};
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
 
 pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
     root: P,
-) -> OSResult<Vec<(PathBuf, String, u64)>> {
+) -> Result<Vec<(PathBuf, String, u64)>> {
     let (tx, rx) = crossbeam_channel::unbounded::<(PathBuf, String, u64)>();
 
     let mut types = TypesBuilder::new();

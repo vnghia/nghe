@@ -1,5 +1,6 @@
-use crate::{models::*, DatabasePool, OSResult, OpenSubsonicError};
+use crate::{models::*, DatabasePool, OSError};
 
+use anyhow::Result;
 use diesel::{
     dsl::{exists, not},
     select, ExpressionMethods, QueryDsl,
@@ -12,7 +13,7 @@ pub async fn check_user_music_folder_ids<'a>(
     pool: &DatabasePool,
     user_id: &Uuid,
     music_folder_ids: Option<Cow<'a, [Uuid]>>,
-) -> OSResult<Cow<'a, [Uuid]>> {
+) -> Result<Cow<'a, [Uuid]>> {
     if let Some(music_folder_ids) = music_folder_ids {
         if select(not(exists(
             user_music_folder_permissions::table
@@ -28,9 +29,7 @@ pub async fn check_user_music_folder_ids<'a>(
         {
             Ok(music_folder_ids)
         } else {
-            Err(OpenSubsonicError::Forbidden {
-                message: Some("current user doesn't have access to these music folders".into()),
-            })
+            anyhow::bail!(OSError::Forbidden("access to these music folders".into()))
         }
     } else {
         Ok(user_music_folder_permissions::table
@@ -106,8 +105,12 @@ mod tests {
                 &users[0].id,
                 Some(fs_music_folder_ids.into()),
             )
-            .await,
-            Err(OpenSubsonicError::Forbidden { message: _ })
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
+            OSError::Forbidden(_)
         ));
     }
 }

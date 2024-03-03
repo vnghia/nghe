@@ -1,7 +1,8 @@
-use libaes::Cipher;
-
 use crate::database::EncryptionKey;
-use crate::{OSResult, OpenSubsonicError};
+use crate::OSError;
+
+use anyhow::Result;
+use libaes::Cipher;
 
 const IV_LEN: usize = 16;
 
@@ -16,7 +17,7 @@ pub fn encrypt_password(key: &EncryptionKey, data: &[u8]) -> Vec<u8> {
     .concat()
 }
 
-pub fn decrypt_password(key: &EncryptionKey, data: &[u8]) -> OSResult<Vec<u8>> {
+pub fn decrypt_password(key: &EncryptionKey, data: &[u8]) -> Result<Vec<u8>> {
     let cipher_text = &data[IV_LEN..];
     let iv = &data[..IV_LEN];
     Ok(Cipher::new_128(key).cbc_decrypt(iv, cipher_text))
@@ -29,16 +30,12 @@ pub fn to_password_token(password: &[u8], client_salt: &[u8]) -> MD5Token {
     md5::compute(data).into()
 }
 
-pub fn check_password(
-    password: &[u8],
-    client_salt: &[u8],
-    client_token: &MD5Token,
-) -> OSResult<()> {
+pub fn check_password(password: &[u8], client_salt: &[u8], client_token: &MD5Token) -> Result<()> {
     let password_token = to_password_token(password, client_salt);
     if password_token == *client_token {
         Ok(())
     } else {
-        Err(OpenSubsonicError::Unauthorized { message: None })
+        anyhow::bail!(OSError::Unauthorized)
     }
 }
 

@@ -1,5 +1,6 @@
-use crate::{models::*, DatabasePool, OSResult};
+use crate::{models::*, DatabasePool};
 
+use anyhow::Result;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
@@ -9,7 +10,7 @@ pub async fn upsert_song_artists(
     pool: &DatabasePool,
     song_id: &Uuid,
     artist_ids: &[Uuid],
-) -> OSResult<()> {
+) -> Result<()> {
     diesel::insert_into(songs_artists::table)
         .values(
             artist_ids
@@ -27,7 +28,7 @@ pub async fn upsert_song<'a>(
     pool: &DatabasePool,
     song_id: Option<Uuid>,
     new_or_update_song: songs::NewOrUpdateSong<'a>,
-) -> OSResult<Uuid> {
+) -> Result<Uuid> {
     if (song_id.is_some() && new_or_update_song.path.is_some())
         || (song_id.is_none() && new_or_update_song.path.is_none())
     {

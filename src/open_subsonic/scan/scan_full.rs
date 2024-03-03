@@ -5,9 +5,10 @@ use super::{
 use crate::{
     models::*,
     utils::{fs::files::scan_media_files, song::tag::SongTag},
-    DatabasePool, OSResult,
+    DatabasePool,
 };
 
+use anyhow::Result;
 use diesel::{
     dsl::{exists, not},
     ExpressionMethods, OptionalExtension, QueryDsl,
@@ -20,7 +21,7 @@ pub async fn scan_full(
     pool: &DatabasePool,
     scan_started_at: &time::OffsetDateTime,
     music_folders: &[music_folders::MusicFolder],
-) -> OSResult<(usize, usize, usize, usize, usize)> {
+) -> Result<(usize, usize, usize, usize, usize)> {
     let mut scanned_song_count: usize = 0;
     let mut upserted_song_count: usize = 0;
 

@@ -1,8 +1,9 @@
 use super::password::encrypt_password;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
-use crate::{Database, OSResult};
+use crate::Database;
 
+use anyhow::Result;
 use axum::extract::State;
 use derivative::Derivative;
 use diesel::SelectableHelper;
@@ -32,15 +33,15 @@ pub struct CreateUserBody {}
 pub async fn create_user_handler(
     State(database): State<Database>,
     req: CreateUserRequest,
-) -> OSResult<CreateUserResponse> {
+) -> CreateUserJsonResponse {
     create_user(&database, req.params).await?;
-    Ok(CreateUserBody {}.into())
+    CreateUserBody {}.into()
 }
 
 pub async fn create_user(
     Database { pool, key }: &Database,
     params: CreateUserParams,
-) -> OSResult<users::User> {
+) -> Result<users::User> {
     let CreateUserParams {
         username,
         password,

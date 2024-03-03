@@ -1,7 +1,8 @@
 use crate::config::ArtistIndexConfig;
 use crate::models::*;
-use crate::{DatabasePool, OSResult};
+use crate::DatabasePool;
 
+use anyhow::Result;
 use diesel::{ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
@@ -10,11 +11,8 @@ use itertools::Itertools;
 use std::borrow::Cow;
 use uuid::Uuid;
 
-pub async fn upsert_artists<S: AsRef<str>>(
-    pool: &DatabasePool,
-    names: &[S],
-) -> OSResult<Vec<Uuid>> {
-    Ok(diesel::insert_into(artists::table)
+pub async fn upsert_artists<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) -> Result<Vec<Uuid>> {
+    diesel::insert_into(artists::table)
         .values(
             names
                 .iter()
@@ -28,7 +26,8 @@ pub async fn upsert_artists<S: AsRef<str>>(
         .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
         .returning(artists::id)
         .get_results(&mut pool.get().await?)
-        .await?)
+        .await
+        .map_err(anyhow::Error::from)
 }
 
 // TODO: better index building mechanism
@@ -54,7 +53,7 @@ pub async fn build_artist_indices(
         ignored_articles,
         ignored_prefixes,
     }: &ArtistIndexConfig,
-) -> OSResult<()> {
+) -> Result<()> {
     let artist_ids_names = {
         let mut artist_query = artists::table
             .select((artists::id, artists::name))
@@ -84,7 +83,7 @@ pub async fn build_artist_indices(
                     .set(artists::index.eq(build_artist_index(ignored_prefixes, &name)))
                     .execute(&mut pool.get().await?)
                     .await?;
-                OSResult::Ok(())
+                Result::<_, anyhow::Error>::Ok(())
             })
             .try_collect()
             .await?;

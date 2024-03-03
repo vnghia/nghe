@@ -6,6 +6,7 @@ use syn::{parse_macro_input, Ident, ItemStruct};
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
 const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
+const COMMON_ERROR_IMPORT_PREFIX: &str = "crate::open_subsonic::common::error";
 
 #[derive(Debug, FromMeta)]
 struct WrapSubsonicResponse {
@@ -48,7 +49,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
         item_struct_ident.span(),
     );
 
-    let json_type = match item_struct_ident.to_string().strip_suffix("Body") {
+    let base_type = match item_struct_ident.to_string().strip_suffix("Body") {
         Some(result) => result.to_owned(),
         _ => {
             return syn::Error::new(
@@ -59,8 +60,13 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             .into();
         }
     };
-    let json_type_ident = Ident::new(
-        &concat_string!(json_type, "Response"),
+
+    let json_response_type_token: proc_macro2::TokenStream =
+        concat_string!(COMMON_ERROR_IMPORT_PREFIX, "::ServerJsonResponse")
+            .parse()
+            .unwrap();
+    let json_response_type_ident = Ident::new(
+        &concat_string!(base_type, "JsonResponse"),
         item_struct_ident.span(),
     );
 
@@ -84,7 +90,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             root: #root_struct_ident
         }
 
-        pub type #json_type_ident = axum::Json<#subsonic_struct_ident>;
+        pub type #json_response_type_ident = #json_response_type_token<#subsonic_struct_ident>;
 
         impl From<#item_struct_ident> for #subsonic_struct_ident {
             fn from(old: #item_struct_ident) -> Self {
@@ -97,9 +103,9 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
             }
         }
 
-        impl From<#item_struct_ident> for #json_type_ident {
+        impl From<#item_struct_ident> for #json_response_type_ident {
             fn from(old: #item_struct_ident) -> Self {
-                Self(old.into())
+                Ok(axum::Json(old.into()))
             }
         }
     }

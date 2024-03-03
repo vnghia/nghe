@@ -1,5 +1,5 @@
 use crate::models::*;
-use crate::{Database, OSResult};
+use crate::Database;
 
 use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
@@ -25,7 +25,7 @@ pub struct GetMusicFoldersBody {
 pub async fn get_music_folders_handler(
     State(database): State<Database>,
     req: GetMusicFoldersRequest,
-) -> OSResult<GetMusicFoldersResponse> {
+) -> GetMusicFoldersJsonResponse {
     let music_folders = music_folders::table
         .inner_join(user_music_folder_permissions::table)
         .select(music_folders::MusicFolder::as_select())
@@ -34,12 +34,12 @@ pub async fn get_music_folders_handler(
         .load(&mut database.pool.get().await?)
         .await?;
 
-    Ok(GetMusicFoldersBody {
+    GetMusicFoldersBody {
         music_folders: MusicFolders {
             music_folder: music_folders,
         },
     }
-    .into())
+    .into()
 }
 
 #[cfg(test)]

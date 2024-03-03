@@ -4,9 +4,10 @@ use crate::{
         id3::{ArtistId3, BasicAlbumId3},
         music_folder::check_user_music_folder_ids,
     },
-    Database, DatabasePool, OSResult, OpenSubsonicError,
+    Database, DatabasePool, OSError,
 };
 
+use anyhow::Result;
 use axum::extract::State;
 use diesel::{
     dsl::{count, count_distinct, sql, sum},
@@ -41,7 +42,7 @@ async fn get_artist_and_album_ids(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     artist_id: &Uuid,
-) -> OSResult<(ArtistId3, Vec<Uuid>)> {
+) -> Result<(ArtistId3, Vec<Uuid>)> {
     artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
@@ -63,17 +64,15 @@ async fn get_artist_and_album_ids(
         .first::<(ArtistId3, Vec<Uuid>)>(&mut pool.get().await?)
         .await
         .optional()?
-        .ok_or(OpenSubsonicError::NotFound {
-            message: Some("artist not found".into()),
-        })
+        .ok_or_else(|| OSError::NotFound("Artist".into()).into())
 }
 
 async fn get_basic_albums(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     album_ids: &[Uuid],
-) -> OSResult<Vec<BasicAlbumId3>> {
-    Ok(albums::table
+) -> Result<Vec<BasicAlbumId3>> {
+    albums::table
         .inner_join(songs::table)
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(albums::id.eq_any(album_ids))
@@ -86,26 +85,27 @@ async fn get_basic_albums(
             albums::created_at,
         ))
         .get_results::<BasicAlbumId3>(&mut pool.get().await?)
-        .await?)
+        .await
+        .map_err(anyhow::Error::from)
 }
 
 pub async fn get_artist_handler(
     State(database): State<Database>,
     req: GetArtistRequest,
-) -> OSResult<GetArtistResponse> {
+) -> GetArtistJsonResponse {
     let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user.id, None).await?;
 
     let (artist, album_ids) =
         get_artist_and_album_ids(&database.pool, &music_folder_ids, &req.params.id).await?;
     let basic_albums = get_basic_albums(&database.pool, &music_folder_ids, &album_ids).await?;
 
-    Ok(GetArtistBody {
+    GetArtistBody {
         artist: ArtistId3WithAlbums {
             artist,
             album: basic_albums,
         },
     }
-    .into())
+    .into()
 }
 
 #[cfg(test)]
@@ -331,8 +331,12 @@ mod tests {
                 &music_folder_ids[..n_scan_folder],
                 &artist_id,
             )
-            .await,
-            Err(OpenSubsonicError::NotFound { message: _ })
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
+            OSError::NotFound(_)
         ));
     }
 

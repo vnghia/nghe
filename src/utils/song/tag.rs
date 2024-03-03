@@ -1,6 +1,6 @@
-use crate::{models::*, OSResult, OpenSubsonicError};
+use crate::{models::*, OSError};
 
-use concat_string::concat_string;
+use anyhow::Result;
 use derivative::Derivative;
 use itertools::Itertools;
 use lofty::{AudioFile, FileType, ItemKey, ParseOptions, ParsingMode, Probe, Tag, TaggedFileExt};
@@ -35,7 +35,7 @@ fn take_number_and_total(
     tag: &mut Tag,
     number_key: &ItemKey,
     total_key: &ItemKey,
-) -> OSResult<(Option<u32>, Option<u32>)> {
+) -> Result<(Option<u32>, Option<u32>)> {
     if let Some(number_value) = take_string(tag, number_key) {
         if let Some((number_value, total_value)) = number_value.split_once('/') {
             Ok((Some(number_value.parse()?), Some(total_value.parse()?)))
@@ -62,19 +62,9 @@ fn take_number_and_total(
 }
 
 impl SongTag {
-    pub fn parse<B: AsRef<[u8]>, P: AsRef<Path>>(data: B, song_path: P) -> OSResult<SongTag> {
-        let song_path_str = song_path
-            .as_ref()
-            .to_str()
-            .expect("non utf-8 path encountered");
-
-        let file_type =
-            FileType::from_path(song_path.as_ref()).ok_or(OpenSubsonicError::BadRequest {
-                message: Some(
-                    concat_string!(song_path_str, " does not have a valid supported extension")
-                        .into(),
-                ),
-            })?;
+    pub fn parse<B: AsRef<[u8]>, P: AsRef<Path>>(data: B, song_path: P) -> Result<SongTag> {
+        let file_type = FileType::from_path(song_path.as_ref())
+            .ok_or_else(|| OSError::InvalidParameter("Extension".into()))?;
 
         let mut tagged_file = Probe::new(Cursor::new(data))
             .options(ParseOptions::new().parsing_mode(ParsingMode::Strict))
@@ -87,19 +77,13 @@ impl SongTag {
 
         let tag = tagged_file
             .primary_tag_mut()
-            .ok_or(OpenSubsonicError::NotFound {
-                message: Some(
-                    concat_string!(song_path_str, " does not have the correct tag type").into(),
-                ),
-            })?;
+            .ok_or_else(|| OSError::NotFound("Primary tag".into()))?;
 
-        let title = take_string(tag, &ItemKey::TrackTitle).ok_or(OpenSubsonicError::NotFound {
-            message: Some(concat_string!(song_path_str, " title tag not found").into()),
-        })?;
+        let title = take_string(tag, &ItemKey::TrackTitle)
+            .ok_or_else(|| OSError::NotFound("Title tag".into()))?;
 
-        let album = take_string(tag, &ItemKey::AlbumTitle).ok_or(OpenSubsonicError::NotFound {
-            message: Some(concat_string!(song_path_str, " album tag not found").into()),
-        })?;
+        let album = take_string(tag, &ItemKey::AlbumTitle)
+            .ok_or_else(|| OSError::NotFound("Album tag".into()))?;
 
         let artists = tag.take_strings(&ItemKey::TrackArtist).collect_vec();
 

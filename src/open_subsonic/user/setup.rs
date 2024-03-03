@@ -1,6 +1,6 @@
 use super::create::{create_user, CreateUserParams};
 use crate::models::*;
-use crate::{Database, OSResult, OpenSubsonicError};
+use crate::{Database, OSError};
 
 use axum::extract::State;
 use axum::Form;
@@ -27,30 +27,29 @@ pub struct SetupBody {}
 pub async fn setup_handler(
     State(database): State<Database>,
     Form(params): Form<SetupParams>,
-) -> OSResult<SetupResponse> {
+) -> SetupJsonResponse {
     if users::table
         .count()
         .first::<i64>(&mut database.pool.get().await?)
         .await?
         != 0
     {
-        return Err(OpenSubsonicError::Forbidden {
-            message: Some("setup can only be used when there is no user".into()),
-        });
+        Err(OSError::Forbidden("access setup when there is user".into()).into())
+    } else {
+        create_user(
+            &database,
+            CreateUserParams {
+                username: params.username,
+                password: params.password,
+                email: params.email,
+                admin_role: true,
+                download_role: true,
+                share_role: true,
+            },
+        )
+        .await?;
+        SetupBody {}.into()
     }
-    create_user(
-        &database,
-        CreateUserParams {
-            username: params.username,
-            password: params.password,
-            email: params.email,
-            admin_role: true,
-            download_role: true,
-            share_role: true,
-        },
-    )
-    .await?;
-    Ok(SetupBody {}.into())
 }
 
 #[cfg(test)]
@@ -85,9 +84,13 @@ mod tests {
             ..Faker.fake()
         });
 
-        assert!(matches!(
-            setup_handler(temp_db.state(), form).await,
-            Err(OpenSubsonicError::Forbidden { message: _ })
-        ));
+        if let Some(err) = setup_handler(temp_db.state(), form).await.err() {
+            assert!(matches!(
+                err.0.root_cause().downcast_ref::<OSError>().unwrap(),
+                OSError::Forbidden(_)
+            ));
+        } else {
+            unreachable!("setup can not be used when there is user");
+        }
     }
 }

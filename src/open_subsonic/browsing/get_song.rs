@@ -4,9 +4,10 @@ use crate::{
         id3::{BasicArtistId3Record, SongId3},
         music_folder::check_user_music_folder_ids,
     },
-    Database, DatabasePool, OSResult, OpenSubsonicError,
+    Database, DatabasePool, OSError,
 };
 
+use anyhow::Result;
 use axum::extract::State;
 use diesel::{dsl::sql, sql_types, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -28,7 +29,7 @@ async fn get_song(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     song_id: &Uuid,
-) -> OSResult<SongId3> {
+) -> Result<SongId3> {
     songs::table
         .inner_join(songs_artists::table)
         .inner_join(artists::table.on(artists::id.eq(songs_artists::artist_id)))
@@ -50,21 +51,19 @@ async fn get_song(
         .first::<SongId3>(&mut pool.get().await?)
         .await
         .optional()?
-        .ok_or(OpenSubsonicError::NotFound {
-            message: Some("song not found".into()),
-        })
+        .ok_or_else(|| OSError::NotFound("Song".into()).into())
 }
 
 pub async fn get_song_handler(
     State(database): State<Database>,
     req: GetSongRequest,
-) -> OSResult<GetSongResponse> {
+) -> GetSongJsonResponse {
     let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user.id, None).await?;
 
-    Ok(GetSongBody {
+    GetSongBody {
         song: get_song(&database.pool, &music_folder_ids, &req.params.id).await?,
     }
-    .into())
+    .into()
 }
 
 #[cfg(test)]
@@ -146,8 +145,13 @@ mod tests {
         .remove(0);
 
         assert!(matches!(
-            get_song(temp_db.pool(), &[music_folder_id], &song_id).await,
-            Err(OpenSubsonicError::NotFound { message: _ })
-        ))
+            get_song(temp_db.pool(), &[music_folder_id], &song_id)
+                .await
+                .unwrap_err()
+                .root_cause()
+                .downcast_ref::<OSError>()
+                .unwrap(),
+            OSError::NotFound(_)
+        ));
     }
 }

@@ -11,7 +11,7 @@ pub mod schema;
 pub mod utils;
 
 pub use database::Database;
-pub use open_subsonic::{OSResult, OpenSubsonicError};
+pub use open_subsonic::OSError;
 
 pub type DatabaseType = diesel::pg::Pg;
 pub type DatabasePool =

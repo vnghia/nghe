@@ -1,7 +1,9 @@
 use super::super::user::password::*;
+use super::error::ServerError;
 use crate::models::*;
-use crate::{Database, OSResult, OpenSubsonicError};
+use crate::{Database, OSError};
 
+use anyhow::Result;
 use axum::extract::{FromRef, FromRequest, Request};
 use axum_extra::extract::Form;
 use derivative::Derivative;
@@ -39,7 +41,7 @@ impl<T> RequestParams<T> {
     pub async fn validate<const A: bool>(
         &self,
         Database { pool, key }: &Database,
-    ) -> OSResult<users::User> {
+    ) -> Result<users::User> {
         let common_params = &self.common;
         let user = match users::table
             .filter(users::username.eq(&common_params.username))
@@ -48,7 +50,7 @@ impl<T> RequestParams<T> {
             .await
         {
             Ok(user) => user,
-            _ => return Err(OpenSubsonicError::Unauthorized { message: None }),
+            _ => anyhow::bail!(OSError::Unauthorized),
         };
 
         check_password(
@@ -57,7 +59,7 @@ impl<T> RequestParams<T> {
             &common_params.token,
         )?;
         if A && !user.admin_role {
-            return Err(OpenSubsonicError::Forbidden { message: None });
+            anyhow::bail!(OSError::Forbidden("access admin endpoint".into()));
         }
         Ok(user)
     }
@@ -76,10 +78,12 @@ where
     Database: FromRef<S>,
     S: Send + Sync,
 {
-    type Rejection = OpenSubsonicError;
+    type Rejection = ServerError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(request_params) = Form::<RequestParams<T>>::from_request(req, state).await?;
+        let Form(request_params) = Form::<RequestParams<T>>::from_request(req, state)
+            .await
+            .map_err(std::convert::Into::<OSError>::into)?;
         let database = Database::from_ref(state);
         let user = request_params.validate::<A>(&database).await?;
         Ok(ValidatedForm {
@@ -126,8 +130,12 @@ mod tests {
                 }
             }
             .validate::<false>(temp_db.database())
-            .await,
-            Err(OpenSubsonicError::Unauthorized { message: _ })
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
+            OSError::Unauthorized
         ));
     }
 
@@ -157,8 +165,12 @@ mod tests {
                 }
             }
             .validate::<false>(temp_db.database())
-            .await,
-            Err(OpenSubsonicError::Unauthorized { message: _ })
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
+            OSError::Unauthorized
         ));
     }
 
@@ -183,8 +195,12 @@ mod tests {
                 common: users[0].to_common_params(temp_db.key())
             }
             .validate::<true>(temp_db.database())
-            .await,
-            Err(OpenSubsonicError::Forbidden { message: _ })
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
+            OSError::Forbidden(_)
         ));
     }
 }
