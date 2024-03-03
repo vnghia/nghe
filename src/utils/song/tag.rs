@@ -101,11 +101,6 @@ impl SongTag {
             message: Some(concat_string!(song_path_str, " album tag not found").into()),
         })?;
 
-        let (track_number, track_total) =
-            take_number_and_total(tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal)?;
-        let (disc_number, disc_total) =
-            take_number_and_total(tag, &ItemKey::DiscNumber, &ItemKey::DiscTotal)?;
-
         let artists = tag.take_strings(&ItemKey::TrackArtist).collect_vec();
 
         let album_artists = {
@@ -116,6 +111,11 @@ impl SongTag {
                 album_artists
             }
         };
+
+        let (track_number, track_total) =
+            take_number_and_total(tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal)?;
+        let (disc_number, disc_total) =
+            take_number_and_total(tag, &ItemKey::DiscNumber, &ItemKey::DiscTotal)?;
 
         Ok(SongTag {
             title,
@@ -201,7 +201,7 @@ mod tests {
     };
 
     use fake::{Fake, Faker};
-    use lofty::TagType;
+    use lofty::{TagExt, TagType};
     use std::fs::read;
 
     #[test]
@@ -272,49 +272,44 @@ mod tests {
     }
 
     #[test]
-    fn test_take_number_and_total_number_only() {
+    fn test_take_number_and_total_number() {
         let mut tag = Tag::new(TagType::VorbisComments);
+
+        let (number, total) =
+            take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
+        assert!(number.is_none());
+        assert!(total.is_none());
+
+        tag.clear();
         tag.insert_text(ItemKey::TrackNumber, "10".to_owned());
         let (number, total) =
             take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
         assert_eq!(number, Some(10));
         assert!(total.is_none());
-    }
 
-    #[test]
-    fn test_take_number_and_total_total_only() {
-        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.clear();
         tag.insert_text(ItemKey::TrackTotal, "20".to_owned());
         let (number, total) =
             take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
         assert!(number.is_none());
         assert_eq!(total, Some(20));
-    }
 
-    #[test]
-    fn test_take_number_and_total_number() {
-        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.clear();
         tag.insert_text(ItemKey::TrackNumber, "10".to_owned());
         tag.insert_text(ItemKey::TrackTotal, "20".to_owned());
         let (number, total) =
             take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
         assert_eq!(number, Some(10));
         assert_eq!(total, Some(20));
-    }
 
-    #[test]
-    fn test_take_number_and_total_with_separator() {
-        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.clear();
         tag.insert_text(ItemKey::TrackNumber, "10/20".to_owned());
         let (number, total) =
             take_number_and_total(&mut tag, &ItemKey::TrackNumber, &ItemKey::TrackTotal).unwrap();
         assert_eq!(number, Some(10));
         assert_eq!(total, Some(20));
-    }
 
-    #[test]
-    fn test_take_number_and_total_take_separator() {
-        let mut tag = Tag::new(TagType::VorbisComments);
+        tag.clear();
         tag.insert_text(ItemKey::TrackNumber, "10/20".to_owned());
         tag.insert_text(ItemKey::TrackTotal, "30".to_owned());
         let (number, total) =
