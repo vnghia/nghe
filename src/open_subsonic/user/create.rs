@@ -1,6 +1,6 @@
-use super::password::encrypt_password;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
+use crate::utils::password::encrypt_password;
 use crate::Database;
 
 use anyhow::Result;

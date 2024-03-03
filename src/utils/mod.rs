@@ -1,4 +1,5 @@
 pub mod fs;
+pub mod password;
 pub mod song;
 pub mod time;
 

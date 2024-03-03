@@ -1,6 +1,6 @@
-use super::super::user::password::*;
 use super::error::ServerError;
 use crate::models::*;
+use crate::utils::password::*;
 use crate::{Database, OSError};
 
 use anyhow::Result;
@@ -97,7 +97,7 @@ where
 mod tests {
     use super::*;
     use crate::{
-        open_subsonic::user::tests::{create_user, CreateUserParams},
+        open_subsonic::user::test::{create_user, CreateUserParams},
         utils::test::user::{create_password_token, create_username_password, create_users},
     };
 

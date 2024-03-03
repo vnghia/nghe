@@ -1,5 +1,4 @@
 mod create;
-pub mod password;
 mod setup;
 
 use axum::{routing::get, Router};
@@ -11,6 +10,6 @@ pub fn router() -> Router<crate::Database> {
 }
 
 #[cfg(test)]
-pub mod tests {
+pub mod test {
     pub use super::create::{create_user, CreateUserParams};
 }

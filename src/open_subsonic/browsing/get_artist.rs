@@ -112,7 +112,7 @@ pub async fn get_artist_handler(
 mod tests {
     use super::*;
     use crate::{
-        open_subsonic::scan::tests::upsert_artists,
+        open_subsonic::scan::test::upsert_artists,
         utils::{
             song::tag::SongTag,
             test::{media::song_paths_to_album_ids, setup::setup_songs},

@@ -8,7 +8,7 @@ pub use run_scan::run_scan;
 pub use run_scan::ScanMode;
 
 #[cfg(test)]
-pub mod tests {
+pub mod test {
     pub use super::album::upsert_album;
     pub use super::artist::upsert_artists;
 }

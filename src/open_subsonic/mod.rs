@@ -7,6 +7,6 @@ pub mod user;
 pub use common::error::OSError;
 
 #[cfg(test)]
-pub mod tests {
+pub mod test {
     pub use super::common::request::CommonParams;
 }
