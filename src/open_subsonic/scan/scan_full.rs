@@ -8,7 +8,7 @@ use crate::{
     DatabasePool,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use diesel::{
     dsl::{exists, not},
     ExpressionMethods, OptionalExtension, QueryDsl,
@@ -60,7 +60,12 @@ pub async fn scan_full(
                 None
             };
 
-            let song_tag = SongTag::parse(&song_data, &song_absolute_path)?;
+            let song_tag = SongTag::parse(&song_data, &song_absolute_path).with_context(|| {
+                concat_string::concat_string!(
+                    "can not parse song tag from ",
+                    song_absolute_path.to_string_lossy()
+                )
+            })?;
 
             let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
             let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
