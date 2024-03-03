@@ -102,7 +102,7 @@ mod tests {
     use crate::{
         open_subsonic::scan::test::upsert_artists,
         utils::{
-            song::tag::SongTag,
+            song::SongTag,
             test::{media::song_paths_to_artist_ids, setup::setup_songs},
         },
     };

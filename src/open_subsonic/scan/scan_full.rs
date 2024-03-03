@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     models::*,
-    utils::{fs::files::scan_media_files, song::tag::SongTag},
+    utils::{fs::files::scan_media_files, song::SongTag},
     DatabasePool,
 };
 

@@ -56,7 +56,7 @@ mod tests {
     use super::super::album::upsert_album;
     use super::*;
     use crate::utils::test::media::query_all_song_information;
-    use crate::utils::{song::tag::SongTag, test::setup::setup_users_and_music_folders};
+    use crate::utils::{song::SongTag, test::setup::setup_users_and_music_folders};
 
     use fake::{Fake, Faker};
 

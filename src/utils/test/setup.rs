@@ -5,7 +5,7 @@ use crate::models::*;
 use crate::open_subsonic::browsing::refresh_permissions;
 use crate::open_subsonic::scan::{run_scan, ScanMode};
 use crate::utils::song::file_type::to_extensions;
-use crate::utils::song::tag::SongTag;
+use crate::utils::song::SongTag;
 
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;

@@ -1,2 +1,4 @@
 pub mod file_type;
-pub mod tag;
+mod tag;
+
+pub use tag::SongTag;

@@ -6,7 +6,7 @@ use super::asset::get_media_asset_path;
 use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::utils::song::file_type::SONG_FILE_TYPES;
-use crate::utils::song::tag::SongTag;
+use crate::utils::song::SongTag;
 use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use concat_string::concat_string;

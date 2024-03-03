@@ -1,5 +1,5 @@
 use crate::models::*;
-use crate::utils::song::tag::SongTag;
+use crate::utils::song::SongTag;
 use crate::DatabasePool;
 
 use diesel::{dsl::exists, ExpressionMethods, QueryDsl, SelectableHelper};
