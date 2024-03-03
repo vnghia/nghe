@@ -116,7 +116,7 @@ pub async fn get_album_handler(
 mod tests {
     use super::*;
     use crate::{
-        open_subsonic::{common::id3::BasicArtistId3, scan::album::upsert_album},
+        open_subsonic::{common::id3::BasicArtistId3, scan::tests::upsert_album},
         utils::{
             song::tag::SongTag,
             test::{media::song_paths_to_ids, setup::setup_songs},

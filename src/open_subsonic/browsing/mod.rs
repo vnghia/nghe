@@ -1,10 +1,10 @@
-pub mod get_album;
-pub mod get_artist;
-pub mod get_artists;
-pub mod get_music_folders;
-pub mod get_song;
-pub mod refresh_music_folders;
-pub mod refresh_permissions;
+mod get_album;
+mod get_artist;
+mod get_artists;
+mod get_music_folders;
+mod get_song;
+mod refresh_music_folders;
+mod refresh_permissions;
 
 pub use refresh_music_folders::refresh_music_folders;
 pub use refresh_permissions::refresh_permissions;

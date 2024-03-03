@@ -97,7 +97,7 @@ where
 mod tests {
     use super::*;
     use crate::{
-        open_subsonic::user::create::{create_user, CreateUserParams},
+        open_subsonic::user::tests::{create_user, CreateUserParams},
         utils::test::user::{create_password_token, create_username_password, create_users},
     };
 

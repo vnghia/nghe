@@ -1,9 +1,9 @@
 use super::database::TemporaryDatabase;
 use crate::database::EncryptionKey;
 use crate::models::*;
-use crate::open_subsonic::common::request::CommonParams;
-use crate::open_subsonic::user::create::{create_user, CreateUserParams};
+use crate::open_subsonic::tests::CommonParams;
 use crate::open_subsonic::user::password::{decrypt_password, to_password_token, MD5Token};
+use crate::open_subsonic::user::tests::{create_user, CreateUserParams};
 
 use fake::{faker::internet::en::*, Fake, Faker};
 use futures::stream::{self, StreamExt};
