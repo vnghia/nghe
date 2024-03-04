@@ -3,19 +3,40 @@ use crate::OSError;
 use anyhow::Result;
 use lofty::Accessor;
 
+pub type SongDate = Option<(u16, Option<(u8, Option<u8>)>)>;
+
+#[cfg(test)]
+pub use fake::{Dummy, Fake, Faker, Opt, Optional};
+
 #[derive(Debug)]
-#[cfg_attr(test, derive(fake::Dummy, Clone, PartialEq, Eq))]
+#[cfg_attr(test, derive(Dummy, Clone, PartialEq, Eq))]
 pub struct SongTag {
     pub title: String,
     pub album: String,
-    #[cfg_attr(test, dummy(faker = "(fake::Faker, 1..2)"))]
+    #[cfg_attr(test, dummy(faker = "(Faker, 1..2)"))]
     pub artists: Vec<String>,
-    #[cfg_attr(test, dummy(faker = "(fake::Faker, 1..2)"))]
+    #[cfg_attr(test, dummy(faker = "(Faker, 1..2)"))]
     pub album_artists: Option<Vec<String>>,
     pub track_number: Option<u32>,
     pub track_total: Option<u32>,
     pub disc_number: Option<u32>,
     pub disc_total: Option<u32>,
+    #[cfg_attr(
+        test,
+        dummy(
+            expr = "Opt((0..9999, Opt((1..12, Opt(1..28, 50)), 50)), 50).fake::<Optional<(u16, Optional<(u8, Optional<u8>)>)>>().0.map(|y| (y.0, y.1.0.map(|m| (m.0, m.1.0))))"
+        )
+    )]
+    pub date: SongDate,
+    #[cfg_attr(test, dummy(expr = "None"))]
+    pub release_date: SongDate,
+    #[cfg_attr(
+        test,
+        dummy(
+            expr = "Opt((0..9999, Opt((1..12, Opt(1..28, 50)), 50)), 50).fake::<Optional<(u16, Optional<(u8, Optional<u8>)>)>>().0.map(|y| (y.0, y.1.0.map(|m| (m.0, m.1.0))))"
+        )
+    )]
+    pub original_release_date: SongDate,
 }
 
 #[derive(Debug)]
@@ -64,8 +85,27 @@ pub fn parse_number_and_total(
     }
 }
 
+pub fn split_song_date(song_date: SongDate) -> (Option<i16>, Option<i16>, Option<i16>) {
+    if let Some((year, remainder)) = song_date {
+        let year = year as i16;
+        if let Some((month, remainder)) = remainder {
+            let month = month as i16;
+            if let Some(day) = remainder {
+                let day = day as i16;
+                (Some(year), Some(month), Some(day))
+            } else {
+                (Some(year), Some(month), None)
+            }
+        } else {
+            (Some(year), None, None)
+        }
+    } else {
+        (None, None, None)
+    }
+}
+
 #[cfg(test)]
-mod test {
+pub mod test {
     use crate::utils::song::SongInformation;
 
     impl super::SongTag {
@@ -74,6 +114,21 @@ mod test {
                 tag: self.clone(),
                 property: Default::default(),
             }
+        }
+    }
+
+    pub fn song_date_to_string(song_date: &super::SongDate) -> Option<String> {
+        if let Some((year, remainder)) = song_date {
+            let mut result = format!("{:04}", year);
+            if let Some((month, remainder)) = remainder {
+                result = format!("{}-{:02}", result, month);
+                if let Some(day) = remainder {
+                    result = format!("{}-{:02}", result, day);
+                }
+            }
+            Some(result)
+        } else {
+            None
         }
     }
 }

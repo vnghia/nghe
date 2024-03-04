@@ -6,6 +6,7 @@ use super::asset::get_media_asset_path;
 use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::utils::song::file_type::SONG_FILE_TYPES;
+use crate::utils::song::test::song_date_to_string;
 use crate::utils::song::test::{id3v2, vorbis_comments, SongTag};
 use crate::utils::song::SongInformation;
 use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
@@ -13,9 +14,8 @@ use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use itertools::Itertools;
-use lofty::id3::v2::FrameId;
 use lofty::{
-    id3::v2::{Frame, FrameFlags, Id3v2Tag, TextInformationFrame},
+    id3::v2::{Frame, FrameFlags, FrameId, Id3v2Tag, TextInformationFrame},
     ogg::VorbisComments,
     Accessor, FileType, TagExt, TagType, TaggedFileExt,
 };
@@ -187,6 +187,15 @@ impl TemporaryFs {
                         concat_string!("-1/", song_tag.disc_total.unwrap().to_string()),
                     );
                 }
+                if let Some(date) = song_date_to_string(&song_tag.date) {
+                    write_id3v2_text_tag(&mut tag, id3v2::RECORDING_TIME_ID, date);
+                }
+                if let Some(date) = song_date_to_string(&song_tag.release_date) {
+                    write_id3v2_text_tag(&mut tag, id3v2::RELEASE_TIME_ID, date);
+                }
+                if let Some(date) = song_date_to_string(&song_tag.original_release_date) {
+                    write_id3v2_text_tag(&mut tag, id3v2::ORIGINAL_RELEASE_TIME_ID, date);
+                }
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");
             }
@@ -200,6 +209,12 @@ impl TemporaryFs {
                     album_artists.into_iter().for_each(|artist| {
                         tag.push(vorbis_comments::ALBUM_ARTIST_KEYS[0].to_owned(), artist)
                     });
+                }
+                if let Some(date) = song_date_to_string(&song_tag.date) {
+                    tag.push(vorbis_comments::DATE_KEY.to_owned(), date)
+                }
+                if let Some(date) = song_date_to_string(&song_tag.original_release_date) {
+                    tag.push(vorbis_comments::ORIGINAL_RELEASE_DATE_KEY.to_owned(), date)
                 }
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");

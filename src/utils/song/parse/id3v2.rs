@@ -1,5 +1,5 @@
 use super::common::{extract_common_tags, parse_number_and_total, SongTag};
-use crate::OSError;
+use crate::{utils::time::parse_date, OSError};
 
 use anyhow::Result;
 use itertools::Itertools;
@@ -12,6 +12,10 @@ pub const ARTIST_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TPE1"));
 pub const ALBUM_ARTIST_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TPE2"));
 pub const TRACK_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TRCK"));
 pub const DISC_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TPOS"));
+
+pub const RECORDING_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDRC"));
+pub const RELEASE_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDRL"));
+pub const ORIGINAL_RELEASE_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDOR"));
 
 fn extract_texts(
     tag: &mut Id3v2Tag,
@@ -46,6 +50,10 @@ impl SongTag {
         let (track_number, track_total) = extract_number_and_total(tag, &TRACK_ID)?;
         let (disc_number, disc_total) = extract_number_and_total(tag, &DISC_ID)?;
 
+        let date = parse_date(tag.get_text(&RECORDING_TIME_ID))?;
+        let release_date = parse_date(tag.get_text(&RELEASE_TIME_ID))?;
+        let original_release_date = parse_date(tag.get_text(&ORIGINAL_RELEASE_TIME_ID))?;
+
         Ok(Self {
             title,
             album,
@@ -55,15 +63,23 @@ impl SongTag {
             track_total,
             disc_number,
             disc_total,
+            date,
+            release_date,
+            original_release_date,
         })
     }
 }
 
 #[cfg(test)]
 pub mod test {
+    pub use super::V4_MULTI_VALUE_SEPARATOR;
+
     pub use super::ALBUM_ARTIST_ID;
     pub use super::ARTIST_ID;
     pub use super::DISC_ID;
     pub use super::TRACK_ID;
-    pub use super::V4_MULTI_VALUE_SEPARATOR;
+
+    pub use super::ORIGINAL_RELEASE_TIME_ID;
+    pub use super::RECORDING_TIME_ID;
+    pub use super::RELEASE_TIME_ID;
 }

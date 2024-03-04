@@ -1,4 +1,4 @@
-use super::common::{SongProperty, SongTag};
+use super::common::{split_song_date, SongProperty, SongTag};
 use crate::{models::songs, OSError};
 
 use anyhow::Result;
@@ -65,6 +65,17 @@ impl SongInformation {
         song_file_size: u64,
         song_relative_path: Option<&'a S>,
     ) -> songs::NewOrUpdateSong<'a> {
+        let (year, month, day) = split_song_date(
+            self.tag
+                .date
+                .or(self.tag.original_release_date)
+                .or(self.tag.release_date),
+        );
+        let (release_year, release_month, release_day) =
+            split_song_date(self.tag.release_date.or(self.tag.date));
+        let (original_release_year, original_release_month, original_release_day) =
+            split_song_date(self.tag.original_release_date);
+
         songs::NewOrUpdateSong {
             title: (&self.tag.title).into(),
             duration: self.property.duration,
@@ -74,6 +85,15 @@ impl SongInformation {
             disc_number: self.tag.disc_number.map(|i| i as i32),
             disc_total: self.tag.track_total.map(|i| i as i32),
             music_folder_id,
+            year,
+            month,
+            day,
+            release_year,
+            release_month,
+            release_day,
+            original_release_year,
+            original_release_month,
+            original_release_day,
             path: song_relative_path.map(|path| path.as_ref().into()),
             file_hash: song_file_hash as i64,
             file_size: song_file_size as i64,
@@ -131,6 +151,22 @@ mod tests {
                 tag.disc_total,
                 Some(10),
                 "{:?} disc total does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.date,
+                Some((2000, Some((12, Some(31))))),
+                "{:?} date does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.release_date, None,
+                "{:?} release date does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.original_release_date, None,
+                "{:?} original release date does not match",
                 file_type
             );
         }
