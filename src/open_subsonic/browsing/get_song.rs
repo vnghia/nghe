@@ -72,7 +72,7 @@ mod tests {
     use crate::{
         open_subsonic::common::id3::BasicArtistId3,
         utils::{
-            song::SongTag,
+            song::test::SongTag,
             test::{media::song_paths_to_ids, setup::setup_songs},
         },
     };

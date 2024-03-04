@@ -102,7 +102,7 @@ mod tests {
     use crate::{
         open_subsonic::scan::test::upsert_artists,
         utils::{
-            song::SongTag,
+            song::test::SongTag,
             test::{media::song_paths_to_artist_ids, setup::setup_songs},
         },
     };
@@ -172,7 +172,7 @@ mod tests {
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
-                    album_artists: vec![artist_name.to_owned()],
+                    album_artists: Some(vec![artist_name.to_owned()]),
                     ..Faker.fake()
                 })
                 .collect_vec(),

@@ -1,4 +1,7 @@
 pub mod file_type;
-mod tag;
+mod parse;
 
-pub use tag::SongTag;
+pub use parse::SongInformation;
+
+#[cfg(test)]
+pub use parse::test;

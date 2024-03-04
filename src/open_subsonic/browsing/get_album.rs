@@ -118,7 +118,7 @@ mod tests {
     use crate::{
         open_subsonic::{common::id3::BasicArtistId3, scan::test::upsert_album},
         utils::{
-            song::SongTag,
+            song::test::SongTag,
             test::{media::song_paths_to_ids, setup::setup_songs},
         },
     };
@@ -200,11 +200,11 @@ mod tests {
             (0..n_song)
                 .map(|i| SongTag {
                     album: album_name.to_owned(),
-                    album_artists: if i < 5 {
+                    album_artists: Some(if i < 5 {
                         vec![artist_names[0].to_owned()]
                     } else {
                         vec![artist_names[1].to_owned()]
-                    },
+                    }),
                     ..Faker.fake()
                 })
                 .collect_vec(),

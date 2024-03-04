@@ -56,7 +56,7 @@ mod tests {
     use super::super::album::upsert_album;
     use super::*;
     use crate::utils::test::media::query_all_song_information;
-    use crate::utils::{song::SongTag, test::setup::setup_users_and_music_folders};
+    use crate::utils::{song::test::SongTag, test::setup::setup_users_and_music_folders};
 
     use fake::{Fake, Faker};
 
@@ -77,7 +77,7 @@ mod tests {
         let song_id = upsert_song(
             temp_db.pool(),
             None,
-            song_tag.to_new_or_update_song(
+            song_tag.to_information().to_new_or_update_song(
                 music_folders[0].id,
                 album_id,
                 song_hash,
@@ -113,7 +113,7 @@ mod tests {
         let song_id = upsert_song(
             temp_db.pool(),
             None,
-            song_tag.to_new_or_update_song(
+            song_tag.to_information().to_new_or_update_song(
                 music_folders[0].id,
                 album_id,
                 song_hash,
@@ -135,7 +135,7 @@ mod tests {
         let new_song_id = upsert_song(
             temp_db.pool(),
             Some(song_id),
-            new_song_tag.to_new_or_update_song(
+            new_song_tag.to_information().to_new_or_update_song(
                 music_folders[0].id,
                 new_album_id,
                 new_song_hash,

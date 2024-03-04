@@ -1,5 +1,5 @@
 use crate::models::*;
-use crate::utils::song::SongTag;
+use crate::utils::song::test::SongTag;
 use crate::DatabasePool;
 
 use diesel::{dsl::exists, ExpressionMethods, QueryDsl, SelectableHelper};
@@ -110,6 +110,7 @@ pub async fn assert_artists_info(
     pool: &DatabasePool,
     song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
 ) {
+    let default_vec = vec![];
     assert_artist_names(
         pool,
         &song_fs_info
@@ -117,6 +118,8 @@ pub async fn assert_artists_info(
             .flat_map(|song_tag| {
                 song_tag
                     .album_artists
+                    .as_ref()
+                    .unwrap_or(&default_vec)
                     .iter()
                     .chain(song_tag.artists.iter())
                     .collect_vec()
@@ -136,7 +139,7 @@ pub async fn assert_albums_artists_info(
         pool,
         &song_fs_info
             .values()
-            .flat_map(|song_tag| song_tag.album_artists.clone())
+            .flat_map(|song_tag| song_tag.album_artists.as_ref().unwrap_or(&song_tag.artists))
             .unique()
             .sorted()
             .collect_vec(),
@@ -179,7 +182,13 @@ pub async fn assert_songs_info(
                 .collect_vec()
         );
         assert_eq!(
-            song_tag.album_artists.iter().sorted().collect_vec(),
+            song_tag
+                .album_artists
+                .as_ref()
+                .unwrap_or(&song_tag.artists)
+                .iter()
+                .sorted()
+                .collect_vec(),
             album_artists
                 .iter()
                 .map(|artist| &artist.name)
@@ -307,7 +316,7 @@ pub async fn song_paths_to_artist_ids(
     let artist_names = song_fs_info
         .clone()
         .into_iter()
-        .flat_map(|(_, tag)| [tag.album_artists, tag.artists].concat())
+        .flat_map(|(_, tag)| [tag.album_artists.unwrap_or_default(), tag.artists].concat())
         .unique()
         .collect_vec();
 

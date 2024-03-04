@@ -6,12 +6,14 @@ use super::asset::get_media_asset_path;
 use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::utils::song::file_type::SONG_FILE_TYPES;
-use crate::utils::song::SongTag;
+use crate::utils::song::test::{id3v2, vorbis_comments, SongTag};
+use crate::utils::song::SongInformation;
 use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use itertools::Itertools;
+use lofty::id3::v2::FrameId;
 use lofty::{
     id3::v2::{Frame, FrameFlags, Id3v2Tag, TextInformationFrame},
     ogg::VorbisComments,
@@ -27,6 +29,20 @@ use uuid::Uuid;
 
 pub struct TemporaryFs {
     root: TempDir,
+}
+
+fn write_id3v2_text_tag(tag: &mut Id3v2Tag, frame_id: FrameId<'static>, value: String) {
+    tag.insert(
+        Frame::new(
+            frame_id,
+            TextInformationFrame {
+                encoding: lofty::TextEncoding::UTF8,
+                value,
+            },
+            FrameFlags::default(),
+        )
+        .unwrap(),
+    );
 }
 
 #[allow(clippy::new_without_default)]
@@ -143,21 +159,32 @@ impl TemporaryFs {
 
         match tag_type {
             TagType::Id3v2 => {
+                let multi_value_separator = id3v2::V4_MULTI_VALUE_SEPARATOR.to_string();
                 let mut tag = Id3v2Tag::from(tag);
-                if !song_tag.album_artists.is_empty() {
-                    tag.set_artist(song_tag.artists.join("\0"));
+                if !song_tag.artists.is_empty() {
+                    tag.set_artist(song_tag.artists.join(&multi_value_separator));
                 }
-                if !song_tag.album_artists.is_empty() {
-                    tag.insert(
-                        Frame::new(
-                            "TPE2",
-                            TextInformationFrame {
-                                encoding: lofty::TextEncoding::UTF8,
-                                value: song_tag.album_artists.join("\0"),
-                            },
-                            FrameFlags::default(),
-                        )
-                        .unwrap(),
+                if let Some(album_artists) = song_tag.album_artists {
+                    if !album_artists.is_empty() {
+                        write_id3v2_text_tag(
+                            &mut tag,
+                            id3v2::ALBUM_ARTIST_ID,
+                            album_artists.join(&multi_value_separator),
+                        );
+                    }
+                }
+                if song_tag.track_number.is_none() && song_tag.track_total.is_some() {
+                    write_id3v2_text_tag(
+                        &mut tag,
+                        id3v2::TRACK_ID,
+                        concat_string!("-1/", song_tag.track_total.unwrap().to_string()),
+                    );
+                }
+                if song_tag.disc_number.is_none() && song_tag.disc_total.is_some() {
+                    write_id3v2_text_tag(
+                        &mut tag,
+                        id3v2::DISC_ID,
+                        concat_string!("-1/", song_tag.disc_total.unwrap().to_string()),
                     );
                 }
                 tag.save_to_path(&path)
@@ -168,11 +195,12 @@ impl TemporaryFs {
                 song_tag
                     .artists
                     .into_iter()
-                    .for_each(|artist| tag.push("ARTIST".to_owned(), artist));
-                song_tag
-                    .album_artists
-                    .into_iter()
-                    .for_each(|artist| tag.push("ALBUMARTIST".to_owned(), artist));
+                    .for_each(|artist| tag.push(vorbis_comments::ARTIST_KEY.to_owned(), artist));
+                if let Some(album_artists) = song_tag.album_artists {
+                    album_artists.into_iter().for_each(|artist| {
+                        tag.push(vorbis_comments::ALBUM_ARTIST_KEYS[0].to_owned(), artist)
+                    });
+                }
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");
             }
@@ -299,7 +327,10 @@ fn test_roundtrip_media_file() {
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
-        let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), &path).unwrap();
+        let read_song_tag =
+            SongInformation::read_from(&mut std::fs::File::open(&path).unwrap(), &file_type)
+                .unwrap()
+                .tag;
         assert_eq!(
             song_tag, read_song_tag,
             "{:?} tag does not match",
@@ -309,13 +340,12 @@ fn test_roundtrip_media_file() {
 }
 
 #[test]
-fn test_roundtrip_media_file_empty_value() {
+fn test_roundtrip_media_file_none_value() {
     let fs = TemporaryFs::new();
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = SongTag {
-            artists: vec![],
-            album_artists: vec![],
+            album_artists: None,
             track_number: None,
             track_total: None,
             disc_number: None,
@@ -326,7 +356,10 @@ fn test_roundtrip_media_file_empty_value() {
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
-        let read_song_tag = SongTag::parse(std::fs::read(&path).unwrap(), &path).unwrap();
+        let read_song_tag =
+            SongInformation::read_from(&mut std::fs::File::open(&path).unwrap(), &file_type)
+                .unwrap()
+                .tag;
         assert_eq!(
             song_tag, read_song_tag,
             "{:?} tag does not match",
