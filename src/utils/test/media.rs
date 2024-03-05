@@ -98,7 +98,10 @@ pub async fn query_all_songs_information(
         .then(|song_id| async move {
             let result = query_all_song_information(pool, song_id).await;
             (
-                (result.0.music_folder_id, PathBuf::from(&result.0.path)),
+                (
+                    result.0.music_folder_id,
+                    PathBuf::from(&result.0.relative_path),
+                ),
                 result,
             )
         })
@@ -297,7 +300,7 @@ pub async fn song_paths_to_ids(
             songs::table
                 .select(songs::id)
                 .filter(songs::music_folder_id.eq(music_folder_id))
-                .filter(songs::path.eq(path.to_str().unwrap()))
+                .filter(songs::relative_path.eq(path.to_str().unwrap()))
                 .first::<Uuid>(&mut pool.get().await.unwrap())
                 .await
                 .unwrap()
@@ -340,7 +343,7 @@ pub async fn song_paths_to_album_ids(
             songs::table
                 .select(songs::album_id)
                 .filter(songs::music_folder_id.eq(music_folder_id))
-                .filter(songs::path.eq(path.to_str().unwrap()))
+                .filter(songs::relative_path.eq(path.to_str().unwrap()))
                 .first::<Uuid>(&mut pool.get().await.unwrap())
                 .await
                 .unwrap()

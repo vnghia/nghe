@@ -34,7 +34,7 @@ pub async fn scan_full(
         {
             let song_file_metadata_db = diesel::update(songs::table)
                 .filter(songs::music_folder_id.eq(music_folder.id))
-                .filter(songs::path.eq(&song_relative_path))
+                .filter(songs::relative_path.eq(&song_relative_path))
                 .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
                 .returning((songs::id, songs::file_hash, songs::file_size))
                 .get_result::<(Uuid, i64, i64)>(&mut pool.get().await?)

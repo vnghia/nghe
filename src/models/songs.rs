@@ -12,10 +12,10 @@ use uuid::Uuid;
 pub struct Song {
     pub id: Uuid,
     pub title: String,
-    pub duration: f32,
     pub album_id: Uuid,
+    pub duration: f32,
     pub music_folder_id: Uuid,
-    pub path: String,
+    pub relative_path: String,
     pub file_hash: i64,
     pub file_size: i64,
     pub updated_at: OffsetDateTime,
@@ -25,8 +25,8 @@ pub struct Song {
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = songs)]
 pub struct NewOrUpdateSong<'a> {
+    // Song tag
     pub title: Cow<'a, str>,
-    pub duration: f32,
     pub album_id: Uuid,
     pub track_number: Option<i32>,
     pub track_total: Option<i32>,
@@ -41,8 +41,11 @@ pub struct NewOrUpdateSong<'a> {
     pub original_release_year: Option<i16>,
     pub original_release_month: Option<i16>,
     pub original_release_day: Option<i16>,
+    // Song property
+    pub duration: f32,
+    // Filesystem property
     pub music_folder_id: Uuid,
-    pub path: Option<Cow<'a, str>>,
+    pub relative_path: Option<Cow<'a, str>>,
     pub file_hash: i64,
     pub file_size: i64,
 }

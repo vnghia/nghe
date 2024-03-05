@@ -94,7 +94,7 @@ impl SongInformation {
             original_release_year,
             original_release_month,
             original_release_day,
-            path: song_relative_path.map(|path| path.as_ref().into()),
+            relative_path: song_relative_path.map(|path| path.as_ref().into()),
             file_hash: song_file_hash as i64,
             file_size: song_file_size as i64,
         }

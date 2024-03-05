@@ -52,7 +52,6 @@ diesel::table! {
     songs (id) {
         id -> Uuid,
         title -> Text,
-        duration -> Float4,
         album_id -> Uuid,
         track_number -> Nullable<Int4>,
         track_total -> Nullable<Int4>,
@@ -67,8 +66,9 @@ diesel::table! {
         original_release_year -> Nullable<Int2>,
         original_release_month -> Nullable<Int2>,
         original_release_day -> Nullable<Int2>,
+        duration -> Float4,
         music_folder_id -> Uuid,
-        path -> Text,
+        relative_path -> Text,
         file_hash -> Int8,
         file_size -> Int8,
         created_at -> Timestamptz,

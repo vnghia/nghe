@@ -29,8 +29,8 @@ pub async fn upsert_song<'a>(
     song_id: Option<Uuid>,
     new_or_update_song: songs::NewOrUpdateSong<'a>,
 ) -> Result<Uuid> {
-    if (song_id.is_some() && new_or_update_song.path.is_some())
-        || (song_id.is_none() && new_or_update_song.path.is_none())
+    if (song_id.is_some() && new_or_update_song.relative_path.is_some())
+        || (song_id.is_none() && new_or_update_song.relative_path.is_none())
     {
         unreachable!("id (updating) or path (inserting) is mutually exclusive")
     }
@@ -91,7 +91,7 @@ mod tests {
         let (song, _, _, _) = query_all_song_information(temp_db.pool(), song_id).await;
 
         assert_eq!(song_tag.title, song.title);
-        assert_eq!(song_path, song.path);
+        assert_eq!(song_path, song.relative_path);
         assert_eq!(song_hash, song.file_hash as u64);
         assert_eq!(song_size, song.file_size as u64);
     }
@@ -150,7 +150,7 @@ mod tests {
         let (song, _, _, _) = query_all_song_information(temp_db.pool(), new_song_id).await;
 
         assert_eq!(new_song_tag.title, song.title);
-        assert_eq!(song_path, song.path);
+        assert_eq!(song_path, song.relative_path);
         assert_eq!(new_song_hash, song.file_hash as u64);
         assert_eq!(new_song_size, song.file_size as u64);
     }
