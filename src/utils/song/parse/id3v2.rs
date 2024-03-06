@@ -2,9 +2,13 @@ use super::common::{extract_common_tags, parse_number_and_total, SongTag};
 use crate::{utils::time::parse_date, OSError};
 
 use anyhow::Result;
+use isolang::Language;
 use itertools::Itertools;
 use lofty::id3::v2::{FrameId, Id3v2Tag, Id3v2Version};
-use std::{borrow::Cow, str::Split};
+use std::{
+    borrow::Cow,
+    str::{FromStr, Split},
+};
 
 pub const V4_MULTI_VALUE_SEPARATOR: char = '\0';
 
@@ -16,6 +20,8 @@ pub const DISC_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TPOS"));
 pub const RECORDING_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDRC"));
 pub const RELEASE_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDRL"));
 pub const ORIGINAL_RELEASE_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDOR"));
+
+pub const LANGUAGE_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TLAN"));
 
 fn extract_and_split_str<'a>(
     tag: &'a mut Id3v2Tag,
@@ -53,6 +59,12 @@ impl SongTag {
         let release_date = parse_date(tag.get_text(&RELEASE_TIME_ID))?;
         let original_release_date = parse_date(tag.get_text(&ORIGINAL_RELEASE_TIME_ID))?;
 
+        let languages = extract_and_split_str(tag, &LANGUAGE_ID, multi_value_separator)
+            .map_or_else(
+                || Ok(Vec::default()),
+                |v| v.map(Language::from_str).try_collect(),
+            )?;
+
         Ok(Self {
             title,
             album,
@@ -65,6 +77,7 @@ impl SongTag {
             date,
             release_date,
             original_release_date,
+            languages,
         })
     }
 }
@@ -81,4 +94,6 @@ pub mod test {
     pub use super::ORIGINAL_RELEASE_TIME_ID;
     pub use super::RECORDING_TIME_ID;
     pub use super::RELEASE_TIME_ID;
+
+    pub use super::LANGUAGE_ID;
 }

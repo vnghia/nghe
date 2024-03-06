@@ -2,8 +2,10 @@ use super::common::{extract_common_tags, parse_number_and_total, SongTag};
 use crate::utils::time::parse_date;
 
 use anyhow::Result;
+use isolang::Language;
 use itertools::Itertools;
 use lofty::ogg::VorbisComments;
+use std::str::FromStr;
 
 pub const ARTIST_KEY: &str = "ARTIST";
 pub const ALBUM_ARTIST_KEYS: &[&str] = &["ALBUMARTIST", "ALBUM ARTIST"];
@@ -15,6 +17,8 @@ const DISC_TOTAL_KEYS: &[&str] = &["DISCTOTAL", "TOTALDISCS"];
 
 pub const DATE_KEY: &str = "DATE";
 pub const ORIGINAL_RELEASE_DATE_KEY: &str = "ORIGINALDATE";
+
+pub const LANGUAGE: &str = "LANGUAGE";
 
 fn extract_number_and_total(
     tag: &mut VorbisComments,
@@ -46,6 +50,11 @@ impl SongTag {
         let release_date = None;
         let original_release_date = parse_date(tag.get(ORIGINAL_RELEASE_DATE_KEY))?;
 
+        let languages = tag
+            .remove(LANGUAGE)
+            .map(|s| Language::from_str(&s))
+            .try_collect()?;
+
         Ok(Self {
             title,
             album,
@@ -58,6 +67,7 @@ impl SongTag {
             date,
             release_date,
             original_release_date,
+            languages,
         })
     }
 }
@@ -69,4 +79,6 @@ pub mod test {
 
     pub use super::DATE_KEY;
     pub use super::ORIGINAL_RELEASE_DATE_KEY;
+
+    pub use super::LANGUAGE;
 }

@@ -18,6 +18,7 @@ create table
     original_release_year smallint default null,
     original_release_month smallint default null,
     original_release_day smallint default null,
+    languages text[] not null default array[]::text[] check (array_position(languages, null) is null),
     -- Song property
     duration real not null,
     -- Filesystem property

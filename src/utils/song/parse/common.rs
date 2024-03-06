@@ -1,6 +1,7 @@
 use crate::OSError;
 
 use anyhow::Result;
+use isolang::Language;
 use lofty::Accessor;
 
 pub type SongDate = Option<(u16, Option<(u8, Option<u8>)>)>;
@@ -36,6 +37,13 @@ pub struct SongTag {
         )
     )]
     pub original_release_date: SongDate,
+    #[cfg_attr(
+        test,
+        dummy(
+            expr = "((0..=7915), 0..=2).fake::<Vec<usize>>().into_iter().map(|i| Language::from_usize(i).unwrap()).collect()"
+        )
+    )]
+    pub languages: Vec<Language>,
 }
 
 #[derive(Debug)]

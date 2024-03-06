@@ -194,6 +194,17 @@ impl TemporaryFs {
                 if let Some(date) = song_date_to_string(&song_tag.original_release_date) {
                     write_id3v2_text_tag(&mut tag, id3v2::ORIGINAL_RELEASE_TIME_ID, date);
                 }
+                if !song_tag.languages.is_empty() {
+                    write_id3v2_text_tag(
+                        &mut tag,
+                        id3v2::LANGUAGE_ID,
+                        song_tag
+                            .languages
+                            .into_iter()
+                            .map(|language| language.to_639_3())
+                            .join(&multi_value_separator),
+                    );
+                }
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");
             }
@@ -212,6 +223,12 @@ impl TemporaryFs {
                 if let Some(date) = song_date_to_string(&song_tag.original_release_date) {
                     tag.push(vorbis_comments::ORIGINAL_RELEASE_DATE_KEY.to_owned(), date)
                 }
+                song_tag.languages.into_iter().for_each(|language| {
+                    tag.push(
+                        vorbis_comments::LANGUAGE.to_owned(),
+                        language.to_639_3().to_owned(),
+                    )
+                });
                 tag.save_to_path(&path)
                     .expect("can not write tag to media file");
             }

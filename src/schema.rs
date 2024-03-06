@@ -66,6 +66,7 @@ diesel::table! {
         original_release_year -> Nullable<Int2>,
         original_release_month -> Nullable<Int2>,
         original_release_day -> Nullable<Int2>,
+        languages -> Array<Nullable<Text>>,
         duration -> Float4,
         music_folder_id -> Uuid,
         relative_path -> Text,
