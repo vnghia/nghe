@@ -41,6 +41,7 @@ pub struct NewOrUpdateSong<'a> {
     pub original_release_year: Option<i16>,
     pub original_release_month: Option<i16>,
     pub original_release_day: Option<i16>,
+    pub languages: Vec<&'static str>,
     // Song property
     pub duration: f32,
     // Filesystem property

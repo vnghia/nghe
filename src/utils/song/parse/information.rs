@@ -2,6 +2,7 @@ use super::common::{split_song_date, SongProperty, SongTag};
 use crate::{models::songs, OSError};
 
 use anyhow::Result;
+use itertools::Itertools;
 use lofty::{flac::FlacFile, mpeg::MpegFile, AudioFile, FileType, ParseOptions, ParsingMode};
 use std::io::{Read, Seek};
 use uuid::Uuid;
@@ -68,8 +69,8 @@ impl SongInformation {
             split_song_date(self.tag.original_release_date);
 
         songs::NewOrUpdateSong {
+            // Song tag
             title: (&self.tag.title).into(),
-            duration: self.property.duration,
             album_id,
             track_number: self.tag.track_number.map(|i| i as i32),
             track_total: self.tag.track_total.map(|i| i as i32),
@@ -85,6 +86,15 @@ impl SongInformation {
             original_release_year,
             original_release_month,
             original_release_day,
+            languages: self
+                .tag
+                .languages
+                .iter()
+                .map(|language| language.to_639_3())
+                .collect_vec(),
+            // Song property
+            duration: self.property.duration,
+            // Filesystem property
             relative_path: song_relative_path.map(|path| path.as_ref().into()),
             file_hash: song_file_hash as i64,
             file_size: song_file_size as i64,
@@ -97,6 +107,7 @@ mod tests {
     use super::*;
     use crate::utils::{song::file_type::SONG_FILE_TYPES, test::asset::get_media_asset_path};
 
+    use isolang::Language;
     use itertools::Itertools;
 
     #[test]
@@ -158,6 +169,12 @@ mod tests {
             assert_eq!(
                 tag.original_release_date, None,
                 "{:?} original release date does not match",
+                file_type
+            );
+            assert_eq!(
+                tag.languages.into_iter().sorted().collect_vec(),
+                [Language::Eng, Language::Vie],
+                "{:?} language does not match",
                 file_type
             );
         }
