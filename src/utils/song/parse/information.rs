@@ -61,14 +61,9 @@ impl SongInformation {
         song_file_size: u64,
         song_relative_path: Option<&'a S>,
     ) -> songs::NewOrUpdateSong<'a> {
-        let (year, month, day) = split_song_date(
-            self.tag
-                .date
-                .or(self.tag.original_release_date)
-                .or(self.tag.release_date),
-        );
+        let (year, month, day) = split_song_date(self.tag.date_or_default());
         let (release_year, release_month, release_day) =
-            split_song_date(self.tag.release_date.or(self.tag.date));
+            split_song_date(self.tag.release_date_or_default());
         let (original_release_year, original_release_month, original_release_day) =
             split_song_date(self.tag.original_release_date);
 

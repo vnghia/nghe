@@ -139,13 +139,7 @@ pub async fn assert_albums_artists_info(
         pool,
         &song_fs_info
             .values()
-            .flat_map(|song_tag| {
-                if !song_tag.album_artists.is_empty() {
-                    &song_tag.album_artists
-                } else {
-                    &song_tag.artists
-                }
-            })
+            .flat_map(|song_tag| song_tag.album_artists_or_default())
             .unique()
             .sorted()
             .collect_vec(),
@@ -188,14 +182,11 @@ pub async fn assert_songs_info(
                 .collect_vec()
         );
         assert_eq!(
-            if !song_tag.album_artists.is_empty() {
-                &song_tag.album_artists
-            } else {
-                &song_tag.artists
-            }
-            .iter()
-            .sorted()
-            .collect_vec(),
+            song_tag
+                .album_artists_or_default()
+                .iter()
+                .sorted()
+                .collect_vec(),
             album_artists
                 .iter()
                 .map(|artist| &artist.name)

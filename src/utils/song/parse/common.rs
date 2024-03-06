@@ -46,6 +46,26 @@ pub struct SongTag {
     pub languages: Vec<Language>,
 }
 
+impl SongTag {
+    pub fn album_artists_or_default(&self) -> &Vec<String> {
+        if !self.album_artists.is_empty() {
+            &self.album_artists
+        } else {
+            &self.artists
+        }
+    }
+
+    pub fn date_or_default(&self) -> SongDate {
+        self.date
+            .or(self.original_release_date)
+            .or(self.release_date)
+    }
+
+    pub fn release_date_or_default(&self) -> SongDate {
+        self.release_date.or(self.date)
+    }
+}
+
 #[derive(Debug)]
 #[cfg_attr(test, derive(Default))]
 pub struct SongProperty {
