@@ -221,7 +221,10 @@ impl TemporaryFs {
                     tag.push(vorbis_comments::DATE_KEY.to_owned(), date)
                 }
                 if let Some(date) = song_date_to_string(&song_tag.original_release_date) {
-                    tag.push(vorbis_comments::ORIGINAL_RELEASE_DATE_KEY.to_owned(), date)
+                    tag.push(
+                        vorbis_comments::ORIGINAL_RELEASE_DATE_KEYS[0].to_owned(),
+                        date,
+                    )
                 }
                 song_tag.languages.into_iter().for_each(|language| {
                     tag.push(

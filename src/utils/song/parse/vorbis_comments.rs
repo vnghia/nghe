@@ -16,7 +16,7 @@ const DISC_NUMBER_KEYS: &[&str] = &["DISCNUMBER"];
 const DISC_TOTAL_KEYS: &[&str] = &["DISCTOTAL", "TOTALDISCS"];
 
 pub const DATE_KEY: &str = "DATE";
-pub const ORIGINAL_RELEASE_DATE_KEY: &str = "ORIGINALDATE";
+pub const ORIGINAL_RELEASE_DATE_KEYS: &[&str] = &["ORIGYEAR", "ORIGINALDATE"];
 
 pub const LANGUAGE: &str = "LANGUAGE";
 
@@ -48,7 +48,11 @@ impl SongTag {
 
         let date = parse_date(tag.get(DATE_KEY))?;
         let release_date = None;
-        let original_release_date = parse_date(tag.get(ORIGINAL_RELEASE_DATE_KEY))?;
+        let original_release_date = parse_date(
+            ORIGINAL_RELEASE_DATE_KEYS
+                .iter()
+                .find_map(|key| tag.get(key)),
+        )?;
 
         let languages = tag
             .remove(LANGUAGE)
@@ -78,7 +82,7 @@ pub mod test {
     pub use super::ARTIST_KEY;
 
     pub use super::DATE_KEY;
-    pub use super::ORIGINAL_RELEASE_DATE_KEY;
+    pub use super::ORIGINAL_RELEASE_DATE_KEYS;
 
     pub use super::LANGUAGE;
 }

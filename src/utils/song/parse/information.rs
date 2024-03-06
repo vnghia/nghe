@@ -167,7 +167,8 @@ mod tests {
                 file_type
             );
             assert_eq!(
-                tag.original_release_date, None,
+                tag.original_release_date,
+                Some((3000, Some((1, None)))),
                 "{:?} original release date does not match",
                 file_type
             );
