@@ -1,5 +1,5 @@
 use super::common::{extract_common_tags, parse_number_and_total, SongTag};
-use crate::{utils::time::parse_date, OSError};
+use crate::utils::time::parse_date;
 
 use anyhow::Result;
 use itertools::Itertools;
@@ -30,18 +30,12 @@ impl SongTag {
     pub fn from_vorbis_comments(tag: &mut VorbisComments) -> Result<Self> {
         let (title, album) = extract_common_tags(tag)?;
 
-        let artists = {
-            let artists = tag.remove(ARTIST_KEY).collect_vec();
-            if !artists.is_empty() {
-                artists
-            } else {
-                anyhow::bail!(OSError::NotFound("Artist".into()))
-            }
-        };
+        let artists = tag.remove(ARTIST_KEY).collect_vec();
         let album_artists = ALBUM_ARTIST_KEYS
             .iter()
             .map(|key| tag.remove(key).collect_vec())
-            .find(|vec| !vec.is_empty());
+            .find(|vec| !vec.is_empty())
+            .unwrap_or_default();
 
         let (track_number, track_total) =
             extract_number_and_total(tag, TRACK_NUMBER_KEYS, TRACK_TOTAL_KEYS)?;

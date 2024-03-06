@@ -11,7 +11,7 @@ use crate::{
 use anyhow::Result;
 use axum::extract::State;
 use diesel::{
-    dsl::{count, sql, sum},
+    dsl::{count_distinct, sql, sum},
     sql_types, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, OptionalExtension,
     QueryDsl,
 };
@@ -51,13 +51,13 @@ async fn get_album_and_song_ids(
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(albums::id.eq(album_id))
         .group_by(albums::id)
-        .having(count(songs::id).gt(0))
+        .having(count_distinct(songs::id).gt(0))
         .select((
             (
                 (
                     albums::id,
                     albums::name,
-                    count(songs::id),
+                    count_distinct(songs::id),
                     sum(songs::duration).assume_not_null(),
                     albums::created_at,
                 ),
@@ -65,7 +65,7 @@ async fn get_album_and_song_ids(
                     "array_agg(distinct(artists.id, artists.name)) basic_artists",
                 ),
             ),
-            sql::<sql_types::Array<sql_types::Uuid>>("array_agg(songs.id) song_ids"),
+            sql::<sql_types::Array<sql_types::Uuid>>("array_agg(distinct(songs.id)) song_ids"),
         ))
         .first::<(AlbumId3, Vec<Uuid>)>(&mut pool.get().await?)
         .await
@@ -200,11 +200,11 @@ mod tests {
             (0..n_song)
                 .map(|i| SongTag {
                     album: album_name.to_owned(),
-                    album_artists: Some(if i < 5 {
+                    album_artists: if i < 5 {
                         vec![artist_names[0].to_owned()]
                     } else {
                         vec![artist_names[1].to_owned()]
-                    }),
+                    },
                     ..Faker.fake()
                 })
                 .collect_vec(),

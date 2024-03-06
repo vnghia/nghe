@@ -15,8 +15,7 @@ pub struct SongTag {
     pub album: String,
     #[cfg_attr(test, dummy(faker = "(Faker, 1..2)"))]
     pub artists: Vec<String>,
-    #[cfg_attr(test, dummy(faker = "(Faker, 1..2)"))]
-    pub album_artists: Option<Vec<String>>,
+    pub album_artists: Vec<String>,
     pub track_number: Option<u32>,
     pub track_total: Option<u32>,
     pub disc_number: Option<u32>,

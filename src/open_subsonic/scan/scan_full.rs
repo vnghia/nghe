@@ -104,13 +104,11 @@ pub async fn scan_full(
             )
             .await?;
 
-            if let Some(album_artists) = &song_tag.album_artists {
-                upsert_song_album_artists(
-                    pool,
-                    &song_id,
-                    &upsert_artists(pool, album_artists).await?,
-                )
-                .await?;
+            // if there are no album artists,
+            // we assume that they are the same as artists.
+            if !song_tag.album_artists.is_empty() {
+                let album_artist_ids = upsert_artists(pool, &song_tag.album_artists).await?;
+                upsert_song_album_artists(pool, &song_id, &album_artist_ids).await?;
             } else {
                 upsert_song_album_artists(pool, &song_id, &artist_ids).await?;
             }
@@ -350,12 +348,12 @@ mod tests {
             vec![
                 SongTag {
                     album: "album".to_owned(),
-                    album_artists: Some(vec!["artist1".to_owned(), "artist2".to_owned()]),
+                    album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
                     ..Faker.fake()
                 },
                 SongTag {
                     album: "album".to_owned(),
-                    album_artists: Some(vec!["artist1".to_owned(), "artist3".to_owned()]),
+                    album_artists: vec!["artist1".to_owned(), "artist3".to_owned()],
                     ..Faker.fake()
                 },
             ],
@@ -492,7 +490,7 @@ mod tests {
             // deleted
             SongTag {
                 artists: vec!["artist1".to_owned()],
-                album_artists: Some(vec!["artist1".to_owned()]),
+                album_artists: vec!["artist1".to_owned()],
                 ..Faker.fake()
             },
             // not deleted but scanned (artist2)
@@ -545,12 +543,12 @@ mod tests {
             SongTag {
                 album: "album1".to_owned(),
                 artists: vec!["artist2".to_owned()],
-                album_artists: Some(vec!["artist1".to_owned(), "artist2".to_owned()]),
+                album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
                 ..Faker.fake()
             },
             SongTag {
                 album: "album2".to_owned(),
-                album_artists: Some(vec!["artist2".to_owned(), "artist3".to_owned()]),
+                album_artists: vec!["artist2".to_owned(), "artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -587,19 +585,19 @@ mod tests {
             SongTag {
                 album: "album".to_owned(),
                 artists: vec!["artist1".to_owned(), "artist2".to_owned()],
-                album_artists: Some(vec!["artist1".to_owned()]),
+                album_artists: vec!["artist1".to_owned()],
                 ..Faker.fake()
             },
             // not deleted but scanned (artist2)
             SongTag {
                 album: "album".to_owned(),
-                album_artists: Some(vec!["artist2".to_owned()]),
+                album_artists: vec!["artist2".to_owned()],
                 ..Faker.fake()
             },
             // not deleted nor scanned
             SongTag {
                 album: "album".to_owned(),
-                album_artists: Some(vec!["artist3".to_owned()]),
+                album_artists: vec!["artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -636,19 +634,19 @@ mod tests {
             SongTag {
                 album: "album".to_owned(),
                 artists: vec!["artist1".to_owned(), "artist2".to_owned()],
-                album_artists: Some(vec!["artist1".to_owned()]),
+                album_artists: vec!["artist1".to_owned()],
                 ..Faker.fake()
             },
             // not deleted but scanned (artist2)
             SongTag {
                 album: "album".to_owned(),
-                album_artists: Some(vec!["artist2".to_owned()]),
+                album_artists: vec!["artist2".to_owned()],
                 ..Faker.fake()
             },
             // not deleted nor scanned
             SongTag {
                 album: "album".to_owned(),
-                album_artists: Some(vec!["artist3".to_owned()]),
+                album_artists: vec!["artist3".to_owned()],
                 ..Faker.fake()
             },
         ];
@@ -676,7 +674,7 @@ mod tests {
             &first_song_path,
             SongTag {
                 artists: vec!["artist2".to_owned()],
-                album_artists: Some(vec!["artist2".to_owned()]),
+                album_artists: vec!["artist2".to_owned()],
                 ..first_song_tag
             },
         );

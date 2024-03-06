@@ -43,12 +43,8 @@ impl SongInformation {
             _ => unreachable!("not supported file type: {:?}", file_type),
         };
 
-        if song_tag
-            .album_artists
-            .as_ref()
-            .is_some_and(|v| v.is_empty())
-        {
-            unreachable!("album artists is some but empty")
+        if song_tag.artists.is_empty() {
+            anyhow::bail!(OSError::NotFound("Artist".into()));
         }
 
         Ok(Self {
@@ -125,7 +121,7 @@ mod tests {
                 file_type
             );
             assert_eq!(
-                tag.album_artists.unwrap().iter().sorted().collect_vec(),
+                tag.album_artists.iter().sorted().collect_vec(),
                 ["Artist1", "Artist3"],
                 "{:?} album artists does not match",
                 file_type

@@ -164,14 +164,12 @@ impl TemporaryFs {
                 if !song_tag.artists.is_empty() {
                     tag.set_artist(song_tag.artists.join(&multi_value_separator));
                 }
-                if let Some(album_artists) = song_tag.album_artists {
-                    if !album_artists.is_empty() {
-                        write_id3v2_text_tag(
-                            &mut tag,
-                            id3v2::ALBUM_ARTIST_ID,
-                            album_artists.join(&multi_value_separator),
-                        );
-                    }
+                if !song_tag.album_artists.is_empty() {
+                    write_id3v2_text_tag(
+                        &mut tag,
+                        id3v2::ALBUM_ARTIST_ID,
+                        song_tag.album_artists.join(&multi_value_separator),
+                    );
                 }
                 if song_tag.track_number.is_none() && song_tag.track_total.is_some() {
                     write_id3v2_text_tag(
@@ -205,11 +203,9 @@ impl TemporaryFs {
                     .artists
                     .into_iter()
                     .for_each(|artist| tag.push(vorbis_comments::ARTIST_KEY.to_owned(), artist));
-                if let Some(album_artists) = song_tag.album_artists {
-                    album_artists.into_iter().for_each(|artist| {
-                        tag.push(vorbis_comments::ALBUM_ARTIST_KEYS[0].to_owned(), artist)
-                    });
-                }
+                song_tag.album_artists.into_iter().for_each(|artist| {
+                    tag.push(vorbis_comments::ALBUM_ARTIST_KEYS[0].to_owned(), artist)
+                });
                 if let Some(date) = song_date_to_string(&song_tag.date) {
                     tag.push(vorbis_comments::DATE_KEY.to_owned(), date)
                 }
@@ -360,7 +356,7 @@ fn test_roundtrip_media_file_none_value() {
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = SongTag {
-            album_artists: None,
+            album_artists: vec![],
             track_number: None,
             track_total: None,
             disc_number: None,

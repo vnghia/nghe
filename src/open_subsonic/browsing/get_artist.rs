@@ -133,7 +133,7 @@ mod tests {
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
-                    album_artists: Some(vec![artist_name.to_owned()]),
+                    album_artists: vec![artist_name.to_owned()],
                     ..Faker.fake()
                 })
                 .collect_vec(),
