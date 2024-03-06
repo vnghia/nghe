@@ -4,20 +4,16 @@ pub use music_folders::*;
 use diesel::prelude::*;
 use serde::Serialize;
 use std::borrow::Cow;
-use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[derive(
-    Debug, Identifiable, Queryable, Selectable, Serialize, Clone, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Debug, Queryable, Selectable, Serialize)]
 #[diesel(table_name = music_folders)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[cfg_attr(test, derive(Clone, PartialEq, Eq, PartialOrd, Ord))]
 pub struct MusicFolder {
     pub id: Uuid,
     #[serde(rename = "name")]
     pub path: String,
-    #[serde(skip_serializing)]
-    pub scanned_at: OffsetDateTime,
 }
 
 #[derive(Insertable)]

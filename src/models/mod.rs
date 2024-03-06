@@ -1,5 +1,6 @@
+#![allow(clippy::items_after_test_module)]
+
 pub mod albums;
-pub mod alias;
 pub mod artists;
 pub mod configs;
 pub mod music_folders;
