@@ -7,18 +7,18 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use std::str::FromStr;
 
-pub const ARTIST_KEY: &str = "ARTIST";
-pub const ALBUM_ARTIST_KEYS: &[&str] = &["ALBUMARTIST", "ALBUM ARTIST"];
+const ARTIST_KEY: &str = "ARTIST";
+const ALBUM_ARTIST_KEYS: &[&str] = &["ALBUMARTIST", "ALBUM ARTIST"];
 
 const TRACK_NUMBER_KEYS: &[&str] = &["TRACKNUMBER", "TRACKNUM"];
 const TRACK_TOTAL_KEYS: &[&str] = &["TRACKTOTAL", "TOTALTRACKS"];
 const DISC_NUMBER_KEYS: &[&str] = &["DISCNUMBER"];
 const DISC_TOTAL_KEYS: &[&str] = &["DISCTOTAL", "TOTALDISCS"];
 
-pub const DATE_KEY: &str = "DATE";
-pub const ORIGINAL_RELEASE_DATE_KEYS: &[&str] = &["ORIGYEAR", "ORIGINALDATE"];
+const DATE_KEY: &str = "DATE";
+const ORIGINAL_RELEASE_DATE_KEYS: &[&str] = &["ORIGYEAR", "ORIGINALDATE"];
 
-pub const LANGUAGE: &str = "LANGUAGE";
+const LANGUAGE: &str = "LANGUAGE";
 
 fn extract_number_and_total(
     tag: &mut VorbisComments,
@@ -77,12 +77,60 @@ impl SongTag {
 }
 
 #[cfg(test)]
-pub mod test {
-    pub use super::ALBUM_ARTIST_KEYS;
-    pub use super::ARTIST_KEY;
+mod test {
+    use super::*;
+    use crate::utils::song::test::song_date_to_string;
 
-    pub use super::DATE_KEY;
-    pub use super::ORIGINAL_RELEASE_DATE_KEYS;
+    use fake::{Fake, Faker};
+    use lofty::Accessor;
 
-    pub use super::LANGUAGE;
+    impl SongTag {
+        pub fn into_vorbis_comments(self) -> VorbisComments {
+            let mut tag = VorbisComments::new();
+            tag.set_title(self.title);
+            tag.set_album(self.album);
+
+            self.artists
+                .into_iter()
+                .for_each(|artist| tag.push(ARTIST_KEY.to_owned(), artist));
+            self.album_artists
+                .into_iter()
+                .for_each(|artist| tag.push(ALBUM_ARTIST_KEYS[0].to_owned(), artist));
+
+            if let Some(track_number) = self.track_number {
+                tag.push(TRACK_NUMBER_KEYS[0].to_owned(), track_number.to_string());
+            }
+            if let Some(track_total) = self.track_total {
+                tag.push(TRACK_TOTAL_KEYS[0].to_owned(), track_total.to_string());
+            }
+            if let Some(disc_number) = self.disc_number {
+                tag.push(DISC_NUMBER_KEYS[0].to_owned(), disc_number.to_string());
+            }
+            if let Some(disc_total) = self.disc_total {
+                tag.push(DISC_TOTAL_KEYS[0].to_owned(), disc_total.to_string());
+            }
+
+            if let Some(date) = song_date_to_string(&self.date) {
+                tag.push(DATE_KEY.to_owned(), date)
+            }
+            if let Some(date) = song_date_to_string(&self.original_release_date) {
+                tag.push(ORIGINAL_RELEASE_DATE_KEYS[0].to_owned(), date)
+            }
+
+            self.languages
+                .into_iter()
+                .for_each(|language| tag.push(LANGUAGE.to_owned(), language.to_639_3().to_owned()));
+
+            tag
+        }
+    }
+
+    #[test]
+    fn test_round_trip() {
+        let song_tag: SongTag = Faker.fake();
+        assert_eq!(
+            song_tag,
+            SongTag::from_vorbis_comments(&mut song_tag.clone().into_vorbis_comments()).unwrap()
+        );
+    }
 }

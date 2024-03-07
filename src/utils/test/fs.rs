@@ -6,19 +6,14 @@ use super::asset::get_media_asset_path;
 use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::utils::song::file_type::SONG_FILE_TYPES;
-use crate::utils::song::test::song_date_to_string;
-use crate::utils::song::test::{id3v2, vorbis_comments, SongTag};
+use crate::utils::song::test::SongTag;
 use crate::utils::song::SongInformation;
 use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use itertools::Itertools;
-use lofty::{
-    id3::v2::{Frame, FrameFlags, FrameId, Id3v2Tag, TextInformationFrame},
-    ogg::VorbisComments,
-    Accessor, FileType, TagExt, TagType, TaggedFileExt,
-};
+use lofty::{FileType, TagExt, TagType, TaggedFileExt};
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -29,20 +24,6 @@ use uuid::Uuid;
 
 pub struct TemporaryFs {
     root: TempDir,
-}
-
-fn write_id3v2_text_tag(tag: &mut Id3v2Tag, frame_id: FrameId<'static>, value: String) {
-    tag.insert(
-        Frame::new(
-            frame_id,
-            TextInformationFrame {
-                encoding: lofty::TextEncoding::UTF8,
-                value,
-            },
-            FrameFlags::default(),
-        )
-        .unwrap(),
-    );
 }
 
 #[allow(clippy::new_without_default)]
@@ -140,99 +121,18 @@ impl TemporaryFs {
         let tag_type = lofty::read_from_path(&path)
             .expect("can not read original media file")
             .primary_tag_type();
-        let mut tag = lofty::Tag::new(tag_type);
-
-        tag.set_title(song_tag.title);
-        tag.set_album(song_tag.album);
-        if let Some(track_number) = song_tag.track_number {
-            tag.set_track(track_number);
-        }
-        if let Some(track_total) = song_tag.track_total {
-            tag.set_track_total(track_total);
-        }
-        if let Some(disc_number) = song_tag.disc_number {
-            tag.set_disk(disc_number);
-        }
-        if let Some(disc_total) = song_tag.disc_total {
-            tag.set_disk_total(disc_total);
-        }
 
         match tag_type {
             TagType::Id3v2 => {
-                let multi_value_separator = id3v2::V4_MULTI_VALUE_SEPARATOR.to_string();
-                let mut tag = Id3v2Tag::from(tag);
-                if !song_tag.artists.is_empty() {
-                    tag.set_artist(song_tag.artists.join(&multi_value_separator));
-                }
-                if !song_tag.album_artists.is_empty() {
-                    write_id3v2_text_tag(
-                        &mut tag,
-                        id3v2::ALBUM_ARTIST_ID,
-                        song_tag.album_artists.join(&multi_value_separator),
-                    );
-                }
-                if song_tag.track_number.is_none() && song_tag.track_total.is_some() {
-                    write_id3v2_text_tag(
-                        &mut tag,
-                        id3v2::TRACK_ID,
-                        concat_string!("-1/", song_tag.track_total.unwrap().to_string()),
-                    );
-                }
-                if song_tag.disc_number.is_none() && song_tag.disc_total.is_some() {
-                    write_id3v2_text_tag(
-                        &mut tag,
-                        id3v2::DISC_ID,
-                        concat_string!("-1/", song_tag.disc_total.unwrap().to_string()),
-                    );
-                }
-                if let Some(date) = song_date_to_string(&song_tag.date) {
-                    write_id3v2_text_tag(&mut tag, id3v2::RECORDING_TIME_ID, date);
-                }
-                if let Some(date) = song_date_to_string(&song_tag.release_date) {
-                    write_id3v2_text_tag(&mut tag, id3v2::RELEASE_TIME_ID, date);
-                }
-                if let Some(date) = song_date_to_string(&song_tag.original_release_date) {
-                    write_id3v2_text_tag(&mut tag, id3v2::ORIGINAL_RELEASE_TIME_ID, date);
-                }
-                if !song_tag.languages.is_empty() {
-                    write_id3v2_text_tag(
-                        &mut tag,
-                        id3v2::LANGUAGE_ID,
-                        song_tag
-                            .languages
-                            .into_iter()
-                            .map(|language| language.to_639_3())
-                            .join(&multi_value_separator),
-                    );
-                }
-                tag.save_to_path(&path)
+                song_tag
+                    .into_id3v2()
+                    .save_to_path(&path)
                     .expect("can not write tag to media file");
             }
             TagType::VorbisComments => {
-                let mut tag = VorbisComments::from(tag);
                 song_tag
-                    .artists
-                    .into_iter()
-                    .for_each(|artist| tag.push(vorbis_comments::ARTIST_KEY.to_owned(), artist));
-                song_tag.album_artists.into_iter().for_each(|artist| {
-                    tag.push(vorbis_comments::ALBUM_ARTIST_KEYS[0].to_owned(), artist)
-                });
-                if let Some(date) = song_date_to_string(&song_tag.date) {
-                    tag.push(vorbis_comments::DATE_KEY.to_owned(), date)
-                }
-                if let Some(date) = song_date_to_string(&song_tag.original_release_date) {
-                    tag.push(
-                        vorbis_comments::ORIGINAL_RELEASE_DATE_KEYS[0].to_owned(),
-                        date,
-                    )
-                }
-                song_tag.languages.into_iter().for_each(|language| {
-                    tag.push(
-                        vorbis_comments::LANGUAGE.to_owned(),
-                        language.to_639_3().to_owned(),
-                    )
-                });
-                tag.save_to_path(&path)
+                    .into_vorbis_comments()
+                    .save_to_path(&path)
                     .expect("can not write tag to media file");
             }
             _ => unreachable!("media tag type not supported"),
