@@ -1,5 +1,3 @@
-#![allow(clippy::items_after_test_module)]
-
 pub mod albums;
 pub mod artists;
 pub mod configs;

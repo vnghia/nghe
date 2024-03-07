@@ -1,4 +1,4 @@
-use super::common::{split_song_date, SongProperty, SongTag};
+use super::common::{song_date_to_ymd, SongProperty, SongTag};
 use crate::{models::songs, OSError};
 
 use anyhow::Result;
@@ -62,11 +62,11 @@ impl SongInformation {
         song_file_size: u64,
         song_relative_path: Option<&'a S>,
     ) -> songs::NewOrUpdateSong<'a> {
-        let (year, month, day) = split_song_date(self.tag.date_or_default());
+        let (year, month, day) = song_date_to_ymd(self.tag.date_or_default());
         let (release_year, release_month, release_day) =
-            split_song_date(self.tag.release_date_or_default());
+            song_date_to_ymd(self.tag.release_date_or_default());
         let (original_release_year, original_release_month, original_release_day) =
-            split_song_date(self.tag.original_release_date);
+            song_date_to_ymd(self.tag.original_release_date);
 
         songs::NewOrUpdateSong {
             // Song tag

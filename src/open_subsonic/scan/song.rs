@@ -88,12 +88,12 @@ mod tests {
         .await
         .unwrap();
 
-        let (song, _, _, _) = query_all_song_information(temp_db.pool(), song_id).await;
+        let song_db_info = query_all_song_information(temp_db.pool(), song_id).await;
 
-        assert_eq!(song_tag.title, song.title);
-        assert_eq!(song_path, song.relative_path);
-        assert_eq!(song_hash, song.file_hash as u64);
-        assert_eq!(song_size, song.file_size as u64);
+        assert_eq!(song_tag.title, song_db_info.tag.title);
+        assert_eq!(song_path, song_db_info.relative_path);
+        assert_eq!(song_hash, song_db_info.file_hash);
+        assert_eq!(song_size, song_db_info.file_size);
     }
 
     #[tokio::test]
@@ -147,11 +147,11 @@ mod tests {
         .unwrap();
 
         assert_eq!(song_id, new_song_id);
-        let (song, _, _, _) = query_all_song_information(temp_db.pool(), new_song_id).await;
+        let song_db_info = query_all_song_information(temp_db.pool(), new_song_id).await;
 
-        assert_eq!(new_song_tag.title, song.title);
-        assert_eq!(song_path, song.relative_path);
-        assert_eq!(new_song_hash, song.file_hash as u64);
-        assert_eq!(new_song_size, song.file_size as u64);
+        assert_eq!(new_song_tag.title, song_db_info.tag.title);
+        assert_eq!(song_path, song_db_info.relative_path);
+        assert_eq!(new_song_hash, song_db_info.file_hash);
+        assert_eq!(new_song_size, song_db_info.file_size);
     }
 }
