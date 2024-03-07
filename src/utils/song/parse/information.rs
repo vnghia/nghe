@@ -75,7 +75,7 @@ impl SongInformation {
             track_number: self.tag.track_number.map(|i| i as i32),
             track_total: self.tag.track_total.map(|i| i as i32),
             disc_number: self.tag.disc_number.map(|i| i as i32),
-            disc_total: self.tag.track_total.map(|i| i as i32),
+            disc_total: self.tag.disc_total.map(|i| i as i32),
             music_folder_id,
             year,
             month,
