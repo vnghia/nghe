@@ -56,7 +56,7 @@ fake = { version = "2.9.2", features = [
   "serde_json",
   "time",
 ] }
-http-body-util = "0.1.0"
+http-body-util = "0.1.1"
 serde_json = "1.0.114"
 tempfile = "3.10.1"
 url = "2.5.0"
