@@ -1,5 +1,5 @@
 use crate::models::*;
-use crate::utils::song::test::{ymd_to_song_date, SongTag};
+use crate::utils::song::test::{SongDate, SongTag};
 use crate::DatabasePool;
 
 use diesel::{dsl::exists, ExpressionMethods, QueryDsl, SelectableHelper};
@@ -77,9 +77,9 @@ pub async fn query_all_song_information(pool: &DatabasePool, song_id: Uuid) -> S
         track_total: song.track_total.map(|i| i as u32),
         disc_number: song.disc_number.map(|i| i as u32),
         disc_total: song.disc_total.map(|i| i as u32),
-        date: ymd_to_song_date(song.year, song.month, song.day),
-        release_date: ymd_to_song_date(song.release_year, song.release_month, song.release_day),
-        original_release_date: ymd_to_song_date(
+        date: SongDate::from_ymd(song.year, song.month, song.day),
+        release_date: SongDate::from_ymd(song.release_year, song.release_month, song.release_day),
+        original_release_date: SongDate::from_ymd(
             song.original_release_year,
             song.original_release_month,
             song.original_release_day,

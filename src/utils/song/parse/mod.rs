@@ -6,10 +6,9 @@ mod tag;
 mod vorbis_comments;
 
 pub use information::SongInformation;
-pub use tag::SongDate;
 
 #[cfg(test)]
 pub mod test {
     pub use super::property::SongProperty;
-    pub use super::tag::{test::*, SongTag};
+    pub use super::tag::{SongDate, SongTag};
 }

@@ -1,5 +1,5 @@
 use super::property::SongProperty;
-use super::tag::{song_date_to_ymd, SongTag};
+use super::tag::SongTag;
 use crate::{models::songs, OSError};
 
 use anyhow::Result;
@@ -56,11 +56,11 @@ impl SongInformation {
     }
 
     pub fn to_update_information_db(&self, album_id: Uuid) -> songs::SongUpdateInformationDB<'_> {
-        let (year, month, day) = song_date_to_ymd(self.tag.date_or_default());
+        let (year, month, day) = self.tag.date_or_default().to_ymd();
         let (release_year, release_month, release_day) =
-            song_date_to_ymd(self.tag.release_date_or_default());
+            self.tag.release_date_or_default().to_ymd();
         let (original_release_year, original_release_month, original_release_day) =
-            song_date_to_ymd(self.tag.original_release_date);
+            self.tag.original_release_date.to_ymd();
 
         songs::SongUpdateInformationDB {
             // Song tag
@@ -164,18 +164,18 @@ mod tests {
                 file_type
             );
             assert_eq!(
-                tag.date,
+                tag.date.0,
                 Some((2000, Some((12, Some(31))))),
                 "{:?} date does not match",
                 file_type
             );
             assert_eq!(
-                tag.release_date, None,
+                tag.release_date.0, None,
                 "{:?} release date does not match",
                 file_type
             );
             assert_eq!(
-                tag.original_release_date,
+                tag.original_release_date.0,
                 Some((3000, Some((1, None)))),
                 "{:?} original release date does not match",
                 file_type

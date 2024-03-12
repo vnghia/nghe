@@ -1,6 +1,6 @@
 use super::common::{extract_common_tags, parse_number_and_total};
-use super::tag::SongTag;
-use crate::{utils::time::parse_date, OSError};
+use super::tag::{SongDate, SongTag};
+use crate::OSError;
 
 use anyhow::Result;
 use isolang::Language;
@@ -56,9 +56,9 @@ impl SongTag {
         let (track_number, track_total) = extract_number_and_total(tag, &TRACK_ID)?;
         let (disc_number, disc_total) = extract_number_and_total(tag, &DISC_ID)?;
 
-        let date = parse_date(tag.get_text(&RECORDING_TIME_ID))?;
-        let release_date = parse_date(tag.get_text(&RELEASE_TIME_ID))?;
-        let original_release_date = parse_date(tag.get_text(&ORIGINAL_RELEASE_TIME_ID))?;
+        let date = SongDate::parse(tag.get_text(&RECORDING_TIME_ID))?;
+        let release_date = SongDate::parse(tag.get_text(&RELEASE_TIME_ID))?;
+        let original_release_date = SongDate::parse(tag.get_text(&ORIGINAL_RELEASE_TIME_ID))?;
 
         let languages = extract_and_split_str(tag, &LANGUAGE_ID, multi_value_separator)
             .map_or_else(
@@ -85,8 +85,6 @@ impl SongTag {
 
 #[cfg(test)]
 mod test {
-    use crate::utils::song::test::song_date_to_string;
-
     use super::*;
 
     use concat_string::concat_string;
@@ -150,13 +148,13 @@ mod test {
             write_number_and_total_tag(&mut tag, TRACK_ID, self.track_number, self.track_total);
             write_number_and_total_tag(&mut tag, DISC_ID, self.disc_number, self.disc_total);
 
-            if let Some(date) = song_date_to_string(&self.date) {
+            if let Some(date) = self.date.to_string() {
                 write_id3v2_text_tag(&mut tag, RECORDING_TIME_ID, date);
             }
-            if let Some(date) = song_date_to_string(&self.release_date) {
+            if let Some(date) = self.release_date.to_string() {
                 write_id3v2_text_tag(&mut tag, RELEASE_TIME_ID, date);
             }
-            if let Some(date) = song_date_to_string(&self.original_release_date) {
+            if let Some(date) = self.original_release_date.to_string() {
                 write_id3v2_text_tag(&mut tag, ORIGINAL_RELEASE_TIME_ID, date);
             }
 

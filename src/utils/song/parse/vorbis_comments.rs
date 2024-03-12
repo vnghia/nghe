@@ -1,6 +1,5 @@
 use super::common::{extract_common_tags, parse_number_and_total};
-use super::tag::SongTag;
-use crate::utils::time::parse_date;
+use super::tag::{SongDate, SongTag};
 
 use anyhow::Result;
 use isolang::Language;
@@ -47,9 +46,9 @@ impl SongTag {
         let (disc_number, disc_total) =
             extract_number_and_total(tag, DISC_NUMBER_KEYS, DISC_TOTAL_KEYS)?;
 
-        let date = parse_date(tag.get(DATE_KEY))?;
-        let release_date = None;
-        let original_release_date = parse_date(
+        let date = SongDate::parse(tag.get(DATE_KEY))?;
+        let release_date = SongDate(None);
+        let original_release_date = SongDate::parse(
             ORIGINAL_RELEASE_DATE_KEYS
                 .iter()
                 .find_map(|key| tag.get(key)),
@@ -80,8 +79,6 @@ impl SongTag {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::utils::song::test::song_date_to_string;
-
     use fake::{Fake, Faker};
     use lofty::Accessor;
 
@@ -111,10 +108,10 @@ mod test {
                 tag.push(DISC_TOTAL_KEYS[0].to_owned(), disc_total.to_string());
             }
 
-            if let Some(date) = song_date_to_string(&self.date) {
+            if let Some(date) = self.date.to_string() {
                 tag.push(DATE_KEY.to_owned(), date)
             }
-            if let Some(date) = song_date_to_string(&self.original_release_date) {
+            if let Some(date) = self.original_release_date.to_string() {
                 tag.push(ORIGINAL_RELEASE_DATE_KEYS[0].to_owned(), date)
             }
 
