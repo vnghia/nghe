@@ -54,21 +54,14 @@ impl SongInformation {
         })
     }
 
-    pub fn to_new_or_update_song<'a, S: AsRef<str> + 'a>(
-        &'a self,
-        music_folder_id: Uuid,
-        album_id: Uuid,
-        song_file_hash: u64,
-        song_file_size: u64,
-        song_relative_path: Option<&'a S>,
-    ) -> songs::NewOrUpdateSong<'a> {
+    pub fn to_update_information_db(&self, album_id: Uuid) -> songs::SongUpdateInformationDB<'_> {
         let (year, month, day) = song_date_to_ymd(self.tag.date_or_default());
         let (release_year, release_month, release_day) =
             song_date_to_ymd(self.tag.release_date_or_default());
         let (original_release_year, original_release_month, original_release_day) =
             song_date_to_ymd(self.tag.original_release_date);
 
-        songs::NewOrUpdateSong {
+        songs::SongUpdateInformationDB {
             // Song tag
             title: (&self.tag.title).into(),
             album_id,
@@ -76,7 +69,6 @@ impl SongInformation {
             track_total: self.tag.track_total.map(|i| i as i32),
             disc_number: self.tag.disc_number.map(|i| i as i32),
             disc_total: self.tag.disc_total.map(|i| i as i32),
-            music_folder_id,
             year,
             month,
             day,
@@ -94,8 +86,23 @@ impl SongInformation {
                 .collect_vec(),
             // Song property
             duration: self.property.duration,
-            // Filesystem property
-            relative_path: song_relative_path.map(|path| path.as_ref().into()),
+        }
+    }
+
+    pub fn to_full_information_db<'a, S: AsRef<str> + 'a>(
+        &'a self,
+        album_id: Uuid,
+        music_folder_id: Uuid,
+        song_file_hash: u64,
+        song_file_size: u64,
+        song_relative_path: &'a S,
+    ) -> songs::SongFullInformationDB<'a> {
+        let update_information = self.to_update_information_db(album_id);
+
+        songs::SongFullInformationDB {
+            update_information,
+            music_folder_id,
+            relative_path: song_relative_path.as_ref().into(),
             file_hash: song_file_hash as i64,
             file_size: song_file_size as i64,
         }

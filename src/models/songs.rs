@@ -7,7 +7,8 @@ use uuid::Uuid;
 
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = songs)]
-pub struct NewOrUpdateSong<'a> {
+#[diesel(treat_none_as_null = true)]
+pub struct SongUpdateInformationDB<'a> {
     // Song tag
     pub title: Cow<'a, str>,
     pub album_id: Uuid,
@@ -27,9 +28,16 @@ pub struct NewOrUpdateSong<'a> {
     pub languages: Vec<&'static str>,
     // Song property
     pub duration: f32,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = songs)]
+pub struct SongFullInformationDB<'a> {
+    #[diesel(embed)]
+    pub update_information: SongUpdateInformationDB<'a>,
     // Filesystem property
     pub music_folder_id: Uuid,
-    pub relative_path: Option<Cow<'a, str>>,
+    pub relative_path: Cow<'a, str>,
     pub file_hash: i64,
     pub file_size: i64,
 }

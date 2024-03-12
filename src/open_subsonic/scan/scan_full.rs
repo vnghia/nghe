@@ -1,6 +1,9 @@
 use super::{
-    album::upsert_album, album::upsert_song_album_artists, artist::upsert_artists,
-    song::upsert_song, song::upsert_song_artists,
+    album::upsert_album,
+    album::upsert_song_album_artists,
+    artist::upsert_artists,
+    song::upsert_song_artists,
+    song::{insert_song, update_song},
 };
 use crate::{
     models::*,
@@ -85,24 +88,27 @@ pub async fn scan_full(
             let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
             let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
 
-            let song_id = upsert_song(
-                pool,
-                song_id,
-                song_information.to_new_or_update_song(
-                    music_folder.id,
-                    album_id,
-                    song_file_hash,
-                    song_file_size,
-                    // only supply path if song id is none
-                    // i.e: we are inserting a new song.
-                    if song_id.is_none() {
-                        Some(&song_relative_path)
-                    } else {
-                        None
-                    },
-                ),
-            )
-            .await?;
+            let song_id = if let Some(song_id) = song_id {
+                update_song(
+                    pool,
+                    song_id,
+                    song_information.to_update_information_db(album_id),
+                )
+                .await?;
+                song_id
+            } else {
+                insert_song(
+                    pool,
+                    song_information.to_full_information_db(
+                        album_id,
+                        music_folder.id,
+                        song_file_hash,
+                        song_file_size,
+                        &song_relative_path,
+                    ),
+                )
+                .await?
+            };
 
             // if there are no album artists,
             // we assume that they are the same as artists.

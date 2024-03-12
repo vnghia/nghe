@@ -24,31 +24,29 @@ pub async fn upsert_song_artists(
     Ok(())
 }
 
-pub async fn upsert_song<'a>(
+pub async fn insert_song<'a>(
     pool: &DatabasePool,
-    song_id: Option<Uuid>,
-    new_or_update_song: songs::NewOrUpdateSong<'a>,
+    information_db: songs::SongFullInformationDB<'a>,
 ) -> Result<Uuid> {
-    if (song_id.is_some() && new_or_update_song.relative_path.is_some())
-        || (song_id.is_none() && new_or_update_song.relative_path.is_none())
-    {
-        unreachable!("id (updating) or path (inserting) is mutually exclusive")
-    }
-    let song_id = if let Some(song_id) = song_id {
-        diesel::update(songs::table)
-            .filter(songs::id.eq(song_id))
-            .set(new_or_update_song)
-            .returning(songs::id)
-            .get_result::<Uuid>(&mut pool.get().await?)
-            .await?
-    } else {
-        diesel::insert_into(songs::table)
-            .values(new_or_update_song)
-            .returning(songs::id)
-            .get_result::<Uuid>(&mut pool.get().await?)
-            .await?
-    };
-    Ok(song_id)
+    diesel::insert_into(songs::table)
+        .values(information_db)
+        .returning(songs::id)
+        .get_result::<Uuid>(&mut pool.get().await?)
+        .await
+        .map_err(anyhow::Error::from)
+}
+
+pub async fn update_song<'a>(
+    pool: &DatabasePool,
+    id: Uuid,
+    information_db: songs::SongUpdateInformationDB<'a>,
+) -> Result<()> {
+    diesel::update(songs::table)
+        .filter(songs::id.eq(id))
+        .set(information_db)
+        .execute(&mut pool.get().await?)
+        .await?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -61,7 +59,7 @@ mod tests {
     use fake::{Fake, Faker};
 
     #[tokio::test]
-    async fn test_upsert_song_insert() {
+    async fn test_insert_song() {
         let (temp_db, _, _temp_fs, music_folders) =
             setup_users_and_music_folders(1, 1, &[true]).await;
 
@@ -74,15 +72,14 @@ mod tests {
         let song_hash: u64 = rand::random();
         let song_size: u64 = rand::random();
 
-        let song_id = upsert_song(
+        let song_id = insert_song(
             temp_db.pool(),
-            None,
-            song_tag.to_information().to_new_or_update_song(
-                music_folders[0].id,
+            song_tag.to_information().to_full_information_db(
                 album_id,
+                music_folders[0].id,
                 song_hash,
                 song_size,
-                Some(&song_path),
+                &song_path,
             ),
         )
         .await
@@ -97,7 +94,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_upsert_song_update() {
+    async fn test_update_song() {
         let (temp_db, _, _temp_fs, music_folders) =
             setup_users_and_music_folders(1, 1, &[true]).await;
 
@@ -110,15 +107,14 @@ mod tests {
         let song_hash: u64 = rand::random();
         let song_size: u64 = rand::random();
 
-        let song_id = upsert_song(
+        let song_id = insert_song(
             temp_db.pool(),
-            None,
-            song_tag.to_information().to_new_or_update_song(
-                music_folders[0].id,
+            song_tag.to_information().to_full_information_db(
                 album_id,
+                music_folders[0].id,
                 song_hash,
                 song_size,
-                Some(&song_path),
+                &song_path,
             ),
         )
         .await
@@ -129,29 +125,21 @@ mod tests {
             .await
             .unwrap();
 
-        let new_song_hash: u64 = rand::random();
-        let new_song_size: u64 = rand::random();
-
-        let new_song_id = upsert_song(
+        update_song(
             temp_db.pool(),
-            Some(song_id),
-            new_song_tag.to_information().to_new_or_update_song(
-                music_folders[0].id,
-                new_album_id,
-                new_song_hash,
-                new_song_size,
-                Option::<&String>::None,
-            ),
+            song_id,
+            new_song_tag
+                .to_information()
+                .to_update_information_db(new_album_id),
         )
         .await
         .unwrap();
 
-        assert_eq!(song_id, new_song_id);
-        let song_db_info = query_all_song_information(temp_db.pool(), new_song_id).await;
+        let song_db_info = query_all_song_information(temp_db.pool(), song_id).await;
 
         assert_eq!(new_song_tag.title, song_db_info.tag.title);
         assert_eq!(song_path, song_db_info.relative_path);
-        assert_eq!(new_song_hash, song_db_info.file_hash);
-        assert_eq!(new_song_size, song_db_info.file_size);
+        assert_eq!(song_hash, song_db_info.file_hash);
+        assert_eq!(song_size, song_db_info.file_size);
     }
 }
