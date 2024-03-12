@@ -1,4 +1,4 @@
-mod parsing;
+pub mod parsing;
 mod raw;
 
 use parsing::ParsingConfig;
@@ -6,7 +6,6 @@ use parsing::ParsingConfig;
 use derivative::Derivative;
 use itertools::Itertools;
 use std::net::SocketAddr;
-
 
 #[derive(Debug)]
 pub struct ServerConfig {
@@ -76,7 +75,7 @@ impl Config {
             database,
             folder,
             artist_index,
-            parsing
+            parsing,
         }
     }
 }

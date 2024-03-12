@@ -3,6 +3,7 @@ mod built_info {
 }
 
 use super::asset::get_media_asset_path;
+use crate::config::parsing::ParsingConfig;
 use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::utils::song::file_type::SONG_FILE_TYPES;
@@ -24,6 +25,7 @@ use uuid::Uuid;
 
 pub struct TemporaryFs {
     root: TempDir,
+    pub parsing_config: ParsingConfig,
 }
 
 #[allow(clippy::new_without_default)]
@@ -36,6 +38,7 @@ impl TemporaryFs {
                 .prefix(built_info::PKG_NAME)
                 .tempdir()
                 .expect("can not create temporary directory"),
+            parsing_config: Default::default(),
         }
     }
 
@@ -125,13 +128,13 @@ impl TemporaryFs {
         match tag_type {
             TagType::Id3v2 => {
                 song_tag
-                    .into_id3v2()
+                    .into_id3v2(&self.parsing_config.id3v2)
                     .save_to_path(&path)
                     .expect("can not write tag to media file");
             }
             TagType::VorbisComments => {
                 song_tag
-                    .into_vorbis_comments()
+                    .into_vorbis_comments(&self.parsing_config.vorbis)
                     .save_to_path(&path)
                     .expect("can not write tag to media file");
             }
@@ -258,10 +261,13 @@ fn test_roundtrip_media_file() {
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
-        let read_song_tag =
-            SongInformation::read_from(&mut std::fs::File::open(&path).unwrap(), &file_type)
-                .unwrap()
-                .tag;
+        let read_song_tag = SongInformation::read_from(
+            &mut std::fs::File::open(&path).unwrap(),
+            &file_type,
+            &fs.parsing_config,
+        )
+        .unwrap()
+        .tag;
         assert_eq!(
             song_tag, read_song_tag,
             "{:?} tag does not match",
@@ -287,10 +293,13 @@ fn test_roundtrip_media_file_none_value() {
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
-        let read_song_tag =
-            SongInformation::read_from(&mut std::fs::File::open(&path).unwrap(), &file_type)
-                .unwrap()
-                .tag;
+        let read_song_tag = SongInformation::read_from(
+            &mut std::fs::File::open(&path).unwrap(),
+            &file_type,
+            &fs.parsing_config,
+        )
+        .unwrap()
+        .tag;
         assert_eq!(
             song_tag, read_song_tag,
             "{:?} tag does not match",

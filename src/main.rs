@@ -66,6 +66,7 @@ async fn main() {
         scan::ScanMode::Full,
         &config.artist_index,
         &upserted_music_folders,
+        &config.parsing,
     )
     .await
     .expect("can not scan song");

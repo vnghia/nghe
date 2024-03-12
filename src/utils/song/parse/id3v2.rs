@@ -1,28 +1,15 @@
 use super::common::{extract_common_tags, parse_number_and_total};
 use super::tag::{SongDate, SongTag};
+use crate::config::parsing::Id3v2ParsingConfig;
 use crate::OSError;
 
 use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
 use lofty::id3::v2::{FrameId, Id3v2Tag, Id3v2Version};
-use std::{
-    borrow::Cow,
-    str::{FromStr, Split},
-};
+use std::str::{FromStr, Split};
 
 const V4_MULTI_VALUE_SEPARATOR: char = '\0';
-
-const ARTIST_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TPE1"));
-const ALBUM_ARTIST_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TPE2"));
-const TRACK_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TRCK"));
-const DISC_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TPOS"));
-
-const RECORDING_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDRC"));
-const RELEASE_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDRL"));
-const ORIGINAL_RELEASE_TIME_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TDOR"));
-
-const LANGUAGE_ID: FrameId<'static> = FrameId::Valid(Cow::Borrowed("TLAN"));
 
 fn extract_and_split_str<'a>(
     tag: &'a mut Id3v2Tag,
@@ -44,27 +31,31 @@ fn extract_number_and_total(
 }
 
 impl SongTag {
-    pub fn from_id3v2(tag: &mut Id3v2Tag, multi_value_separator: char) -> Result<Self> {
+    pub fn from_id3v2(tag: &mut Id3v2Tag, parsing_config: &Id3v2ParsingConfig) -> Result<Self> {
         let (title, album) = extract_common_tags(tag)?;
 
-        let artists = extract_and_split_str(tag, &ARTIST_ID, multi_value_separator)
+        let artists = extract_and_split_str(tag, &parsing_config.artist, parsing_config.separator)
             .map(|v| v.map(String::from).collect_vec())
             .ok_or_else(|| OSError::NotFound("Artist".into()))?;
-        let album_artists = extract_and_split_str(tag, &ALBUM_ARTIST_ID, multi_value_separator)
-            .map_or_else(Vec::default, |v| v.map(String::from).collect_vec());
+        let album_artists =
+            extract_and_split_str(tag, &parsing_config.album_artist, parsing_config.separator)
+                .map_or_else(Vec::default, |v| v.map(String::from).collect_vec());
 
-        let (track_number, track_total) = extract_number_and_total(tag, &TRACK_ID)?;
-        let (disc_number, disc_total) = extract_number_and_total(tag, &DISC_ID)?;
+        let (track_number, track_total) =
+            extract_number_and_total(tag, &parsing_config.track_number)?;
+        let (disc_number, disc_total) = extract_number_and_total(tag, &parsing_config.disc_number)?;
 
-        let date = SongDate::parse(tag.get_text(&RECORDING_TIME_ID))?;
-        let release_date = SongDate::parse(tag.get_text(&RELEASE_TIME_ID))?;
-        let original_release_date = SongDate::parse(tag.get_text(&ORIGINAL_RELEASE_TIME_ID))?;
+        let date = SongDate::parse(tag.get_text(&parsing_config.date))?;
+        let release_date = SongDate::parse(tag.get_text(&parsing_config.release_date))?;
+        let original_release_date =
+            SongDate::parse(tag.get_text(&parsing_config.original_release_date))?;
 
-        let languages = extract_and_split_str(tag, &LANGUAGE_ID, multi_value_separator)
-            .map_or_else(
-                || Ok(Vec::default()),
-                |v| v.map(Language::from_str).try_collect(),
-            )?;
+        let languages =
+            extract_and_split_str(tag, &parsing_config.language, parsing_config.separator)
+                .map_or_else(
+                    || Ok(Vec::default()),
+                    |v| v.map(Language::from_str).try_collect(),
+                )?;
 
         Ok(Self {
             title,
@@ -127,7 +118,8 @@ mod test {
     }
 
     impl SongTag {
-        pub fn into_id3v2(self) -> Id3v2Tag {
+        pub fn into_id3v2(self, parsing_config: &Id3v2ParsingConfig) -> Id3v2Tag {
+            let parsing_config = parsing_config.clone();
             let multi_value_separator = V4_MULTI_VALUE_SEPARATOR.to_string();
 
             let mut tag = Id3v2Tag::new();
@@ -135,33 +127,47 @@ mod test {
             tag.set_album(self.album);
 
             if !self.artists.is_empty() {
-                tag.set_artist(self.artists.join(&multi_value_separator));
+                write_id3v2_text_tag(
+                    &mut tag,
+                    parsing_config.artist.clone(),
+                    self.artists.join(&multi_value_separator),
+                );
             }
             if !self.album_artists.is_empty() {
                 write_id3v2_text_tag(
                     &mut tag,
-                    ALBUM_ARTIST_ID,
+                    parsing_config.album_artist,
                     self.album_artists.join(&multi_value_separator),
                 );
             }
 
-            write_number_and_total_tag(&mut tag, TRACK_ID, self.track_number, self.track_total);
-            write_number_and_total_tag(&mut tag, DISC_ID, self.disc_number, self.disc_total);
+            write_number_and_total_tag(
+                &mut tag,
+                parsing_config.track_number,
+                self.track_number,
+                self.track_total,
+            );
+            write_number_and_total_tag(
+                &mut tag,
+                parsing_config.disc_number,
+                self.disc_number,
+                self.disc_total,
+            );
 
             if let Some(date) = self.date.to_string() {
-                write_id3v2_text_tag(&mut tag, RECORDING_TIME_ID, date);
+                write_id3v2_text_tag(&mut tag, parsing_config.date, date);
             }
             if let Some(date) = self.release_date.to_string() {
-                write_id3v2_text_tag(&mut tag, RELEASE_TIME_ID, date);
+                write_id3v2_text_tag(&mut tag, parsing_config.release_date, date);
             }
             if let Some(date) = self.original_release_date.to_string() {
-                write_id3v2_text_tag(&mut tag, ORIGINAL_RELEASE_TIME_ID, date);
+                write_id3v2_text_tag(&mut tag, parsing_config.original_release_date, date);
             }
 
             if !self.languages.is_empty() {
                 write_id3v2_text_tag(
                     &mut tag,
-                    LANGUAGE_ID,
+                    parsing_config.language,
                     self.languages
                         .iter()
                         .map(Language::to_639_3)
@@ -175,10 +181,11 @@ mod test {
 
     #[test]
     fn test_round_trip() {
+        let config = Id3v2ParsingConfig::default();
         let song_tag: SongTag = Faker.fake();
         assert_eq!(
             song_tag,
-            SongTag::from_vorbis_comments(&mut song_tag.clone().into_vorbis_comments()).unwrap()
+            SongTag::from_id3v2(&mut song_tag.clone().into_id3v2(&config), &config).unwrap()
         );
     }
 }

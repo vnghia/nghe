@@ -1,3 +1,5 @@
+use crate::config::parsing::VorbisCommentsParsingConfig;
+
 use super::common::{extract_common_tags, parse_number_and_total};
 use super::tag::{SongDate, SongTag};
 
@@ -7,55 +9,39 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use std::str::FromStr;
 
-const ARTIST_KEY: &str = "ARTIST";
-const ALBUM_ARTIST_KEYS: &[&str] = &["ALBUMARTIST", "ALBUM ARTIST"];
-
-const TRACK_NUMBER_KEYS: &[&str] = &["TRACKNUMBER", "TRACKNUM"];
-const TRACK_TOTAL_KEYS: &[&str] = &["TRACKTOTAL", "TOTALTRACKS"];
-const DISC_NUMBER_KEYS: &[&str] = &["DISCNUMBER"];
-const DISC_TOTAL_KEYS: &[&str] = &["DISCTOTAL", "TOTALDISCS"];
-
-const DATE_KEY: &str = "DATE";
-const ORIGINAL_RELEASE_DATE_KEYS: &[&str] = &["ORIGYEAR", "ORIGINALDATE"];
-
-const LANGUAGE: &str = "LANGUAGE";
-
 fn extract_number_and_total(
     tag: &mut VorbisComments,
-    number_keys: &[&str],
-    total_keys: &[&str],
+    number_keys: &str,
+    total_keys: &str,
 ) -> Result<(Option<u32>, Option<u32>)> {
-    let number_value = number_keys.iter().find_map(|key| tag.get(key));
-    let total_value = total_keys.iter().find_map(|key| tag.get(key));
-    parse_number_and_total(number_value, total_value)
+    parse_number_and_total(tag.get(number_keys), tag.get(total_keys))
 }
 
 impl SongTag {
-    pub fn from_vorbis_comments(tag: &mut VorbisComments) -> Result<Self> {
+    pub fn from_vorbis_comments(
+        tag: &mut VorbisComments,
+        parsing_config: &VorbisCommentsParsingConfig,
+    ) -> Result<Self> {
         let (title, album) = extract_common_tags(tag)?;
 
-        let artists = tag.remove(ARTIST_KEY).collect_vec();
-        let album_artists = ALBUM_ARTIST_KEYS
-            .iter()
-            .map(|key| tag.remove(key).collect_vec())
-            .find(|vec| !vec.is_empty())
-            .unwrap_or_default();
+        let artists = tag.remove(&parsing_config.artist).collect_vec();
+        let album_artists = tag.remove(&parsing_config.album_artist).collect_vec();
 
-        let (track_number, track_total) =
-            extract_number_and_total(tag, TRACK_NUMBER_KEYS, TRACK_TOTAL_KEYS)?;
-        let (disc_number, disc_total) =
-            extract_number_and_total(tag, DISC_NUMBER_KEYS, DISC_TOTAL_KEYS)?;
-
-        let date = SongDate::parse(tag.get(DATE_KEY))?;
-        let release_date = SongDate(None);
-        let original_release_date = SongDate::parse(
-            ORIGINAL_RELEASE_DATE_KEYS
-                .iter()
-                .find_map(|key| tag.get(key)),
+        let (track_number, track_total) = extract_number_and_total(
+            tag,
+            &parsing_config.track_number,
+            &parsing_config.track_total,
         )?;
+        let (disc_number, disc_total) =
+            extract_number_and_total(tag, &parsing_config.disc_number, &parsing_config.disc_total)?;
+
+        let date = SongDate::parse(tag.get(&parsing_config.date))?;
+        let release_date = SongDate::parse(tag.get(&parsing_config.release_date))?;
+        let original_release_date =
+            SongDate::parse(tag.get(&parsing_config.original_release_date))?;
 
         let languages = tag
-            .remove(LANGUAGE)
+            .remove(&parsing_config.language)
             .map(|s| Language::from_str(&s))
             .try_collect()?;
 
@@ -83,41 +69,52 @@ mod test {
     use lofty::Accessor;
 
     impl SongTag {
-        pub fn into_vorbis_comments(self) -> VorbisComments {
+        pub fn into_vorbis_comments(
+            self,
+            parsing_config: &VorbisCommentsParsingConfig,
+        ) -> VorbisComments {
+            let parsing_config = parsing_config.clone();
+
             let mut tag = VorbisComments::new();
             tag.set_title(self.title);
             tag.set_album(self.album);
 
             self.artists
                 .into_iter()
-                .for_each(|artist| tag.push(ARTIST_KEY.to_owned(), artist));
+                .for_each(|artist| tag.push(parsing_config.artist.to_owned(), artist));
             self.album_artists
                 .into_iter()
-                .for_each(|artist| tag.push(ALBUM_ARTIST_KEYS[0].to_owned(), artist));
+                .for_each(|artist| tag.push(parsing_config.album_artist.to_owned(), artist));
 
             if let Some(track_number) = self.track_number {
-                tag.push(TRACK_NUMBER_KEYS[0].to_owned(), track_number.to_string());
+                tag.push(parsing_config.track_number, track_number.to_string());
             }
             if let Some(track_total) = self.track_total {
-                tag.push(TRACK_TOTAL_KEYS[0].to_owned(), track_total.to_string());
+                tag.push(parsing_config.track_total, track_total.to_string());
             }
             if let Some(disc_number) = self.disc_number {
-                tag.push(DISC_NUMBER_KEYS[0].to_owned(), disc_number.to_string());
+                tag.push(parsing_config.disc_number, disc_number.to_string());
             }
             if let Some(disc_total) = self.disc_total {
-                tag.push(DISC_TOTAL_KEYS[0].to_owned(), disc_total.to_string());
+                tag.push(parsing_config.disc_total, disc_total.to_string());
             }
 
             if let Some(date) = self.date.to_string() {
-                tag.push(DATE_KEY.to_owned(), date)
+                tag.push(parsing_config.date, date)
+            }
+            if let Some(date) = self.release_date.to_string() {
+                tag.push(parsing_config.release_date, date)
             }
             if let Some(date) = self.original_release_date.to_string() {
-                tag.push(ORIGINAL_RELEASE_DATE_KEYS[0].to_owned(), date)
+                tag.push(parsing_config.original_release_date, date)
             }
 
-            self.languages
-                .into_iter()
-                .for_each(|language| tag.push(LANGUAGE.to_owned(), language.to_639_3().to_owned()));
+            self.languages.into_iter().for_each(|language| {
+                tag.push(
+                    parsing_config.language.to_owned(),
+                    language.to_639_3().to_owned(),
+                )
+            });
 
             tag
         }
@@ -125,10 +122,15 @@ mod test {
 
     #[test]
     fn test_round_trip() {
+        let config = VorbisCommentsParsingConfig::default();
         let song_tag: SongTag = Faker.fake();
         assert_eq!(
             song_tag,
-            SongTag::from_vorbis_comments(&mut song_tag.clone().into_vorbis_comments()).unwrap()
+            SongTag::from_vorbis_comments(
+                &mut song_tag.clone().into_vorbis_comments(&config),
+                &config
+            )
+            .unwrap()
         );
     }
 }

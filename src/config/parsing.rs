@@ -20,6 +20,7 @@ where
 }
 
 #[derive(Debug, Serialize, Deserialize, Derivative)]
+#[cfg_attr(test, derive(Clone))]
 #[derivative(Default)]
 pub struct Id3v2ParsingConfig {
     #[derivative(Default(value = "'/'"))]
@@ -59,6 +60,7 @@ pub struct Id3v2ParsingConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Derivative)]
+#[cfg_attr(test, derive(Clone))]
 #[derivative(Default)]
 pub struct VorbisCommentsParsingConfig {
     #[derivative(Default(value = "\"ARTIST\".into()"))]

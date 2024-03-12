@@ -1,6 +1,6 @@
 use super::property::SongProperty;
 use super::tag::SongTag;
-use crate::{models::songs, OSError};
+use crate::{config::parsing::ParsingConfig, models::songs, OSError};
 
 use anyhow::Result;
 use itertools::Itertools;
@@ -14,16 +14,22 @@ pub struct SongInformation {
 }
 
 impl SongInformation {
-    pub fn read_from<R: Read + Seek>(reader: &mut R, file_type: &FileType) -> Result<Self> {
+    pub fn read_from<R: Read + Seek>(
+        reader: &mut R,
+        file_type: &FileType,
+        parsing_config: &ParsingConfig,
+    ) -> Result<Self> {
         let parse_options = ParseOptions::new().parsing_mode(ParsingMode::Strict);
 
         let (song_tag, song_property) = match file_type {
             FileType::Flac => {
                 let mut flac_file = FlacFile::read_from(reader, parse_options)?;
-                let song_tag =
-                    SongTag::from_vorbis_comments(flac_file.vorbis_comments_mut().ok_or_else(
-                        || OSError::NotFound("Vorbis comments inside flac file".into()),
-                    )?)?;
+                let song_tag = SongTag::from_vorbis_comments(
+                    flac_file.vorbis_comments_mut().ok_or_else(|| {
+                        OSError::NotFound("Vorbis comments inside flac file".into())
+                    })?,
+                    &parsing_config.vorbis,
+                )?;
                 let song_property = SongProperty {
                     duration: flac_file.properties().duration().as_secs_f32(),
                 };
@@ -35,7 +41,7 @@ impl SongInformation {
                     mp3_file
                         .id3v2_mut()
                         .ok_or_else(|| OSError::NotFound("Id3v2 inside mp3 file".into()))?,
-                    '/',
+                    &parsing_config.id3v2,
                 )?;
                 let song_property = SongProperty {
                     duration: mp3_file.properties().duration().as_secs_f32(),
@@ -122,10 +128,13 @@ mod tests {
     fn test_parse_media_file() {
         for file_type in SONG_FILE_TYPES {
             let path = get_media_asset_path(&file_type);
-            let tag =
-                SongInformation::read_from(&mut std::fs::File::open(&path).unwrap(), &file_type)
-                    .unwrap()
-                    .tag;
+            let tag = SongInformation::read_from(
+                &mut std::fs::File::open(&path).unwrap(),
+                &file_type,
+                &ParsingConfig::default(),
+            )
+            .unwrap()
+            .tag;
             assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
             assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
             assert_eq!(

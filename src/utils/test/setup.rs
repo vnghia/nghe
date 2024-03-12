@@ -136,6 +136,7 @@ pub async fn setup_songs<S: Into<Option<Vec<SongTag>>>>(
         ScanMode::Full,
         &ArtistIndexConfig::default(),
         &music_folders,
+        &temp_fs.parsing_config,
     )
     .await
     .unwrap();
