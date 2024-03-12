@@ -73,7 +73,7 @@ mod tests {
         let fs = TemporaryFs::new();
 
         let media_paths = fs
-            .create_random_paths(50, 3, &to_extensions())
+            .create_random_paths(fs.get_root_path(), 50, 3, &to_extensions())
             .into_iter()
             .map(|path| fs.create_file(path))
             .collect_vec();
@@ -109,7 +109,7 @@ mod tests {
         let fs = TemporaryFs::new();
 
         let media_paths = fs
-            .create_random_paths(50, 3, &to_extensions())
+            .create_random_paths(fs.get_root_path(), 50, 3, &to_extensions())
             .into_iter()
             .map(|path| {
                 fs.create_file(path)
@@ -140,6 +140,7 @@ mod tests {
 
         let media_paths = fs
             .create_random_paths(
+                fs.get_root_path(),
                 50,
                 3,
                 &[supported_extensions.as_slice(), &["txt", "rs"]].concat(),
@@ -177,7 +178,7 @@ mod tests {
         let fs = TemporaryFs::new();
 
         let media_paths = fs
-            .create_random_paths(50, 3, &to_extensions())
+            .create_random_paths(fs.get_root_path(), 50, 3, &to_extensions())
             .into_iter()
             .filter_map(|path| {
                 if rand::random::<bool>() {

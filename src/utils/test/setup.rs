@@ -107,7 +107,7 @@ pub async fn setup_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
         .flat_map(|(music_folder, song_tags)| {
             let music_folder_id = music_folder.id;
             let music_folder_path = PathBuf::from(&music_folder.path);
-            temp_fs.create_nested_random_paths_media_files(
+            temp_fs.create_random_paths_media_files(
                 music_folder_id,
                 &music_folder_path,
                 song_tags,

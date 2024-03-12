@@ -30,8 +30,6 @@ pub struct TemporaryFs {
 
 #[allow(clippy::new_without_default)]
 impl TemporaryFs {
-    pub const NONE_PATH: Option<&'static PathBuf> = None;
-
     pub fn new() -> Self {
         Self {
             root: Builder::new()
@@ -42,16 +40,7 @@ impl TemporaryFs {
         }
     }
 
-    fn get_absolute_path<PR: AsRef<Path>, P: AsRef<Path>>(
-        &self,
-        root_path: Option<&PR>,
-        path: P,
-    ) -> PathBuf {
-        let root_path = match root_path {
-            Some(root_path) => root_path.as_ref(),
-            None => self.get_root_path(),
-        };
-
+    pub fn join_root_path<PR: AsRef<Path>, P: AsRef<Path>>(root_path: PR, path: P) -> PathBuf {
         if path.as_ref().is_absolute() {
             if !path.as_ref().starts_with(root_path) {
                 panic!("path is not a children of root temp directory");
@@ -59,17 +48,17 @@ impl TemporaryFs {
                 path.as_ref().into()
             }
         } else {
-            root_path.join(path)
+            root_path.as_ref().join(path)
         }
     }
 
-    fn create_nested_parent_dir<PR: AsRef<Path>, P: AsRef<Path>>(
-        &self,
-        root_path: Option<&PR>,
-        path: P,
-    ) -> PathBuf {
-        let path = self.get_absolute_path(root_path, path);
-        self.create_nested_dir(root_path, path.parent().unwrap());
+    fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        Self::join_root_path(self.get_root_path(), path)
+    }
+
+    fn create_parent_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        let path = self.get_absolute_path(path);
+        self.create_dir(path.parent().unwrap());
         path
     }
 
@@ -77,26 +66,14 @@ impl TemporaryFs {
         self.root.path()
     }
 
-    pub fn create_nested_dir<PR: AsRef<Path>, P: AsRef<Path>>(
-        &self,
-        root_path: Option<&PR>,
-        path: P,
-    ) -> PathBuf {
-        let path = self.get_absolute_path(root_path, path);
+    pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        let path = self.get_absolute_path(path);
         create_dir_all(&path).expect("can not create temporary dir");
         path
     }
 
-    pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        self.create_nested_dir(Self::NONE_PATH, path)
-    }
-
-    pub fn create_nested_file<PR: AsRef<Path>, P: AsRef<Path>>(
-        &self,
-        root_path: Option<&PR>,
-        path: P,
-    ) -> PathBuf {
-        let path = self.create_nested_parent_dir(root_path, path);
+    pub fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        let path = self.create_parent_dir(path);
 
         File::create(&path)
             .expect("can not open temporary file")
@@ -105,17 +82,13 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        self.create_nested_file(Self::NONE_PATH, path)
-    }
-
-    pub fn create_nested_media_file<PR: AsRef<Path>, P: AsRef<Path>>(
+    pub fn create_media_file<PM: AsRef<Path>, P: AsRef<Path>>(
         &self,
-        root_path: Option<&PR>,
+        music_folder_path: PM,
         path: P,
         song_tag: SongTag,
     ) -> PathBuf {
-        let path = self.create_nested_parent_dir(root_path, path);
+        let path = self.create_parent_dir(Self::join_root_path(music_folder_path, path));
         let file_type = FileType::from_path(&path).unwrap();
 
         std::fs::copy(get_media_asset_path(&file_type), &path)
@@ -144,41 +117,7 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_media_file<P: AsRef<Path>>(&self, path: P, song_tag: SongTag) -> PathBuf {
-        self.create_nested_media_file(Self::NONE_PATH, path, song_tag)
-    }
-
-    pub fn create_nested_random_paths<PR: AsRef<Path>, OS: AsRef<OsStr>>(
-        &self,
-        root_path: Option<&PR>,
-        n_path: usize,
-        max_depth: usize,
-        extensions: &[OS],
-    ) -> Vec<PathBuf> {
-        (0..n_path)
-            .map(|_| {
-                let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
-                self.get_absolute_path(
-                    root_path,
-                    PathBuf::from(
-                        fake::vec![String; 1..(max_depth + 1)].join(std::path::MAIN_SEPARATOR_STR),
-                    )
-                    .with_extension(ext),
-                )
-            })
-            .collect_vec()
-    }
-
-    pub fn create_random_paths<OS: AsRef<OsStr>>(
-        &self,
-        n_path: usize,
-        max_depth: usize,
-        extensions: &[OS],
-    ) -> Vec<PathBuf> {
-        self.create_nested_random_paths(Self::NONE_PATH, n_path, max_depth, extensions)
-    }
-
-    pub fn create_nested_media_files<PM: AsRef<Path>, P: AsRef<Path>>(
+    pub fn create_media_files<PM: AsRef<Path>, P: AsRef<Path>>(
         &self,
         music_folder_id: Uuid,
         music_folder_path: &PM,
@@ -192,14 +131,10 @@ impl TemporaryFs {
                 (
                     (
                         music_folder_id,
-                        self.create_nested_media_file(
-                            Some(music_folder_path),
-                            path,
-                            song_tag.clone(),
-                        )
-                        .strip_prefix(music_folder_path)
-                        .unwrap()
-                        .to_path_buf(),
+                        self.create_media_file(music_folder_path, path, song_tag.clone())
+                            .strip_prefix(music_folder_path)
+                            .unwrap()
+                            .to_path_buf(),
                     ),
                     song_tag,
                 )
@@ -207,7 +142,29 @@ impl TemporaryFs {
             .collect::<HashMap<_, _>>()
     }
 
-    pub fn create_nested_random_paths_media_files<PM: AsRef<Path>, OS: AsRef<OsStr>>(
+    pub fn create_random_paths<PR: AsRef<Path>, OS: AsRef<OsStr>>(
+        &self,
+        root_path: PR,
+        n_path: usize,
+        max_depth: usize,
+        extensions: &[OS],
+    ) -> Vec<PathBuf> {
+        let root_path = self.get_absolute_path(root_path);
+        (0..n_path)
+            .map(|_| {
+                let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
+                Self::join_root_path(
+                    &root_path,
+                    PathBuf::from(
+                        fake::vec![String; 1..(max_depth + 1)].join(std::path::MAIN_SEPARATOR_STR),
+                    )
+                    .with_extension(ext),
+                )
+            })
+            .collect_vec()
+    }
+
+    pub fn create_random_paths_media_files<PM: AsRef<Path>, OS: AsRef<OsStr>>(
         &self,
         music_folder_id: Uuid,
         music_folder_path: &PM,
@@ -215,10 +172,10 @@ impl TemporaryFs {
         extensions: &[OS],
     ) -> HashMap<(Uuid, PathBuf), SongTag> {
         let n_song = song_tags.len();
-        self.create_nested_media_files(
+        self.create_media_files(
             music_folder_id,
             music_folder_path,
-            &self.create_nested_random_paths(Some(music_folder_path), n_song, 3, extensions),
+            &self.create_random_paths(music_folder_path, n_song, 3, extensions),
             song_tags,
         )
     }
@@ -226,7 +183,7 @@ impl TemporaryFs {
     pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
         paths
             .iter()
-            .map(|path| self.get_absolute_path(Self::NONE_PATH, path))
+            .map(|path| self.get_absolute_path(path))
             .collect()
     }
 
@@ -258,6 +215,7 @@ fn test_roundtrip_media_file() {
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
         let path = fs.create_media_file(
+            fs.get_root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
@@ -290,6 +248,7 @@ fn test_roundtrip_media_file_none_value() {
             ..Faker.fake()
         };
         let path = fs.create_media_file(
+            fs.get_root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );

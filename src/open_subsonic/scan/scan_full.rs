@@ -268,7 +268,7 @@ mod tests {
         assert_eq!(deleted_song_count, 0);
 
         song_fs_info.extend(
-            temp_fs.create_nested_media_files(
+            temp_fs.create_media_files(
                 music_folders[0].id,
                 &PathBuf::from(&music_folders[0].path),
                 &song_fs_info
@@ -316,7 +316,7 @@ mod tests {
             });
 
         song_fs_info.extend(
-            temp_fs.create_nested_media_files(
+            temp_fs.create_media_files(
                 music_folder_id,
                 &music_folder_path,
                 &song_fs_info
@@ -401,7 +401,7 @@ mod tests {
             });
 
         song_fs_info.extend(
-            temp_fs.create_nested_media_files(
+            temp_fs.create_media_files(
                 music_folder_id,
                 &music_folder_path,
                 &song_fs_info
@@ -480,7 +480,7 @@ mod tests {
             });
 
         song_fs_info.extend(
-            temp_fs.create_nested_media_files(
+            temp_fs.create_media_files(
                 music_folder_id,
                 &music_folder_path,
                 &song_fs_info
@@ -538,8 +538,8 @@ mod tests {
         assert_eq!(deleted_artist_count, 0);
         assert_song_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        temp_fs.create_nested_media_file(
-            Some(&music_folder_path),
+        temp_fs.create_media_file(
+            &music_folder_path,
             &first_song_path,
             SongTag {
                 artists: vec!["artist2".to_owned()],
@@ -630,7 +630,7 @@ mod tests {
             .iter()
             .find_map(|(k, v)| {
                 if v.title == first_song_title {
-                    Some(music_folder_path.join(&k.1))
+                    Some(PathBuf::from(&k.1))
                 } else {
                     None
                 }
@@ -681,7 +681,7 @@ mod tests {
             .iter()
             .find_map(|(k, v)| {
                 if v.title == first_song_tag.title {
-                    Some(music_folder_path.join(&k.1))
+                    Some(PathBuf::from(&k.1))
                 } else {
                     None
                 }
@@ -690,8 +690,8 @@ mod tests {
         assert_eq!(deleted_artist_count, 0);
         assert_album_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        temp_fs.create_nested_media_file(
-            Some(&music_folder_path),
+        temp_fs.create_media_file(
+            &music_folder_path,
             &first_song_path,
             SongTag {
                 artists: vec!["artist2".to_owned()],
