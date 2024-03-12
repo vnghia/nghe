@@ -1,8 +1,12 @@
+mod parsing;
 mod raw;
+
+use parsing::ParsingConfig;
 
 use derivative::Derivative;
 use itertools::Itertools;
 use std::net::SocketAddr;
+
 
 #[derive(Debug)]
 pub struct ServerConfig {
@@ -27,6 +31,7 @@ pub struct Config {
     pub database: DatabaseConfig,
     pub folder: FolderConfig,
     pub artist_index: ArtistIndexConfig,
+    pub parsing: ParsingConfig,
 }
 
 impl ServerConfig {
@@ -64,11 +69,14 @@ impl Config {
 
         let artist_index = ArtistIndexConfig::new(raw_config.artist.ignored_articles);
 
+        let parsing = raw_config.parsing;
+
         Self {
             server,
             database,
             folder,
             artist_index,
+            parsing
         }
     }
 }

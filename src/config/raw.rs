@@ -4,6 +4,7 @@ mod built_info {
 
 use crate::database::EncryptionKey;
 
+use super::parsing::ParsingConfig;
 use derivative::Derivative;
 use figment::{
     providers::{Env, Serialized},
@@ -53,6 +54,7 @@ pub struct Config {
     pub database: DatabaseConfig,
     pub folder: FolderConfig,
     pub artist: ArtistConfig,
+    pub parsing: ParsingConfig,
 }
 
 impl Config {
@@ -68,6 +70,7 @@ impl Config {
                 Vec::<usize>::default(),
             ))
             .join(Serialized::default("artist", ArtistConfig::default()))
+            .join(Serialized::default("parsing", ParsingConfig::default()))
             .extract()
             .expect("can not parse initial config")
     }
