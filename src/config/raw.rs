@@ -9,13 +9,17 @@ use figment::{
     providers::{Env, Serialized},
     Figment,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::{net::IpAddr, path::PathBuf};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
+#[serde(default)]
 pub struct ServerConfig {
+    #[derivative(Default(value = "[127u8, 0u8, 0u8, 1u8].into()"))]
     pub host: IpAddr,
+    #[derivative(Default(value = "3000"))]
     pub port: u16,
 }
 
@@ -30,15 +34,16 @@ pub struct DatabaseConfig {
     pub key: EncryptionKey,
 }
 
-#[serde_as]
 #[derive(Debug, Deserialize)]
 pub struct FolderConfig {
     pub top_paths: Vec<PathBuf>,
     pub depth_levels: Vec<usize>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
 pub struct ArtistConfig {
+    #[derivative(Default(value = "\"The An A Die Das Ein Eine Les Le La\".into()"))]
     pub ignored_articles: String,
 }
 
@@ -50,10 +55,6 @@ pub struct Config {
     pub artist: ArtistConfig,
 }
 
-impl ArtistConfig {
-    pub const IGNORED_ARTICLES_DEFAULT_VALUE: &'static str = "The An A Die Das Ein Eine Les Le La";
-}
-
 impl Config {
     pub fn new() -> Self {
         Figment::new()
@@ -61,16 +62,12 @@ impl Config {
                 Env::prefixed(&concat_string::concat_string!(built_info::PKG_NAME, "_"))
                     .split("__"),
             )
-            .join(Serialized::default("server.host", "127.0.0.1"))
-            .join(Serialized::default("server.port", 3000))
+            .join(Serialized::default("server", ServerConfig::default()))
             .join(Serialized::default(
                 "folder.depth_levels",
                 Vec::<usize>::default(),
             ))
-            .join(Serialized::default(
-                "artist.ignored_articles",
-                ArtistConfig::IGNORED_ARTICLES_DEFAULT_VALUE,
-            ))
+            .join(Serialized::default("artist", ArtistConfig::default()))
             .extract()
             .expect("can not parse initial config")
     }

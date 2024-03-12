@@ -2,7 +2,7 @@ mod raw;
 
 use derivative::Derivative;
 use itertools::Itertools;
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 
 #[derive(Debug)]
 pub struct ServerConfig {
@@ -30,7 +30,7 @@ pub struct Config {
 }
 
 impl ServerConfig {
-    pub fn new(host: IpAddr, port: u16) -> Self {
+    pub fn new(raw::ServerConfig { host, port }: raw::ServerConfig) -> Self {
         Self {
             bind_addr: SocketAddr::new(host, port),
         }
@@ -52,18 +52,11 @@ impl ArtistIndexConfig {
     }
 }
 
-#[cfg(test)]
-impl Default for ArtistIndexConfig {
-    fn default() -> Self {
-        Self::new(raw::ArtistConfig::IGNORED_ARTICLES_DEFAULT_VALUE.to_owned())
-    }
-}
-
 impl Config {
     pub fn new() -> Self {
         let raw_config = raw::Config::default();
 
-        let server = ServerConfig::new(raw_config.server.host, raw_config.server.port);
+        let server = ServerConfig::new(raw_config.server);
 
         let database = raw_config.database;
 
@@ -83,6 +76,17 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    impl Default for ArtistIndexConfig {
+        fn default() -> Self {
+            Self::new(raw::ArtistConfig::default().ignored_articles)
+        }
     }
 }
 
