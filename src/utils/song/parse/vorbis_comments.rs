@@ -1,4 +1,5 @@
-use super::common::{extract_common_tags, parse_number_and_total, SongTag};
+use super::common::{extract_common_tags, parse_number_and_total};
+use super::tag::SongTag;
 use crate::utils::time::parse_date;
 
 use anyhow::Result;
