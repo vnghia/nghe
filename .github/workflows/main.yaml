@@ -106,16 +106,16 @@ jobs:
 
     runs-on: ${{ matrix.platform.os }}
 
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+
     steps:
       - uses: actions/checkout@v4
       - name: Install postgres
         run: brew install postgresql@14
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
       - name: Install nasm
         run: brew install nasm
-        env:
-          HOMEBREW_NO_AUTO_UPDATE: 1
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
       - uses: cargo-bins/cargo-binstall@main
