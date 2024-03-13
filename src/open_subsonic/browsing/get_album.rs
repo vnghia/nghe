@@ -125,7 +125,7 @@ mod tests {
 
     use fake::{Fake, Faker};
     use itertools::Itertools;
-    use rand::seq::SliceRandom;
+    use rand::Rng;
 
     async fn get_basic_artists(
         pool: &DatabasePool,
@@ -244,7 +244,7 @@ mod tests {
         let album_name = "album";
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
             1,
             &[n_song],
             (0..n_song)
@@ -271,7 +271,7 @@ mod tests {
             .into_iter()
             .sorted()
             .collect_vec();
-        let song_fs_ids = song_paths_to_ids(temp_db.pool(), &song_fs_info).await;
+        let song_fs_ids = song_paths_to_ids(temp_db.pool(), &song_fs_infos).await;
 
         assert_eq!(song_ids, song_fs_ids);
     }
@@ -282,7 +282,7 @@ mod tests {
         let n_folder = 2_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
             n_folder,
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
@@ -297,12 +297,10 @@ mod tests {
         let album_id = upsert_album(temp_db.pool(), album_name.into())
             .await
             .unwrap();
-        let music_folder_ids = music_folders
+        let music_folder_idx = rand::thread_rng().gen_range(0..music_folders.len());
+        let music_folder_ids = music_folders[music_folder_idx..=music_folder_idx]
             .iter()
             .map(|music_folder| music_folder.id)
-            .collect_vec()
-            .choose_multiple(&mut rand::thread_rng(), 1)
-            .cloned()
             .collect_vec();
 
         let song_ids = get_album_and_song_ids(temp_db.pool(), &music_folder_ids, &album_id)
@@ -314,10 +312,7 @@ mod tests {
             .collect_vec();
         let song_fs_ids = song_paths_to_ids(
             temp_db.pool(),
-            &song_fs_info
-                .into_iter()
-                .filter(|(k, _)| music_folder_ids.contains(&k.0))
-                .collect(),
+            &song_fs_infos[music_folder_idx * n_song..(music_folder_idx + 1) * n_song],
         )
         .await;
 

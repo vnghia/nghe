@@ -1,3 +1,4 @@
+use super::fs::SongFsInformation;
 use crate::models::*;
 use crate::utils::song::test::{SongDate, SongTag};
 use crate::DatabasePool;
@@ -21,15 +22,17 @@ pub struct SongDbInformation {
     pub album_artist_ids: Vec<Uuid>,
     // Filesystem property
     pub music_folder_id: Uuid,
+    pub music_folder_path: PathBuf,
     pub relative_path: String,
     pub file_hash: u64,
     pub file_size: u64,
 }
 
 pub async fn query_all_song_information(pool: &DatabasePool, song_id: Uuid) -> SongDbInformation {
-    let song = songs::table
+    let (song, music_folder_path): (_, String) = songs::table
+        .inner_join(music_folders::table)
         .filter(songs::id.eq(song_id))
-        .select(songs::test::Song::as_select())
+        .select((songs::test::Song::as_select(), music_folders::path))
         .first(&mut pool.get().await.unwrap())
         .await
         .unwrap();
@@ -98,6 +101,7 @@ pub async fn query_all_song_information(pool: &DatabasePool, song_id: Uuid) -> S
         artist_ids,
         album_artist_ids,
         music_folder_id: song.music_folder_id,
+        music_folder_path: PathBuf::from(music_folder_path),
         relative_path: song.relative_path,
         file_hash: song.file_hash as u64,
         file_size: song.file_size as u64,
@@ -106,7 +110,7 @@ pub async fn query_all_song_information(pool: &DatabasePool, song_id: Uuid) -> S
 
 pub async fn query_all_songs_information(
     pool: &DatabasePool,
-) -> HashMap<(Uuid, PathBuf), SongDbInformation> {
+) -> HashMap<(PathBuf, String), SongDbInformation> {
     let song_ids = songs::table
         .select(songs::id)
         .get_results(&mut pool.get().await.unwrap())
@@ -116,7 +120,10 @@ pub async fn query_all_songs_information(
         .then(|song_id| async move {
             let result = query_all_song_information(pool, song_id).await;
             (
-                (result.music_folder_id, PathBuf::from(&result.relative_path)),
+                (
+                    result.music_folder_path.clone(),
+                    result.relative_path.clone(),
+                ),
                 result,
             )
         })
@@ -124,19 +131,16 @@ pub async fn query_all_songs_information(
         .await
 }
 
-pub async fn assert_artists_info(
-    pool: &DatabasePool,
-    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
-) {
+pub async fn assert_artists_info(pool: &DatabasePool, song_fs_infos: &[SongFsInformation]) {
     assert_artist_names(
         pool,
-        &song_fs_info
-            .values()
-            .flat_map(|song_tag| {
-                song_tag
+        &song_fs_infos
+            .iter()
+            .flat_map(|s| {
+                s.tag
                     .album_artists
                     .iter()
-                    .chain(song_tag.artists.iter())
+                    .chain(s.tag.artists.iter())
                     .collect_vec()
             })
             .unique()
@@ -146,15 +150,12 @@ pub async fn assert_artists_info(
     .await;
 }
 
-pub async fn assert_albums_artists_info(
-    pool: &DatabasePool,
-    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
-) {
+pub async fn assert_albums_artists_info(pool: &DatabasePool, song_fs_infos: &[SongFsInformation]) {
     assert_album_artist_names(
         pool,
-        &song_fs_info
-            .values()
-            .flat_map(|song_tag| song_tag.album_artists_or_default())
+        &song_fs_infos
+            .iter()
+            .flat_map(|s| s.tag.album_artists_or_default())
             .unique()
             .sorted()
             .collect_vec(),
@@ -162,15 +163,12 @@ pub async fn assert_albums_artists_info(
     .await;
 }
 
-pub async fn assert_albums_info(
-    pool: &DatabasePool,
-    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
-) {
+pub async fn assert_albums_info(pool: &DatabasePool, song_fs_infos: &[SongFsInformation]) {
     assert_album_names(
         pool,
-        &song_fs_info
-            .values()
-            .map(|song_tag| song_tag.album.clone())
+        &song_fs_infos
+            .iter()
+            .map(|s| s.tag.album.clone())
             .unique()
             .sorted()
             .collect_vec(),
@@ -178,38 +176,44 @@ pub async fn assert_albums_info(
     .await;
 }
 
-pub async fn assert_songs_info(
-    pool: &DatabasePool,
-    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
-) {
+pub async fn assert_songs_info(pool: &DatabasePool, song_fs_infos: &[SongFsInformation]) {
     let mut song_db_infos = query_all_songs_information(pool).await;
+    assert_eq!(song_fs_infos.len(), song_db_infos.len());
 
-    for (song_key, song_tag) in song_fs_info {
-        let song_db_info = song_db_infos.remove(song_key).unwrap();
-        assert_eq!(song_tag.title, song_db_info.tag.title);
-        assert_eq!(song_tag.album, song_db_info.tag.album);
-        assert_eq!(song_tag.artists, song_db_info.tag.artists);
+    for song_fs_info in song_fs_infos {
+        let song_db_info = song_db_infos
+            .remove(&(
+                song_fs_info.music_folder_path.clone(),
+                song_fs_info.relative_path.clone(),
+            ))
+            .unwrap();
+        let song_fs_tag = &song_fs_info.tag;
+        let song_db_tag = &song_db_info.tag;
+
+        assert_eq!(song_fs_tag.title, song_db_tag.title);
+        assert_eq!(song_fs_tag.album, song_db_tag.album);
+        assert_eq!(song_fs_tag.artists, song_db_tag.artists);
         assert_eq!(
-            song_tag.album_artists_or_default(),
-            &song_db_info.tag.album_artists
+            song_fs_tag.album_artists_or_default(),
+            &song_db_tag.album_artists,
         );
 
-        assert_eq!(song_tag.track_number, song_db_info.tag.track_number);
-        assert_eq!(song_tag.track_total, song_db_info.tag.track_total);
-        assert_eq!(song_tag.disc_number, song_db_info.tag.disc_number);
-        assert_eq!(song_tag.disc_total, song_db_info.tag.disc_total);
+        assert_eq!(song_fs_tag.track_number, song_db_tag.track_number);
+        assert_eq!(song_fs_tag.track_total, song_db_tag.track_total);
+        assert_eq!(song_fs_tag.disc_number, song_db_tag.disc_number);
+        assert_eq!(song_fs_tag.disc_total, song_db_tag.disc_total);
 
-        assert_eq!(song_tag.date_or_default(), song_db_info.tag.date);
+        assert_eq!(song_fs_tag.date_or_default(), song_db_tag.date);
         assert_eq!(
-            song_tag.release_date_or_default(),
-            song_db_info.tag.release_date
+            song_fs_tag.release_date_or_default(),
+            song_db_tag.release_date
         );
         assert_eq!(
-            song_tag.original_release_date,
-            song_db_info.tag.original_release_date
+            song_fs_tag.original_release_date,
+            song_db_tag.original_release_date
         );
 
-        assert_eq!(song_tag.languages, song_db_info.tag.languages);
+        assert_eq!(song_fs_tag.languages, song_db_tag.languages);
     }
     assert!(song_db_infos.is_empty());
 }
@@ -305,14 +309,15 @@ pub async fn assert_album_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S])
 
 pub async fn song_paths_to_ids(
     pool: &DatabasePool,
-    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+    song_fs_infos: &[SongFsInformation],
 ) -> Vec<Uuid> {
-    stream::iter(song_fs_info.keys())
-        .then(|(music_folder_id, path)| async move {
+    stream::iter(song_fs_infos)
+        .then(|song_fs_info| async move {
             songs::table
                 .select(songs::id)
-                .filter(songs::music_folder_id.eq(music_folder_id))
-                .filter(songs::relative_path.eq(path.to_str().unwrap()))
+                .inner_join(music_folders::table)
+                .filter(music_folders::path.eq(&song_fs_info.music_folder_path.to_str().unwrap()))
+                .filter(songs::relative_path.eq(&song_fs_info.relative_path))
                 .first::<Uuid>(&mut pool.get().await.unwrap())
                 .await
                 .unwrap()
@@ -326,12 +331,11 @@ pub async fn song_paths_to_ids(
 
 pub async fn song_paths_to_artist_ids(
     pool: &DatabasePool,
-    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+    song_fs_infos: &[SongFsInformation],
 ) -> Vec<Uuid> {
-    let artist_names = song_fs_info
-        .clone()
-        .into_iter()
-        .flat_map(|(_, tag)| [tag.album_artists, tag.artists].concat())
+    let artist_names = song_fs_infos
+        .iter()
+        .flat_map(|s| [s.tag.album_artists.clone(), s.tag.artists.clone()].concat())
         .unique()
         .collect_vec();
 
@@ -348,14 +352,15 @@ pub async fn song_paths_to_artist_ids(
 
 pub async fn song_paths_to_album_ids(
     pool: &DatabasePool,
-    song_fs_info: &HashMap<(Uuid, PathBuf), SongTag>,
+    song_fs_infos: &[SongFsInformation],
 ) -> Vec<Uuid> {
-    stream::iter(song_fs_info.keys())
-        .then(|(music_folder_id, path)| async move {
+    stream::iter(song_fs_infos)
+        .then(|song_fs_info| async move {
             songs::table
                 .select(songs::album_id)
-                .filter(songs::music_folder_id.eq(music_folder_id))
-                .filter(songs::relative_path.eq(path.to_str().unwrap()))
+                .inner_join(music_folders::table)
+                .filter(music_folders::path.eq(&song_fs_info.music_folder_path.to_str().unwrap()))
+                .filter(songs::relative_path.eq(&song_fs_info.relative_path))
                 .first::<Uuid>(&mut pool.get().await.unwrap())
                 .await
                 .unwrap()

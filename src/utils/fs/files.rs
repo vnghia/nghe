@@ -72,8 +72,7 @@ mod tests {
     fn test_scan_media_files_no_filter() {
         let fs = TemporaryFs::new();
 
-        let media_paths = fs
-            .create_random_paths(fs.get_root_path(), 50, 3, &to_extensions())
+        let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
             .map(|path| fs.create_file(path))
             .collect_vec();
@@ -108,8 +107,7 @@ mod tests {
     fn test_scan_media_files_relative_path() {
         let fs = TemporaryFs::new();
 
-        let media_paths = fs
-            .create_random_paths(fs.get_root_path(), 50, 3, &to_extensions())
+        let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
             .map(|path| {
                 fs.create_file(path)
@@ -138,28 +136,26 @@ mod tests {
 
         let supported_extensions = to_extensions();
 
-        let media_paths = fs
-            .create_random_paths(
-                fs.get_root_path(),
-                50,
-                3,
-                &[supported_extensions.as_slice(), &["txt", "rs"]].concat(),
-            )
-            .into_iter()
-            .filter_map(|path| {
-                let path = fs.create_file(path);
-                let ext = lofty::FileType::from_path(&path);
-                if let Some(ext) = ext {
-                    if SONG_FILE_TYPES.contains(&ext) {
-                        Some(path)
-                    } else {
-                        None
-                    }
+        let media_paths = TemporaryFs::create_random_relative_paths(
+            50,
+            3,
+            &[supported_extensions.as_slice(), &["txt", "rs"]].concat(),
+        )
+        .into_iter()
+        .filter_map(|path| {
+            let path = fs.create_file(path);
+            let ext = lofty::FileType::from_path(&path);
+            if let Some(ext) = ext {
+                if SONG_FILE_TYPES.contains(&ext) {
+                    Some(path)
                 } else {
                     None
                 }
-            })
-            .collect_vec();
+            } else {
+                None
+            }
+        })
+        .collect_vec();
 
         let scanned_paths = scan_media_files(fs.get_root_path())
             .unwrap()
@@ -177,8 +173,7 @@ mod tests {
     fn test_scan_media_files_filter_dir() {
         let fs = TemporaryFs::new();
 
-        let media_paths = fs
-            .create_random_paths(fs.get_root_path(), 50, 3, &to_extensions())
+        let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
             .filter_map(|path| {
                 if rand::random::<bool>() {

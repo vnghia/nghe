@@ -16,12 +16,26 @@ use fake::{Fake, Faker};
 use itertools::Itertools;
 use lofty::{FileType, TagExt, TagType, TaggedFileExt};
 use rand::seq::SliceRandom;
-use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::{fs::*, io::Write};
 use tempfile::{Builder, TempDir};
-use uuid::Uuid;
+use xxhash_rust::xxh3::xxh3_64;
+
+#[derive(Debug, Clone)]
+pub struct SongFsInformation {
+    pub tag: SongTag,
+    pub music_folder_path: PathBuf,
+    pub relative_path: String,
+    pub file_hash: u64,
+    pub file_size: u64,
+}
+
+impl SongFsInformation {
+    pub fn absolute_path(&self) -> PathBuf {
+        self.music_folder_path.join(&self.relative_path)
+    }
+}
 
 pub struct TemporaryFs {
     root: TempDir,
@@ -40,7 +54,8 @@ impl TemporaryFs {
         }
     }
 
-    pub fn join_root_path<PR: AsRef<Path>, P: AsRef<Path>>(root_path: PR, path: P) -> PathBuf {
+    fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
+        let root_path = self.get_root_path();
         if path.as_ref().is_absolute() {
             if !path.as_ref().starts_with(root_path) {
                 panic!("path is not a children of root temp directory");
@@ -48,12 +63,8 @@ impl TemporaryFs {
                 path.as_ref().into()
             }
         } else {
-            root_path.as_ref().join(path)
+            root_path.join(path)
         }
-    }
-
-    fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        Self::join_root_path(self.get_root_path(), path)
     }
 
     fn create_parent_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
@@ -82,13 +93,15 @@ impl TemporaryFs {
         path
     }
 
-    pub fn create_media_file<PM: AsRef<Path>, P: AsRef<Path>>(
+    pub fn create_media_file<PM: AsRef<Path>, S: AsRef<str> + ToString>(
         &self,
         music_folder_path: PM,
-        path: P,
+        relative_path: S,
         song_tag: SongTag,
-    ) -> PathBuf {
-        let path = self.create_parent_dir(Self::join_root_path(music_folder_path, path));
+    ) -> SongFsInformation {
+        let tag = song_tag.clone();
+        let music_folder_path = self.get_absolute_path(music_folder_path);
+        let path = self.create_parent_dir(music_folder_path.join(relative_path.as_ref()));
         let file_type = FileType::from_path(&path).unwrap();
 
         std::fs::copy(get_media_asset_path(&file_type), &path)
@@ -114,68 +127,61 @@ impl TemporaryFs {
             _ => unreachable!("media tag type not supported"),
         };
 
-        path
+        let file_data = std::fs::read(&path).unwrap();
+        let file_hash = xxh3_64(&file_data);
+        let file_size = file_data.len() as u64;
+
+        SongFsInformation {
+            tag,
+            music_folder_path,
+            relative_path: relative_path.to_string(),
+            file_hash,
+            file_size,
+        }
     }
 
-    pub fn create_media_files<PM: AsRef<Path>, P: AsRef<Path>>(
+    pub fn create_media_files<PM: AsRef<Path>>(
         &self,
-        music_folder_id: Uuid,
-        music_folder_path: &PM,
-        paths: &[P],
+        music_folder_path: PM,
+        paths: Vec<String>,
         song_tags: Vec<SongTag>,
-    ) -> HashMap<(Uuid, PathBuf), SongTag> {
+    ) -> Vec<SongFsInformation> {
         paths
-            .iter()
+            .into_iter()
             .zip(song_tags)
-            .map(|(path, song_tag)| {
-                (
-                    (
-                        music_folder_id,
-                        self.create_media_file(music_folder_path, path, song_tag.clone())
-                            .strip_prefix(music_folder_path)
-                            .unwrap()
-                            .to_path_buf(),
-                    ),
-                    song_tag,
-                )
-            })
-            .collect::<HashMap<_, _>>()
+            .map(|(path, song_tag)| self.create_media_file(&music_folder_path, path, song_tag))
+            .collect()
     }
 
-    pub fn create_random_paths<PR: AsRef<Path>, OS: AsRef<OsStr>>(
-        &self,
-        root_path: PR,
+    pub fn create_random_relative_paths<OS: AsRef<OsStr>>(
         n_path: usize,
         max_depth: usize,
         extensions: &[OS],
-    ) -> Vec<PathBuf> {
-        let root_path = self.get_absolute_path(root_path);
+    ) -> Vec<String> {
         (0..n_path)
             .map(|_| {
                 let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
-                Self::join_root_path(
-                    &root_path,
-                    PathBuf::from(
-                        fake::vec![String; 1..(max_depth + 1)].join(std::path::MAIN_SEPARATOR_STR),
-                    )
-                    .with_extension(ext),
+                Path::new(
+                    &fake::vec![String; 1..(max_depth + 1)].join(std::path::MAIN_SEPARATOR_STR),
                 )
+                .with_extension(ext)
+                .to_str()
+                .unwrap()
+                .to_owned()
             })
-            .collect_vec()
+            .collect()
     }
 
     pub fn create_random_paths_media_files<PM: AsRef<Path>, OS: AsRef<OsStr>>(
         &self,
-        music_folder_id: Uuid,
-        music_folder_path: &PM,
+        music_folder_path: PM,
         song_tags: Vec<SongTag>,
         extensions: &[OS],
-    ) -> HashMap<(Uuid, PathBuf), SongTag> {
+    ) -> Vec<SongFsInformation> {
         let n_song = song_tags.len();
         self.create_media_files(
-            music_folder_id,
             music_folder_path,
-            &self.create_random_paths(music_folder_path, n_song, 3, extensions),
+            Self::create_random_relative_paths(n_song, 3, extensions),
             song_tags,
         )
     }
@@ -214,13 +220,13 @@ fn test_roundtrip_media_file() {
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
-        let path = fs.create_media_file(
+        let song_fs_infos = fs.create_media_file(
             fs.get_root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
         let read_song_tag = SongInformation::read_from(
-            &mut std::fs::File::open(&path).unwrap(),
+            &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
             &file_type,
             &fs.parsing_config,
         )
@@ -247,13 +253,13 @@ fn test_roundtrip_media_file_none_value() {
             disc_total: None,
             ..Faker.fake()
         };
-        let path = fs.create_media_file(
+        let song_fs_infos = fs.create_media_file(
             fs.get_root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
         let read_song_tag = SongInformation::read_from(
-            &mut std::fs::File::open(&path).unwrap(),
+            &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
             &file_type,
             &fs.parsing_config,
         )

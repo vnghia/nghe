@@ -202,20 +202,71 @@ mod tests {
         utils::{
             song::test::SongTag,
             test::{
+                fs::SongFsInformation,
                 media::{
                     assert_album_artist_names, assert_album_names, assert_albums_artists_info,
                     assert_albums_info, assert_artists_info, assert_song_artist_names,
                     assert_songs_info,
                 },
+                random,
                 setup::setup_songs_no_scan,
+                TemporaryFs,
             },
         },
     };
 
     use fake::{Fake, Faker};
     use itertools::Itertools;
-    use rand::seq::IteratorRandom;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
+
+    fn delete_and_update_songs<PM: AsRef<Path>>(
+        temp_fs: &TemporaryFs,
+        music_folder_path: PM,
+        song_fs_infos: Vec<SongFsInformation>,
+        n_delete: usize,
+        n_update: usize,
+    ) -> Vec<SongFsInformation> {
+        let song_fs_infos = random::gen_bool_mask(song_fs_infos.len(), n_delete)
+            .into_iter()
+            .zip(song_fs_infos)
+            .filter_map(|(d, s)| {
+                if d {
+                    std::fs::remove_file(s.absolute_path()).unwrap();
+                    None
+                } else {
+                    Some(s)
+                }
+            })
+            .collect_vec();
+
+        let update_bool_mask = random::gen_bool_mask(song_fs_infos.len(), n_update);
+        let new_song_fs_infos = temp_fs.create_media_files(
+            &music_folder_path,
+            update_bool_mask
+                .iter()
+                .copied()
+                .zip(song_fs_infos.iter())
+                .filter_map(|(u, s)| {
+                    if u {
+                        Some(s.relative_path.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+            fake::vec![SongTag; n_update],
+        );
+
+        [
+            update_bool_mask
+                .into_iter()
+                .zip(song_fs_infos)
+                .filter_map(|(u, s)| if u { None } else { Some(s) })
+                .collect_vec(),
+            new_song_fs_infos,
+        ]
+        .concat()
+    }
 
     async fn wrap_scan_full(
         pool: &DatabasePool,
@@ -246,113 +297,88 @@ mod tests {
     #[tokio::test]
     async fn test_simple_scan() {
         let n_song = 50_usize;
-        let (temp_db, temp_fs, music_folders, song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(temp_db.pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_infos).await;
     }
 
     #[tokio::test]
     async fn test_simple_scan_with_update_same_path() {
         let n_song = 50_usize;
-        let n_new_song = 20_usize;
+        let n_update_song = 20_usize;
 
-        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
-        song_fs_info.extend(
-            temp_fs.create_media_files(
-                music_folders[0].id,
-                &PathBuf::from(&music_folders[0].path),
-                &song_fs_info
-                    .keys()
-                    .choose_multiple(&mut rand::thread_rng(), n_new_song)
-                    .into_iter()
-                    .map(|(_, path)| path)
-                    .collect_vec(),
-                fake::vec![SongTag; n_new_song],
-            ),
+        let song_fs_infos = delete_and_update_songs(
+            &temp_fs,
+            &music_folders[0].path,
+            song_fs_infos,
+            0,
+            n_update_song,
         );
 
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
 
-        assert_eq!(upserted_song_count, n_new_song);
+        assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(temp_db.pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_infos).await;
     }
 
     #[tokio::test]
     async fn test_simple_scan_with_delete() {
         let n_song = 50_usize;
         let n_delete_song = 10_usize;
-        let n_new_song = 20_usize;
+        let n_update_song = 20_usize;
 
-        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
-        let music_folder_id = music_folders[0].id;
-        let music_folder_path = PathBuf::from(&music_folders[0].path);
-
-        song_fs_info
-            .keys()
-            .cloned()
-            .choose_multiple(&mut rand::thread_rng(), n_delete_song)
-            .into_iter()
-            .for_each(|key| {
-                std::fs::remove_file(music_folder_path.join(&key.1)).unwrap();
-                song_fs_info.remove(&key).unwrap();
-            });
-
-        song_fs_info.extend(
-            temp_fs.create_media_files(
-                music_folder_id,
-                &music_folder_path,
-                &song_fs_info
-                    .keys()
-                    .choose_multiple(&mut rand::thread_rng(), n_new_song)
-                    .into_iter()
-                    .map(|(_, path)| path)
-                    .collect_vec(),
-                fake::vec![SongTag; n_new_song],
-            ),
+        let song_fs_infos = delete_and_update_songs(
+            &temp_fs,
+            &music_folders[0].path,
+            song_fs_infos,
+            n_delete_song,
+            n_update_song,
         );
 
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
 
-        assert_eq!(upserted_song_count, n_new_song);
+        assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, n_delete_song);
-        assert_songs_info(temp_db.pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_infos).await;
     }
 
     #[tokio::test]
     async fn test_simple_scan_with_multiple_folders() {
         let n_song = 25_usize;
 
-        let (temp_db, temp_fs, music_folders, song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(2, &[n_song, n_song], None).await;
         let (upserted_song_count, deleted_song_count, _, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
         assert_eq!(upserted_song_count, n_song + n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(temp_db.pool(), &song_fs_info).await;
+        assert_songs_info(temp_db.pool(), &song_fs_infos).await;
     }
 
     #[tokio::test]
     async fn test_scan_combine_album_artists() {
-        let (temp_db, temp_fs, music_folders, song_fs_info) = setup_songs_no_scan(
+        let (temp_db, temp_fs, music_folders, song_fs_infos) = setup_songs_no_scan(
             1,
             &[2],
             vec![
@@ -371,59 +397,40 @@ mod tests {
         .await;
         wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
 
-        assert_albums_artists_info(temp_db.pool(), &song_fs_info).await;
+        assert_albums_artists_info(temp_db.pool(), &song_fs_infos).await;
     }
 
     #[tokio::test]
     async fn test_simple_scan_delete_old_albums() {
         let n_song = 10;
         let n_delete_song = 2;
-        let n_new_song = 4;
+        let n_update_song = 4;
 
-        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[n_song], None).await;
         let (_, _, deleted_album_count, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
         assert_eq!(deleted_album_count, 0);
-        assert_albums_info(temp_db.pool(), &song_fs_info).await;
+        assert_albums_info(temp_db.pool(), &song_fs_infos).await;
 
-        let music_folder_id = music_folders[0].id;
-        let music_folder_path = PathBuf::from(&music_folders[0].path);
-
-        song_fs_info
-            .keys()
-            .cloned()
-            .choose_multiple(&mut rand::thread_rng(), n_delete_song)
-            .into_iter()
-            .for_each(|key| {
-                std::fs::remove_file(music_folder_path.join(&key.1)).unwrap();
-                song_fs_info.remove(&key).unwrap();
-            });
-
-        song_fs_info.extend(
-            temp_fs.create_media_files(
-                music_folder_id,
-                &music_folder_path,
-                &song_fs_info
-                    .keys()
-                    .choose_multiple(&mut rand::thread_rng(), n_new_song)
-                    .into_iter()
-                    .map(|(_, path)| path)
-                    .collect_vec(),
-                fake::vec![SongTag; n_new_song],
-            ),
+        let song_fs_infos = delete_and_update_songs(
+            &temp_fs,
+            &music_folders[0].path,
+            song_fs_infos,
+            n_delete_song,
+            n_update_song,
         );
 
         let (_, _, deleted_album_count, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
 
-        assert_eq!(deleted_album_count, n_delete_song + n_new_song);
-        assert_albums_info(temp_db.pool(), &song_fs_info).await;
+        assert_eq!(deleted_album_count, n_delete_song + n_update_song);
+        assert_albums_info(temp_db.pool(), &song_fs_infos).await;
     }
 
     #[tokio::test]
     async fn test_scan_delete_keep_album_with_songs() {
-        let (temp_db, temp_fs, music_folders, song_fs_info) = setup_songs_no_scan(
+        let (temp_db, temp_fs, music_folders, song_fs_infos) = setup_songs_no_scan(
             1,
             &[2],
             vec![
@@ -443,10 +450,7 @@ mod tests {
         assert_eq!(deleted_album_count, 0);
         assert_album_names(temp_db.pool(), &["album"]).await;
 
-        std::fs::remove_file(
-            PathBuf::from(&music_folders[0].path).join(&song_fs_info.keys().next().unwrap().1),
-        )
-        .unwrap();
+        std::fs::remove_file(song_fs_infos[0].absolute_path()).unwrap();
 
         let (_, _, deleted_album_count, _) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
@@ -458,44 +462,25 @@ mod tests {
     async fn test_scan_all_artist() {
         let n_song = 10;
         let n_delete_song = 2;
-        let n_new_song = 4;
+        let n_update_song = 4;
 
-        let (temp_db, temp_fs, music_folders, mut song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[n_song], None).await;
         wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
 
-        let music_folder_id = music_folders[0].id;
-        let music_folder_path = PathBuf::from(&music_folders[0].path);
+        assert_artists_info(temp_db.pool(), &song_fs_infos).await;
 
-        assert_artists_info(temp_db.pool(), &song_fs_info).await;
-
-        song_fs_info
-            .keys()
-            .cloned()
-            .choose_multiple(&mut rand::thread_rng(), n_delete_song)
-            .into_iter()
-            .for_each(|key| {
-                std::fs::remove_file(music_folder_path.join(&key.1)).unwrap();
-                song_fs_info.remove(&key).unwrap();
-            });
-
-        song_fs_info.extend(
-            temp_fs.create_media_files(
-                music_folder_id,
-                &music_folder_path,
-                &song_fs_info
-                    .keys()
-                    .choose_multiple(&mut rand::thread_rng(), n_new_song)
-                    .into_iter()
-                    .map(|(_, path)| path)
-                    .collect_vec(),
-                fake::vec![SongTag; n_new_song],
-            ),
+        let song_fs_infos = delete_and_update_songs(
+            &temp_fs,
+            &music_folders[0].path,
+            song_fs_infos,
+            n_delete_song,
+            n_update_song,
         );
 
         wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
 
-        assert_artists_info(temp_db.pool(), &song_fs_info).await;
+        assert_artists_info(temp_db.pool(), &song_fs_infos).await;
     }
 
     #[tokio::test]
@@ -518,29 +503,18 @@ mod tests {
                 ..Faker.fake()
             },
         ];
-        let first_song_title = song_tags[0].title.clone();
 
-        let (temp_db, temp_fs, music_folders, song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[3], song_tags).await;
         let (_, _, _, deleted_artist_count) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let first_song_path = song_fs_info
-            .iter()
-            .find_map(|(k, v)| {
-                if v.title == first_song_title {
-                    Some(music_folder_path.join(&k.1))
-                } else {
-                    None
-                }
-            })
-            .unwrap();
         assert_eq!(deleted_artist_count, 0);
         assert_song_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
         temp_fs.create_media_file(
             &music_folder_path,
-            &first_song_path,
+            &song_fs_infos[0].relative_path,
             SongTag {
                 artists: vec!["artist2".to_owned()],
                 ..Faker.fake()
@@ -568,27 +542,15 @@ mod tests {
                 ..Faker.fake()
             },
         ];
-        let first_song_title = song_tags[0].title.clone();
 
-        let (temp_db, temp_fs, music_folders, song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[2], song_tags).await;
         let (_, _, _, deleted_artist_count) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
-        let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let first_song_path = song_fs_info
-            .iter()
-            .find_map(|(k, v)| {
-                if v.title == first_song_title {
-                    Some(music_folder_path.join(&k.1))
-                } else {
-                    None
-                }
-            })
-            .unwrap();
         assert_eq!(deleted_artist_count, 0);
         assert_album_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        std::fs::remove_file(music_folder_path.join(&first_song_path)).unwrap();
+        std::fs::remove_file(song_fs_infos[0].absolute_path()).unwrap();
 
         let (_, _, _, deleted_artist_count) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
@@ -619,27 +581,15 @@ mod tests {
                 ..Faker.fake()
             },
         ];
-        let first_song_title = song_tags[0].title.clone();
 
-        let (temp_db, temp_fs, music_folders, song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[3], song_tags).await;
         let (_, _, _, deleted_artist_count) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
-        let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let first_song_path = song_fs_info
-            .iter()
-            .find_map(|(k, v)| {
-                if v.title == first_song_title {
-                    Some(PathBuf::from(&k.1))
-                } else {
-                    None
-                }
-            })
-            .unwrap();
         assert_eq!(deleted_artist_count, 0);
         assert_album_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        std::fs::remove_file(music_folder_path.join(&first_song_path)).unwrap();
+        std::fs::remove_file(song_fs_infos[0].absolute_path()).unwrap();
 
         let (_, _, _, deleted_artist_count) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
@@ -672,27 +622,17 @@ mod tests {
         ];
         let first_song_tag = song_tags[0].clone();
 
-        let (temp_db, temp_fs, music_folders, song_fs_info) =
+        let (temp_db, temp_fs, music_folders, song_fs_infos) =
             setup_songs_no_scan(1, &[3], song_tags).await;
         let (_, _, _, deleted_artist_count) =
             wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
         let music_folder_path = PathBuf::from(&music_folders[0].path);
-        let first_song_path = song_fs_info
-            .iter()
-            .find_map(|(k, v)| {
-                if v.title == first_song_tag.title {
-                    Some(PathBuf::from(&k.1))
-                } else {
-                    None
-                }
-            })
-            .unwrap();
         assert_eq!(deleted_artist_count, 0);
         assert_album_artist_names(temp_db.pool(), &["artist1", "artist2", "artist3"]).await;
 
         temp_fs.create_media_file(
             &music_folder_path,
-            &first_song_path,
+            &song_fs_infos[0].relative_path,
             SongTag {
                 artists: vec!["artist2".to_owned()],
                 album_artists: vec!["artist2".to_owned()],

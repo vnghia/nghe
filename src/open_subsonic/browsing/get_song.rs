@@ -105,14 +105,14 @@ mod tests {
     async fn test_get_song_id3() {
         let song_tag = Faker.fake::<SongTag>();
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) =
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) =
             setup_songs(1, &[1], vec![song_tag.clone()]).await;
 
         let music_folder_ids = music_folders
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let song_id = song_paths_to_ids(temp_db.pool(), &song_fs_info)
+        let song_id = song_paths_to_ids(temp_db.pool(), &song_fs_infos)
             .await
             .remove(0);
 
@@ -130,19 +130,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_song_id3_deny_music_folders() {
-        let (temp_db, _temp_fs, music_folders, song_fs_info) =
-            setup_songs(2, &[1, 1], fake::vec![SongTag; 2]).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(2, &[1, 1], None).await;
 
         let music_folder_id = music_folders[0].id;
-        let song_id = song_paths_to_ids(
-            temp_db.pool(),
-            &song_fs_info
-                .into_iter()
-                .filter(|(k, _)| music_folder_id != k.0)
-                .collect(),
-        )
-        .await
-        .remove(0);
+        let song_id = song_paths_to_ids(temp_db.pool(), &song_fs_infos[1..])
+            .await
+            .remove(0);
 
         assert!(matches!(
             get_song(temp_db.pool(), &[music_folder_id], &song_id)

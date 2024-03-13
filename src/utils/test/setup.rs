@@ -1,3 +1,4 @@
+use super::fs::SongFsInformation;
 use super::user::create_users;
 use super::{TemporaryDatabase, TemporaryFs};
 use crate::config::ArtistIndexConfig;
@@ -9,9 +10,7 @@ use crate::utils::song::test::SongTag;
 
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use std::collections::HashMap;
 use std::path::PathBuf;
-use uuid::Uuid;
 
 pub async fn setup_users_and_music_folders_no_refresh(
     n_user: usize,
@@ -81,7 +80,7 @@ pub async fn setup_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
     TemporaryDatabase,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
-    HashMap<(Uuid, PathBuf), SongTag>,
+    Vec<SongFsInformation>,
 ) {
     assert_eq!(n_songs.len(), n_folder);
     let (temp_db, _, temp_fs, music_folders) =
@@ -101,22 +100,16 @@ pub async fn setup_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
     assert!(song_tags.is_empty());
     let song_tags_vec = song_tags_vec.into_iter().rev().collect_vec();
 
-    let song_fs_info = music_folders
+    let song_fs_infos = music_folders
         .iter()
         .zip(song_tags_vec.into_iter())
         .flat_map(|(music_folder, song_tags)| {
-            let music_folder_id = music_folder.id;
             let music_folder_path = PathBuf::from(&music_folder.path);
-            temp_fs.create_random_paths_media_files(
-                music_folder_id,
-                &music_folder_path,
-                song_tags,
-                &to_extensions(),
-            )
+            temp_fs.create_random_paths_media_files(music_folder_path, song_tags, &to_extensions())
         })
-        .collect::<HashMap<_, _>>();
+        .collect();
 
-    (temp_db, temp_fs, music_folders, song_fs_info)
+    (temp_db, temp_fs, music_folders, song_fs_infos)
 }
 
 pub async fn setup_songs<S: Into<Option<Vec<SongTag>>>>(
@@ -127,9 +120,9 @@ pub async fn setup_songs<S: Into<Option<Vec<SongTag>>>>(
     TemporaryDatabase,
     TemporaryFs,
     Vec<music_folders::MusicFolder>,
-    HashMap<(Uuid, PathBuf), SongTag>,
+    Vec<SongFsInformation>,
 ) {
-    let (temp_db, temp_fs, music_folders, song_fs_info) =
+    let (temp_db, temp_fs, music_folders, song_fs_infos) =
         setup_songs_no_scan(n_folder, n_songs, song_tags).await;
     run_scan(
         temp_db.pool(),
@@ -140,5 +133,5 @@ pub async fn setup_songs<S: Into<Option<Vec<SongTag>>>>(
     )
     .await
     .unwrap();
-    (temp_db, temp_fs, music_folders, song_fs_info)
+    (temp_db, temp_fs, music_folders, song_fs_infos)
 }

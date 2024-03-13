@@ -111,8 +111,8 @@ mod tests {
     async fn test_get_artists() {
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) =
-            setup_songs(1, &[n_song], fake::vec![SongTag; n_song]).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) =
+            setup_songs(1, &[n_song], None).await;
         let music_folder_ids = music_folders
             .iter()
             .map(|music_folder| music_folder.id)
@@ -125,7 +125,7 @@ mod tests {
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-        let artist_fs_ids = song_paths_to_artist_ids(temp_db.pool(), &song_fs_info).await;
+        let artist_fs_ids = song_paths_to_artist_ids(temp_db.pool(), &song_fs_infos).await;
 
         assert_eq!(artist_ids, artist_fs_ids);
     }

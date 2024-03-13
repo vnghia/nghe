@@ -121,14 +121,14 @@ mod tests {
 
     use fake::{Fake, Faker};
     use itertools::Itertools;
-    use rand::seq::SliceRandom;
+    use rand::Rng;
 
     #[tokio::test]
     async fn test_get_artist_own_albums() {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
             1,
             &[n_song],
             (0..n_song)
@@ -148,7 +148,7 @@ mod tests {
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
+        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_infos).await;
 
         let album_ids = get_artist_and_album_ids(temp_db.pool(), &music_folder_ids, &artist_id)
             .await
@@ -166,7 +166,7 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
             1,
             &[n_song],
             (0..n_song)
@@ -186,7 +186,7 @@ mod tests {
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
+        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_infos).await;
 
         let album_ids = get_artist_and_album_ids(temp_db.pool(), &music_folder_ids, &artist_id)
             .await
@@ -205,7 +205,7 @@ mod tests {
         let album_names = ["album1", "album2"];
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
             1,
             &[n_song],
             (0..n_song)
@@ -230,7 +230,7 @@ mod tests {
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
+        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_infos).await;
 
         let album_ids = get_artist_and_album_ids(temp_db.pool(), &music_folder_ids, &artist_id)
             .await
@@ -250,7 +250,7 @@ mod tests {
         let n_folder = 2_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
             n_folder,
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
@@ -266,19 +266,14 @@ mod tests {
             .await
             .unwrap()
             .remove(0);
-        let music_folder_ids = music_folders
+        let music_folder_idx = rand::thread_rng().gen_range(0..music_folders.len());
+        let music_folder_ids = music_folders[music_folder_idx..=music_folder_idx]
             .iter()
             .map(|music_folder| music_folder.id)
-            .collect_vec()
-            .choose_multiple(&mut rand::thread_rng(), 1)
-            .cloned()
             .collect_vec();
         let album_fs_ids = song_paths_to_album_ids(
             temp_db.pool(),
-            &song_fs_info
-                .into_iter()
-                .filter(|(k, _)| music_folder_ids.contains(&k.0))
-                .collect(),
+            &song_fs_infos[music_folder_idx * n_song..(music_folder_idx + 1) * n_song],
         )
         .await;
 
@@ -347,7 +342,7 @@ mod tests {
         let n_song = 10_usize;
         let n_diff = 3_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_info) = setup_songs(
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
             n_folder,
             &[n_song, n_song + n_diff, n_song - n_diff],
             (0..n_folder * n_song)
@@ -363,13 +358,13 @@ mod tests {
         )
         .await;
 
-        let music_folder_ids = music_folders
+        let music_folder_ids = music_folders[..2]
             .iter()
             .map(|music_folder| music_folder.id)
             .collect_vec();
-        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_info).await;
+        let album_fs_ids = song_paths_to_album_ids(temp_db.pool(), &song_fs_infos).await;
 
-        let basic_albums = get_basic_albums(temp_db.pool(), &music_folder_ids[..2], &album_fs_ids)
+        let basic_albums = get_basic_albums(temp_db.pool(), &music_folder_ids, &album_fs_ids)
             .await
             .unwrap()
             .into_iter()
