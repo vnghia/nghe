@@ -28,6 +28,9 @@ pub struct SongUpdateInformationDB<'a> {
     pub languages: Vec<&'static str>,
     // Song property
     pub duration: f32,
+    // Filesystem property
+    pub file_hash: i64,
+    pub file_size: i64,
 }
 
 #[derive(Insertable)]
@@ -38,8 +41,6 @@ pub struct SongFullInformationDB<'a> {
     // Filesystem property
     pub music_folder_id: Uuid,
     pub relative_path: Cow<'a, str>,
-    pub file_hash: i64,
-    pub file_size: i64,
 }
 
 #[cfg(test)]

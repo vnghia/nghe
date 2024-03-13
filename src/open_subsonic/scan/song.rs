@@ -75,9 +75,9 @@ mod tests {
             test_infra.pool(),
             song_tag.to_information().to_full_information_db(
                 album_id,
-                test_infra.music_folder_ids(0..=0)[0],
                 song_hash,
                 song_size,
+                test_infra.music_folder_ids(0..=0)[0],
                 &song_path,
             ),
         )
@@ -109,9 +109,9 @@ mod tests {
             test_infra.pool(),
             song_tag.to_information().to_full_information_db(
                 album_id,
-                test_infra.music_folder_ids(0..=0)[0],
                 song_hash,
                 song_size,
+                test_infra.music_folder_ids(0..=0)[0],
                 &song_path,
             ),
         )
@@ -123,12 +123,17 @@ mod tests {
             .await
             .unwrap();
 
+        let new_song_hash: u64 = rand::random();
+        let new_song_size: u64 = rand::random();
+
         update_song(
             test_infra.pool(),
             song_id,
-            new_song_tag
-                .to_information()
-                .to_update_information_db(new_album_id),
+            new_song_tag.to_information().to_update_information_db(
+                new_album_id,
+                new_song_hash,
+                new_song_size,
+            ),
         )
         .await
         .unwrap();
@@ -137,7 +142,7 @@ mod tests {
 
         assert_eq!(new_song_tag.title, song_db_info.tag.title);
         assert_eq!(song_path, song_db_info.relative_path);
-        assert_eq!(song_hash, song_db_info.file_hash);
-        assert_eq!(song_size, song_db_info.file_size);
+        assert_eq!(new_song_hash, song_db_info.file_hash);
+        assert_eq!(new_song_size, song_db_info.file_size);
     }
 }

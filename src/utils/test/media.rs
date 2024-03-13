@@ -214,6 +214,9 @@ pub async fn assert_songs_info(pool: &DatabasePool, song_fs_infos: &[SongFsInfor
         );
 
         assert_eq!(song_fs_tag.languages, song_db_tag.languages);
+
+        assert_eq!(song_fs_info.file_hash, song_db_info.file_hash);
+        assert_eq!(song_fs_info.file_size, song_db_info.file_size);
     }
     assert!(song_db_infos.is_empty());
 }

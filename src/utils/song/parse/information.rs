@@ -61,7 +61,12 @@ impl SongInformation {
         })
     }
 
-    pub fn to_update_information_db(&self, album_id: Uuid) -> songs::SongUpdateInformationDB<'_> {
+    pub fn to_update_information_db(
+        &self,
+        album_id: Uuid,
+        file_hash: u64,
+        file_size: u64,
+    ) -> songs::SongUpdateInformationDB<'_> {
         let (year, month, day) = self.tag.date_or_default().to_ymd();
         let (release_year, release_month, release_day) =
             self.tag.release_date_or_default().to_ymd();
@@ -93,25 +98,26 @@ impl SongInformation {
                 .collect_vec(),
             // Song property
             duration: self.property.duration,
+            // Filesystem property
+            file_hash: file_hash as i64,
+            file_size: file_size as i64,
         }
     }
 
     pub fn to_full_information_db<'a, S: AsRef<str> + 'a>(
         &'a self,
         album_id: Uuid,
+        file_hash: u64,
+        file_size: u64,
         music_folder_id: Uuid,
-        song_file_hash: u64,
-        song_file_size: u64,
-        song_relative_path: &'a S,
+        relative_path: &'a S,
     ) -> songs::SongFullInformationDB<'a> {
-        let update_information = self.to_update_information_db(album_id);
+        let update_information = self.to_update_information_db(album_id, file_hash, file_size);
 
         songs::SongFullInformationDB {
             update_information,
             music_folder_id,
-            relative_path: song_relative_path.as_ref().into(),
-            file_hash: song_file_hash as i64,
-            file_size: song_file_size as i64,
+            relative_path: relative_path.as_ref().into(),
         }
     }
 }

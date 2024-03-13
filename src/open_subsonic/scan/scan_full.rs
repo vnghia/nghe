@@ -95,7 +95,11 @@ pub async fn scan_full(
                 update_song(
                     pool,
                     song_id,
-                    song_information.to_update_information_db(album_id),
+                    song_information.to_update_information_db(
+                        album_id,
+                        song_file_hash,
+                        song_file_size,
+                    ),
                 )
                 .await?;
                 song_id
@@ -104,9 +108,9 @@ pub async fn scan_full(
                     pool,
                     song_information.to_full_information_db(
                         album_id,
-                        music_folder.id,
                         song_file_hash,
                         song_file_size,
+                        music_folder.id,
                         &song_relative_path,
                     ),
                 )
