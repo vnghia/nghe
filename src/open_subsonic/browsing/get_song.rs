@@ -47,6 +47,8 @@ async fn get_song(
             sql::<sql_types::Array<BasicArtistId3Record>>(
                 "array_agg(distinct(artists.id, artists.name)) basic_artists",
             ),
+            songs::track_number,
+            songs::disc_number,
         ))
         .first::<SongId3>(&mut pool.get().await?)
         .await
