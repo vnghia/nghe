@@ -103,7 +103,7 @@ mod tests {
         open_subsonic::scan::test::upsert_artists,
         utils::{
             song::test::SongTag,
-            test::{media::song_paths_to_artist_ids, setup::setup_songs},
+            test::{media::song_paths_to_artist_ids, setup::TestInfra},
         },
     };
 
@@ -111,20 +111,17 @@ mod tests {
     async fn test_get_artists() {
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(&[n_song], None).await;
-        let music_folder_ids = music_folders
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec();
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs(&[n_song], None).await;
+        let music_folder_ids = test_infra.music_folder_ids(..);
 
-        let artist_ids = get_indexed_artists(temp_db.pool(), &music_folder_ids)
+        let artist_ids = get_indexed_artists(test_infra.pool(), &music_folder_ids)
             .await
             .unwrap()
             .into_iter()
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-        let artist_fs_ids = song_paths_to_artist_ids(temp_db.pool(), &song_fs_infos).await;
+        let artist_fs_ids = song_paths_to_artist_ids(test_infra.pool(), &song_fs_infos).await;
 
         assert_eq!(artist_ids, artist_fs_ids);
     }
@@ -134,7 +131,7 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
+        let (test_infra, _) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -144,18 +141,19 @@ mod tests {
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
             .await
             .unwrap()
             .remove(0);
 
-        let artist_ids = get_indexed_artists(temp_db.pool(), &[music_folders[0].id])
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|(_, artist)| artist.id)
-            .sorted()
-            .collect_vec();
+        let artist_ids =
+            get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|(_, artist)| artist.id)
+                .sorted()
+                .collect_vec();
 
         assert!(artist_ids.contains(&artist_id));
     }
@@ -165,7 +163,7 @@ mod tests {
         let artist_name = "artist";
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
+        let (test_infra, _) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -175,18 +173,19 @@ mod tests {
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
             .await
             .unwrap()
             .remove(0);
 
-        let artist_ids = get_indexed_artists(temp_db.pool(), &[music_folders[0].id])
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|(_, artist)| artist.id)
-            .sorted()
-            .collect_vec();
+        let artist_ids =
+            get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|(_, artist)| artist.id)
+                .sorted()
+                .collect_vec();
 
         assert!(artist_ids.contains(&artist_id));
     }
@@ -197,7 +196,7 @@ mod tests {
         let n_folder = 5_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
+        let (test_infra, _) = TestInfra::setup_songs(
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|_| SongTag {
@@ -207,18 +206,19 @@ mod tests {
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
             .await
             .unwrap()
             .remove(0);
 
-        let artist_ids = get_indexed_artists(temp_db.pool(), &[music_folders[0].id])
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|(_, artist)| artist.id)
-            .sorted()
-            .collect_vec();
+        let artist_ids =
+            get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|(_, artist)| artist.id)
+                .sorted()
+                .collect_vec();
 
         assert!(artist_ids.contains(&artist_id));
     }
@@ -229,7 +229,7 @@ mod tests {
         let n_folder = 5_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
+        let (test_infra, _) = TestInfra::setup_songs(
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|i| SongTag {
@@ -243,19 +243,18 @@ mod tests {
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(temp_db.pool(), &[artist_name])
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
             .await
             .unwrap()
             .remove(0);
 
-        let artist_ids =
-            get_indexed_artists(temp_db.pool(), &[music_folders[0].id, music_folders[1].id])
-                .await
-                .unwrap()
-                .into_iter()
-                .map(|(_, artist)| artist.id)
-                .sorted()
-                .collect_vec();
+        let artist_ids = get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..2))
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
 
         assert!(!artist_ids.contains(&artist_id));
     }

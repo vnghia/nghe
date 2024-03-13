@@ -4,16 +4,13 @@ mod built_info {
 
 use super::asset::get_media_asset_path;
 use crate::config::parsing::ParsingConfig;
-use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::utils::song::file_type::SONG_FILE_TYPES;
 use crate::utils::song::test::SongTag;
 use crate::utils::song::SongInformation;
-use crate::{open_subsonic::browsing::refresh_music_folders, DatabasePool};
 
 use concat_string::concat_string;
 use fake::{Fake, Faker};
-use itertools::Itertools;
 use lofty::{FileType, TagExt, TagType, TaggedFileExt};
 use rand::seq::SliceRandom;
 use std::ffi::OsStr;
@@ -199,18 +196,6 @@ impl TemporaryFs {
             .map(std::fs::canonicalize)
             .collect::<Result<Vec<_>, _>>()
             .expect("can not canonicalize temp path")
-    }
-
-    pub async fn create_music_folders(
-        &self,
-        pool: &DatabasePool,
-        n_folder: usize,
-    ) -> Vec<music_folders::MusicFolder> {
-        let music_folder_paths = (0..n_folder)
-            .map(|_| self.create_dir(Faker.fake::<String>()))
-            .collect_vec();
-        let (upserted_folders, _) = refresh_music_folders(pool, &music_folder_paths, &[]).await;
-        upserted_folders
     }
 }
 

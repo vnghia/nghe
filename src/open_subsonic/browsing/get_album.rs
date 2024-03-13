@@ -119,7 +119,7 @@ mod tests {
         open_subsonic::{common::id3::BasicArtistId3, scan::test::upsert_album},
         utils::{
             song::test::SongTag,
-            test::{media::song_paths_to_ids, setup::setup_songs},
+            test::{media::song_paths_to_ids, setup::TestInfra},
         },
     };
 
@@ -153,7 +153,7 @@ mod tests {
         let album_name = "album";
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
+        let (test_infra, _) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -164,19 +164,17 @@ mod tests {
         )
         .await;
 
-        let album_id = upsert_album(temp_db.pool(), album_name.into())
+        let album_id = upsert_album(test_infra.pool(), album_name.into())
             .await
             .unwrap();
-        let music_folder_ids = music_folders
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec();
+        let music_folder_ids = test_infra.music_folder_ids(..);
 
-        let album_id3 = get_album_and_song_ids(temp_db.pool(), &music_folder_ids, &album_id)
+        let album_id3 = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
             .await
             .unwrap()
             .0;
-        let basic_artists = get_basic_artists(temp_db.pool(), &music_folder_ids, &album_id).await;
+        let basic_artists =
+            get_basic_artists(test_infra.pool(), &music_folder_ids, &album_id).await;
 
         assert_eq!(album_id3.basic.id, album_id);
         assert_eq!(album_id3.basic.name, album_name);
@@ -193,7 +191,7 @@ mod tests {
         let artist_names = ["artist1", "artist2"];
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
+        let (test_infra, _) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
                 .map(|i| SongTag {
@@ -209,19 +207,17 @@ mod tests {
         )
         .await;
 
-        let album_id = upsert_album(temp_db.pool(), album_name.into())
+        let album_id = upsert_album(test_infra.pool(), album_name.into())
             .await
             .unwrap();
-        let music_folder_ids = music_folders
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec();
+        let music_folder_ids = test_infra.music_folder_ids(..);
 
-        let album_id3 = get_album_and_song_ids(temp_db.pool(), &music_folder_ids, &album_id)
+        let album_id3 = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
             .await
             .unwrap()
             .0;
-        let basic_artists = get_basic_artists(temp_db.pool(), &music_folder_ids, &album_id).await;
+        let basic_artists =
+            get_basic_artists(test_infra.pool(), &music_folder_ids, &album_id).await;
 
         assert_eq!(
             basic_artists
@@ -242,7 +238,7 @@ mod tests {
         let album_name = "album";
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -253,22 +249,19 @@ mod tests {
         )
         .await;
 
-        let album_id = upsert_album(temp_db.pool(), album_name.into())
+        let album_id = upsert_album(test_infra.pool(), album_name.into())
             .await
             .unwrap();
-        let music_folder_ids = music_folders
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec();
+        let music_folder_ids = test_infra.music_folder_ids(..);
 
-        let song_ids = get_album_and_song_ids(temp_db.pool(), &music_folder_ids, &album_id)
+        let song_ids = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
             .await
             .unwrap()
             .1
             .into_iter()
             .sorted()
             .collect_vec();
-        let song_fs_ids = song_paths_to_ids(temp_db.pool(), &song_fs_infos).await;
+        let song_fs_ids = song_paths_to_ids(test_infra.pool(), &song_fs_infos).await;
 
         assert_eq!(song_ids, song_fs_ids);
     }
@@ -279,7 +272,7 @@ mod tests {
         let n_folder = 2_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs(
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|_| SongTag {
@@ -290,16 +283,13 @@ mod tests {
         )
         .await;
 
-        let album_id = upsert_album(temp_db.pool(), album_name.into())
+        let album_id = upsert_album(test_infra.pool(), album_name.into())
             .await
             .unwrap();
-        let music_folder_idx = rand::thread_rng().gen_range(0..music_folders.len());
-        let music_folder_ids = music_folders[music_folder_idx..=music_folder_idx]
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec();
+        let music_folder_idx = rand::thread_rng().gen_range(0..test_infra.music_folders.len());
+        let music_folder_ids = test_infra.music_folder_ids(music_folder_idx..=music_folder_idx);
 
-        let song_ids = get_album_and_song_ids(temp_db.pool(), &music_folder_ids, &album_id)
+        let song_ids = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
             .await
             .unwrap()
             .1
@@ -307,7 +297,7 @@ mod tests {
             .sorted()
             .collect_vec();
         let song_fs_ids = song_paths_to_ids(
-            temp_db.pool(),
+            test_infra.pool(),
             &song_fs_infos[music_folder_idx * n_song..(music_folder_idx + 1) * n_song],
         )
         .await;
@@ -322,7 +312,7 @@ mod tests {
         let n_scan_folder = 1_usize;
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, _) = setup_songs(
+        let (test_infra, _) = TestInfra::setup_songs(
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|i| SongTag {
@@ -336,17 +326,14 @@ mod tests {
                 .collect_vec(),
         )
         .await;
-        let music_folder_ids = music_folders
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec();
-        let album_id = upsert_album(temp_db.pool(), album_name.into())
+        let music_folder_ids = test_infra.music_folder_ids(..);
+        let album_id = upsert_album(test_infra.pool(), album_name.into())
             .await
             .unwrap();
 
         assert!(matches!(
             get_album_and_song_ids(
-                temp_db.pool(),
+                test_infra.pool(),
                 &music_folder_ids[..n_scan_folder],
                 &album_id,
             )

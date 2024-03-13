@@ -72,9 +72,7 @@ pub async fn create_user(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::{
-        setup::setup_users_and_music_folders, user::create_username_password,
-    };
+    use crate::utils::test::{setup::TestInfra, user::create_username_password};
 
     use diesel::{ExpressionMethods, QueryDsl};
     use fake::{Fake, Faker};
@@ -83,12 +81,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_user_with_music_folders() {
-        let (temp_db, _, _temp_fs, music_folders) = setup_users_and_music_folders(0, 2, &[]).await;
+        let test_infra = TestInfra::setup_users_and_music_folders(0, 2, &[]).await;
         let (username, password) = create_username_password();
 
         // should re-trigger the refreshing of music folders
         let user = create_user(
-            temp_db.database(),
+            test_infra.database(),
             CreateUserParams {
                 username,
                 password,
@@ -101,7 +99,7 @@ mod tests {
         let results = user_music_folder_permissions::table
             .select(user_music_folder_permissions::music_folder_id)
             .filter(user_music_folder_permissions::user_id.eq(user.id))
-            .load::<Uuid>(&mut temp_db.pool().get().await.unwrap())
+            .load::<Uuid>(&mut test_infra.pool().get().await.unwrap())
             .await
             .unwrap()
             .into_iter()
@@ -109,9 +107,9 @@ mod tests {
             .collect_vec();
 
         assert_eq!(
-            music_folders
+            test_infra
+                .music_folder_ids(..)
                 .into_iter()
-                .map(|music_folder| music_folder.id)
                 .sorted()
                 .collect_vec(),
             results

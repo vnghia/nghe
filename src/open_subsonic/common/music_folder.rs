@@ -45,7 +45,7 @@ pub async fn check_user_music_folder_ids<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::setup::setup_users_and_music_folders;
+    use crate::utils::test::setup::TestInfra;
 
     use itertools::Itertools;
 
@@ -61,48 +61,46 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_music_folder_ids_none_all_allow() {
-        let (temp_db, users, _temp_fs, music_folders) =
-            setup_users_and_music_folders(1, 2, &[true, true]).await;
-        let music_folder_ids = check_user_music_folder_ids(temp_db.pool(), &users[0].id, None)
-            .await
-            .unwrap();
-        assert_music_folder_ids(&music_folders, music_folder_ids);
+        let test_infra = TestInfra::setup_users_and_music_folders(1, 2, &[true, true]).await;
+        let music_folder_ids =
+            check_user_music_folder_ids(test_infra.pool(), &test_infra.users[0].id, None)
+                .await
+                .unwrap();
+        assert_music_folder_ids(&test_infra.music_folders, music_folder_ids);
     }
 
     #[tokio::test]
     async fn test_check_music_folder_ids_none_partial_allow() {
-        let (temp_db, users, _temp_fs, music_folders) =
-            setup_users_and_music_folders(1, 2, &[true, false]).await;
-        let music_folder_ids = check_user_music_folder_ids(temp_db.pool(), &users[0].id, None)
-            .await
-            .unwrap();
-        assert_music_folder_ids(&music_folders[0..1], music_folder_ids);
+        let test_infra = TestInfra::setup_users_and_music_folders(1, 2, &[true, false]).await;
+        let music_folder_ids =
+            check_user_music_folder_ids(test_infra.pool(), &test_infra.users[0].id, None)
+                .await
+                .unwrap();
+        assert_music_folder_ids(&test_infra.music_folders[0..1], music_folder_ids);
     }
 
     #[tokio::test]
     async fn test_check_music_folder_ids_all_allow() {
-        let (temp_db, users, _temp_fs, music_folders) =
-            setup_users_and_music_folders(1, 2, &[true, true]).await;
-        let fs_music_folder_ids = music_folders.iter().map(|m| m.id).collect_vec();
+        let test_infra = TestInfra::setup_users_and_music_folders(1, 2, &[true, true]).await;
+        let fs_music_folder_ids = test_infra.music_folder_ids(..);
         let music_folder_ids = check_user_music_folder_ids(
-            temp_db.pool(),
-            &users[0].id,
+            test_infra.pool(),
+            &test_infra.users[0].id,
             Some(fs_music_folder_ids.into()),
         )
         .await
         .unwrap();
-        assert_music_folder_ids(&music_folders, music_folder_ids);
+        assert_music_folder_ids(&test_infra.music_folders, music_folder_ids);
     }
 
     #[tokio::test]
     async fn test_check_music_folder_ids_partial_allow() {
-        let (temp_db, users, _temp_fs, music_folders) =
-            setup_users_and_music_folders(1, 2, &[true, false]).await;
-        let fs_music_folder_ids = music_folders.iter().map(|m| m.id).collect_vec();
+        let test_infra = TestInfra::setup_users_and_music_folders(1, 2, &[true, false]).await;
+        let fs_music_folder_ids = test_infra.music_folder_ids(..);
         assert!(matches!(
             check_user_music_folder_ids(
-                temp_db.pool(),
-                &users[0].id,
+                test_infra.pool(),
+                &test_infra.users[0].id,
                 Some(fs_music_folder_ids.into()),
             )
             .await

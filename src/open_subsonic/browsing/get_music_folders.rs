@@ -46,24 +46,25 @@ pub async fn get_music_folders_handler(
 mod tests {
     use super::*;
     use crate::open_subsonic::common::request::ValidatedForm;
-    use crate::utils::test::setup::setup_users_and_music_folders;
+    use crate::utils::test::setup::TestInfra;
 
     use itertools::Itertools;
 
     #[tokio::test]
     async fn test_allow_all() {
-        let (temp_db, users, _temp_fs, music_folders) =
-            setup_users_and_music_folders(2, 2, &[true, true, true, true]).await;
+        let test_infra =
+            TestInfra::setup_users_and_music_folders(2, 2, &[true, true, true, true]).await;
+        let state = test_infra.state();
 
-        let sorted_music_folders = music_folders.into_iter().sorted().collect_vec();
+        let sorted_music_folders = test_infra.music_folders.into_iter().sorted().collect_vec();
 
-        for user in users {
+        for user in test_infra.users {
             let form = ValidatedForm {
                 params: GetMusicFoldersParams {},
                 user,
             };
 
-            let results = get_music_folders_handler(temp_db.state(), form)
+            let results = get_music_folders_handler(state.clone(), form)
                 .await
                 .unwrap()
                 .0
@@ -81,16 +82,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_deny_some() {
-        let (temp_db, users, _temp_fs, music_folders) =
-            setup_users_and_music_folders(2, 2, &[true, false, true, true]).await;
+        let test_infra =
+            TestInfra::setup_users_and_music_folders(2, 2, &[true, false, true, true]).await;
+        let state = test_infra.state();
 
-        for (i, user) in users.into_iter().enumerate() {
+        for (i, user) in test_infra.users.into_iter().enumerate() {
             let form = ValidatedForm {
                 params: GetMusicFoldersParams {},
                 user,
             };
 
-            let results = get_music_folders_handler(temp_db.state(), form)
+            let results = get_music_folders_handler(state.clone(), form)
                 .await
                 .unwrap()
                 .0
@@ -103,10 +105,15 @@ mod tests {
                 .collect_vec();
 
             match i {
-                0 => assert_eq!(results, &music_folders[0..1]),
+                0 => assert_eq!(results, &test_infra.music_folders[0..1]),
                 1 => assert_eq!(
                     results,
-                    music_folders.clone().into_iter().sorted().collect_vec()
+                    test_infra
+                        .music_folders
+                        .clone()
+                        .into_iter()
+                        .sorted()
+                        .collect_vec()
                 ),
                 _ => panic!(),
             };

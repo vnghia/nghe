@@ -57,28 +57,24 @@ pub async fn refresh_permissions(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::setup::setup_users_and_music_folders_no_refresh;
+    use crate::utils::test::setup::TestInfra;
 
     #[tokio::test]
     async fn test_refresh_insert() {
-        let (temp_db, _, _temp_fs, music_folders, permissions) =
-            setup_users_and_music_folders_no_refresh(2, 2, &[true, true, true, true]).await;
+        let (test_infra, permissions) =
+            TestInfra::setup_users_and_music_folders_no_refresh(2, 2, &[true, true, true, true])
+                .await;
 
         refresh_permissions(
-            temp_db.pool(),
+            test_infra.pool(),
             None,
-            Some(
-                &music_folders
-                    .iter()
-                    .map(|music_folder| music_folder.id)
-                    .collect_vec(),
-            ),
+            Some(&test_infra.music_folder_ids(..)),
         )
         .await
         .unwrap();
 
         let results = user_music_folder_permissions::table
-            .load(&mut temp_db.pool().get().await.unwrap())
+            .load(&mut test_infra.pool().get().await.unwrap())
             .await
             .unwrap();
 
@@ -90,30 +86,26 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_do_nothing() {
-        let (temp_db, _, _temp_fs, music_folders, permissions) =
-            setup_users_and_music_folders_no_refresh(2, 2, &[true, false, true, true]).await;
+        let (test_infra, permissions) =
+            TestInfra::setup_users_and_music_folders_no_refresh(2, 2, &[true, false, true, true])
+                .await;
 
         diesel::insert_into(user_music_folder_permissions::table)
             .values(&[permissions[1], permissions[3]])
-            .execute(&mut temp_db.pool().get().await.unwrap())
+            .execute(&mut test_infra.pool().get().await.unwrap())
             .await
             .unwrap();
 
         refresh_permissions(
-            temp_db.pool(),
+            test_infra.pool(),
             None,
-            Some(
-                &music_folders
-                    .iter()
-                    .map(|music_folder| music_folder.id)
-                    .collect_vec(),
-            ),
+            Some(&test_infra.music_folder_ids(..)),
         )
         .await
         .unwrap();
 
         let results = user_music_folder_permissions::table
-            .load(&mut temp_db.pool().get().await.unwrap())
+            .load(&mut test_infra.pool().get().await.unwrap())
             .await
             .unwrap();
 
