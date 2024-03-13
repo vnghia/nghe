@@ -52,11 +52,12 @@ jobs:
         if: matrix.platform.command == 'cargo'
       - name: Install nasm
         run: sudo apt-get --assume-yes install nasm
+        if: matrix.platform.command == 'cargo'
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cross
         run: cargo binstall cross --no-confirm
         if: matrix.platform.command == 'cross'
-      - name: Install vcpkg
+      - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build ffmpeg
         run: ${{ matrix.platform.command }} vcpkg --verbose build --target ${{ matrix.platform.target }}
@@ -85,7 +86,7 @@ jobs:
           cp "C:/vcpkg/installed/x64-windows-release/lib/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/"
           cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
       - uses: cargo-bins/cargo-binstall@main
-      - name: Install vcpkg
+      - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build ffmpeg
         run: cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
@@ -119,7 +120,7 @@ jobs:
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
       - uses: cargo-bins/cargo-binstall@main
-      - name: Install vcpkg
+      - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build ffmpeg
         run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
