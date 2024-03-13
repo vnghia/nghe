@@ -73,7 +73,6 @@ pub async fn setup_users_and_music_folders(
 }
 
 pub async fn setup_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
-    n_folder: usize,
     n_songs: &[usize],
     song_tags: S,
 ) -> (
@@ -82,7 +81,7 @@ pub async fn setup_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
     Vec<music_folders::MusicFolder>,
     Vec<SongFsInformation>,
 ) {
-    assert_eq!(n_songs.len(), n_folder);
+    let n_folder = n_songs.len();
     let (temp_db, _, temp_fs, music_folders) =
         setup_users_and_music_folders(0, n_folder, &[]).await;
 
@@ -113,7 +112,6 @@ pub async fn setup_songs_no_scan<S: Into<Option<Vec<SongTag>>>>(
 }
 
 pub async fn setup_songs<S: Into<Option<Vec<SongTag>>>>(
-    n_folder: usize,
     n_songs: &[usize],
     song_tags: S,
 ) -> (
@@ -123,7 +121,7 @@ pub async fn setup_songs<S: Into<Option<Vec<SongTag>>>>(
     Vec<SongFsInformation>,
 ) {
     let (temp_db, temp_fs, music_folders, song_fs_infos) =
-        setup_songs_no_scan(n_folder, n_songs, song_tags).await;
+        setup_songs_no_scan(n_songs, song_tags).await;
     run_scan(
         temp_db.pool(),
         ScanMode::Full,

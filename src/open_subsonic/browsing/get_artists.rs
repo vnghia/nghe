@@ -111,8 +111,7 @@ mod tests {
     async fn test_get_artists() {
         let n_song = 10_usize;
 
-        let (temp_db, _temp_fs, music_folders, song_fs_infos) =
-            setup_songs(1, &[n_song], None).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(&[n_song], None).await;
         let music_folder_ids = music_folders
             .iter()
             .map(|music_folder| music_folder.id)
@@ -136,7 +135,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
-            1,
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -168,7 +166,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
-            1,
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -201,7 +198,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
-            n_folder,
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|_| SongTag {
@@ -234,7 +230,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
-            n_folder,
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|i| SongTag {

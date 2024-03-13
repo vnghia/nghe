@@ -154,7 +154,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
-            1,
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -195,7 +194,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
-            1,
             &[n_song],
             (0..n_song)
                 .map(|i| SongTag {
@@ -245,7 +243,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
-            1,
             &[n_song],
             (0..n_song)
                 .map(|_| SongTag {
@@ -283,7 +280,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(
-            n_folder,
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|_| SongTag {
@@ -327,7 +323,6 @@ mod tests {
         let n_song = 10_usize;
 
         let (temp_db, _temp_fs, music_folders, _) = setup_songs(
-            n_folder,
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
                 .map(|i| SongTag {

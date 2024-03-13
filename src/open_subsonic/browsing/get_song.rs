@@ -106,7 +106,7 @@ mod tests {
         let song_tag = Faker.fake::<SongTag>();
 
         let (temp_db, _temp_fs, music_folders, song_fs_infos) =
-            setup_songs(1, &[1], vec![song_tag.clone()]).await;
+            setup_songs(&[1], vec![song_tag.clone()]).await;
 
         let music_folder_ids = music_folders
             .iter()
@@ -130,7 +130,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_song_id3_deny_music_folders() {
-        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(2, &[1, 1], None).await;
+        let (temp_db, _temp_fs, music_folders, song_fs_infos) = setup_songs(&[1, 1], None).await;
 
         let music_folder_id = music_folders[0].id;
         let song_id = song_paths_to_ids(temp_db.pool(), &song_fs_infos[1..])
