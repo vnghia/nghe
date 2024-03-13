@@ -396,6 +396,7 @@ mod tests {
         .await;
         wrap_scan_full(temp_db.pool(), &music_folders, &temp_fs.parsing_config).await;
 
+        assert_songs_info(temp_db.pool(), &song_fs_infos).await;
         assert_albums_artists_info(temp_db.pool(), &song_fs_infos).await;
     }
 

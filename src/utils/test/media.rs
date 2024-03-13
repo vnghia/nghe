@@ -61,7 +61,7 @@ pub async fn query_all_song_information(pool: &DatabasePool, song_id: Uuid) -> S
         songs_album_artists::table
             .inner_join(artists::table)
             .inner_join(songs::table)
-            .filter(songs::album_id.eq(album_id))
+            .filter(songs::id.eq(song_id))
             .select((artists::id, artists::name))
             .get_results::<(Uuid, String)>(&mut pool.get().await.unwrap())
             .await
