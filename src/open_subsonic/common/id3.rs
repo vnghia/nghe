@@ -4,6 +4,14 @@ use serde::Serialize;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+#[derive(Debug, Queryable, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DateId3 {
+    pub year: Option<i16>,
+    pub month: Option<i16>,
+    pub day: Option<i16>,
+}
+
 #[derive(Debug, Queryable, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(test, derive(Hash, Clone, PartialOrd, Ord))]
@@ -38,6 +46,9 @@ pub struct AlbumId3 {
     #[serde(flatten)]
     pub basic: BasicAlbumId3,
     pub artists: Vec<BasicArtistId3>,
+    pub year: Option<i16>,
+    pub release_date: DateId3,
+    pub original_release_date: DateId3,
 }
 
 #[derive(Derivative, Debug, Queryable, Serialize)]

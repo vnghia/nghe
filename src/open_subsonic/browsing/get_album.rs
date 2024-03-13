@@ -11,7 +11,7 @@ use crate::{
 use anyhow::Result;
 use axum::extract::State;
 use diesel::{
-    dsl::{count_distinct, sql, sum},
+    dsl::{count_distinct, max, sql, sum},
     sql_types, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, OptionalExtension,
     QueryDsl,
 };
@@ -63,6 +63,17 @@ async fn get_album_and_song_ids(
                 ),
                 sql::<sql_types::Array<BasicArtistId3Record>>(
                     "array_agg(distinct(artists.id, artists.name)) basic_artists",
+                ),
+                max(songs::year),
+                (
+                    max(songs::release_year),
+                    max(songs::release_month),
+                    max(songs::release_day),
+                ),
+                (
+                    max(songs::original_release_year),
+                    max(songs::original_release_month),
+                    max(songs::original_release_day),
                 ),
             ),
             sql::<sql_types::Array<sql_types::Uuid>>("array_agg(distinct(songs.id)) song_ids"),
