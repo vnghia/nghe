@@ -210,7 +210,7 @@ mod tests {
             "test1/test1.3/test1.3.1/test1.3.1.1/",
             "test2/",
         ]);
-        let results = get_deepest_folders(temp_fs.get_root_path(), usize::MAX);
+        let results = get_deepest_folders(temp_fs.root_path(), usize::MAX);
 
         assert_eq!(
             inputs.into_iter().sorted().collect_vec(),
@@ -234,7 +234,7 @@ mod tests {
             "test1/test1.3/test1.3.1/",
             "test2/",
         ]);
-        let results = get_deepest_folders(temp_fs.get_root_path(), 3);
+        let results = get_deepest_folders(temp_fs.root_path(), 3);
 
         assert_eq!(
             inputs.into_iter().sorted().collect_vec(),
@@ -258,7 +258,7 @@ mod tests {
             "test1/test1.3/test1.3.1/",
             "test2/",
         ]);
-        let results = get_deepest_folders(temp_fs.get_root_path(), 3);
+        let results = get_deepest_folders(temp_fs.root_path(), 3);
 
         assert_eq!(
             inputs.into_iter().sorted().collect_vec(),

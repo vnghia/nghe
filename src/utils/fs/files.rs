@@ -77,7 +77,7 @@ mod tests {
             .map(|path| fs.create_file(path))
             .collect_vec();
 
-        let scanned_results = scan_media_files(fs.get_root_path()).unwrap();
+        let scanned_results = scan_media_files(fs.root_path()).unwrap();
         let scanned_lens = scanned_results
             .iter()
             .cloned()
@@ -111,13 +111,13 @@ mod tests {
             .into_iter()
             .map(|path| {
                 fs.create_file(path)
-                    .strip_prefix(fs.get_root_path())
+                    .strip_prefix(fs.root_path())
                     .unwrap()
                     .to_path_buf()
             })
             .collect_vec();
 
-        let scanned_paths = scan_media_files(fs.get_root_path())
+        let scanned_paths = scan_media_files(fs.root_path())
             .unwrap()
             .iter()
             .cloned()
@@ -157,7 +157,7 @@ mod tests {
         })
         .collect_vec();
 
-        let scanned_paths = scan_media_files(fs.get_root_path())
+        let scanned_paths = scan_media_files(fs.root_path())
             .unwrap()
             .into_iter()
             .map(|result| result.0)
@@ -185,7 +185,7 @@ mod tests {
             })
             .collect_vec();
 
-        let scanned_paths = scan_media_files(fs.get_root_path())
+        let scanned_paths = scan_media_files(fs.root_path())
             .unwrap()
             .into_iter()
             .map(|result| result.0)

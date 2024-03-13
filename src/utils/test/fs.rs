@@ -35,29 +35,38 @@ impl SongFsInformation {
 }
 
 pub struct TemporaryFs {
-    root: TempDir,
+    _root: TempDir,
+    root_path: PathBuf,
+    canonicalized_root_path: PathBuf,
     pub parsing_config: ParsingConfig,
 }
 
 #[allow(clippy::new_without_default)]
 impl TemporaryFs {
     pub fn new() -> Self {
+        let _root = Builder::new()
+            .prefix(built_info::PKG_NAME)
+            .tempdir()
+            .expect("can not create temporary directory");
+        let root_path = _root.path().to_owned();
+        let canonicalized_root_path = _root.path().canonicalize().unwrap();
+
         Self {
-            root: Builder::new()
-                .prefix(built_info::PKG_NAME)
-                .tempdir()
-                .expect("can not create temporary directory"),
+            _root,
+            root_path,
+            canonicalized_root_path,
             parsing_config: Default::default(),
         }
     }
 
     fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let root_path = self.get_root_path();
-        if path.as_ref().is_absolute() {
-            if !path.as_ref().starts_with(root_path) {
+        let root_path = self.root_path();
+        let path = path.as_ref();
+        if path.is_absolute() {
+            if !path.starts_with(root_path) && !path.starts_with(self.canonicalized_root_path()) {
                 panic!("path is not a children of root temp directory");
             } else {
-                path.as_ref().into()
+                path.into()
             }
         } else {
             root_path.join(path)
@@ -70,8 +79,12 @@ impl TemporaryFs {
         path
     }
 
-    pub fn get_root_path(&self) -> &Path {
-        self.root.path()
+    pub fn root_path(&self) -> &Path {
+        &self.root_path
+    }
+
+    pub fn canonicalized_root_path(&self) -> &Path {
+        &self.canonicalized_root_path
     }
 
     pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
@@ -206,7 +219,7 @@ fn test_roundtrip_media_file() {
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
         let song_fs_infos = fs.create_media_file(
-            fs.get_root_path(),
+            fs.root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
@@ -239,7 +252,7 @@ fn test_roundtrip_media_file_none_value() {
             ..Faker.fake()
         };
         let song_fs_infos = fs.create_media_file(
-            fs.get_root_path(),
+            fs.root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
         );
