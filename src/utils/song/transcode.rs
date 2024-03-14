@@ -1,4 +1,4 @@
-// https://github.com/larksuite/rsmpeg/blob/master/tests/transcode.rs
+// https://github.com/larksuite/rsmpeg/blob/master/tests/transcode_aac.rs
 
 use anyhow::{Context, Result};
 use rsmpeg::{
