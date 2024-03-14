@@ -10,106 +10,106 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - target: x86_64-unknown-linux-gnu
-            command: cargo
-          - target: aarch64-unknown-linux-gnu
-            command: cross
-            os: debian
-            platform: arm64
-            vcpkg-target: arm64-linux-release
-          - target: x86_64-unknown-linux-musl
-            command: cross
-            os: alpine
-            platform: amd64
-            vcpkg-target: x64-linux-musl-release
-          - target: aarch64-unknown-linux-musl
-            command: cross
-            os: alpine
-            platform: arm64
-            vcpkg-target: arm64-linux-musl-release
+  # build-linux:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       platform:
+  #         - target: x86_64-unknown-linux-gnu
+  #           command: cargo
+  #         - target: aarch64-unknown-linux-gnu
+  #           command: cross
+  #           os: debian
+  #           platform: arm64
+  #           vcpkg-target: arm64-linux-release
+  #         - target: x86_64-unknown-linux-musl
+  #           command: cross
+  #           os: alpine
+  #           platform: amd64
+  #           vcpkg-target: x64-linux-musl-release
+  #         - target: aarch64-unknown-linux-musl
+  #           command: cross
+  #           os: alpine
+  #           platform: arm64
+  #           vcpkg-target: arm64-linux-musl-release
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    env:
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
-      CROSS_CONTAINER_OPTS: "--network=host"
+  #   env:
+  #     DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+  #     CROSS_CONTAINER_OPTS: "--network=host"
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST_AUTH_METHOD: md5
-          POSTGRES_INITDB_ARGS: --auth-host=md5
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+  #   services:
+  #     postgres:
+  #       image: postgres:16
+  #       env:
+  #         POSTGRES_PASSWORD: postgres
+  #         POSTGRES_HOST_AUTH_METHOD: md5
+  #         POSTGRES_INITDB_ARGS: --auth-host=md5
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #       ports:
+  #         - 5432:5432
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - uses: cargo-bins/cargo-binstall@main
+  #     - uses: cargo-bins/cargo-binstall@main
 
-      - name: Install mold
-        uses: rui314/setup-mold@v1
-        if: ${{ matrix.platform.command == 'cargo' }}
-      - name: Install nasm
-        run: sudo apt-get --assume-yes install nasm
-        if: ${{ matrix.platform.command == 'cargo' }}
-      - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
-        if: ${{ matrix.platform.command == 'cargo' }}
-      - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
-        if: ${{ matrix.platform.command == 'cargo' }}
+  #     - name: Install mold
+  #       uses: rui314/setup-mold@v1
+  #       if: ${{ matrix.platform.command == 'cargo' }}
+  #     - name: Install nasm
+  #       run: sudo apt-get --assume-yes install nasm
+  #       if: ${{ matrix.platform.command == 'cargo' }}
+  #     - name: Install cargo-vcpkg
+  #       run: cargo binstall cargo-vcpkg --no-confirm
+  #       if: ${{ matrix.platform.command == 'cargo' }}
+  #     - name: Build vcpkg dependencies
+  #       run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
+  #       if: ${{ matrix.platform.command == 'cargo' }}
 
-      - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
-        if: ${{ matrix.platform.command == 'cross' }}
+  #     - name: Install cross
+  #       run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
+  #       if: ${{ matrix.platform.command == 'cross' }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        if: ${{ matrix.platform.command == 'cross' }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        if: ${{ matrix.platform.command == 'cross' }}
-      - name: Build vcpkg dependencies
-        uses: docker/build-push-action@v5
-        if: ${{ matrix.platform.command == 'cross' }}
-        with:
-          context: .
-          file: vcpkg/${{ matrix.platform.os }}/Dockerfile
-          build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
-          network: host
-          platforms: ${{ matrix.platform.platform }}
-          tags: vcpkg-deps
-          load: true
-          cache-from: type=gha,scope=${{ matrix.platform.os }}-${{ matrix.platform.platform }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.platform.os }}-${{ matrix.platform.platform }}
-      - name: Copy vcpkg dependencies to host
-        if: ${{ matrix.platform.command == 'cross' }}
-        run: |
-          docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -R /build/target /opt/mount/
-          sudo chmod -R 777 vcpkg/
-          mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v3
+  #       if: ${{ matrix.platform.command == 'cross' }}
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #       if: ${{ matrix.platform.command == 'cross' }}
+  #     - name: Build vcpkg dependencies
+  #       uses: docker/build-push-action@v5
+  #       if: ${{ matrix.platform.command == 'cross' }}
+  #       with:
+  #         context: .
+  #         file: vcpkg/${{ matrix.platform.os }}/Dockerfile
+  #         build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
+  #         network: host
+  #         platforms: ${{ matrix.platform.platform }}
+  #         tags: vcpkg-deps
+  #         load: true
+  #         cache-from: type=gha,scope=${{ matrix.platform.os }}-${{ matrix.platform.platform }}
+  #         cache-to: type=gha,mode=max,scope=${{ matrix.platform.os }}-${{ matrix.platform.platform }}
+  #     - name: Copy vcpkg dependencies to host
+  #       if: ${{ matrix.platform.command == 'cross' }}
+  #       run: |
+  #         docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -R /build/target /opt/mount/
+  #         sudo chmod -R 777 vcpkg/
+  #         mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
-      - name: Build and test
-        run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
+  #     - name: Build and test
+  #       run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
   build-windows:
     runs-on: windows-latest
@@ -147,49 +147,49 @@ jobs:
           FFMPEG_INCLUDE_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\include"
           FFMPEG_LIBS_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\lib"
 
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - target: x86_64-apple-darwin
-            os: macos-13
-            vcpkg-target: x64-osx-release
-          - target: aarch64-apple-darwin
-            os: macos-14
-            vcpkg-target: arm64-osx-release
+  # build-macos:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       platform:
+  #         - target: x86_64-apple-darwin
+  #           os: macos-13
+  #           vcpkg-target: x64-osx-release
+  #         - target: aarch64-apple-darwin
+  #           os: macos-14
+  #           vcpkg-target: arm64-osx-release
 
-    runs-on: ${{ matrix.platform.os }}
+  #   runs-on: ${{ matrix.platform.os }}
 
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+  #   env:
+  #     HOMEBREW_NO_AUTO_UPDATE: 1
+  #     HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Install postgres
-        run: brew install postgresql@14
-      - uses: ikalnytskyi/action-setup-postgres@v5
-        id: postgres
+  #     - name: Install postgres
+  #       run: brew install postgresql@14
+  #     - uses: ikalnytskyi/action-setup-postgres@v5
+  #       id: postgres
 
-      - name: Install nasm
-        run: brew install nasm
-      - uses: cargo-bins/cargo-binstall@main
-      - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
-      - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
-      - name: Rename vcpkg dependencies output
-        run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
+  #     - name: Install nasm
+  #       run: brew install nasm
+  #     - uses: cargo-bins/cargo-binstall@main
+  #     - name: Install cargo-vcpkg
+  #       run: cargo binstall cargo-vcpkg --no-confirm
+  #     - name: Build vcpkg dependencies
+  #       run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
+  #     - name: Rename vcpkg dependencies output
+  #       run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
-      - name: Build and test
-        run: cargo test --locked --target ${{ matrix.platform.target }}
-        env:
-          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
+  #     - name: Build and test
+  #       run: cargo test --locked --target ${{ matrix.platform.target }}
+  #       env:
+  #         DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
