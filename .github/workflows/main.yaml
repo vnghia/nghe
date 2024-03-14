@@ -104,7 +104,8 @@ jobs:
       - name: Copy vcpkg dependencies to host
         if: ${{ matrix.platform.command == 'cross' }}
         run: |
-          docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -Rv /build/target /opt/mount/
+          docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -v /build/target /opt/mount/
+          sudo chmod -R 777 vcpkg/
           mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
       - name: Build and test
@@ -143,6 +144,8 @@ jobs:
         run: cargo test --locked --target x86_64-pc-windows-msvc
         env:
           DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
+          FFMPEG_INCLUDE_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\include"
+          FFMPEG_LIBS_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\lib"
 
   build-macos:
     strategy:
