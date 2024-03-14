@@ -31,9 +31,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: rui314/setup-mold@v1
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
       - name: Install Rust
         run: rustup update stable
+      - uses: cargo-bins/cargo-binstall@main
+
+      - name: Install mold
+        uses: rui314/setup-mold@v1
+      - name: Install nasm
+        run: sudo apt-get --assume-yes install nasm
+      - name: Install cargo-vcpkg
+        run: cargo binstall cargo-vcpkg --no-confirm
+      - name: Build vcpkg dependencies
+        run: cargo vcpkg --verbose build --target x86_64-unknown-linux-gnu --manifest-path vcpkg/Cargo.toml
+
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
       - name: Generate code coverage
