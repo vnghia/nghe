@@ -21,14 +21,17 @@ jobs:
             command: cross
             os: debian
             platform: arm64
+            vcpkg-target: arm64-linux-release
           - target: x86_64-unknown-linux-musl
             command: cross
             os: alpine
             platform: amd64
+            vcpkg-target: x64-linux-musl-release
           - target: aarch64-unknown-linux-musl
             command: cross
             os: alpine
             platform: arm64
+            vcpkg-target: arm64-linux-musl-release
 
     runs-on: ubuntu-latest
 
@@ -100,7 +103,9 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Copy vcpkg dependencies to host
         if: ${{ matrix.platform.command == 'cross' }}
-        run: docker run -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -R /build/target /opt/mount/
+        run: |
+          docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -Rv /build/target /opt/mount/
+          mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
@@ -146,8 +151,10 @@ jobs:
         platform:
           - target: x86_64-apple-darwin
             os: macos-13
+            vcpkg-target: x64-osx-release
           - target: aarch64-apple-darwin
             os: macos-14
+            vcpkg-target: arm64-osx-release
 
     runs-on: ${{ matrix.platform.os }}
 
@@ -176,6 +183,8 @@ jobs:
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
         run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
+      - name: Rename vcpkg dependencies output
+        run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
       - name: Build and test
         run: cargo test --locked --target ${{ matrix.platform.target }}

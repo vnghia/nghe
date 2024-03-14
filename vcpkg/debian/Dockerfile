@@ -6,6 +6,7 @@ ARG ACTIONS_RUNTIME_TOKEN
 RUN apt-get update && apt-get --assume-yes --no-install-recommends install \
   build-essential && rm -rf /var/lib/apt/lists/*
 
+ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN cargo install cargo-vcpkg
 
 RUN apt-get update && apt-get --assume-yes --no-install-recommends install \
