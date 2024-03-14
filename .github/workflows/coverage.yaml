@@ -49,7 +49,7 @@ jobs:
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --manifest-path vcpkg/Cargo.toml
+        run: cargo vcpkg --verbose build --target x86_64-unknown-linux-gnu --manifest-path vcpkg/Cargo.toml
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
