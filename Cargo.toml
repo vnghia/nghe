@@ -5,21 +5,6 @@ name = "nghe"
 version = "0.1.0"
 edition = "2021"
 
-[package.metadata.vcpkg]
-dependencies = ["ffmpeg[mp3lame,opus,vorbis]"]
-git = "https://github.com/microsoft/vcpkg"
-rev = "2023.11.20"
-overlay-triplets-path = "ci/vcpkg/"
-
-[package.metadata.vcpkg.target]
-x86_64-unknown-linux-gnu = { triplet = "x64-linux-release" }
-aarch64-unknown-linux-gnu = { triplet = "arm64-linux-release" }
-x86_64-unknown-linux-musl = { triplet = "x64-linux-musl-release" }
-aarch64-unknown-linux-musl = { triplet = "arm64-linux-musl-release" }
-x86_64-apple-darwin = { triplet = "x64-osx-release" }
-aarch64-apple-darwin = { triplet = "arm64-osx-release" }
-x86_64-pc-windows-msvc = { triplet = "x64-windows-static-release" }
-
 [dependencies]
 anyhow = "1.0.81"
 async-trait = "0.1.77"

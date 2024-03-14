@@ -16,6 +16,6 @@ RUN git config --global --add safe.directory '*'
 
 WORKDIR /build
 COPY ci/vcpkg/Cargo.toml ./Cargo.toml
-COPY ci/vcpkg/ ./ci/vcpkg/
-RUN mkdir src/ && touch src/main.rs
-RUN ci/vcpkg/build.sh
+COPY ci/vcpkg/src/main.rs ./src/main.rs
+COPY ci/vcpkg/alpine/ ./ci/vcpkg/alpine/
+RUN ci/vcpkg/alpine/build.sh
