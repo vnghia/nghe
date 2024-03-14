@@ -15,7 +15,7 @@ RUN ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja
 RUN git config --global --add safe.directory '*'
 
 WORKDIR /build
-COPY ci/vcpkg/Cargo.toml ./Cargo.toml
-COPY ci/vcpkg/src/main.rs ./src/main.rs
-COPY ci/vcpkg/alpine/ ./ci/vcpkg/alpine/
-RUN ci/vcpkg/alpine/build.sh
+COPY vcpkg/Cargo.toml ./Cargo.toml
+COPY vcpkg/src/main.rs ./src/main.rs
+COPY vcpkg/alpine/ ./vcpkg/alpine/
+RUN vcpkg/alpine/build.sh

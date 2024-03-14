@@ -9,7 +9,7 @@ edition = "2021"
 dependencies = ["ffmpeg[mp3lame,opus,vorbis]"]
 git = "https://github.com/microsoft/vcpkg"
 rev = "2023.11.20"
-overlay-triplets-path = "ci/vcpkg/alpine/"
+overlay-triplets-path = "vcpkg/alpine/"
 
 [package.metadata.vcpkg.target]
 x86_64-unknown-linux-gnu = { triplet = "x64-linux-release" }

@@ -64,14 +64,16 @@ jobs:
       - name: Install nasm
         run: sudo apt-get --assume-yes install nasm
         if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
-      - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
-        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
+
       - name: Install aarch64 cross-compling tools
         run: sudo apt-get --assume-yes install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
+
+      - name: Install cargo-vcpkg
+        run: cargo binstall cargo-vcpkg --no-confirm
+        if: ${{ endsWith(matrix.platform.target, 'gnu') }}
       - name: Build ffmpeg
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
         if: ${{ endsWith(matrix.platform.target, 'gnu') }}
 
       - name: Install cross
@@ -89,14 +91,14 @@ jobs:
         if: ${{ endsWith(matrix.platform.target, 'musl') }}
         with:
           context: .
-          file: ci/vcpkg/alpine/Dockerfile.alpine
+          file: vcpkg/alpine/Dockerfile
           build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
           network: host
           platforms: ${{ matrix.platform.platform }}
+          tags: ffmpeg:${{ matrix.platform.platform }}
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ffmpeg:${{ matrix.platform.platform }}
 
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
