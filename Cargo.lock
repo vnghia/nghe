@@ -1689,7 +1689,7 @@ checksum = "4389f1d5789befaf6029ebd9f7dac4af7f7e3d61b69d4f30e2ac02b57e7712b0"
 [[package]]
 name = "rsmpeg"
 version = "0.14.2+ffmpeg.6.1"
-source = "git+https://github.com/larksuite/rsmpeg.git?rev=58d143d#58d143da706617c71e278587d39c22e757b0fca7"
+source = "git+https://github.com/vnghia/rsmpeg.git?rev=aa5e36d#aa5e36d9b9e790f39604f6382f4d3c1cbbc9c0d3"
 dependencies = [
  "libc",
  "paste",
