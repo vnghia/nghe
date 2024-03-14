@@ -19,11 +19,15 @@ jobs:
             command: cargo
           - target: aarch64-unknown-linux-gnu
             command: cross
+            os: debian
+            platform: arm64
           - target: x86_64-unknown-linux-musl
             command: cross
+            os: alpine
             platform: amd64
           - target: aarch64-unknown-linux-musl
             command: cross
+            os: alpine
             platform: arm64
 
     runs-on: ubuntu-latest
@@ -60,45 +64,43 @@ jobs:
 
       - name: Install mold
         uses: rui314/setup-mold@v1
-        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
+        if: ${{ matrix.platform.command == 'cargo' }}
       - name: Install nasm
         run: sudo apt-get --assume-yes install nasm
-        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
-
-      - name: Install aarch64 cross-compling tools
-        run: sudo apt-get --assume-yes install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
-        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
-
+        if: ${{ matrix.platform.command == 'cargo' }}
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
-        if: ${{ endsWith(matrix.platform.target, 'gnu') }}
-      - name: Build ffmpeg
+        if: ${{ matrix.platform.command == 'cargo' }}
+      - name: Build vcpkg dependencies
         run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
-        if: ${{ endsWith(matrix.platform.target, 'gnu') }}
+        if: ${{ matrix.platform.command == 'cargo' }}
 
       - name: Install cross
         run: cargo binstall cross --no-confirm
-        if: matrix.platform.command == 'cross'
+        if: ${{ matrix.platform.command == 'cross' }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-        if: ${{ endsWith(matrix.platform.target, 'musl') }}
+        if: ${{ matrix.platform.command == 'cross' }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        if: ${{ endsWith(matrix.platform.target, 'musl') }}
-      - name: Build ffmpeg musl
+        if: ${{ matrix.platform.command == 'cross' }}
+      - name: Build vcpkg dependencies
         uses: docker/build-push-action@v5
-        if: ${{ endsWith(matrix.platform.target, 'musl') }}
+        if: ${{ matrix.platform.command == 'cross' }}
         with:
           context: .
-          file: vcpkg/alpine/Dockerfile
+          file: vcpkg/${{ matrix.platform.os }}/Dockerfile
           build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
           network: host
           platforms: ${{ matrix.platform.platform }}
-          tags: ffmpeg:${{ matrix.platform.platform }}
+          tags: vcpkg-deps
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Copy vcpkg dependencies to host
+        if: ${{ matrix.platform.command == 'cross' }}
+        run: docker run -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -R /build/target /opt/mount/
 
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
@@ -129,7 +131,7 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
-      - name: Build ffmpeg
+      - name: Build vcpkg dependencies
         run: cargo vcpkg --verbose build --target x86_64-pc-windows-msvc --manifest-path vcpkg/Cargo.toml
 
       - name: Build and test
@@ -172,7 +174,7 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
-      - name: Build ffmpeg
+      - name: Build vcpkg dependencies
         run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
 
       - name: Build and test
