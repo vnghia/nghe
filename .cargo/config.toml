@@ -3,7 +3,24 @@
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 [target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = [
+  "-C",
+  "target-feature=+crt-static",
+  "-C",
+  "link-arg=Mfplat.lib",
+  "-C",
+  "link-arg=Strmiids.lib",
+  "-C",
+  "link-arg=Mfuuid.lib",
+  "-C",
+  "link-arg=Bcrypt.lib",
+  "-C",
+  "link-arg=Secur32.lib",
+  "-C",
+  "link-arg=Ole32.lib",
+  "-C",
+  "link-arg=User32.lib",
+]
 
 #TODO: support more targets after https://github.com/rust-lang/cargo/issues/10273
 [env]
