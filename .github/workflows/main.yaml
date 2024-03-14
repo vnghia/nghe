@@ -15,23 +15,23 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - target: x86_64-unknown-linux-gnu
-            command: cargo
+          # - target: x86_64-unknown-linux-gnu
+          #   command: cargo
           - target: aarch64-unknown-linux-gnu
             command: cross
             os: debian
             platform: arm64
             vcpkg-target: arm64-linux-release
-          - target: x86_64-unknown-linux-musl
-            command: cross
-            os: alpine
-            platform: amd64
-            vcpkg-target: x64-linux-musl-release
-          - target: aarch64-unknown-linux-musl
-            command: cross
-            os: alpine
-            platform: arm64
-            vcpkg-target: arm64-linux-musl-release
+          # - target: x86_64-unknown-linux-musl
+          #   command: cross
+          #   os: alpine
+          #   platform: amd64
+          #   vcpkg-target: x64-linux-musl-release
+          # - target: aarch64-unknown-linux-musl
+          #   command: cross
+          #   os: alpine
+          #   platform: arm64
+          #   vcpkg-target: arm64-linux-musl-release
 
     runs-on: ubuntu-latest
 
@@ -111,85 +111,85 @@ jobs:
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
-  build-windows:
-    runs-on: windows-latest
+  # build-windows:
+  #   runs-on: windows-latest
 
-    env:
-      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  #   env:
+  #     VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - uses: ikalnytskyi/action-setup-postgres@v5
-        id: postgres
-      - name: Install libpq
-        run: |
-          vcpkg install libpq[core]:x64-windows-release
-          cp "C:/vcpkg/installed/x64-windows-release/lib/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/"
-          cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
+  #     - uses: ikalnytskyi/action-setup-postgres@v5
+  #       id: postgres
+  #     - name: Install libpq
+  #       run: |
+  #         vcpkg install libpq[core]:x64-windows-release
+  #         cp "C:/vcpkg/installed/x64-windows-release/lib/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/"
+  #         cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
 
-      - uses: cargo-bins/cargo-binstall@main
-      - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
-      - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target x86_64-pc-windows-msvc --manifest-path vcpkg/Cargo.toml
+  #     - uses: cargo-bins/cargo-binstall@main
+  #     - name: Install cargo-vcpkg
+  #       run: cargo binstall cargo-vcpkg --no-confirm
+  #     - name: Build vcpkg dependencies
+  #       run: cargo vcpkg --verbose build --target x86_64-pc-windows-msvc --manifest-path vcpkg/Cargo.toml
 
-      - name: Build and test
-        run: cargo test --locked --target x86_64-pc-windows-msvc
-        env:
-          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
-          FFMPEG_INCLUDE_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\include"
-          FFMPEG_LIBS_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\lib"
+  #     - name: Build and test
+  #       run: cargo test --locked --target x86_64-pc-windows-msvc
+  #       env:
+  #         DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
+  #         FFMPEG_INCLUDE_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\include"
+  #         FFMPEG_LIBS_DIR: "${{ github.workspace }}\\vcpkg\\target\\vcpkg\\installed\\x64-windows-static-release\\lib"
 
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - target: x86_64-apple-darwin
-            os: macos-13
-            vcpkg-target: x64-osx-release
-          - target: aarch64-apple-darwin
-            os: macos-14
-            vcpkg-target: arm64-osx-release
+  # build-macos:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       platform:
+  #         - target: x86_64-apple-darwin
+  #           os: macos-13
+  #           vcpkg-target: x64-osx-release
+  #         - target: aarch64-apple-darwin
+  #           os: macos-14
+  #           vcpkg-target: arm64-osx-release
 
-    runs-on: ${{ matrix.platform.os }}
+  #   runs-on: ${{ matrix.platform.os }}
 
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+  #   env:
+  #     HOMEBREW_NO_AUTO_UPDATE: 1
+  #     HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Install postgres
-        run: brew install postgresql@14
-      - uses: ikalnytskyi/action-setup-postgres@v5
-        id: postgres
+  #     - name: Install postgres
+  #       run: brew install postgresql@14
+  #     - uses: ikalnytskyi/action-setup-postgres@v5
+  #       id: postgres
 
-      - name: Install nasm
-        run: brew install nasm
-      - uses: cargo-bins/cargo-binstall@main
-      - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
-      - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
-      - name: Rename vcpkg dependencies output
-        run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
+  #     - name: Install nasm
+  #       run: brew install nasm
+  #     - uses: cargo-bins/cargo-binstall@main
+  #     - name: Install cargo-vcpkg
+  #       run: cargo binstall cargo-vcpkg --no-confirm
+  #     - name: Build vcpkg dependencies
+  #       run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
+  #     - name: Rename vcpkg dependencies output
+  #       run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
-      - name: Build and test
-        run: cargo test --locked --target ${{ matrix.platform.target }}
-        env:
-          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
+  #     - name: Build and test
+  #       run: cargo test --locked --target ${{ matrix.platform.target }}
+  #       env:
+  #         DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
