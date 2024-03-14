@@ -17,17 +17,13 @@ jobs:
         platform:
           - target: x86_64-unknown-linux-gnu
             command: cargo
-            musl: false
           - target: aarch64-unknown-linux-gnu
             command: cross
-            musl: false
           - target: x86_64-unknown-linux-musl
             command: cross
-            musl: true
             platform: amd64
           - target: aarch64-unknown-linux-musl
             command: cross
-            musl: true
             platform: arm64
 
     runs-on: ubuntu-latest
@@ -60,36 +56,40 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
+      - uses: cargo-bins/cargo-binstall@main
+
       - name: Install mold
         uses: rui314/setup-mold@v1
-        if: matrix.platform.command == 'cargo'
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
       - name: Install nasm
         run: sudo apt-get --assume-yes install nasm
-        if: matrix.platform.command == 'cargo'
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
-        if: matrix.platform.command == 'cargo'
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
+      - name: Install aarch64 cross-compling tools
+        run: sudo apt-get --assume-yes install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
       - name: Build ffmpeg
-        run: ${{ matrix.platform.command }} vcpkg --verbose build --target ${{ matrix.platform.target }}\
-        if: ${{ !matrix.platform.musl }}
+        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+        if: ${{ endsWith(matrix.platform.target, 'gnu') }}
 
-      - uses: cargo-bins/cargo-binstall@main
       - name: Install cross
         run: cargo binstall cross --no-confirm
         if: matrix.platform.command == 'cross'
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-        if: ${{ matrix.platform.musl }}
+        if: ${{ endsWith(matrix.platform.target, 'musl') }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        if: ${{ matrix.platform.musl }}
+        if: ${{ endsWith(matrix.platform.target, 'musl') }}
       - name: Build ffmpeg musl
         uses: docker/build-push-action@v5
-        if: ${{ matrix.platform.musl }}
+        if: ${{ endsWith(matrix.platform.target, 'musl') }}
         with:
           context: .
-          file: ci/vcpkg/Dockerfile.alpine
+          file: ci/vcpkg/alpine/Dockerfile.alpine
           build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
           network: host
           platforms: ${{ matrix.platform.platform }}
