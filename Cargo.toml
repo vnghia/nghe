@@ -32,7 +32,7 @@ mimalloc = "0.1.39"
 nghe-proc_macros = { path = "src/proc_macros", version = "0.1.0" }
 paste = "1.0.14"
 rand = "0.8.5"
-rsmpeg = { version = "0.14.2", features = ["ffmpeg6"] }
+rsmpeg = { git = "https://github.com/larksuite/rsmpeg.git", rev = "58d143d" }
 serde = { version = "1.0", features = ["derive"] }
 serde_with = { version = "3.7.0", features = ["hex"] }
 thiserror = "1.0.58"

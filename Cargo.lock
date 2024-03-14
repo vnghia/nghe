@@ -1689,8 +1689,7 @@ checksum = "4389f1d5789befaf6029ebd9f7dac4af7f7e3d61b69d4f30e2ac02b57e7712b0"
 [[package]]
 name = "rsmpeg"
 version = "0.14.2+ffmpeg.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "927012cd6ae43519f519741f4a69602ce3a47cf84750784da124dffd03527cc0"
+source = "git+https://github.com/larksuite/rsmpeg.git?rev=58d143d#58d143da706617c71e278587d39c22e757b0fca7"
 dependencies = [
  "libc",
  "paste",
