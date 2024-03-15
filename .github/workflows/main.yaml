@@ -135,7 +135,8 @@ jobs:
         run: |
           cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
           ls "D:\a\nghe\nghe\target\vcpkg\installed\x64-windows-release\lib\pkgconfig\*"
-          ls "D:\a\nghe\nghe\target\vcpkg\installed\x64-windows-release\lib\pkgconfig\glib-2.0.pc"
+          cat "D:\a\nghe\nghe\target\vcpkg\installed\x64-windows-release\lib\pkgconfig\glib-2.0.pc"
+          PKG_CONFIG_PATH=D:\a\nghe\nghe\target\vcpkg\installed\x64-windows-release\lib\pkgconfig PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 pkg-config --libs --cflags glib-2.0 glib-2.0 >= 2.56
 
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
