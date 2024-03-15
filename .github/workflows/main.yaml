@@ -72,8 +72,8 @@ jobs:
       - name: Setup aarch64 environment
         run: |
           sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          sudo apt purge 'x11-*'
-          sudo apt autoremove
+          sudo apt purge --assume-yes 'libx11-*'
+          sudo apt autoremove --assume-yes
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
 
       - name: Install gstreamer build deps
