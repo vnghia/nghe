@@ -94,7 +94,4 @@ aarch64-unknown-linux-musl = { triplet = "arm64-linux-musl-release" }
 x86_64-apple-darwin = { triplet = "x64-osx-release" }
 aarch64-apple-darwin = { triplet = "arm64-osx-release" }
 
-x86_64-pc-windows-msvc = { triplet = "x64-windows-release", dependencies = [
-  "gstreamer[flac,mpg123,ogg,opus-base,vorbis]",
-  "gobject-introspection:x64-windows",
-] }
+x86_64-pc-windows-msvc = { triplet = "x64-windows-release" }
