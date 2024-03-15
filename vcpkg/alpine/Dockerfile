@@ -9,9 +9,8 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN cargo install cargo-vcpkg
 
 RUN apk add --update --no-cache bash python3 \
-  pkgconf cmake ninja-build zip unzip curl git \
-  nasm flex bison
-RUN ln -s /usr/lib/ninja-build/bin/ninja /usr/bin/ninja
+  pkgconf cmake samurai zip unzip curl git \
+  nasm flex bison libintl
 RUN git config --global --add safe.directory '*'
 
 WORKDIR /build
