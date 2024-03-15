@@ -201,11 +201,7 @@ jobs:
       - name: Build vcpkg dependencies
         run: |
           export PATH="$(brew --prefix bison)/bin:$PATH"
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml || true
-          cat /Users/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/glib/config-x64-osx-dbg-meson-log.txt.log
-          cat /Users/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/glib/config-x64-osx-dbg-out.log
-      - name: Rename vcpkg dependencies output
-        run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
 
       - name: Build and test
         run: cargo test --locked --target ${{ matrix.platform.target }}
