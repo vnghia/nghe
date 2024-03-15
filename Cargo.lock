@@ -1376,6 +1376,7 @@ dependencies = [
  "figment",
  "futures",
  "gstreamer-audio",
+ "gstreamer-audio-sys",
  "http-body-util",
  "ignore",
  "isolang",
