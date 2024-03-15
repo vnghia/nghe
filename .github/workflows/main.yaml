@@ -142,6 +142,10 @@ jobs:
           vcpkg install libpq[core]:x64-windows-release
           cp "C:/vcpkg/installed/x64-windows-release/lib/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/"
           cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
+      - name: Install pkg-config
+        run: |
+          vcpkg install pkgconf:x64-windows
+          cp "C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe" "C:/Windows/system32/pkg-config.exe"
 
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
