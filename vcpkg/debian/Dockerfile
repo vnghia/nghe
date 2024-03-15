@@ -11,7 +11,7 @@ RUN cargo install cargo-vcpkg
 
 RUN apt-get update && apt-get --assume-yes --no-install-recommends install \
   cmake ninja-build curl zip unzip tar \
-  nasm
+  nasm flex bison
 
 WORKDIR /build
 COPY vcpkg/Cargo.toml ./Cargo.toml

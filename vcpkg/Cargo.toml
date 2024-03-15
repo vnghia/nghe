@@ -6,7 +6,7 @@ version = "0.1.0"
 edition = "2021"
 
 [package.metadata.vcpkg]
-dependencies = ["ffmpeg[mp3lame,opus,vorbis]"]
+dependencies = ["gstreamer[fdkaac,flac,mpg123,ogg,opus-base,vorbis]"]
 git = "https://github.com/microsoft/vcpkg"
 rev = "2023.11.20"
 overlay-triplets-path = "vcpkg/triplets/"

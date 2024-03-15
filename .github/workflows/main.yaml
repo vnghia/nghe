@@ -68,8 +68,8 @@ jobs:
       - name: Install mold
         uses: rui314/setup-mold@v1
         if: ${{ matrix.platform.command == 'cargo' }}
-      - name: Install nasm
-        run: sudo apt-get --assume-yes install nasm
+      - name: Install gstreamer build deps
+        run: sudo apt-get --assume-yes install nasm flex bison
         if: ${{ matrix.platform.command == 'cargo' }}
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
@@ -177,8 +177,8 @@ jobs:
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
 
-      - name: Install nasm
-        run: brew install nasm
+      - name: Install gstreamer build deps
+        run: brew install nasm flex bison
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
