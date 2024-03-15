@@ -32,3 +32,5 @@ PKG_CONFIG_PATH_aarch64-unknown-linux-gnu = { value = "vcpkg/target/vcpkg/instal
 
 PKG_CONFIG_PATH_x86_64-apple-darwin = { value = "vcpkg/target/vcpkg/installed/x64-osx-release/lib/pkgconfig", relative = true }
 PKG_CONFIG_PATH_aarch64-apple-darwin = { value = "vcpkg/target/vcpkg/installed/arm64-osx-release/lib/pkgconfig", relative = true }
+
+PKG_CONFIG_PATH_x86_64-pc-windows-msvc = { value = "vcpkg/target/vcpkg/installed/x64-windows-release/lib/pkgconfig", relative = true }
