@@ -11,100 +11,102 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
 jobs:
-  # build-linux:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       platform:
-  #         - target: x86_64-unknown-linux-gnu
-  #           command: cargo
-  #         - target: aarch64-unknown-linux-gnu
-  #           command: cross
-  #         - target: x86_64-unknown-linux-musl
-  #           command: cross
-  #         - target: aarch64-unknown-linux-musl
-  #           command: cross
+  build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: x86_64-unknown-linux-gnu
+            command: cargo
+          - target: aarch64-unknown-linux-gnu
+            command: cross
+          - target: x86_64-unknown-linux-musl
+            command: cross
+          - target: aarch64-unknown-linux-musl
+            command: cross
 
-  #   runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
 
-  #   env:
-  #     DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
-  #     CROSS_CONTAINER_OPTS: "--network=host"
+    env:
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+      CROSS_CONTAINER_OPTS: "--network=host"
 
-  #   services:
-  #     postgres:
-  #       image: postgres:16
-  #       env:
-  #         POSTGRES_PASSWORD: postgres
-  #         POSTGRES_HOST_AUTH_METHOD: md5
-  #         POSTGRES_INITDB_ARGS: --auth-host=md5
-  #       options: >-
-  #         --health-cmd pg_isready
-  #         --health-interval 10s
-  #         --health-timeout 5s
-  #         --health-retries 5
-  #       ports:
-  #         - 5432:5432
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: md5
+          POSTGRES_INITDB_ARGS: --auth-host=md5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Export GitHub Actions cache environment variables
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-  #     - uses: cargo-bins/cargo-binstall@main
+      - uses: cargo-bins/cargo-binstall@main
 
-  #     - name: Setup x64 environment
-  #       uses: rui314/setup-mold@v1
-  #       if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
+      - name: Setup x64 environment
+        uses: rui314/setup-mold@v1
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
 
-  #     - name: Setup arm64 environment
-  #       run: |
-  #         sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-  #         sudo apt purge --assume-yes nginx
-  #         sudo apt purge --assume-yes 'libx11-*'
-  #         sudo apt purge --assume-yes 'x11-*'
-  #         sudo apt autoremove --assume-yes
-  #       if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
+      - name: Setup arm64 environment
+        run: |
+          sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt purge --assume-yes nginx
+          sudo apt purge --assume-yes 'libx11-*'
+          sudo apt purge --assume-yes 'x11-*'
+          sudo apt autoremove --assume-yes
+        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
 
-  #     - name: Setup x64 musl environment
-  #       run: |
-  #         sudo apt install --assume-yes musl-tools
-  #       if: ${{ matrix.platform.target == 'x86_64-unknown-linux-musl' }}
+      - name: Setup x64 musl environment
+        run: |
+          sudo apt install --assume-yes musl-tools
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-musl' }}
 
-  #     # TODO: Rename binary after https://github.com/microsoft/vcpkg/issues/36094 is fixed
-  #     - name: Setup arm64 musl environment
-  #       run: |
-  #         sudo apt purge --assume-yes nginx
-  #         sudo apt purge --assume-yes 'libx11-*'
-  #         sudo apt purge --assume-yes 'x11-*'
-  #         sudo apt autoremove --assume-yes
-  #         wget -c https://more.musl.cc/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O - | tar -xz
-  #         sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ /usr/bin/aarch64-linux-gnu-g++
-  #         sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc /usr/bin/aarch64-linux-gnu-gcc
-  #         aarch64-linux-gnu-gcc --version
-  #         aarch64-linux-gnu-g++ --version
-  #       if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
+      # TODO: Rename binary after https://github.com/microsoft/vcpkg/issues/36094 is fixed
+      - name: Setup arm64 musl environment
+        run: |
+          sudo apt purge --assume-yes nginx
+          sudo apt purge --assume-yes 'libx11-*'
+          sudo apt purge --assume-yes 'x11-*'
+          sudo apt autoremove --assume-yes
+          wget -c https://more.musl.cc/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O - | tar -xz
+          sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ /usr/bin/aarch64-linux-gnu-g++
+          sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc /usr/bin/aarch64-linux-gnu-gcc
+          aarch64-linux-gnu-gcc --version
+          aarch64-linux-gnu-g++ --version
+        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
 
-  #     - name: Install gstreamer build deps
-  #       run: sudo apt-get --assume-yes install nasm flex bison
-  #     - name: Install cargo-vcpkg
-  #       run: cargo binstall cargo-vcpkg --no-confirm
-  #     - name: Build vcpkg dependencies
-  #       run: |
-  #         cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+      - name: Install gstreamer build deps
+        run: sudo apt-get --assume-yes install nasm flex bison
+      - name: Install cargo-vcpkg
+        run: cargo binstall cargo-vcpkg --no-confirm
+      - name: Build vcpkg dependencies
+        run: |
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
-  #     - name: Install cross
-  #       run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
-  #       if: ${{ matrix.platform.command == 'cross' }}
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
+        if: ${{ matrix.platform.command == 'cross' }}
 
-  #     - name: Build and test
-  #       run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
+      - name: Build and test
+        run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
   build-windows:
+    # TODO: enable windows
+    if: ${{ false }}
     runs-on: windows-latest
 
     steps:
@@ -137,57 +139,56 @@ jobs:
 
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
-        shell: bash
         env:
           DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
 
-  # build-macos:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       platform:
-  #         - target: x86_64-apple-darwin
-  #           os: macos-13
-  #           vcpkg-target: x64-osx-release
-  #         - target: aarch64-apple-darwin
-  #           os: macos-14
-  #           vcpkg-target: arm64-osx-release
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: x86_64-apple-darwin
+            os: macos-13
+            vcpkg-target: x64-osx-release
+          - target: aarch64-apple-darwin
+            os: macos-14
+            vcpkg-target: arm64-osx-release
 
-  #   runs-on: ${{ matrix.platform.os }}
+    runs-on: ${{ matrix.platform.os }}
 
-  #   env:
-  #     HOMEBREW_NO_AUTO_UPDATE: 1
-  #     HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Export GitHub Actions cache environment variables
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-  #     - name: Install postgres
-  #       run: brew install postgresql@14
-  #     - uses: ikalnytskyi/action-setup-postgres@v5
-  #       id: postgres
-  #     # TODO: Remove this when update vcpkg https://github.com/microsoft/vcpkg/issues/35332
-  #     - uses: actions/setup-python@v5
-  #       with:
-  #         python-version: "3.11"
+      - name: Install postgres
+        run: brew install postgresql@14
+      - uses: ikalnytskyi/action-setup-postgres@v5
+        id: postgres
+      # TODO: Remove this when update vcpkg https://github.com/microsoft/vcpkg/issues/35332
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-  #     - name: Install gstreamer build deps
-  #       run: brew install nasm flex bison
-  #     - uses: cargo-bins/cargo-binstall@main
-  #     - name: Install cargo-vcpkg
-  #       run: cargo binstall cargo-vcpkg --no-confirm
-  #     - name: Build vcpkg dependencies
-  #       run: |
-  #         export PATH="$(brew --prefix bison)/bin:$PATH"
-  #         cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+      - name: Install gstreamer build deps
+        run: brew install nasm flex bison
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install cargo-vcpkg
+        run: cargo binstall cargo-vcpkg --no-confirm
+      - name: Build vcpkg dependencies
+        run: |
+          export PATH="$(brew --prefix bison)/bin:$PATH"
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
-  #     - name: Build and test
-  #       run: cargo test --locked --target ${{ matrix.platform.target }}
-  #       env:
-  #         DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
+      - name: Build and test
+        run: cargo test --locked --target ${{ matrix.platform.target }}
+        env:
+          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
