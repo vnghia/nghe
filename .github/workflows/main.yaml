@@ -92,7 +92,7 @@ jobs:
       - name: Build vcpkg dependencies
         run: |
           cargo vcpkg --verbose build --target ${{ matrix.platform.target }} || true
-          cat /home/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/gstreamer/package-arm64-linux-musl-release-rel-out.log
+          cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/gstreamer/package-arm64-linux-musl-release-rel-out.log
 
       - name: Install cross
         run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
@@ -131,7 +131,7 @@ jobs:
       - name: Build vcpkg dependencies
         run: |
           cargo vcpkg --verbose build --target x86_64-pc-windows-msvc || true
-          cat D:\a\nghe\nghe\vcpkg\target\vcpkg\buildtrees\gobject-introspection\package-x64-windows-rel-out.log
+          cat D:\a\nghe\nghe\target\vcpkg\buildtrees\gobject-introspection\package-x64-windows-rel-out.log
 
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
