@@ -106,9 +106,6 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - uses: actions/checkout@v4
@@ -145,6 +142,7 @@ jobs:
 
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
+        shell: bash
         env:
           DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
 
