@@ -30,9 +30,15 @@ impl SongInformation {
                     })?,
                     &parsing_config.vorbis,
                 )?;
+
+                let flac_property = flac_file.properties();
                 let song_property = SongProperty {
-                    duration: flac_file.properties().duration().as_secs_f32(),
+                    duration: flac_property.duration().as_secs_f32(),
+                    bitrate: flac_property.audio_bitrate(),
+                    sample_rate: flac_property.sample_rate(),
+                    channel_count: flac_property.channels(),
                 };
+
                 (song_tag, song_property)
             }
             FileType::Mpeg => {
@@ -43,9 +49,15 @@ impl SongInformation {
                         .ok_or_else(|| OSError::NotFound("Id3v2 inside mp3 file".into()))?,
                     &parsing_config.id3v2,
                 )?;
+
+                let mp3_property = mp3_file.properties();
                 let song_property = SongProperty {
-                    duration: mp3_file.properties().duration().as_secs_f32(),
+                    duration: mp3_property.duration().as_secs_f32(),
+                    bitrate: mp3_property.audio_bitrate(),
+                    sample_rate: mp3_property.sample_rate(),
+                    channel_count: mp3_property.channels(),
                 };
+
                 (song_tag, song_property)
             }
             _ => unreachable!("not supported file type: {:?}", file_type),
@@ -98,6 +110,9 @@ impl SongInformation {
                 .collect_vec(),
             // Song property
             duration: self.property.duration,
+            bitrate: self.property.bitrate as i32,
+            sample_rate: self.property.sample_rate as i32,
+            channel_count: self.property.channel_count as i16,
             // Filesystem property
             file_hash: file_hash as i64,
             file_size: file_size as i64,

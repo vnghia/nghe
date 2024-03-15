@@ -28,6 +28,9 @@ pub struct SongUpdateInformationDB<'a> {
     pub languages: Vec<&'static str>,
     // Song property
     pub duration: f32,
+    pub bitrate: i32,
+    pub sample_rate: i32,
+    pub channel_count: i16,
     // Filesystem property
     pub file_hash: i64,
     pub file_size: i64,
