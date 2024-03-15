@@ -130,7 +130,8 @@ jobs:
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
         run: |
-          cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
+          cargo vcpkg --verbose build --target x86_64-pc-windows-msvc || true
+          cat D:\a\nghe\nghe\vcpkg\target\vcpkg\buildtrees\gobject-introspection\package-x64-windows-rel-out.log
 
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
