@@ -19,7 +19,7 @@ COPY vcpkg/alpine/build.sh ./
 RUN ./build.sh
 
 RUN apk add --update --no-cache bash python3 \
-  nasm flex bison libintl
+  nasm flex bison musl-libintl
 RUN git config --global --add safe.directory '*'
 
 COPY vcpkg/Cargo.toml ./Cargo.toml
