@@ -114,7 +114,7 @@ jobs:
       #     mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
       - name: Build and test
-        run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
+        run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}; cat /home/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/gstreamer/package-arm64-linux-release-rel-out.log
 
   build-windows:
     runs-on: windows-latest
@@ -143,7 +143,7 @@ jobs:
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target x86_64-pc-windows-msvc --manifest-path vcpkg/Cargo.toml
+        run: cargo vcpkg --verbose build --target x86_64-pc-windows-msvc --manifest-path vcpkg/Cargo.toml; cat "D:/a/nghe/nghe/vcpkg/target/vcpkg/buildtrees/gstreamer/package-x64-windows-static-release-rel-out.log"
 
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
@@ -190,7 +190,7 @@ jobs:
       - name: Build vcpkg dependencies
         run: |
           export PATH="$(brew --prefix bison)/bin:$PATH"
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml; cat /Users/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/glib/config-x64-osx-dbg-out.log
       - name: Rename vcpkg dependencies output
         run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
