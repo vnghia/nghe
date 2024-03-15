@@ -183,7 +183,9 @@ jobs:
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
+        run: |
+          export PATH="$(brew --prefix bison)/bin:$PATH"
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
       - name: Rename vcpkg dependencies output
         run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
