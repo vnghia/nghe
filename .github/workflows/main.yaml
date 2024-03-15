@@ -87,8 +87,7 @@ jobs:
         if: ${{ endsWith(matrix.platform.target, 'gnu') }}
       - name: Build vcpkg dependencies
         run: |
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml || true
-          cat /home/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/gstreamer/package-arm64-linux-release-rel-out.log
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
         if: ${{ endsWith(matrix.platform.target, 'gnu') }}
 
       - name: Install cross
