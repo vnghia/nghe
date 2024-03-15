@@ -74,45 +74,47 @@ jobs:
           sudo apt autoremove --assume-yes
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
 
+      - name: Setup x64 musl environment
+        run: |
+          sudo apt install --assume-yes musl-tools
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-musl' }}
+
       - name: Install gstreamer build deps
         run: sudo apt-get --assume-yes install nasm flex bison
-        if: ${{ endsWith(matrix.platform.target, 'gnu') }}
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
-        if: ${{ endsWith(matrix.platform.target, 'gnu') }}
       - name: Build vcpkg dependencies
         run: |
           cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
-        if: ${{ endsWith(matrix.platform.target, 'gnu') }}
 
       - name: Install cross
         run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
         if: ${{ matrix.platform.command == 'cross' }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        if: ${{ endsWith(matrix.platform.target, 'musl') }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        if: ${{ endsWith(matrix.platform.target, 'musl') }}
-      - name: Build vcpkg dependencies
-        uses: docker/build-push-action@v5
-        if: ${{ endsWith(matrix.platform.target, 'musl') }}
-        with:
-          context: .
-          file: vcpkg/alpine/Dockerfile
-          build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
-          network: host
-          platforms: ${{ matrix.platform.platform }}
-          tags: vcpkg-deps
-          load: true
-          cache-from: type=gha,scope=vcpkg-deps-${{ matrix.platform.platform }}
-          cache-to: type=gha,mode=max,scope=vcpkg-deps-${{ matrix.platform.platform }}
-      - name: Copy vcpkg dependencies to host
-        if: ${{ endsWith(matrix.platform.target, 'musl') }}
-        run: |
-          docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -R /build/target /opt/mount/
-          sudo chmod -R 777 vcpkg/
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
+      #   if: ${{ endsWith(matrix.platform.target, 'musl') }}
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
+      #   if: ${{ endsWith(matrix.platform.target, 'musl') }}
+      # - name: Build vcpkg dependencies
+      #   uses: docker/build-push-action@v5
+      #   if: ${{ endsWith(matrix.platform.target, 'musl') }}
+      #   with:
+      #     context: .
+      #     file: vcpkg/alpine/Dockerfile
+      #     build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
+      #     network: host
+      #     platforms: ${{ matrix.platform.platform }}
+      #     tags: vcpkg-deps
+      #     load: true
+      #     cache-from: type=gha,scope=vcpkg-deps-${{ matrix.platform.platform }}
+      #     cache-to: type=gha,mode=max,scope=vcpkg-deps-${{ matrix.platform.platform }}
+      # - name: Copy vcpkg dependencies to host
+      #   if: ${{ endsWith(matrix.platform.target, 'musl') }}
+      #   run: |
+      #     docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -R /build/target /opt/mount/
+      #     sudo chmod -R 777 vcpkg/
 
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
