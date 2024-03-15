@@ -79,12 +79,8 @@ jobs:
       - name: Setup arm64 musl environment
         run: |
           wget -c https://more.musl.cc/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O - | tar -xz
-          ls -lah aarch64-linux-musl-cross/
-          ls -lah aarch64-linux-musl-cross/bin/
           sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ /usr/bin/aarch64-linux-gnu-g++
           sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc /usr/bin/aarch64-linux-gnu-gcc
-          /usr/bin/aarch64-linux-gnu-gcc --version
-          /usr/bin/aarch64-linux-gnu-g++ --version
           aarch64-linux-gnu-gcc --version
           aarch64-linux-gnu-g++ --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
