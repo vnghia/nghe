@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
 jobs:
   build-linux:
@@ -19,19 +20,10 @@ jobs:
             command: cargo
           - target: aarch64-unknown-linux-gnu
             command: cross
-            os: debian
-            platform: arm64
-            vcpkg-target: arm64-linux-release
           - target: x86_64-unknown-linux-musl
             command: cross
-            os: alpine
-            platform: amd64
-            vcpkg-target: x64-linux-musl-release
           - target: aarch64-unknown-linux-musl
             command: cross
-            os: alpine
-            platform: arm64
-            vcpkg-target: arm64-linux-musl-release
 
     runs-on: ubuntu-latest
 
@@ -65,57 +57,57 @@ jobs:
 
       - uses: cargo-bins/cargo-binstall@main
 
-      - name: Install mold
+      - name: Setup x64 environment
         uses: rui314/setup-mold@v1
-        if: ${{ matrix.platform.command == 'cargo' }}
-      - name: Install nasm
-        run: sudo apt-get --assume-yes install nasm
-        if: ${{ matrix.platform.command == 'cargo' }}
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-gnu' }}
+
+      - name: Setup arm64 environment
+        run: |
+          sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt purge --assume-yes nginx
+          sudo apt purge --assume-yes 'libx11-*'
+          sudo apt purge --assume-yes 'x11-*'
+          sudo apt autoremove --assume-yes
+        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
+
+      - name: Setup x64 musl environment
+        run: |
+          sudo apt install --assume-yes musl-tools
+        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-musl' }}
+
+      # TODO: Rename binary after https://github.com/microsoft/vcpkg/issues/36094 is fixed
+      - name: Setup arm64 musl environment
+        run: |
+          sudo apt purge --assume-yes nginx
+          sudo apt purge --assume-yes 'libx11-*'
+          sudo apt purge --assume-yes 'x11-*'
+          sudo apt autoremove --assume-yes
+          wget -c https://more.musl.cc/x86_64-linux-musl/aarch64-linux-musl-cross.tgz -O - | tar -xz
+          sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ /usr/bin/aarch64-linux-gnu-g++
+          sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc /usr/bin/aarch64-linux-gnu-gcc
+          aarch64-linux-gnu-gcc --version
+          aarch64-linux-gnu-g++ --version
+        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
+
+      - name: Install gstreamer build deps
+        run: sudo apt-get --assume-yes install nasm flex bison
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
-        if: ${{ matrix.platform.command == 'cargo' }}
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
-        if: ${{ matrix.platform.command == 'cargo' }}
+        run: |
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
       - name: Install cross
         run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
         if: ${{ matrix.platform.command == 'cross' }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        if: ${{ matrix.platform.command == 'cross' }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        if: ${{ matrix.platform.command == 'cross' }}
-      - name: Build vcpkg dependencies
-        uses: docker/build-push-action@v5
-        if: ${{ matrix.platform.command == 'cross' }}
-        with:
-          context: .
-          file: vcpkg/${{ matrix.platform.os }}/Dockerfile
-          build-args: ACTIONS_CACHE_URL,ACTIONS_RUNTIME_TOKEN
-          network: host
-          platforms: ${{ matrix.platform.platform }}
-          tags: vcpkg-deps
-          load: true
-          cache-from: type=gha,scope=${{ matrix.platform.os }}-${{ matrix.platform.platform }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.platform.os }}-${{ matrix.platform.platform }}
-      - name: Copy vcpkg dependencies to host
-        if: ${{ matrix.platform.command == 'cross' }}
-        run: |
-          docker run --platform ${{ matrix.platform.platform }} -v ${PWD}/vcpkg/:/opt/mount --rm --entrypoint cp vcpkg-deps -R /build/target /opt/mount/
-          sudo chmod -R 777 vcpkg/
-          mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
-
       - name: Build and test
         run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
   build-windows:
+    # TODO: enable windows
+    if: ${{ false }}
     runs-on: windows-latest
-
-    env:
-      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
     steps:
       - uses: actions/checkout@v4
@@ -133,12 +125,17 @@ jobs:
           vcpkg install libpq[core]:x64-windows-release
           cp "C:/vcpkg/installed/x64-windows-release/lib/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/"
           cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
+      - name: Install pkg-config
+        run: |
+          vcpkg install pkgconf:x64-windows
+          cp "C:/vcpkg/installed/x64-windows/tools/pkgconf/pkgconf.exe" "C:/Windows/system32/pkg-config.exe"
 
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target x86_64-pc-windows-msvc --manifest-path vcpkg/Cargo.toml
+        run: |
+          cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
 
       - name: Build and test
         run: cargo test --locked --target x86_64-pc-windows-msvc
@@ -176,16 +173,20 @@ jobs:
         run: brew install postgresql@14
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
+      # TODO: Remove this when update vcpkg https://github.com/microsoft/vcpkg/issues/35332
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Install nasm
-        run: brew install nasm
+      - name: Install gstreamer build deps
+        run: brew install nasm flex bison
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
-      - name: Rename vcpkg dependencies output
-        run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
+        run: |
+          export PATH="$(brew --prefix bison)/bin:$PATH"
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
       - name: Build and test
         run: cargo test --locked --target ${{ matrix.platform.target }}
