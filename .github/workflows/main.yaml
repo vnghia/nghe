@@ -80,7 +80,7 @@ jobs:
         run: cargo binstall cargo-vcpkg --no-confirm
         if: ${{ endsWith(matrix.platform.target, 'gnu') }}
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml
+        run: cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml; cat /home/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/gstreamer/package-arm64-linux-release-rel-out.log
         if: ${{ endsWith(matrix.platform.target, 'gnu') }}
 
       - name: Install cross
@@ -114,7 +114,7 @@ jobs:
       #     mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
       - name: Build and test
-        run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}; cat /home/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/gstreamer/package-arm64-linux-release-rel-out.log
+        run: ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }}
 
   build-windows:
     runs-on: windows-latest
@@ -190,7 +190,7 @@ jobs:
       - name: Build vcpkg dependencies
         run: |
           export PATH="$(brew --prefix bison)/bin:$PATH"
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml; cat /Users/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/glib/config-x64-osx-dbg-out.log
+          cargo vcpkg --verbose build --target ${{ matrix.platform.target }} --manifest-path vcpkg/Cargo.toml; cat /Users/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/glib/config-x64-osx-dbg-meson-log.txt.log; cat /Users/runner/work/nghe/nghe/vcpkg/target/vcpkg/buildtrees/glib/config-x64-osx-dbg-out.log
       - name: Rename vcpkg dependencies output
         run: mv -v vcpkg/target/vcpkg/installed/${{ matrix.platform.vcpkg-target }}/ vcpkg/target/vcpkg/installed/x64-linux-release/
 
