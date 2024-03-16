@@ -10,7 +10,7 @@ use rsmpeg::{
     swresample::SwrContext,
 };
 use std::{
-    ffi::CStr,
+    ffi::{CStr, CString},
     sync::atomic::{AtomicI64, Ordering},
 };
 
@@ -53,6 +53,14 @@ fn open_output_file(
             .sample_fmts()
             .ok_or_else(|| OSError::NotFound("could not get sample formats".into()))?[0],
     );
+
+    let output_sample_rate = if enc_codec.id == ffi::AVCodecID_AV_CODEC_ID_OPUS {
+        // libopus recommended sample rate
+        48000
+    } else {
+        output_sample_rate
+    };
+
     enc_ctx.set_sample_rate(output_sample_rate);
     enc_ctx.set_bit_rate(output_bit_rate);
 
@@ -77,12 +85,29 @@ fn init_resampler(
     let mut resample_context = SwrContext::new(
         &enc_ctx.ch_layout,
         enc_ctx.sample_fmt,
-        enc_ctx.sample_rate,
+        // Always resample to the input sampling rate
+        dec_ctx.sample_rate,
         &dec_ctx.ch_layout,
         dec_ctx.sample_fmt,
         dec_ctx.sample_rate,
     )
     .context("could not allocate resample context")?;
+
+    unsafe {
+        // TODO: use c".." in Rust 1.77
+        let resampler_key = CString::new("resampler").unwrap();
+        let ret = ffi::av_opt_set_int(
+            resample_context.as_mut_ptr() as *mut _,
+            resampler_key.as_ptr() as *const _,
+            ffi::SwrEngine_SWR_ENGINE_SOXR as i64,
+            0,
+        );
+        if ret != 0 {
+            anyhow::bail!(OSError::InvalidParameter(
+                "can not set sampler to soxr".into()
+            ))
+        }
+    }
 
     resample_context
         .init()
@@ -171,15 +196,10 @@ fn load_encode_and_write(
     Ok(())
 }
 
-pub fn transcode(
-    input_path: &CStr,
-    output_path: &CStr,
-    output_sample_rate: i32,
-    output_bit_rate: i64,
-) -> Result<()> {
+pub fn transcode(input_path: &CStr, output_path: &CStr, output_bit_rate: i64) -> Result<()> {
     let (mut fmt_ctx_in, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
     let (mut fmt_ctx_out, mut enc_ctx) =
-        open_output_file(output_path, output_sample_rate, output_bit_rate)?;
+        open_output_file(output_path, dec_ctx.sample_rate, output_bit_rate)?;
     let mut resample_context = init_resampler(&mut dec_ctx, &mut enc_ctx)?;
 
     // Initialize the FIFO buffer to store audio samples to be encoded.
@@ -305,7 +325,7 @@ mod tests {
                         .with_extension(output_extension),
                 );
                 for output_bitrate in OUTPUT_BITRATE {
-                    transcode(&media_path, &output_path, 48000, *output_bitrate).unwrap();
+                    transcode(&media_path, &output_path, *output_bitrate).unwrap();
                 }
             }
         }
