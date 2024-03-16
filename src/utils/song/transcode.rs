@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use rsmpeg::{
     avcodec::{AVCodec, AVCodecContext},
     avformat::{AVFormatContextInput, AVFormatContextOutput},
-    avutil::{ra, AVAudioFifo, AVChannelLayout, AVFrame, AVSamples},
+    avutil::{ra, AVAudioFifo, AVFrame, AVSamples},
     error::RsmpegError,
     ffi,
     swresample::SwrContext,
@@ -15,8 +15,6 @@ use std::{
 };
 
 use crate::OSError;
-
-const OUTPUT_CHANNELS: i32 = 2;
 
 fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext, usize)> {
     let fmt_ctx_in =
@@ -31,13 +29,14 @@ fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext,
     dec_ctx.apply_codecpar(&stream.codecpar())?;
     dec_ctx.open(None).context("could not open input codec")?;
     dec_ctx.set_pkt_timebase(stream.time_base);
+    dec_ctx.set_bit_rate(fmt_ctx_in.bit_rate);
 
     Ok((fmt_ctx_in, dec_ctx, audio_idx))
 }
 
 fn open_output_file(
     path: &CStr,
-    output_sample_rate: i32,
+    dec_ctx: &AVCodecContext,
     output_bit_rate: i64,
 ) -> Result<(AVFormatContextOutput, AVCodecContext)> {
     let mut fmt_ctx_out =
@@ -47,7 +46,7 @@ fn open_output_file(
         .context("could not find output codec")?;
     let mut enc_ctx = AVCodecContext::new(&enc_codec);
 
-    enc_ctx.set_ch_layout(AVChannelLayout::from_nb_channels(OUTPUT_CHANNELS).into_inner());
+    enc_ctx.set_ch_layout(dec_ctx.ch_layout);
     enc_ctx.set_sample_fmt(
         enc_codec
             .sample_fmts()
@@ -58,7 +57,7 @@ fn open_output_file(
         // libopus recommended sample rate
         48000
     } else {
-        output_sample_rate
+        dec_ctx.sample_rate
     };
 
     enc_ctx.set_sample_rate(output_sample_rate);
@@ -85,8 +84,7 @@ fn init_resampler(
     let mut resample_context = SwrContext::new(
         &enc_ctx.ch_layout,
         enc_ctx.sample_fmt,
-        // Always resample to the input sampling rate
-        dec_ctx.sample_rate,
+        enc_ctx.sample_rate,
         &dec_ctx.ch_layout,
         dec_ctx.sample_fmt,
         dec_ctx.sample_rate,
@@ -198,8 +196,7 @@ fn load_encode_and_write(
 
 pub fn transcode(input_path: &CStr, output_path: &CStr, output_bit_rate: i64) -> Result<()> {
     let (mut fmt_ctx_in, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
-    let (mut fmt_ctx_out, mut enc_ctx) =
-        open_output_file(output_path, dec_ctx.sample_rate, output_bit_rate)?;
+    let (mut fmt_ctx_out, mut enc_ctx) = open_output_file(output_path, &dec_ctx, output_bit_rate)?;
     let mut resample_context = init_resampler(&mut dec_ctx, &mut enc_ctx)?;
 
     // Initialize the FIFO buffer to store audio samples to be encoded.
