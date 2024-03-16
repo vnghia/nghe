@@ -1,5 +1,3 @@
-// https://github.com/larksuite/rsmpeg/blob/master/tests/transcode_aac.rs
-
 use anyhow::{Context, Result};
 use rsmpeg::{
     avcodec::{AVCodec, AVCodecContext},
@@ -17,70 +15,71 @@ use std::{
 use crate::OSError;
 
 fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext, usize)> {
-    let fmt_ctx_in =
+    let input_fmt_ctx =
         AVFormatContextInput::open(path, None, &mut None).context("could not open input file")?;
 
-    let (audio_idx, dec_codec) = fmt_ctx_in
+    let (audio_idx, dec_codec) = input_fmt_ctx
         .find_best_stream(ffi::AVMediaType_AVMEDIA_TYPE_AUDIO)?
         .context("could not file audio index")?;
+    let stream = &input_fmt_ctx.streams()[audio_idx];
 
-    let stream = &fmt_ctx_in.streams()[audio_idx];
     let mut dec_ctx = AVCodecContext::new(&dec_codec);
-    dec_ctx.apply_codecpar(&stream.codecpar())?;
+    dec_ctx
+        .apply_codecpar(&stream.codecpar())
+        .context("could not apply codecpar to decoding context")?;
     dec_ctx.open(None).context("could not open input codec")?;
     dec_ctx.set_pkt_timebase(stream.time_base);
-    dec_ctx.set_bit_rate(fmt_ctx_in.bit_rate);
+    dec_ctx.set_bit_rate(input_fmt_ctx.bit_rate);
 
-    Ok((fmt_ctx_in, dec_ctx, audio_idx))
+    Ok((input_fmt_ctx, dec_ctx, audio_idx))
 }
 
 fn open_output_file(
     path: &CStr,
     dec_ctx: &AVCodecContext,
-    output_bit_rate: i64,
+    output_bitrate: i64,
 ) -> Result<(AVFormatContextOutput, AVCodecContext)> {
-    let mut fmt_ctx_out =
+    let mut output_fmt_ctx =
         AVFormatContextOutput::create(path, None).context("could not open output file")?;
 
-    let enc_codec = AVCodec::find_encoder(fmt_ctx_out.oformat().audio_codec)
+    let enc_codec = AVCodec::find_encoder(output_fmt_ctx.oformat().audio_codec)
         .context("could not find output codec")?;
-    let mut enc_ctx = AVCodecContext::new(&enc_codec);
+    let output_sample_rate = if enc_codec.id == ffi::AVCodecID_AV_CODEC_ID_OPUS {
+        48000 // libopus recommended sample rate
+    } else {
+        dec_ctx.sample_rate
+    };
 
+    let mut enc_ctx = AVCodecContext::new(&enc_codec);
     enc_ctx.set_ch_layout(dec_ctx.ch_layout);
     enc_ctx.set_sample_fmt(
         enc_codec
             .sample_fmts()
             .ok_or_else(|| OSError::NotFound("could not get sample formats".into()))?[0],
     );
-
-    let output_sample_rate = if enc_codec.id == ffi::AVCodecID_AV_CODEC_ID_OPUS {
-        // libopus recommended sample rate
-        48000
-    } else {
-        dec_ctx.sample_rate
-    };
-
     enc_ctx.set_sample_rate(output_sample_rate);
-    enc_ctx.set_bit_rate(output_bit_rate);
-
+    enc_ctx.set_bit_rate(output_bitrate);
+    enc_ctx.set_time_base(ra(1, output_sample_rate));
+    // Some container formats (like MP4) require global headers to be present.
+    // Mark the encoder so that it behaves accordingly.
+    if output_fmt_ctx.oformat().flags & ffi::AVFMT_GLOBALHEADER as i32 != 0 {
+        enc_ctx.set_flags(enc_ctx.flags | ffi::AV_CODEC_FLAG_GLOBAL_HEADER as i32);
+    }
     // Open the encoder for the audio stream to use it later.
     enc_ctx.open(None)?;
 
     {
         // Create a new audio stream in the output file container.
-        let mut stream = fmt_ctx_out.new_stream();
+        let mut stream = output_fmt_ctx.new_stream();
         stream.set_codecpar(enc_ctx.extract_codecpar());
         // Set the sample rate for the container.
-        stream.set_time_base(ra(1, output_sample_rate));
+        stream.set_time_base(enc_ctx.time_base);
     }
 
-    Ok((fmt_ctx_out, enc_ctx))
+    Ok((output_fmt_ctx, enc_ctx))
 }
 
-fn init_resampler(
-    dec_ctx: &mut AVCodecContext,
-    enc_ctx: &mut AVCodecContext,
-) -> Result<SwrContext> {
+fn init_resampler(dec_ctx: &AVCodecContext, enc_ctx: &AVCodecContext) -> Result<SwrContext> {
     let mut resample_context = SwrContext::new(
         &enc_ctx.ch_layout,
         enc_ctx.sample_fmt,
@@ -116,27 +115,26 @@ fn init_resampler(
 
 fn add_samples_to_fifo(
     fifo: &mut AVAudioFifo,
-    samples_buffer: &AVSamples,
+    converted_input_samples: &AVSamples,
     frame_size: i32,
 ) -> Result<()> {
     fifo.realloc(fifo.size() + frame_size);
-    unsafe { fifo.write(samples_buffer.audio_data.as_ptr(), frame_size) }
+    unsafe { fifo.write(converted_input_samples.audio_data.as_ptr(), frame_size) }
         .context("could not write data to FIFO")?;
     Ok(())
 }
 
 fn init_output_frame(
-    nb_samples: i32,
+    frame_size: i32,
     ch_layout: ffi::AVChannelLayout,
-    sample_fmt: i32,
-    sample_rate: i32,
+    enc_ctx: &AVCodecContext,
 ) -> Result<AVFrame> {
     let mut frame = AVFrame::new();
 
-    frame.set_nb_samples(nb_samples);
+    frame.set_nb_samples(frame_size);
     frame.set_ch_layout(ch_layout);
-    frame.set_format(sample_fmt);
-    frame.set_sample_rate(sample_rate);
+    frame.set_format(enc_ctx.sample_fmt);
+    frame.set_sample_rate(enc_ctx.sample_rate);
 
     frame
         .get_buffer(0)
@@ -147,35 +145,35 @@ fn init_output_frame(
 
 fn encode_audio_frame(
     mut frame: Option<AVFrame>,
-    fmt_ctx_out: &mut AVFormatContextOutput,
+    output_fmt_ctx: &mut AVFormatContextOutput,
     enc_ctx: &mut AVCodecContext,
-) -> Result<()> {
+) -> Result<bool> {
     static PTS: AtomicI64 = AtomicI64::new(0);
 
     if let Some(frame) = frame.as_mut() {
         frame.set_pts(PTS.fetch_add(frame.nb_samples as i64, Ordering::Relaxed));
     }
 
-    enc_ctx.send_frame(frame.as_ref())?;
-    loop {
-        let mut packet = match enc_ctx.receive_packet() {
-            Ok(packet) => packet,
-            Err(RsmpegError::EncoderDrainError) | Err(RsmpegError::EncoderFlushedError) => {
-                break;
-            }
-            Err(e) => anyhow::bail!(e),
-        };
+    // Check for errors, but proceed with fetching encoded samples if the
+    // encoder signals that it has nothing more to encode.
+    match enc_ctx.send_frame(frame.as_ref()) {
+        Err(err) if err.raw_error().is_some_and(|err| err == ffi::AVERROR_EOF) => (),
+        r => r?,
+    };
 
-        fmt_ctx_out
+    match enc_ctx.receive_packet() {
+        Ok(mut packet) => output_fmt_ctx
             .write_frame(&mut packet)
-            .context("could not write frame")?;
+            .context("could not write frame")
+            .map(|()| true),
+        Err(RsmpegError::EncoderDrainError) | Err(RsmpegError::EncoderFlushedError) => Ok(false),
+        Err(err) => anyhow::bail!(err),
     }
-    Ok(())
 }
 
 fn load_encode_and_write(
     fifo: &mut AVAudioFifo,
-    fmt_ctx_out: &mut AVFormatContextOutput,
+    output_fmt_ctx: &mut AVFormatContextOutput,
     enc_ctx: &mut AVCodecContext,
 ) -> Result<()> {
     let frame_size = fifo.size().min(enc_ctx.frame_size);
@@ -183,27 +181,30 @@ fn load_encode_and_write(
     let mut frame = init_output_frame(
         frame_size,
         enc_ctx.ch_layout().clone().into_inner(),
-        enc_ctx.sample_fmt,
-        enc_ctx.sample_rate,
+        enc_ctx,
     )?;
+
     if unsafe { fifo.read(frame.data_mut().as_mut_ptr(), frame_size)? } < frame_size {
-        anyhow::bail!("Could not read data from FIFO");
+        anyhow::bail!(OSError::InvalidParameter(
+            "could not read data from FIFO".into()
+        ));
     }
-    encode_audio_frame(Some(frame), fmt_ctx_out, enc_ctx)?;
+    encode_audio_frame(Some(frame), output_fmt_ctx, enc_ctx)?;
 
     Ok(())
 }
 
 pub fn transcode(input_path: &CStr, output_path: &CStr, output_bit_rate: i64) -> Result<()> {
-    let (mut fmt_ctx_in, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
-    let (mut fmt_ctx_out, mut enc_ctx) = open_output_file(output_path, &dec_ctx, output_bit_rate)?;
-    let mut resample_context = init_resampler(&mut dec_ctx, &mut enc_ctx)?;
+    let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
+    let (mut output_fmt_ctx, mut enc_ctx) =
+        open_output_file(output_path, &dec_ctx, output_bit_rate)?;
+    let mut resample_context = init_resampler(&dec_ctx, &enc_ctx)?;
 
     // Initialize the FIFO buffer to store audio samples to be encoded.
     let mut fifo = AVAudioFifo::new(enc_ctx.sample_fmt, enc_ctx.ch_layout.nb_channels, 1);
 
     // Write the header of the output file container.
-    fmt_ctx_out
+    output_fmt_ctx
         .write_header(&mut None)
         .context("could not write output file header")?;
 
@@ -212,76 +213,92 @@ pub fn transcode(input_path: &CStr, output_path: &CStr, output_bit_rate: i64) ->
     loop {
         let output_frame_size = enc_ctx.frame_size;
 
-        loop {
-            // We get enough audio samples.
+        let finished = loop {
+            // We have enough data to encode
             if fifo.size() >= output_frame_size {
-                break;
+                break false;
             }
 
-            // Break when no more input packets.
-            let packet = match fmt_ctx_in
-                .read_packet()
-                .context("could not read input frame")?
-            {
-                Some(x) => x,
-                None => break,
+            // read_decode_convert_and_store
+
+            let packet = match input_fmt_ctx.read_packet() {
+                Err(err) if err.raw_error().is_some_and(|err| err == ffi::AVERROR_EOF) => None,
+                r => r.context("could not read input frame")?,
             };
 
             // Ignore non audio stream packets.
-            if packet.stream_index as usize != audio_idx {
+            if packet
+                .as_ref()
+                .is_some_and(|p| p.stream_index as usize != audio_idx)
+            {
                 continue;
             }
 
             dec_ctx
-                .send_packet(Some(&packet))
+                .send_packet(packet.as_ref())
                 .context("could not send packet for decoding")?;
 
-            loop {
-                let frame = match dec_ctx.receive_frame() {
-                    Ok(frame) => frame,
-                    Err(RsmpegError::DecoderDrainError) | Err(RsmpegError::DecoderFlushedError) => {
-                        break;
-                    }
-                    Err(e) => anyhow::bail!(e),
-                };
-
-                let mut output_samples = AVSamples::new(
-                    enc_ctx.ch_layout.nb_channels,
-                    frame.nb_samples,
-                    enc_ctx.sample_fmt,
-                    0,
-                )
-                .context("could not create samples buffer")?;
-
-                unsafe {
-                    resample_context
-                        .convert(
-                            output_samples.audio_data.as_mut_ptr(),
-                            output_samples.nb_samples,
-                            frame.extended_data as *const _,
-                            frame.nb_samples,
-                        )
-                        .context("could not convert input samples")?;
-                }
-
-                add_samples_to_fifo(&mut fifo, &output_samples, frame.nb_samples)?;
+            // If packet is none, it means that we are at EOF.
+            // It is the same as setting `finished` in the original example.
+            // The decoder is flush as above.
+            if packet.is_none() {
+                break true;
             }
-        }
 
-        // If we still cannot get enough samples, break.
-        if fifo.size() < output_frame_size {
-            break;
-        }
+            let input_frame = match dec_ctx.receive_frame() {
+                // `data_present` set to 1.
+                Ok(frame) => frame,
+                // There is nothing to read anymore.
+                // Breaking here is the same as setting `data_present` to 0 in the original example.
+                Err(RsmpegError::DecoderDrainError) => {
+                    break false;
+                }
+                // Reaching EOF. Stop decoding
+                Err(RsmpegError::DecoderFlushedError) => {
+                    break true;
+                }
+                Err(e) => anyhow::bail!(e),
+            };
+
+            let mut output_samples = AVSamples::new(
+                enc_ctx.ch_layout.nb_channels,
+                input_frame.nb_samples,
+                enc_ctx.sample_fmt,
+                0,
+            )
+            .context("could not create samples buffer")?;
+
+            unsafe {
+                resample_context
+                    .convert(
+                        output_samples.audio_data.as_mut_ptr(),
+                        output_samples.nb_samples,
+                        input_frame.extended_data as *const _,
+                        input_frame.nb_samples,
+                    )
+                    .context("could not convert input samples")?;
+            }
+
+            add_samples_to_fifo(&mut fifo, &output_samples, input_frame.nb_samples)?;
+        };
 
         // Write frame as much as possible.
-        while fifo.size() >= output_frame_size {
-            load_encode_and_write(&mut fifo, &mut fmt_ctx_out, &mut enc_ctx)?;
+        while (fifo.size() >= output_frame_size) || (finished && fifo.size() > 0) {
+            load_encode_and_write(&mut fifo, &mut output_fmt_ctx, &mut enc_ctx)?;
+        }
+
+        if finished {
+            // Flush the encoder as it may have delayed frames.
+            loop {
+                if !encode_audio_frame(None, &mut output_fmt_ctx, &mut enc_ctx)? {
+                    break;
+                }
+            }
+            break;
         }
     }
 
-    // Flush encode context
-    encode_audio_frame(None, &mut fmt_ctx_out, &mut enc_ctx)?;
-    fmt_ctx_out.write_trailer()?;
+    output_fmt_ctx.write_trailer()?;
 
     Ok(())
 }
