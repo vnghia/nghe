@@ -5,7 +5,26 @@ rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 [target.'cfg(target_env = "musl")']
 rustflags = ["-C", "target-feature=+crt-static"]
 
-#TODO: support more targets after https://github.com/rust-lang/cargo/issues/10273
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+  "-C",
+  "target-feature=+crt-static",
+  "-C",
+  "link-arg=Mfplat.lib",
+  "-C",
+  "link-arg=Strmiids.lib",
+  "-C",
+  "link-arg=Mfuuid.lib",
+  "-C",
+  "link-arg=Bcrypt.lib",
+  "-C",
+  "link-arg=Secur32.lib",
+  "-C",
+  "link-arg=Ole32.lib",
+  "-C",
+  "link-arg=User32.lib",
+]
+
 [env]
 VCPKG_ROOT = { value = "target/vcpkg", relative = true }
 PKG_CONFIG_ALLOW_CROSS = { value = "true" }
@@ -19,4 +38,5 @@ PKG_CONFIG_PATH_aarch64-unknown-linux-musl = { value = "target/vcpkg/installed/a
 PKG_CONFIG_PATH_x86_64-apple-darwin = { value = "target/vcpkg/installed/x64-osx-release/lib/pkgconfig", relative = true }
 PKG_CONFIG_PATH_aarch64-apple-darwin = { value = "target/vcpkg/installed/arm64-osx-release/lib/pkgconfig", relative = true }
 
-PKG_CONFIG_PATH_x86_64-pc-windows-msvc = { value = "target\\vcpkg\\installed\\x64-windows-release\\lib\\pkgconfig", relative = true }
+# Only Windows uses vcpkg linking.
+VCPKGRS_TRIPLET = { value = "x64-windows-static-release" }
