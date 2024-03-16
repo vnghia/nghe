@@ -46,7 +46,7 @@ jobs:
       - name: Install mold
         uses: rui314/setup-mold@v1
       - name: Install gstreamer build deps
-        run: sudo apt-get --assume-yes install nasm flex bison
+        run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
