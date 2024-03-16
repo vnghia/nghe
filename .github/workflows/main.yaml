@@ -64,6 +64,8 @@ jobs:
       - name: Setup arm64 environment
         run: |
           sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo ln -s ${{ github.workspace }}/vcpkg/aarch64-linux-gnu-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
+          aarch64-linux-gnu-pkg-config --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
 
       - name: Setup x64 musl environment
@@ -79,6 +81,8 @@ jobs:
           sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc /usr/bin/aarch64-linux-gnu-gcc
           aarch64-linux-gnu-gcc --version
           aarch64-linux-gnu-g++ --version
+          sudo ln -s ${{ github.workspace }}/vcpkg/aarch64-linux-gnu-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
+          aarch64-linux-gnu-pkg-config --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
 
       - name: Install gstreamer build deps
