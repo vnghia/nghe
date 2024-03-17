@@ -3,13 +3,16 @@ use concat_string::concat_string;
 use rsmpeg::{
     avcodec::{AVCodec, AVCodecContext},
     avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut},
-    avformat::{AVFormatContextInput, AVFormatContextOutput},
-    avutil::{get_sample_fmt_name, ra, AVFrame},
+    avformat::{
+        AVFormatContextInput, AVFormatContextOutput, AVIOContextContainer, AVIOContextCustom,
+    },
+    avutil::{get_sample_fmt_name, ra, AVFrame, AVMem},
     error::RsmpegError,
     ffi,
 };
 use std::{
     ffi::{CStr, CString},
+    io::Write,
     sync::atomic::{AtomicI64, Ordering},
 };
 
@@ -35,13 +38,28 @@ fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext,
     Ok((input_fmt_ctx, dec_ctx, audio_idx))
 }
 
+fn make_output_io_context(buffer_size: usize) -> AVIOContextContainer {
+    AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
+        AVMem::new(buffer_size),
+        true,
+        vec![],
+        None,
+        Some(Box::new(|buf, data| match buf.write_all(data) {
+            Ok(()) => data.len() as i32,
+            Err(_) => ffi::AVERROR_EXTERNAL,
+        })),
+        None,
+    ))
+}
+
 fn open_output_file(
     path: &CStr,
     dec_ctx: &AVCodecContext,
     output_bitrate: i64,
+    io_ctx: Option<AVIOContextContainer>,
 ) -> Result<(AVFormatContextOutput, AVCodecContext)> {
     let mut output_fmt_ctx =
-        AVFormatContextOutput::create(path, None).context("could not open output file")?;
+        AVFormatContextOutput::create(path, io_ctx).context("could not open output file")?;
 
     let enc_codec = AVCodec::find_encoder(output_fmt_ctx.oformat().audio_codec)
         .context("could not find output codec")?;
@@ -209,15 +227,16 @@ fn flush_encoder(
     }
 }
 
-pub fn transcode(
+fn transcode_with_io_context(
     input_path: &CStr,
     output_path: &CStr,
     output_bit_rate: i64,
     output_time_offset: Option<u32>,
-) -> Result<()> {
+    io_ctx: Option<AVIOContextContainer>,
+) -> Result<AVFormatContextOutput> {
     let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
     let (mut output_fmt_ctx, mut enc_ctx) =
-        open_output_file(output_path, &dec_ctx, output_bit_rate)?;
+        open_output_file(output_path, &dec_ctx, output_bit_rate, io_ctx)?;
 
     let mut filter_specs = vec![];
     if let Some(output_time_offset) = output_time_offset {
@@ -300,9 +319,33 @@ pub fn transcode(
     .context("can not flush the filter")?;
     flush_encoder(&mut enc_ctx, &mut output_fmt_ctx).context("can not flush the encoder")?;
 
-    output_fmt_ctx.write_trailer()?;
+    Ok(output_fmt_ctx)
+}
 
-    Ok(())
+pub fn transcode(
+    input_path: &CStr,
+    output_path: &CStr,
+    output_bit_rate: i64,
+    output_time_offset: Option<u32>,
+) -> Result<Vec<u8>> {
+    transcode_with_io_context(
+        input_path,
+        output_path,
+        output_bit_rate,
+        output_time_offset,
+        Some(make_output_io_context(32 * 1024)),
+    )
+    .map(|mut output_fmt_ctx| {
+        if let Some(ref mut io_ctx) = output_fmt_ctx.io_context {
+            if let AVIOContextContainer::Custom(ref mut io_ctx) = io_ctx {
+                io_ctx.take_data()
+            } else {
+                unreachable!("it is impossible to have a default io context!");
+            }
+        } else {
+            unreachable!("it is impossible to have a none io context!");
+        }
+    })
 }
 
 #[cfg(test)]
