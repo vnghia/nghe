@@ -1,5 +1,7 @@
-use super::utils::get_song_absolute_path;
-use crate::{Database, DatabasePool, ServerError};
+use super::utils::get_song_download_info;
+use crate::{
+    open_subsonic::common::binary_response::BinaryResponse, Database, DatabasePool, ServerError,
+};
 
 use anyhow::Result;
 use axum::extract::State;
@@ -12,17 +14,16 @@ pub struct DownloadParams {
     id: Uuid,
 }
 
-pub async fn download(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<Vec<u8>> {
-    let song_absolute_path = get_song_absolute_path(pool, user_id, song_id).await?;
-    tokio::fs::read(song_absolute_path)
-        .await
-        .map_err(anyhow::Error::from)
+pub async fn download(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<BinaryResponse> {
+    let (absolute_path, format) = get_song_download_info(pool, user_id, song_id).await?;
+    let data = tokio::fs::read(absolute_path).await?;
+    Ok(BinaryResponse { format, data })
 }
 
 pub async fn download_handler(
     State(database): State<Database>,
     req: DownloadRequest,
-) -> Result<Vec<u8>, ServerError> {
+) -> Result<BinaryResponse, ServerError> {
     download(&database.pool, req.user.id, req.params.id)
         .await
         .map_err(ServerError)

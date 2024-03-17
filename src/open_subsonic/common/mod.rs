@@ -1,3 +1,4 @@
+pub mod binary_response;
 pub mod constant;
 pub mod error;
 pub mod id3;
