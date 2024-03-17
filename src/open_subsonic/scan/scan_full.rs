@@ -69,7 +69,7 @@ pub async fn scan_full(
 
             let song_information = SongInformation::read_from(
                 &mut Cursor::new(&song_data),
-                &FileType::from_path(&song_absolute_path).ok_or_else(|| {
+                FileType::from_path(&song_absolute_path).ok_or_else(|| {
                     OSError::InvalidParameter(
                         concat_string::concat_string!(
                             "File type of ",

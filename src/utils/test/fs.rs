@@ -225,7 +225,7 @@ fn test_roundtrip_media_file() {
         );
         let read_song_tag = SongInformation::read_from(
             &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
-            &file_type,
+            file_type,
             &fs.parsing_config,
         )
         .unwrap()
@@ -258,7 +258,7 @@ fn test_roundtrip_media_file_none_value() {
         );
         let read_song_tag = SongInformation::read_from(
             &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
-            &file_type,
+            file_type,
             &fs.parsing_config,
         )
         .unwrap()

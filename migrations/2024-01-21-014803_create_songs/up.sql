@@ -20,6 +20,7 @@ create table
     original_release_day smallint default null,
     languages text[] not null default array[]::text[] check (array_position(languages, null) is null),
     -- Song property
+    format text not null,
     duration integer not null,
     bitrate integer not null,
     sample_rate integer not null,
@@ -32,6 +33,7 @@ create table
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     scanned_at timestamptz not null default now(),
+    -- Constraints
     constraint songs_album_id_fkey foreign key (album_id) references albums (id) on delete cascade,
     constraint songs_music_folder_id_relative_path_key unique (music_folder_id, relative_path),
     constraint songs_music_folder_id_fkey foreign key (music_folder_id) references music_folders (id) on delete cascade,

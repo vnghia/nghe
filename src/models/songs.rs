@@ -27,6 +27,7 @@ pub struct SongUpdateInformationDB<'a> {
     pub original_release_day: Option<i16>,
     pub languages: Vec<&'static str>,
     // Song property
+    pub format: Cow<'a, str>,
     pub duration: i32,
     pub bitrate: i32,
     pub sample_rate: i32,
