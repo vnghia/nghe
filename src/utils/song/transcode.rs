@@ -55,7 +55,7 @@ fn make_output_io_context(buffer_size: usize) -> AVIOContextContainer {
 fn open_output_file(
     path: &CStr,
     dec_ctx: &AVCodecContext,
-    output_bitrate: i64,
+    output_bitrate: u32,
     io_ctx: Option<AVIOContextContainer>,
 ) -> Result<(AVFormatContextOutput, AVCodecContext)> {
     let mut output_fmt_ctx =
@@ -77,7 +77,7 @@ fn open_output_file(
             .ok_or_else(|| OSError::NotFound("could not get sample formats".into()))?[0],
     );
     enc_ctx.set_sample_rate(output_sample_rate);
-    enc_ctx.set_bit_rate(output_bitrate);
+    enc_ctx.set_bit_rate(output_bitrate as i64);
     enc_ctx.set_time_base(ra(1, output_sample_rate));
     // Some container formats (like MP4) require global headers to be present.
     // Mark the encoder so that it behaves accordingly.
@@ -230,7 +230,7 @@ fn flush_encoder(
 fn transcode_with_io_context(
     input_path: &CStr,
     output_path: &CStr,
-    output_bit_rate: i64,
+    output_bit_rate: u32,
     output_time_offset: Option<u32>,
     io_ctx: Option<AVIOContextContainer>,
 ) -> Result<AVFormatContextOutput> {
@@ -325,7 +325,7 @@ fn transcode_with_io_context(
 pub fn transcode(
     input_path: &CStr,
     output_path: &CStr,
-    output_bit_rate: i64,
+    output_bit_rate: u32,
     output_time_offset: Option<u32>,
 ) -> Result<Vec<u8>> {
     transcode_with_io_context(
@@ -361,7 +361,7 @@ mod tests {
     use std::{ffi::CString, path::Path};
 
     const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
-    const OUTPUT_BITRATE: &[i64] = &[32000, 64000, 128000, 192000, 320000];
+    const OUTPUT_BITRATE: &[u32] = &[32000, 64000, 128000, 192000, 320000];
     const OUTPUT_TIME_OFFSETS: &[Option<u32>] = &[None, Some(5), Some(u32::MAX)];
 
     fn path_to_cstring<P: AsRef<Path>>(path: P) -> CString {
