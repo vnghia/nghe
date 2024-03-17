@@ -59,25 +59,23 @@ async fn get_indexed_artists(
         .map_err(anyhow::Error::from)
 }
 
-pub async fn get_artists_handler(
-    State(database): State<Database>,
-    req: GetArtistsRequest,
-) -> GetArtistsJsonResponse {
-    let music_folder_ids = check_user_music_folder_ids(
-        &database.pool,
-        &req.user.id,
-        req.params.music_folder_id.map(|m| vec![m].into()),
-    )
-    .await?;
+async fn get_artists(
+    pool: &DatabasePool,
+    user_id: Uuid,
+    music_folder_id: Option<Uuid>,
+) -> Result<Indices> {
+    let music_folder_ids =
+        check_user_music_folder_ids(pool, &user_id, music_folder_id.map(|m| vec![m].into()))
+            .await?;
 
     let ignored_articles = configs::table
         .select(configs::text)
         .filter(configs::key.eq(ArtistIndexConfig::IGNORED_ARTICLES_CONFIG_KEY))
-        .first::<Option<String>>(&mut database.pool.get().await?)
+        .first::<Option<String>>(&mut pool.get().await?)
         .await?
         .ok_or_else(|| OSError::NotFound("Ignored articles".into()))?;
 
-    let index = get_indexed_artists(&database.pool, &music_folder_ids)
+    let index = get_indexed_artists(pool, &music_folder_ids)
         .await?
         .into_iter()
         .into_group_map()
@@ -85,11 +83,18 @@ pub async fn get_artists_handler(
         .map(|(k, v)| Index { name: k, artist: v })
         .collect_vec();
 
+    Ok(Indices {
+        ignored_articles,
+        index,
+    })
+}
+
+pub async fn get_artists_handler(
+    State(database): State<Database>,
+    req: GetArtistsRequest,
+) -> GetArtistsJsonResponse {
     GetArtistsBody {
-        artists: Indices {
-            ignored_articles,
-            index,
-        },
+        artists: get_artists(&database.pool, req.user.id, req.params.music_folder_id).await?,
     }
     .into()
 }
