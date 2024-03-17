@@ -12,7 +12,7 @@ use nghe::config::Config;
 use nghe::open_subsonic::{
     browsing,
     browsing::{refresh_music_folders, refresh_permissions},
-    scan, system, user,
+    media_retrieval, scan, system, user,
 };
 use nghe::Database;
 
@@ -87,6 +87,8 @@ fn app(database: Database) -> Router {
         .merge(browsing::router())
         // user
         .merge(user::router())
+        // media retrieval
+        .merge(media_retrieval::router())
         // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(database)
