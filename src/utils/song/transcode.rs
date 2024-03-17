@@ -209,21 +209,32 @@ fn flush_encoder(
     }
 }
 
-pub fn transcode(input_path: &CStr, output_path: &CStr, output_bit_rate: i64) -> Result<()> {
+pub fn transcode(
+    input_path: &CStr,
+    output_path: &CStr,
+    output_bit_rate: i64,
+    output_time_offset: Option<u32>,
+) -> Result<()> {
     let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
     let (mut output_fmt_ctx, mut enc_ctx) =
         open_output_file(output_path, &dec_ctx, output_bit_rate)?;
 
-    let output_frame_size = enc_ctx.frame_size;
-    let filter_spec = if output_frame_size == 0 {
-        "aresample=resampler=soxr".to_owned()
-    } else {
-        concat_string!(
-            "aresample=resampler=soxr,asetnsamples=n=",
-            output_frame_size.to_string(),
+    let mut filter_specs = vec![];
+    if let Some(output_time_offset) = output_time_offset {
+        filter_specs.push(concat_string!(
+            "atrim=start=",
+            output_time_offset.to_string()
+        ));
+    }
+    filter_specs.push("aresample=resampler=soxr".to_owned());
+    if enc_ctx.frame_size > 0 {
+        filter_specs.push(concat_string!(
+            "asetnsamples=n=",
+            enc_ctx.frame_size.to_string(),
             ":p=0"
-        )
-    };
+        ))
+    }
+    let filter_spec = filter_specs.join(",");
 
     let mut filter_graph = AVFilterGraph::new();
     let (mut src_ctx, mut sink_ctx) = init_filter(
@@ -307,7 +318,8 @@ mod tests {
     use std::{ffi::CString, path::Path};
 
     const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
-    const OUTPUT_BITRATE: &[i64] = &[32000, 64000, 96000, 128000, 160000, 192000, 256000, 320000];
+    const OUTPUT_BITRATE: &[i64] = &[32000, 64000, 128000, 192000, 320000];
+    const OUTPUT_TIME_OFFSETS: &[Option<u32>] = &[None, Some(5), Some(u32::MAX)];
 
     fn path_to_cstring<P: AsRef<Path>>(path: P) -> CString {
         CString::new(path.as_ref().to_str().unwrap()).unwrap()
@@ -324,13 +336,21 @@ mod tests {
         for file_type in SONG_FILE_TYPES {
             let media_path = get_media_asset_cstring(&file_type);
             for output_extension in OUTPUT_EXTENSIONS {
-                let output_path = path_to_cstring(
-                    fs.root_path()
-                        .join(Faker.fake::<String>())
-                        .with_extension(output_extension),
-                );
                 for output_bitrate in OUTPUT_BITRATE {
-                    transcode(&media_path, &output_path, *output_bitrate).unwrap();
+                    for output_time_offset in OUTPUT_TIME_OFFSETS {
+                        let output_path = path_to_cstring(
+                            fs.root_path()
+                                .join(Faker.fake::<String>())
+                                .with_extension(output_extension),
+                        );
+                        transcode(
+                            &media_path,
+                            &output_path,
+                            *output_bitrate,
+                            *output_time_offset,
+                        )
+                        .unwrap();
+                    }
                 }
             }
         }
