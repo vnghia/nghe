@@ -67,7 +67,7 @@ diesel::table! {
         original_release_month -> Nullable<Int2>,
         original_release_day -> Nullable<Int2>,
         languages -> Array<Nullable<Text>>,
-        duration -> Float4,
+        duration -> Int4,
         bitrate -> Int4,
         sample_rate -> Int4,
         channel_count -> Int2,

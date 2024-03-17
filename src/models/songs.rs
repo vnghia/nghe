@@ -27,7 +27,7 @@ pub struct SongUpdateInformationDB<'a> {
     pub original_release_day: Option<i16>,
     pub languages: Vec<&'static str>,
     // Song property
-    pub duration: f32,
+    pub duration: i32,
     pub bitrate: i32,
     pub sample_rate: i32,
     pub channel_count: i16,
@@ -73,7 +73,7 @@ pub mod test {
         pub original_release_day: Option<i16>,
         pub languages: Vec<Option<String>>,
         // Song property
-        pub duration: f32,
+        pub duration: i32,
         // Filesystem property
         pub music_folder_id: Uuid,
         pub relative_path: String,

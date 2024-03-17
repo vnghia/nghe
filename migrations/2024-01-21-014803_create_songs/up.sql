@@ -20,7 +20,7 @@ create table
     original_release_day smallint default null,
     languages text[] not null default array[]::text[] check (array_position(languages, null) is null),
     -- Song property
-    duration real not null,
+    duration integer not null,
     bitrate integer not null,
     sample_rate integer not null,
     channel_count smallint not null,
