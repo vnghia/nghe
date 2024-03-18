@@ -8,23 +8,15 @@ pub struct BinaryResponse {
     pub data: Vec<u8>,
 }
 
-impl BinaryResponse {
-    fn get_content_type(&self) -> &'static str {
-        match self.format.as_str() {
-            "flac" => "audio/flac",
-            "mp3" => "audio/mpeg",
-            "opus" => "audio/opus",
-            "ogg" | "oga" => "audio/ogg",
-            "wav" => "audio/x-wav",
-            "aac" | "m4a" => "audio/aac",
-            _ => unreachable!("unsupported format encountered"),
-        }
-    }
-}
-
 impl IntoResponse for BinaryResponse {
     fn into_response(self) -> Response {
-        let headers = [(header::CONTENT_TYPE, self.get_content_type())];
+        let headers = [(
+            header::CONTENT_TYPE,
+            mime_guess::from_ext(&self.format)
+                .first_or_octet_stream()
+                .essence_str()
+                .to_owned(),
+        )];
         (headers, self.data).into_response()
     }
 }
