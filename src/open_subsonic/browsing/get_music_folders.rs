@@ -29,7 +29,7 @@ pub async fn get_music_folders_handler(
     let music_folders = music_folders::table
         .inner_join(user_music_folder_permissions::table)
         .select(music_folders::MusicFolder::as_select())
-        .filter(user_music_folder_permissions::user_id.eq(req.user.id))
+        .filter(user_music_folder_permissions::user_id.eq(req.user_id))
         .filter(user_music_folder_permissions::allow.eq(true))
         .load(&mut database.pool.get().await?)
         .await?;
@@ -58,7 +58,7 @@ mod tests {
         let sorted_music_folders = test_infra.music_folders.into_iter().sorted().collect_vec();
 
         for user in test_infra.users {
-            let form = GetMusicFoldersParams {}.to_validated_form(user);
+            let form = GetMusicFoldersParams {}.to_validated_form(user.id);
 
             let results = get_music_folders_handler(state.clone(), form)
                 .await
@@ -83,7 +83,7 @@ mod tests {
         let state = test_infra.state();
 
         for (i, user) in test_infra.users.into_iter().enumerate() {
-            let form = GetMusicFoldersParams {}.to_validated_form(user);
+            let form = GetMusicFoldersParams {}.to_validated_form(user.id);
 
             let results = get_music_folders_handler(state.clone(), form)
                 .await

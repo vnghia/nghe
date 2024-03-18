@@ -94,7 +94,7 @@ pub async fn get_artists_handler(
     req: GetArtistsRequest,
 ) -> GetArtistsJsonResponse {
     GetArtistsBody {
-        artists: get_artists(&database.pool, req.user.id, req.params.music_folder_id).await?,
+        artists: get_artists(&database.pool, req.user_id, req.params.music_folder_id).await?,
     }
     .into()
 }

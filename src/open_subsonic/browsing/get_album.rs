@@ -108,7 +108,7 @@ pub async fn get_album_handler(
     State(database): State<Database>,
     req: GetAlbumRequest,
 ) -> GetAlbumJsonResponse {
-    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user.id, None).await?;
+    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
 
     let (album, song_ids) =
         get_album_and_song_ids(&database.pool, &music_folder_ids, &req.params.id).await?;

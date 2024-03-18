@@ -245,10 +245,10 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             }
 
-            fn to_validated_form(self, user: crate::models::users::User) -> #validated_form_ident {
+            fn to_validated_form(self, user_id: uuid::Uuid) -> #validated_form_ident {
                 #validated_form_ident {
                     params: self,
-                    user,
+                    user_id,
                     phantom: std::marker::PhantomData,
                 }
             }

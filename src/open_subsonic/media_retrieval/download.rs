@@ -24,7 +24,7 @@ pub async fn download_handler(
     State(database): State<Database>,
     req: DownloadRequest,
 ) -> Result<BinaryResponse, ServerError> {
-    download(&database.pool, req.user.id, req.params.id)
+    download(&database.pool, req.user_id, req.params.id)
         .await
         .map_err(ServerError)
 }

@@ -60,7 +60,7 @@ pub async fn get_song_handler(
     State(database): State<Database>,
     req: GetSongRequest,
 ) -> GetSongJsonResponse {
-    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user.id, None).await?;
+    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
 
     GetSongBody {
         song: get_song(&database.pool, &music_folder_ids, &req.params.id).await?,

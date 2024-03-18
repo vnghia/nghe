@@ -7,11 +7,12 @@ use anyhow::Result;
 use axum::extract::{FromRef, FromRequest, Request};
 use axum_extra::extract::Form;
 use derivative::Derivative;
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_with::serde_as;
 use std::marker::PhantomData;
+use uuid::Uuid;
 
 #[serde_as]
 #[derive(Derivative, Deserialize)]
@@ -35,37 +36,34 @@ pub trait Validate<P> {
     fn common(&self) -> &CommonParams;
     fn params(self) -> P;
 
-    async fn validate<const A: bool>(
-        &self,
-        Database { pool, key }: &Database,
-    ) -> Result<users::User> {
+    async fn validate<const A: bool>(&self, Database { pool, key }: &Database) -> Result<Uuid> {
         let common_params = self.common();
-        let user = match users::table
+        let (user_id, user_password, user_is_admin) = match users::table
             .filter(users::username.eq(&common_params.username))
-            .select(users::User::as_select())
-            .first(&mut pool.get().await?)
+            .select((users::id, users::password, users::admin_role))
+            .first::<(Uuid, Vec<u8>, bool)>(&mut pool.get().await?)
             .await
         {
-            Ok(user) => user,
+            Ok(res) => res,
             _ => anyhow::bail!(OSError::Unauthorized),
         };
 
         check_password(
-            &decrypt_password(key, &user.password)?,
+            &decrypt_password(key, &user_password)?,
             &common_params.salt,
             &common_params.token,
         )?;
-        if A && !user.admin_role {
+        if A && !user_is_admin {
             anyhow::bail!(OSError::Forbidden("access admin endpoint".into()));
         }
-        Ok(user)
+        Ok(user_id)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedForm<R, P, const A: bool> {
     pub params: P,
-    pub user: users::User,
+    pub user_id: Uuid,
     pub phantom: PhantomData<R>,
 }
 
@@ -83,10 +81,10 @@ where
             .await
             .map_err(std::convert::Into::<OSError>::into)?;
         let database = Database::from_ref(state);
-        let user = request_params.validate::<A>(&database).await?;
+        let user_id = request_params.validate::<A>(&database).await?;
         Ok(ValidatedForm {
             params: request_params.params(),
-            user,
+            user_id,
             phantom: PhantomData,
         })
     }

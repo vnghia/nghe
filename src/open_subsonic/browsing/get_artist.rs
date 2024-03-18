@@ -93,7 +93,7 @@ pub async fn get_artist_handler(
     State(database): State<Database>,
     req: GetArtistRequest,
 ) -> GetArtistJsonResponse {
-    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user.id, None).await?;
+    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
 
     let (artist, album_ids) =
         get_artist_and_album_ids(&database.pool, &music_folder_ids, &req.params.id).await?;

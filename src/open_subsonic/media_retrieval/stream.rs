@@ -55,7 +55,7 @@ pub async fn stream_handler(
     State(database): State<Database>,
     req: StreamRequest,
 ) -> Result<BinaryResponse, ServerError> {
-    stream(&database.pool, req.user.id, req.params)
+    stream(&database.pool, req.user_id, req.params)
         .await
         .map_err(ServerError)
 }
