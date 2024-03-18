@@ -1,22 +1,24 @@
-use axum::{
-    http::header,
-    response::{IntoResponse, Response},
-};
+use std::convert::Infallible;
 
-pub struct BinaryResponse {
-    pub format: String,
-    pub data: Vec<u8>,
+use futures::StreamExt;
+use tokio::sync::mpsc::Receiver;
+use tokio_stream::wrappers::ReceiverStream;
+
+pub struct StreamResponse(pub ReceiverStream<Vec<u8>>);
+
+impl StreamResponse {
+    pub fn new(rx: Receiver<Vec<u8>>) -> Self {
+        Self(ReceiverStream::new(rx))
+    }
 }
 
-impl IntoResponse for BinaryResponse {
-    fn into_response(self) -> Response {
-        let headers = [(
-            header::CONTENT_TYPE,
-            mime_guess::from_ext(&self.format)
-                .first_or_octet_stream()
-                .essence_str()
-                .to_owned(),
-        )];
-        (headers, self.data).into_response()
+impl futures::Stream for StreamResponse {
+    type Item = Result<Vec<u8>, Infallible>;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        self.0.poll_next_unpin(cx).map(|t| t.map(Ok))
     }
 }

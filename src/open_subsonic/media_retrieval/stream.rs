@@ -1,15 +1,13 @@
-use std::ffi::CString;
-
 use super::{download::download, utils::get_song_stream_info, ServeMusicFolders};
 use crate::{
-    open_subsonic::common::binary_response::BinaryResponse, utils::song::transcode, Database,
-    DatabasePool, ServerError,
+    open_subsonic::StreamResponse, utils::song::transcode, Database, DatabasePool, ServerError,
 };
 
 use anyhow::Result;
-use axum::{extract::State, response::IntoResponse, Extension};
+use axum::{body::Body, extract::State, http::header, response::IntoResponse, Extension};
 use concat_string::concat_string;
 use nghe_proc_macros::add_validate;
+use std::ffi::CString;
 use uuid::Uuid;
 
 #[add_validate]
@@ -41,17 +39,30 @@ async fn stream(
     // ffmpeg requires a filename with extension
     let output_path = concat_string!("output.", format);
 
-    let data = tokio::task::spawn_blocking(move || {
+    let (tx, rx) = tokio::sync::mpsc::channel(1);
+
+    tokio::task::spawn_blocking(move || {
         transcode(
             &CString::new(absolute_path.to_str().expect("non utf-8 path encountered")).unwrap(),
             &CString::new(output_path).unwrap(),
             max_bit_rate,
             params.time_offset,
+            tx,
         )
-    })
-    .await??;
+    });
+    tracing::debug!("spawned a new task for transcoding");
 
-    Ok(BinaryResponse { format, data }.into_response())
+    Ok((
+        [(
+            header::CONTENT_TYPE,
+            mime_guess::from_ext(&format)
+                .first_or_octet_stream()
+                .essence_str()
+                .to_owned(),
+        )],
+        Body::from_stream(StreamResponse::new(rx)),
+    )
+        .into_response())
 }
 
 pub async fn stream_handler(

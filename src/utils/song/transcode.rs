@@ -12,9 +12,9 @@ use rsmpeg::{
 };
 use std::{
     ffi::{CStr, CString},
-    io::Write,
     sync::atomic::{AtomicI64, Ordering},
 };
+use tokio::sync::mpsc::Sender;
 
 use crate::OSError;
 
@@ -38,15 +38,17 @@ fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext,
     Ok((input_fmt_ctx, dec_ctx, audio_idx))
 }
 
-fn make_output_io_context(buffer_size: usize) -> AVIOContextContainer {
+fn make_output_io_context(buffer_size: usize, tx: Sender<Vec<u8>>) -> AVIOContextContainer {
     AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
         AVMem::new(buffer_size),
         true,
         vec![],
         None,
-        Some(Box::new(|buf, data| match buf.write_all(data) {
-            Ok(()) => data.len() as i32,
-            Err(_) => ffi::AVERROR_EXTERNAL,
+        Some(Box::new(move |_, data| {
+            match tx.blocking_send(data.to_vec()) {
+                Ok(()) => data.len() as i32,
+                Err(_) => ffi::AVERROR_EXTERNAL,
+            }
         })),
         None,
     ))
@@ -233,7 +235,7 @@ fn transcode_with_io_context(
     output_bit_rate: u32,
     output_time_offset: Option<u32>,
     io_ctx: Option<AVIOContextContainer>,
-) -> Result<AVFormatContextOutput> {
+) -> Result<()> {
     let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
     let (mut output_fmt_ctx, mut enc_ctx) =
         open_output_file(output_path, &dec_ctx, output_bit_rate, io_ctx)?;
@@ -319,7 +321,7 @@ fn transcode_with_io_context(
     .context("can not flush the filter")?;
     flush_encoder(&mut enc_ctx, &mut output_fmt_ctx).context("can not flush the encoder")?;
 
-    Ok(output_fmt_ctx)
+    Ok(())
 }
 
 pub fn transcode(
@@ -327,25 +329,17 @@ pub fn transcode(
     output_path: &CStr,
     output_bit_rate: u32,
     output_time_offset: Option<u32>,
-) -> Result<Vec<u8>> {
-    transcode_with_io_context(
+    tx: Sender<Vec<u8>>,
+) {
+    if let Err(err) = transcode_with_io_context(
         input_path,
         output_path,
         output_bit_rate,
         output_time_offset,
-        Some(make_output_io_context(32 * 1024)),
-    )
-    .map(|mut output_fmt_ctx| {
-        if let Some(ref mut io_ctx) = output_fmt_ctx.io_context {
-            if let AVIOContextContainer::Custom(ref mut io_ctx) = io_ctx {
-                io_ctx.take_data()
-            } else {
-                unreachable!("it is impossible to have a default io context!");
-            }
-        } else {
-            unreachable!("it is impossible to have a none io context!");
-        }
-    })
+        Some(make_output_io_context(32 * 1024, tx)),
+    ) {
+        tracing::error!("error while transcoding {}", err);
+    }
 }
 
 #[cfg(test)]
@@ -372,6 +366,35 @@ mod tests {
         path_to_cstring(get_media_asset_path(file_type))
     }
 
+    fn wrap_transcode(
+        input_path: &CStr,
+        output_path: &CStr,
+        output_bit_rate: u32,
+        output_time_offset: Option<u32>,
+    ) -> Vec<u8> {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
+        let input_path = input_path.to_owned();
+        let output_path = output_path.to_owned();
+
+        let transcode_thread = std::thread::spawn(move || {
+            transcode_with_io_context(
+                &input_path,
+                &output_path,
+                output_bit_rate,
+                output_time_offset,
+                Some(make_output_io_context(32 * 1024, tx)),
+            )
+        });
+
+        let mut result = vec![];
+        while let Some(r) = rx.blocking_recv() {
+            result.extend_from_slice(&r);
+        }
+
+        transcode_thread.join().unwrap().unwrap();
+        result
+    }
+
     #[test]
     fn test_transcode() {
         let fs = TemporaryFs::new();
@@ -386,13 +409,12 @@ mod tests {
                                 .join(Faker.fake::<String>())
                                 .with_extension(output_extension),
                         );
-                        transcode(
+                        wrap_transcode(
                             &media_path,
                             &output_path,
                             *output_bitrate,
                             *output_time_offset,
-                        )
-                        .unwrap();
+                        );
                     }
                 }
             }
