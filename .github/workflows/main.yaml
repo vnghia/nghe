@@ -143,9 +143,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       # GNU
-      - name: Extract metadata for Docker GNU
+      - name: Extract metadata for Docker gnu
         id: meta-gnu
         uses: docker/metadata-action@v5
         with:
@@ -154,7 +156,7 @@ jobs:
           tags: |
             type=ref,event=pr
             type=raw,value=develop,enable={{is_default_branch}}
-      - name: Build and push GNU
+      - name: Build and push gnu
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -163,6 +165,26 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta-gnu.outputs.tags }}
+
+      # Musl
+      - name: Extract metadata for Docker musl
+        id: meta-musl
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository }}-musl
+          tags: |
+            type=ref,event=pr
+            type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push musl
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: BASE_IMAGE=alpine:3.19.1,TARGET_ENV=musl
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta-musl.outputs.tags }}
 
   # build-windows:
   #   runs-on: windows-latest
