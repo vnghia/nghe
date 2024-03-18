@@ -84,7 +84,7 @@ async fn get_album_and_song_ids(
         .ok_or_else(|| OSError::NotFound("Album".into()).into())
 }
 
-async fn get_basic_songs(
+pub async fn get_basic_songs(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     song_ids: &[Uuid],
