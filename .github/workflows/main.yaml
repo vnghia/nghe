@@ -19,13 +19,13 @@ jobs:
         platform:
           - target: x86_64-unknown-linux-gnu
             command: cargo
-          - target: aarch64-unknown-linux-gnu
-            command: cross
-          # TODO: enable x86_64 musl
-          # - target: x86_64-unknown-linux-musl
+          # - target: aarch64-unknown-linux-gnu
           #   command: cross
-          - target: aarch64-unknown-linux-musl
-            command: cross
+          # # TODO: enable x86_64 musl
+          # # - target: x86_64-unknown-linux-musl
+          # #   command: cross
+          # - target: aarch64-unknown-linux-musl
+          #   command: cross
 
     runs-on: ubuntu-latest
 
@@ -122,7 +122,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.target.outputs.docker-arch }}-${{ steps.target.outputs.env }}
-          path: target/${{ matrix.platform.target }}/nghe
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/nghe
           retention-days: 1
 
   # build-windows:
