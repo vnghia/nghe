@@ -16,7 +16,8 @@ use uuid::Uuid;
 #[add_validate]
 #[derive(Debug)]
 pub struct GetArtistsParams {
-    music_folder_id: Option<Uuid>,
+    #[serde(rename = "musicFolderId")]
+    music_folder_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Serialize)]
@@ -62,11 +63,10 @@ async fn get_indexed_artists(
 async fn get_artists(
     pool: &DatabasePool,
     user_id: Uuid,
-    music_folder_id: Option<Uuid>,
+    music_folder_ids: Option<Vec<Uuid>>,
 ) -> Result<Indices> {
     let music_folder_ids =
-        check_user_music_folder_ids(pool, &user_id, music_folder_id.map(|m| vec![m].into()))
-            .await?;
+        check_user_music_folder_ids(pool, &user_id, music_folder_ids.map(|v| v.into())).await?;
 
     let ignored_articles = configs::table
         .select(configs::text)
@@ -94,7 +94,7 @@ pub async fn get_artists_handler(
     req: GetArtistsRequest,
 ) -> GetArtistsJsonResponse {
     GetArtistsBody {
-        artists: get_artists(&database.pool, req.user_id, req.params.music_folder_id).await?,
+        artists: get_artists(&database.pool, req.user_id, req.params.music_folder_ids).await?,
     }
     .into()
 }
