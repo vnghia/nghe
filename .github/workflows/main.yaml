@@ -163,7 +163,9 @@ jobs:
         with:
           context: .
           file: ci/docker/Dockerfile
-          build-args: BASE_IMAGE=debian:12.5-slim,TARGET_ENV=gnu
+          build-args: |
+            BASE_IMAGE=debian:12.5-slim
+            TARGET_ENV=gnu
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta-gnu.outputs.tags }}
@@ -183,7 +185,9 @@ jobs:
         with:
           context: ${{ github.workspace }}
           file: ci/docker/Dockerfile
-          build-args: BASE_IMAGE=alpine:3.19.1,TARGET_ENV=musl
+          build-args: |
+            BASE_IMAGE=alpine:3.19.1
+            TARGET_ENV=musl
           platforms: linux/arm64
           push: true
           tags: ${{ steps.meta-musl.outputs.tags }}
