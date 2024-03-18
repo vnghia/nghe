@@ -67,10 +67,16 @@ pub struct BasicSongId3 {
 pub struct SongId3 {
     #[serde(flatten)]
     pub basic: BasicSongId3,
+    // Song tag
     pub artists: Vec<BasicArtistId3>,
     #[serde(rename = "track")]
     pub track_number: Option<i32>,
     pub disc_number: Option<i32>,
+    pub year: Option<i16>,
+    // Song property
+    #[serde(rename = "suffix")]
+    pub format: String,
+    pub bitrate: i32,
 }
 
 pub type BasicArtistId3Record = sql_types::Record<(sql_types::Uuid, sql_types::Text)>;

@@ -49,6 +49,9 @@ async fn get_song(
             ),
             songs::track_number,
             songs::disc_number,
+            songs::year,
+            songs::format,
+            songs::bitrate,
         ))
         .first::<SongId3>(&mut pool.get().await?)
         .await
