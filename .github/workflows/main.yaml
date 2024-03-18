@@ -19,13 +19,13 @@ jobs:
         platform:
           - target: x86_64-unknown-linux-gnu
             command: cargo
-          - target: aarch64-unknown-linux-gnu
-            command: cross
-          # TODO: enable x86_64 musl
-          # - target: x86_64-unknown-linux-musl
+          # - target: aarch64-unknown-linux-gnu
           #   command: cross
-          - target: aarch64-unknown-linux-musl
-            command: cross
+          # # TODO: enable x86_64 musl
+          # # - target: x86_64-unknown-linux-musl
+          # #   command: cross
+          # - target: aarch64-unknown-linux-musl
+          #   command: cross
 
     runs-on: ubuntu-latest
 
@@ -181,7 +181,7 @@ jobs:
       - name: Build and push musl
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ github.workspace }}
           file: ci/docker/Dockerfile
           build-args: BASE_IMAGE=alpine:3.19.1,TARGET_ENV=musl
           platforms: linux/arm64
