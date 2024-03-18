@@ -26,13 +26,13 @@ async fn stream(
     user_id: Uuid,
     params: StreamParams,
 ) -> Result<BinaryResponse> {
-    let format = params.format.unwrap_or("opus".to_owned());
+    let format = params.format.unwrap_or("raw".to_owned());
     if format == "raw" {
         return download(pool, user_id, params.id).await;
     }
 
     // Lowest bitrate possible. Only works well with opus.
-    let max_bit_rate = params.max_bit_rate.unwrap_or(32000);
+    let max_bit_rate = params.max_bit_rate.unwrap_or(32) * 1000;
 
     let (absolute_path, _) = get_song_download_info(pool, user_id, params.id).await?;
     // ffmpeg requires a filename with extension
