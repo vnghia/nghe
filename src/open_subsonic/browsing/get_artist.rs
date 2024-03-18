@@ -58,7 +58,7 @@ async fn get_artist_and_album_ids(
         .select((
             ((artists::id, artists::name),),
             sql::<sql_types::Array<sql_types::Uuid>>(
-                "array_agg(distinct songs.album_id) album_ids",
+                "array_agg(distinct(songs.album_id)) album_ids",
             ),
         ))
         .first::<(ArtistId3, Vec<Uuid>)>(&mut pool.get().await?)
@@ -89,21 +89,28 @@ async fn get_basic_albums(
         .map_err(anyhow::Error::from)
 }
 
+async fn get_artist(
+    pool: &DatabasePool,
+    user_id: Uuid,
+    artist_id: Uuid,
+) -> Result<ArtistId3WithAlbums> {
+    let music_folder_ids = check_user_music_folder_ids(pool, &user_id, None).await?;
+
+    let (artist, album_ids) = get_artist_and_album_ids(pool, &music_folder_ids, &artist_id).await?;
+    let basic_albums = get_basic_albums(pool, &music_folder_ids, &album_ids).await?;
+
+    Ok(ArtistId3WithAlbums {
+        artist,
+        album: basic_albums,
+    })
+}
+
 pub async fn get_artist_handler(
     State(database): State<Database>,
     req: GetArtistRequest,
 ) -> GetArtistJsonResponse {
-    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
-
-    let (artist, album_ids) =
-        get_artist_and_album_ids(&database.pool, &music_folder_ids, &req.params.id).await?;
-    let basic_albums = get_basic_albums(&database.pool, &music_folder_ids, &album_ids).await?;
-
     GetArtistBody {
-        artist: ArtistId3WithAlbums {
-            artist,
-            album: basic_albums,
-        },
+        artist: get_artist(&database.pool, req.user_id, req.params.id).await?,
     }
     .into()
 }
