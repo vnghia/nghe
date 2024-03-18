@@ -11,10 +11,12 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_with::serde_as;
+use std::marker::PhantomData;
 
 #[serde_as]
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug)]
+#[cfg_attr(test, derive(fake::Dummy))]
 pub struct CommonParams {
     #[serde(rename = "u")]
     pub username: String,
@@ -28,21 +30,16 @@ pub struct CommonParams {
     pub token: MD5Token,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct RequestParams<T> {
-    #[serde(flatten)]
-    #[serde(rename = "camelCase")]
-    pub params: T,
-    #[serde(flatten)]
-    pub common: CommonParams,
-}
+#[async_trait::async_trait]
+pub trait Validate<P> {
+    fn common(&self) -> &CommonParams;
+    fn params(self) -> P;
 
-impl<T> RequestParams<T> {
-    pub async fn validate<const A: bool>(
+    async fn validate<const A: bool>(
         &self,
         Database { pool, key }: &Database,
     ) -> Result<users::User> {
-        let common_params = &self.common;
+        let common_params = self.common();
         let user = match users::table
             .filter(users::username.eq(&common_params.username))
             .select(users::User::as_select())
@@ -66,29 +63,31 @@ impl<T> RequestParams<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidatedForm<T, const A: bool> {
-    pub params: T,
+pub struct ValidatedForm<R, P, const A: bool> {
+    pub params: P,
     pub user: users::User,
+    pub phantom: PhantomData<R>,
 }
 
 #[async_trait::async_trait]
-impl<T, const A: bool, S> FromRequest<S> for ValidatedForm<T, A>
+impl<R, P, const A: bool, S> FromRequest<S> for ValidatedForm<R, P, A>
 where
-    RequestParams<T>: DeserializeOwned + Send + Sync,
+    R: DeserializeOwned + Send + Sync + Validate<P>,
     Database: FromRef<S>,
     S: Send + Sync,
 {
     type Rejection = ServerError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(request_params) = Form::<RequestParams<T>>::from_request(req, state)
+        let Form(request_params) = Form::<R>::from_request(req, state)
             .await
             .map_err(std::convert::Into::<OSError>::into)?;
         let database = Database::from_ref(state);
         let user = request_params.validate::<A>(&database).await?;
         Ok(ValidatedForm {
-            params: request_params.params,
+            params: request_params.params(),
             user,
+            phantom: PhantomData,
         })
     }
 }
@@ -102,19 +101,19 @@ mod tests {
     };
 
     use fake::{faker::internet::en::*, Fake, Faker};
+    use nghe_proc_macros::add_validate;
 
+    #[add_validate]
     struct TestParams {}
 
     #[tokio::test]
     async fn test_validate_success() {
         let (temp_db, users) = create_users(1, 0).await;
-        assert!(RequestParams::<TestParams> {
-            params: TestParams {},
-            common: users[0].to_common_params(temp_db.key())
-        }
-        .validate::<false>(temp_db.database())
-        .await
-        .is_ok());
+        assert!(TestParams {}
+            .to_validate(users[0].to_common_params(temp_db.key()))
+            .validate::<false>(temp_db.database())
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
@@ -122,19 +121,17 @@ mod tests {
         let (temp_db, users) = create_users(1, 0).await;
         let wrong_username: String = Username().fake();
         assert!(matches!(
-            RequestParams::<TestParams> {
-                params: TestParams {},
-                common: CommonParams {
+            TestParams {}
+                .to_validate(CommonParams {
                     username: wrong_username,
                     ..users[0].to_common_params(temp_db.key())
-                }
-            }
-            .validate::<false>(temp_db.database())
-            .await
-            .unwrap_err()
-            .root_cause()
-            .downcast_ref::<OSError>()
-            .unwrap(),
+                })
+                .validate::<false>(temp_db.database())
+                .await
+                .unwrap_err()
+                .root_cause()
+                .downcast_ref::<OSError>()
+                .unwrap(),
             OSError::Unauthorized
         ));
     }
@@ -156,20 +153,18 @@ mod tests {
         .await;
 
         assert!(matches!(
-            RequestParams::<TestParams> {
-                params: TestParams {},
-                common: CommonParams {
+            TestParams {}
+                .to_validate(CommonParams {
                     username,
                     salt: client_salt,
                     token: client_token
-                }
-            }
-            .validate::<false>(temp_db.database())
-            .await
-            .unwrap_err()
-            .root_cause()
-            .downcast_ref::<OSError>()
-            .unwrap(),
+                })
+                .validate::<false>(temp_db.database())
+                .await
+                .unwrap_err()
+                .root_cause()
+                .downcast_ref::<OSError>()
+                .unwrap(),
             OSError::Unauthorized
         ));
     }
@@ -177,29 +172,25 @@ mod tests {
     #[tokio::test]
     async fn test_validate_admin_success() {
         let (temp_db, users) = create_users(1, 1).await;
-        assert!(RequestParams::<TestParams> {
-            params: TestParams {},
-            common: users[0].to_common_params(temp_db.key())
-        }
-        .validate::<true>(temp_db.database())
-        .await
-        .is_ok());
+        assert!(TestParams {}
+            .to_validate(users[0].to_common_params(temp_db.key()))
+            .validate::<true>(temp_db.database())
+            .await
+            .is_ok());
     }
 
     #[tokio::test]
     async fn test_validate_no_admin() {
         let (temp_db, users) = create_users(1, 0).await;
         assert!(matches!(
-            RequestParams::<TestParams> {
-                params: TestParams {},
-                common: users[0].to_common_params(temp_db.key())
-            }
-            .validate::<true>(temp_db.database())
-            .await
-            .unwrap_err()
-            .root_cause()
-            .downcast_ref::<OSError>()
-            .unwrap(),
+            TestParams {}
+                .to_validate(users[0].to_common_params(temp_db.key()))
+                .validate::<true>(temp_db.database())
+                .await
+                .unwrap_err()
+                .root_cause()
+                .downcast_ref::<OSError>()
+                .unwrap(),
             OSError::Forbidden(_)
         ));
     }

@@ -45,7 +45,6 @@ pub async fn get_music_folders_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::open_subsonic::common::request::ValidatedForm;
     use crate::utils::test::setup::TestInfra;
 
     use itertools::Itertools;
@@ -59,10 +58,7 @@ mod tests {
         let sorted_music_folders = test_infra.music_folders.into_iter().sorted().collect_vec();
 
         for user in test_infra.users {
-            let form = ValidatedForm {
-                params: GetMusicFoldersParams {},
-                user,
-            };
+            let form = GetMusicFoldersParams {}.to_validated_form(user);
 
             let results = get_music_folders_handler(state.clone(), form)
                 .await
@@ -87,10 +83,7 @@ mod tests {
         let state = test_infra.state();
 
         for (i, user) in test_infra.users.into_iter().enumerate() {
-            let form = ValidatedForm {
-                params: GetMusicFoldersParams {},
-                user,
-            };
+            let form = GetMusicFoldersParams {}.to_validated_form(user);
 
             let results = get_music_folders_handler(state.clone(), form)
                 .await
