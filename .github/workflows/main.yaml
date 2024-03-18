@@ -9,6 +9,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  RUST_TOOLCHAIN: beta
 
 jobs:
   build-linux:
@@ -55,7 +56,9 @@ jobs:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: cargo-bins/cargo-binstall@main
 
       - name: Setup x64 environment
@@ -112,6 +115,10 @@ jobs:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: cargo-bins/cargo-binstall@main
 
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
@@ -121,7 +128,6 @@ jobs:
           cp "C:/vcpkg/installed/x64-windows-release/lib/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/"
           cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
 
-      - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
@@ -159,6 +165,10 @@ jobs:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: cargo-bins/cargo-binstall@main
 
       - name: Install postgres
         run: brew install postgresql@14
@@ -167,7 +177,6 @@ jobs:
 
       - name: Install gstreamer build deps
         run: brew install nasm
-      - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
       - name: Build vcpkg dependencies
