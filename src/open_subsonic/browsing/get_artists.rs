@@ -29,14 +29,14 @@ pub struct Index {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Indices {
+pub struct Indexes {
     ignored_articles: String,
     index: Vec<Index>,
 }
 
 #[wrap_subsonic_response]
 pub struct GetArtistsBody {
-    artists: Indices,
+    artists: Indexes,
 }
 
 async fn get_indexed_artists(
@@ -60,11 +60,11 @@ async fn get_indexed_artists(
         .map_err(anyhow::Error::from)
 }
 
-async fn get_artists(
+pub async fn get_artists(
     pool: &DatabasePool,
     user_id: Uuid,
     music_folder_ids: Option<Vec<Uuid>>,
-) -> Result<Indices> {
+) -> Result<Indexes> {
     let music_folder_ids =
         check_user_music_folder_ids(pool, &user_id, music_folder_ids.map(|v| v.into())).await?;
 
@@ -83,7 +83,7 @@ async fn get_artists(
         .map(|(k, v)| Index { name: k, artist: v })
         .collect_vec();
 
-    Ok(Indices {
+    Ok(Indexes {
         ignored_articles,
         index,
     })

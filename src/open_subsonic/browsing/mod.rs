@@ -1,6 +1,7 @@
 mod get_album;
 mod get_artist;
 mod get_artists;
+mod get_indexes;
 mod get_music_folders;
 mod get_song;
 mod refresh_music_folders;
@@ -37,4 +38,10 @@ pub fn router() -> Router<crate::Database> {
         // get_song
         .route("/rest/getSong", get(get_song::get_song_handler))
         .route("/rest/getSong.view", get(get_song::get_song_handler))
+        // get_indexes
+        .route("/rest/getIndexes", get(get_indexes::get_indexed_handler))
+        .route(
+            "/rest/getIndexes.view",
+            get(get_indexes::get_indexed_handler),
+        )
 }
