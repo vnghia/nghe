@@ -1,24 +1,33 @@
 use super::super::song::file_type::SONG_FILE_TYPES;
 use crate::utils::song::file_type::{to_extension, to_glob_pattern};
 
-use anyhow::Result;
 use ignore::{types::TypesBuilder, WalkBuilder};
-use itertools::Itertools;
+use kanal::Sender;
 use std::path::{Path, PathBuf};
 
 pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
     root: P,
-) -> Result<Vec<(PathBuf, String, u64)>> {
-    let (tx, rx) = crossbeam_channel::unbounded::<(PathBuf, String, u64)>();
-
+    tx: Sender<(PathBuf, String, u64)>,
+) {
     let mut types = TypesBuilder::new();
     for song_file_type in SONG_FILE_TYPES {
-        types.add(
+        if let Err(err) = types.add(
             to_extension(&song_file_type),
             to_glob_pattern(&song_file_type),
-        )?;
+        ) {
+            tracing::error!("error while building scan pattern {}", err);
+            tx.close();
+            return;
+        }
     }
-    let types = types.select("all").build()?;
+    let types = match types.select("all").build() {
+        Ok(t) => t,
+        Err(err) => {
+            tracing::error!("error while building scan pattern {}", err);
+            tx.close();
+            return;
+        }
+    };
 
     WalkBuilder::new(&root)
         .types(types)
@@ -57,16 +66,29 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
                 }
             })
         });
-    drop(tx);
-
-    Ok(rx.into_iter().collect_vec())
 }
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use super::*;
     use crate::utils::{song::file_type::to_extensions, test::fs::TemporaryFs};
     use std::path::PathBuf;
+
+    fn wrap_scan_media_file(fs: &TemporaryFs) -> Vec<(PathBuf, String, u64)> {
+        let (tx, rx) = kanal::bounded(0);
+        let root_path = fs.root_path().to_path_buf();
+
+        let scan_thread = std::thread::spawn(move || scan_media_files(&root_path, tx));
+        let mut result = vec![];
+        while let Ok(r) = rx.recv() {
+            result.push(r);
+        }
+
+        scan_thread.join().unwrap();
+        result
+    }
 
     #[test]
     fn test_scan_media_files_no_filter() {
@@ -77,7 +99,7 @@ mod tests {
             .map(|path| fs.create_file(path))
             .collect_vec();
 
-        let scanned_results = scan_media_files(fs.root_path()).unwrap();
+        let scanned_results = wrap_scan_media_file(&fs);
         let scanned_lens = scanned_results
             .iter()
             .cloned()
@@ -117,8 +139,7 @@ mod tests {
             })
             .collect_vec();
 
-        let scanned_paths = scan_media_files(fs.root_path())
-            .unwrap()
+        let scanned_paths = wrap_scan_media_file(&fs)
             .iter()
             .cloned()
             .map(|result| PathBuf::from(result.1))
@@ -157,8 +178,7 @@ mod tests {
         })
         .collect_vec();
 
-        let scanned_paths = scan_media_files(fs.root_path())
-            .unwrap()
+        let scanned_paths = wrap_scan_media_file(&fs)
             .into_iter()
             .map(|result| result.0)
             .collect_vec();
@@ -185,8 +205,7 @@ mod tests {
             })
             .collect_vec();
 
-        let scanned_paths = scan_media_files(fs.root_path())
-            .unwrap()
+        let scanned_paths = wrap_scan_media_file(&fs)
             .into_iter()
             .map(|result| result.0)
             .collect_vec();

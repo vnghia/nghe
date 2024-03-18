@@ -33,10 +33,14 @@ pub async fn scan_full(
     let mut upserted_song_count: usize = 0;
 
     for music_folder in music_folders {
+        let (tx, rx) = kanal::bounded(0);
+        let rx = rx.to_async();
+
         let music_folder_path = std::path::PathBuf::from(&music_folder.path);
-        for (song_absolute_path, song_relative_path, song_file_size) in
-            tokio::task::spawn_blocking(move || scan_media_files(music_folder_path)).await??
-        {
+        let scan_media_files_task =
+            tokio::task::spawn_blocking(move || scan_media_files(music_folder_path, tx));
+
+        while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
             let song_file_metadata_db = diesel::update(songs::table)
                 .filter(songs::music_folder_id.eq(music_folder.id))
                 .filter(songs::relative_path.eq(&song_relative_path))
@@ -147,6 +151,8 @@ pub async fn scan_full(
 
             upserted_song_count += 1;
         }
+
+        scan_media_files_task.await?;
     }
 
     let deleted_song_count = diesel::delete(songs::table)
