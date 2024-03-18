@@ -133,6 +133,7 @@ jobs:
     if: ${{ vars.BUILD_DOCKER != '' }}
 
     steps:
+      - uses: actions/checkout@v4
       - name: Download build artifact for docker
         uses: actions/download-artifact@v4
         with:
@@ -183,7 +184,7 @@ jobs:
       - name: Build and push musl
         uses: docker/build-push-action@v5
         with:
-          context: ${{ github.workspace }}
+          context: .
           file: ci/docker/Dockerfile
           build-args: |
             BASE_IMAGE=alpine:3.19.1
