@@ -104,7 +104,7 @@ jobs:
           aarch64-linux-gnu-pkg-config --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
 
-      - name: Install gstreamer build deps
+      - name: Install ffmpeg build deps
         run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
         run: cargo binstall cargo-vcpkg --no-confirm
@@ -143,7 +143,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata for Docker gnu
+
+      # GNU
+      - name: Extract metadata for Docker GNU
         id: meta-gnu
         uses: docker/metadata-action@v5
         with:
@@ -152,6 +154,15 @@ jobs:
           tags: |
             type=ref,event=pr
             type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push GNU
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: BASE_IMAGE=debian:12.5-slim,TARGET_ENV=gnu
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-gnu.outputs.tags }}
 
   # build-windows:
   #   runs-on: windows-latest
@@ -224,7 +235,7 @@ jobs:
   #     - uses: ikalnytskyi/action-setup-postgres@v5
   #       id: postgres
 
-  #     - name: Install gstreamer build deps
+  #     - name: Install ffmpeg build deps
   #       run: brew install nasm
   #     - name: Install cargo-vcpkg
   #       run: cargo binstall cargo-vcpkg --no-confirm

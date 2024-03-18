@@ -1,0 +1,6 @@
+ARG BASE_IMAGE
+ARG TARGET_ENV
+
+FROM ${BASE_IMAGE}
+COPY ${TARGET_ARCH}-${TARGET_ENV}/nghe /app/nghe/
+ENTRYPOINT [ "/app/nghe" ]
