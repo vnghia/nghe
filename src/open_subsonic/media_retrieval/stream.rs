@@ -39,7 +39,7 @@ async fn stream(
     // ffmpeg requires a filename with extension
     let output_path = concat_string!("output.", format);
 
-    let (tx, rx) = tokio::sync::mpsc::channel(1);
+    let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(1);
 
     tokio::task::spawn_blocking(move || {
         transcode(

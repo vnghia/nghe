@@ -33,8 +33,7 @@ pub async fn scan_full(
     let mut upserted_song_count: usize = 0;
 
     for music_folder in music_folders {
-        let (tx, rx) = kanal::bounded(0);
-        let rx = rx.to_async();
+        let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(100);
 
         let music_folder_path = std::path::PathBuf::from(&music_folder.path);
         let scan_media_files_task =
