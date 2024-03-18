@@ -4,6 +4,7 @@ mod built_info {
 
 use axum::Router;
 use itertools::Itertools;
+use nghe::models::music_folders;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -76,10 +77,12 @@ async fn main() {
         .await
         .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app(database)).await.unwrap();
+    axum::serve(listener, app(database, upserted_music_folders))
+        .await
+        .unwrap();
 }
 
-fn app(database: Database) -> Router {
+fn app(database: Database, music_folders: Vec<music_folders::MusicFolder>) -> Router {
     Router::new()
         // system
         .merge(system::router())
@@ -88,7 +91,7 @@ fn app(database: Database) -> Router {
         // user
         .merge(user::router())
         // media retrieval
-        .merge(media_retrieval::router())
+        .merge(media_retrieval::router(music_folders))
         // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(database)

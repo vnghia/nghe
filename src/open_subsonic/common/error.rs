@@ -14,6 +14,10 @@ pub enum OSError {
     #[error("{0} parameter is invalid")]
     InvalidParameter(Cow<'static, str>),
 
+    // IOError
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+
     // Request
     #[error(transparent)]
     BadRequest(#[from] axum_extra::extract::FormRejection),
@@ -56,7 +60,7 @@ impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         let code = match self.0.root_cause().downcast_ref::<OSError>() {
             Some(err) => match err {
-                OSError::NotFound(_) => 70,
+                OSError::NotFound(_) | OSError::IOError(_) => 70,
                 OSError::BadRequest(_) | OSError::InvalidParameter(_) => 10,
                 OSError::Unauthorized => 40,
                 OSError::Forbidden(_) => 50,
