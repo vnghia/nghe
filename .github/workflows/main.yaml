@@ -29,6 +29,11 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    outputs:
+      env: ${{ steps.target.outputs.env }}
+      arch: ${{ steps.target.outputs.arch }}
+      docker-arch: ${{ steps.target.outputs.docker-arch }}
+
     env:
       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
       CROSS_CONTAINER_OPTS: "--network=host"
@@ -67,6 +72,7 @@ jobs:
         run: |
           echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
           echo "arch=$(echo $TARGET | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
 
   #     - name: Setup x64 environment
   #       uses: rui314/setup-mold@v1
