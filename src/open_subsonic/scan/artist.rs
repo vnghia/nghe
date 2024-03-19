@@ -117,7 +117,6 @@ mod tests {
     use super::*;
     use crate::utils::test::TemporaryDatabase;
 
-    use fake;
     use rand::seq::SliceRandom;
 
     async fn assert_artist_indices<SN: AsRef<str>, SP: AsRef<str>>(

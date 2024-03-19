@@ -79,7 +79,6 @@ mod tests {
 
     use super::*;
     use crate::utils::{song::file_type::to_extensions, test::fs::TemporaryFs};
-    use std::path::PathBuf;
 
     async fn wrap_scan_media_file(fs: &TemporaryFs) -> Vec<(PathBuf, String, u64)> {
         let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(100);

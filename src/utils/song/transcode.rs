@@ -353,7 +353,7 @@ mod tests {
 
     use fake::{Fake, Faker};
     use lofty::FileType;
-    use std::{ffi::CString, path::Path};
+    use std::path::Path;
 
     const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
     const OUTPUT_BITRATE: &[u32] = &[32000, 64000, 128000, 192000, 320000];

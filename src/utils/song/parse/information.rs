@@ -148,7 +148,6 @@ mod tests {
     use crate::utils::{song::file_type::SONG_FILE_TYPES, test::asset::get_media_asset_path};
 
     use isolang::Language;
-    use itertools::Itertools;
 
     #[test]
     fn test_parse_media_file() {

@@ -1,6 +1,6 @@
 use concat_string::concat_string;
 use darling::{ast::NestedMeta, Error, FromMeta};
-use proc_macro::{self, TokenStream};
+use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse::Parser, parse_macro_input, Ident, ItemStruct};
 
