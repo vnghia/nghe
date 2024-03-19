@@ -92,7 +92,7 @@ pub async fn scan_full(
             }) {
                 Ok(r) => r,
                 Err(err) => {
-                    tracing::error!("{:#?}", err);
+                    tracing::error!("{:?}", err);
                     last_parsing_error_encountered = Some(err);
                     continue;
                 }

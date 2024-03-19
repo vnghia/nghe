@@ -339,7 +339,7 @@ pub fn transcode<S: MPSCShared + 'static>(
         output_time_offset,
         Some(make_output_io_context(32 * 1024, tx)),
     ) {
-        tracing::error!("error while transcoding: {:#?}", err);
+        tracing::error!("error while transcoding: {:?}", err);
     }
 }
 

@@ -49,7 +49,7 @@ struct ErrorBody {
 
 fn to_error_response(code: u8, err: &anyhow::Error) -> ErrorJsonResponse {
     let message = err.to_string();
-    tracing::error!("{:#?}", err);
+    tracing::error!("{:?}", err);
     ErrorBody {
         error: ActualError { code, message },
     }

@@ -15,14 +15,14 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
             to_extension(&song_file_type),
             to_glob_pattern(&song_file_type),
         ) {
-            tracing::error!("error while building scan pattern: {:#?}", err);
+            tracing::error!("error while building scan pattern: {:?}", err);
             return;
         }
     }
     let types = match types.select("all").build() {
         Ok(t) => t,
         Err(err) => {
-            tracing::error!("error while building scan pattern: {:#?}", err);
+            tracing::error!("error while building scan pattern: {:?}", err);
             return;
         }
     };
