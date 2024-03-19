@@ -38,6 +38,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
                     Ok(metadata) => {
                         if metadata.is_file() {
                             let entry_path = entry.path();
+                            tracing::trace!("scanned media path {:?}", entry_path);
                             if let Err(e) = tx.send((
                                 entry_path.into(),
                                 entry_path
