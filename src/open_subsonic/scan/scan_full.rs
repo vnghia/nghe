@@ -41,6 +41,8 @@ pub async fn scan_full(
             tokio::task::spawn_blocking(move || scan_media_files(music_folder_path, tx));
 
         while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
+            tracing::trace!("scanned media path {:?}", &song_absolute_path);
+
             let song_file_metadata_db = diesel::update(songs::table)
                 .filter(songs::music_folder_id.eq(music_folder.id))
                 .filter(songs::relative_path.eq(&song_relative_path))
