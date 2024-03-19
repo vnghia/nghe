@@ -31,6 +31,7 @@ pub async fn scan_full(
 ) -> Result<(usize, usize, usize, usize, usize)> {
     let mut scanned_song_count: usize = 0;
     let mut upserted_song_count: usize = 0;
+    let mut last_parsing_error_encountered = None;
 
     for music_folder in music_folders {
         let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(100);
@@ -70,7 +71,7 @@ pub async fn scan_full(
                 None
             };
 
-            let song_information = SongInformation::read_from(
+            let song_information = match SongInformation::read_from(
                 &mut Cursor::new(&song_data),
                 FileType::from_path(&song_absolute_path).ok_or_else(|| {
                     OSError::InvalidParameter(
@@ -88,7 +89,15 @@ pub async fn scan_full(
                     "can not parse song tag from ",
                     song_absolute_path.to_string_lossy()
                 )
-            })?;
+            }) {
+                Ok(r) => r,
+                Err(err) => {
+                    tracing::error!("{}", err);
+                    last_parsing_error_encountered = Some(err);
+                    continue;
+                }
+            };
+
             let song_tag = &song_information.tag;
 
             let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
@@ -193,14 +202,18 @@ pub async fn scan_full(
         .execute(&mut pool.get().await?)
         .await?;
 
-    tracing::info!("done scanning songs");
-    Ok((
-        scanned_song_count,
-        upserted_song_count,
-        deleted_song_count,
-        deleted_album_count,
-        deleted_artist_count,
-    ))
+    if let Some(err) = last_parsing_error_encountered {
+        Err(err)
+    } else {
+        tracing::info!("done scanning songs");
+        Ok((
+            scanned_song_count,
+            upserted_song_count,
+            deleted_song_count,
+            deleted_album_count,
+            deleted_artist_count,
+        ))
+    }
 }
 
 #[cfg(test)]
