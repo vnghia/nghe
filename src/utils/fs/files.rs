@@ -48,10 +48,17 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
                                     .to_string(),
                                 metadata.len(),
                             )) {
-                                tracing::info!("error {} while scanning for media files", e);
+                                tracing::info!(
+                                    "error {} while scanning for media files, stop scanning",
+                                    e
+                                );
+                                ignore::WalkState::Quit
+                            } else {
+                                ignore::WalkState::Continue
                             }
+                        } else {
+                            ignore::WalkState::Continue
                         }
-                        ignore::WalkState::Continue
                     }
                     Err(e) => {
                         tracing::info!("error {} while scanning for media files", e);
