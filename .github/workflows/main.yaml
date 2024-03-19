@@ -189,7 +189,7 @@ jobs:
           build-args: |
             BASE_IMAGE=alpine:3.19.1
             TARGET_ENV=musl
-          platforms: linux/arm64
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta-musl.outputs.tags }}
 
