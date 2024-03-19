@@ -1,20 +1,18 @@
 use std::convert::Infallible;
 
-use crossfire::{
-    channel::{MPSCShared, Stream},
-    mpsc,
-};
 use futures::StreamExt;
+use tokio::sync::mpsc::Receiver;
+use tokio_stream::wrappers::ReceiverStream;
 
-pub struct StreamResponse<S: MPSCShared>(pub Stream<Vec<u8>, mpsc::RxFuture<Vec<u8>, S>>);
+pub struct StreamResponse(pub ReceiverStream<Vec<u8>>);
 
-impl<S: MPSCShared> StreamResponse<S> {
-    pub fn new(rx: mpsc::RxFuture<Vec<u8>, S>) -> Self {
-        Self(rx.into_stream())
+impl StreamResponse {
+    pub fn new(rx: Receiver<Vec<u8>>) -> Self {
+        Self(ReceiverStream::new(rx))
     }
 }
 
-impl<S: MPSCShared> futures::Stream for StreamResponse<S> {
+impl futures::Stream for StreamResponse {
     type Item = Result<Vec<u8>, Infallible>;
 
     // TODO: remove this when axum::body does not require TryStream anymore.

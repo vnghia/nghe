@@ -1,13 +1,13 @@
 use super::super::song::file_type::SONG_FILE_TYPES;
 use crate::utils::song::file_type::{to_extension, to_glob_pattern};
 
-use crossfire::{channel::MPSCShared, mpsc};
 use ignore::{types::TypesBuilder, WalkBuilder};
 use std::path::{Path, PathBuf};
+use tokio::sync::mpsc::Sender;
 
-pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
+pub fn scan_media_files<P: AsRef<Path> + Clone + Send>(
     root: P,
-    tx: mpsc::TxBlocking<(PathBuf, String, u64), S>,
+    tx: Sender<(PathBuf, String, u64)>,
 ) {
     let mut types = TypesBuilder::new();
     for song_file_type in SONG_FILE_TYPES {
@@ -38,7 +38,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
                     Ok(metadata) => {
                         if metadata.is_file() {
                             let entry_path = entry.path();
-                            if let Err(e) = tx.send((
+                            if let Err(e) = tx.blocking_send((
                                 entry_path.into(),
                                 entry_path
                                     .strip_prefix(&root)
@@ -80,22 +80,22 @@ mod tests {
     use super::*;
     use crate::utils::{song::file_type::to_extensions, test::fs::TemporaryFs};
 
-    async fn wrap_scan_media_file(fs: &TemporaryFs) -> Vec<(PathBuf, String, u64)> {
-        let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(100);
+    fn wrap_scan_media_file(fs: &TemporaryFs) -> Vec<(PathBuf, String, u64)> {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(100);
         let root_path = fs.root_path().to_path_buf();
 
-        let scan_thread = tokio::task::spawn_blocking(move || scan_media_files(&root_path, tx));
+        let scan_thread = std::thread::spawn(move || scan_media_files(&root_path, tx));
         let mut result = vec![];
-        while let Ok(r) = rx.recv().await {
+        while let Some(r) = rx.blocking_recv() {
             result.push(r);
         }
 
-        scan_thread.await.unwrap();
+        scan_thread.join().unwrap();
         result
     }
 
-    #[tokio::test]
-    async fn test_scan_media_files_no_filter() {
+    #[test]
+    fn test_scan_media_files_no_filter() {
         let fs = TemporaryFs::new();
 
         let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
@@ -103,7 +103,7 @@ mod tests {
             .map(|path| fs.create_file(path))
             .collect_vec();
 
-        let scanned_results = wrap_scan_media_file(&fs).await;
+        let scanned_results = wrap_scan_media_file(&fs);
         let scanned_lens = scanned_results
             .iter()
             .cloned()
@@ -129,8 +129,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_scan_media_files_relative_path() {
+    #[test]
+    fn test_scan_media_files_relative_path() {
         let fs = TemporaryFs::new();
 
         let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
@@ -144,7 +144,6 @@ mod tests {
             .collect_vec();
 
         let scanned_paths = wrap_scan_media_file(&fs)
-            .await
             .iter()
             .cloned()
             .map(|result| PathBuf::from(result.1))
@@ -156,8 +155,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_scan_media_files_filter_extension() {
+    #[test]
+    fn test_scan_media_files_filter_extension() {
         let fs = TemporaryFs::new();
 
         let supported_extensions = to_extensions();
@@ -184,7 +183,6 @@ mod tests {
         .collect_vec();
 
         let scanned_paths = wrap_scan_media_file(&fs)
-            .await
             .into_iter()
             .map(|result| result.0)
             .collect_vec();
@@ -195,8 +193,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_scan_media_files_filter_dir() {
+    #[test]
+    fn test_scan_media_files_filter_dir() {
         let fs = TemporaryFs::new();
 
         let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
@@ -212,7 +210,6 @@ mod tests {
             .collect_vec();
 
         let scanned_paths = wrap_scan_media_file(&fs)
-            .await
             .into_iter()
             .map(|result| result.0)
             .collect_vec();

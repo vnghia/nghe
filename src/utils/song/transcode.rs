@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use concat_string::concat_string;
-use crossfire::{channel::MPSCShared, mpsc};
 use rsmpeg::{
     avcodec::{AVCodec, AVCodecContext},
     avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut},
@@ -15,6 +14,7 @@ use std::{
     ffi::{CStr, CString},
     sync::atomic::{AtomicI64, Ordering},
 };
+use tokio::sync::mpsc::Sender;
 
 use crate::OSError;
 
@@ -38,18 +38,17 @@ fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext,
     Ok((input_fmt_ctx, dec_ctx, audio_idx))
 }
 
-fn make_output_io_context<S: MPSCShared + 'static>(
-    buffer_size: usize,
-    tx: mpsc::TxBlocking<Vec<u8>, S>,
-) -> AVIOContextContainer {
+fn make_output_io_context(buffer_size: usize, tx: Sender<Vec<u8>>) -> AVIOContextContainer {
     AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
         AVMem::new(buffer_size),
         true,
         vec![],
         None,
-        Some(Box::new(move |_, data| match tx.send(data.to_vec()) {
-            Ok(()) => data.len() as i32,
-            Err(_) => ffi::AVERROR_EXTERNAL,
+        Some(Box::new(move |_, data| {
+            match tx.blocking_send(data.to_vec()) {
+                Ok(()) => data.len() as i32,
+                Err(_) => ffi::AVERROR_EXTERNAL,
+            }
         })),
         None,
     ))
@@ -325,12 +324,12 @@ fn transcode_with_io_context(
     Ok(())
 }
 
-pub fn transcode<S: MPSCShared + 'static>(
+pub fn transcode(
     input_path: &CStr,
     output_path: &CStr,
     output_bit_rate: u32,
     output_time_offset: Option<u32>,
-    tx: mpsc::TxBlocking<Vec<u8>, S>,
+    tx: Sender<Vec<u8>>,
 ) {
     if let Err(err) = transcode_with_io_context(
         input_path,
@@ -367,17 +366,17 @@ mod tests {
         path_to_cstring(get_media_asset_path(file_type))
     }
 
-    async fn wrap_transcode(
+    fn wrap_transcode(
         input_path: &CStr,
         output_path: &CStr,
         output_bit_rate: u32,
         output_time_offset: Option<u32>,
     ) -> Vec<u8> {
-        let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(1);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(1);
         let input_path = input_path.to_owned();
         let output_path = output_path.to_owned();
 
-        let transcode_thread = tokio::task::spawn_blocking(move || {
+        let transcode_thread = std::thread::spawn(move || {
             transcode_with_io_context(
                 &input_path,
                 &output_path,
@@ -388,16 +387,16 @@ mod tests {
         });
 
         let mut result = vec![];
-        while let Ok(r) = rx.recv().await {
+        while let Some(r) = rx.blocking_recv() {
             result.extend_from_slice(&r);
         }
 
-        transcode_thread.await.unwrap().unwrap();
+        transcode_thread.join().unwrap().unwrap();
         result
     }
 
-    #[tokio::test]
-    async fn test_transcode() {
+    #[test]
+    fn test_transcode() {
         let fs = TemporaryFs::new();
 
         for file_type in SONG_FILE_TYPES {
@@ -415,8 +414,7 @@ mod tests {
                             &output_path,
                             *output_bitrate,
                             *output_time_offset,
-                        )
-                        .await;
+                        );
                     }
                 }
             }

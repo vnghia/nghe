@@ -34,13 +34,13 @@ pub async fn scan_full(
     let mut last_parsing_error_encountered = None;
 
     for music_folder in music_folders {
-        let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(100);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(100);
 
         let music_folder_path = std::path::PathBuf::from(&music_folder.path);
         let scan_media_files_task =
             tokio::task::spawn_blocking(move || scan_media_files(music_folder_path, tx));
 
-        while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
+        while let Some((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
             let song_file_metadata_db = diesel::update(songs::table)
                 .filter(songs::music_folder_id.eq(music_folder.id))
                 .filter(songs::relative_path.eq(&song_relative_path))
