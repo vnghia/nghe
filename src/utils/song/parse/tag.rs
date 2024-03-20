@@ -1,4 +1,5 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
+use concat_string::concat_string;
 use isolang::Language;
 use time::macros::format_description;
 
@@ -78,20 +79,26 @@ impl SongDate {
             let mut parsed = time::parsing::Parsed::new();
             if input.len() >= 10 {
                 // yyyy-mm-dd
-                parsed.parse_items(input[..10].as_bytes(), YMD_FORMAT)?;
+                parsed
+                    .parse_items(input[..10].as_bytes(), YMD_FORMAT)
+                    .with_context(|| concat_string!("date value: ", input))?;
                 let year = parsed.year().expect("error in time parsing") as u16;
                 let month = parsed.month().expect("error in time parsing") as u8;
                 let day = u8::from(parsed.day().expect("error in time parsing"));
                 Ok(Self(Some((year, Some((month, Some(day)))))))
             } else if input.len() >= 7 {
                 // yyyy-mm
-                parsed.parse_items(input[..7].as_bytes(), YM_FORMAT)?;
+                parsed
+                    .parse_items(input[..7].as_bytes(), YM_FORMAT)
+                    .with_context(|| concat_string!("date value: ", input))?;
                 let year = parsed.year().expect("error in time parsing") as u16;
                 let month = parsed.month().expect("error in time parsing") as u8;
                 Ok(Self(Some((year, Some((month, None))))))
             } else {
                 // yyyy
-                parsed.parse_items(input[..4].as_bytes(), Y_FORMAT)?;
+                parsed
+                    .parse_items(input[..4].as_bytes(), Y_FORMAT)
+                    .with_context(|| concat_string!("date value: ", input))?;
                 let year = parsed.year().expect("error in time parsing") as u16;
                 Ok(Self(Some((year, None))))
             }

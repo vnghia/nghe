@@ -1,6 +1,7 @@
 use crate::OSError;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+use concat_string::concat_string;
 use lofty::Accessor;
 
 pub fn extract_common_tags<T: Accessor>(tag: &mut T) -> Result<(String, String)> {
@@ -26,20 +27,45 @@ pub fn parse_number_and_total(
             // a negative value will be written to number value.
             Ok((
                 if !cfg!(test) {
-                    Some(number_value.parse()?)
+                    Some(
+                        number_value
+                            .parse()
+                            .with_context(|| concat_string!("number value: ", number_value))?,
+                    )
                 } else {
                     number_value.parse().ok()
                 },
-                Some(total_value.parse()?),
+                Some(
+                    total_value
+                        .parse()
+                        .with_context(|| concat_string!("total value: ", total_value))?,
+                ),
             ))
         } else {
             Ok((
-                Some(number_value.parse()?),
-                total_value.map(|v| v.parse()).transpose()?,
+                Some(
+                    number_value
+                        .parse()
+                        .with_context(|| concat_string!("number value: ", number_value))?,
+                ),
+                total_value
+                    .map(|v| {
+                        v.parse()
+                            .with_context(|| concat_string!("total value: ", v))
+                    })
+                    .transpose()?,
             ))
         }
     } else {
-        Ok((None, total_value.map(|v| v.parse()).transpose()?))
+        Ok((
+            None,
+            total_value
+                .map(|v| {
+                    v.parse()
+                        .with_context(|| concat_string!("total value: ", v))
+                })
+                .transpose()?,
+        ))
     }
 }
 
