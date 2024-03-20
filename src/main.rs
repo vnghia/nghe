@@ -69,6 +69,7 @@ async fn main() {
         &config.artist_index,
         &upserted_music_folders,
         &config.parsing,
+        &config.scan,
     )
     .await
     .expect("can not scan song");

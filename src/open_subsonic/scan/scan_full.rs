@@ -6,7 +6,7 @@ use super::{
     song::{insert_song, update_song},
 };
 use crate::{
-    config::parsing::ParsingConfig,
+    config::{parsing::ParsingConfig, ScanConfig},
     models::*,
     utils::{fs::files::scan_media_files, song::SongInformation},
     DatabasePool, OSError,
@@ -28,13 +28,14 @@ pub async fn scan_full(
     scan_started_at: &time::OffsetDateTime,
     music_folders: &[music_folders::MusicFolder],
     parsing_config: &ParsingConfig,
+    scan_config: &ScanConfig,
 ) -> Result<(usize, usize, usize, usize, usize)> {
     let mut scanned_song_count: usize = 0;
     let mut upserted_song_count: usize = 0;
     let mut last_parsing_error_encountered = None;
 
     for music_folder in music_folders {
-        let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(100);
+        let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(scan_config.channel_size);
 
         let music_folder_path = std::path::PathBuf::from(&music_folder.path);
         let scan_media_files_task =
@@ -302,9 +303,15 @@ mod tests {
             deleted_song_count,
             deleted_album_count,
             deleted_artist_count,
-        ) = scan_full(pool, &scan_started_at, music_folders, parsing_config)
-            .await
-            .unwrap();
+        ) = scan_full(
+            pool,
+            &scan_started_at,
+            music_folders,
+            parsing_config,
+            &ScanConfig::default(),
+        )
+        .await
+        .unwrap();
         finish_scan(pool, &scan_started_at, Ok(scanned_song_count))
             .await
             .unwrap();

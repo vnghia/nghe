@@ -1,7 +1,7 @@
 use super::fs::SongFsInformation;
 use super::user::create_users;
 use super::{TemporaryDatabase, TemporaryFs};
-use crate::config::ArtistIndexConfig;
+use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
 use crate::open_subsonic::scan::{run_scan, ScanMode};
 use crate::utils::song::file_type::to_extensions;
@@ -128,6 +128,7 @@ impl TestInfra {
             &ArtistIndexConfig::default(),
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
+            &ScanConfig::default(),
         )
         .await
         .unwrap();

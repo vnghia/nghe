@@ -48,6 +48,13 @@ pub struct ArtistConfig {
     pub ignored_articles: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
+pub struct ScanConfig {
+    #[derivative(Default(value = "100"))]
+    pub channel_size: usize,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
@@ -55,6 +62,7 @@ pub struct Config {
     pub folder: FolderConfig,
     pub artist: ArtistConfig,
     pub parsing: ParsingConfig,
+    pub scan: ScanConfig,
 }
 
 impl Config {
@@ -71,6 +79,7 @@ impl Config {
             ))
             .join(Serialized::default("artist", ArtistConfig::default()))
             .join(Serialized::default("parsing", ParsingConfig::default()))
+            .join(Serialized::default("scan", ScanConfig::default()))
             .extract()
             .expect("can not parse initial config")
     }

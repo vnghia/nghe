@@ -1,6 +1,6 @@
 use super::{artist::build_artist_indices, scan_full::scan_full};
 use crate::{
-    config::{parsing::ParsingConfig, ArtistIndexConfig},
+    config::{parsing::ParsingConfig, ArtistIndexConfig, ScanConfig},
     models::*,
     DatabasePool,
 };
@@ -55,13 +55,20 @@ pub async fn run_scan(
     artist_index_config: &ArtistIndexConfig,
     music_folders: &[music_folders::MusicFolder],
     parsing_config: &ParsingConfig,
+    scan_config: &ScanConfig,
 ) -> Result<()> {
     let scan_started_at = start_scan(pool).await?;
 
     let scanned_count_or_err = match scan_mode {
-        ScanMode::Full => scan_full(pool, &scan_started_at, music_folders, parsing_config)
-            .await
-            .map(|result| result.0),
+        ScanMode::Full => scan_full(
+            pool,
+            &scan_started_at,
+            music_folders,
+            parsing_config,
+            scan_config,
+        )
+        .await
+        .map(|result| result.0),
     };
     build_artist_indices(pool, artist_index_config).await?;
     finish_scan(pool, &scan_started_at, scanned_count_or_err).await?;

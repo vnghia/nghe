@@ -16,6 +16,8 @@ pub type DatabaseConfig = raw::DatabaseConfig;
 
 pub type FolderConfig = raw::FolderConfig;
 
+pub type ScanConfig = raw::ScanConfig;
+
 #[derive(Debug, Clone)]
 pub struct ArtistIndexConfig {
     pub ignored_articles: String,
@@ -31,6 +33,7 @@ pub struct Config {
     pub folder: FolderConfig,
     pub artist_index: ArtistIndexConfig,
     pub parsing: ParsingConfig,
+    pub scan: ScanConfig,
 }
 
 impl ServerConfig {
@@ -70,12 +73,15 @@ impl Config {
 
         let parsing = raw_config.parsing;
 
+        let scan = raw_config.scan;
+
         Self {
             server,
             database,
             folder,
             artist_index,
             parsing,
+            scan,
         }
     }
 }
