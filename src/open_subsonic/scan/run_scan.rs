@@ -32,7 +32,10 @@ pub async fn finish_scan(
 ) -> Result<()> {
     let (scanned_count, error_message) = match scanned_count_or_err {
         Ok(scanned_count) => (scanned_count, None),
-        Err(e) => (0, Some::<Cow<'_, str>>(e.to_string().into())),
+        Err(e) => {
+            tracing::error!("error while scanning: {:?}", e);
+            (0, Some::<Cow<'_, str>>(e.to_string().into()))
+        }
     };
     diesel::update(scans::table.filter(scans::started_at.eq(scan_started_at)))
         .set(&scans::FinishScan {
@@ -60,9 +63,6 @@ pub async fn run_scan(
             .await
             .map(|result| result.0),
     };
-    if let Err(e) = &scanned_count_or_err {
-        tracing::error!("error while scanning: {:?}", e);
-    }
     build_artist_indices(pool, artist_index_config).await?;
     finish_scan(pool, &scan_started_at, scanned_count_or_err).await?;
 
