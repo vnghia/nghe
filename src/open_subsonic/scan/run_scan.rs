@@ -8,12 +8,23 @@ use crate::{
 use anyhow::Result;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use std::borrow::Cow;
+use std::{borrow::Cow, path::PathBuf};
 use time::OffsetDateTime;
 
 #[derive(Debug, PartialEq)]
 pub enum ScanMode {
     Full,
+}
+
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
+pub struct ScanStatistic {
+    pub scanned_song_count: usize,
+    pub upserted_song_count: usize,
+    pub deleted_song_count: usize,
+    pub deleted_album_count: usize,
+    pub deleted_artist_count: usize,
+    pub parsing_error_paths: Vec<PathBuf>,
 }
 
 pub async fn start_scan(pool: &DatabasePool) -> Result<OffsetDateTime> {
@@ -28,10 +39,10 @@ pub async fn start_scan(pool: &DatabasePool) -> Result<OffsetDateTime> {
 pub async fn finish_scan(
     pool: &DatabasePool,
     scan_started_at: &OffsetDateTime,
-    scanned_count_or_err: Result<usize>,
+    scan_result: Result<&ScanStatistic, &anyhow::Error>,
 ) -> Result<()> {
-    let (scanned_count, error_message) = match scanned_count_or_err {
-        Ok(scanned_count) => (scanned_count, None),
+    let (scanned_count, error_message) = match scan_result {
+        Ok(r) => (r.scanned_song_count, None),
         Err(e) => {
             tracing::error!("error while scanning: {:?}", e);
             (0, Some::<Cow<'_, str>>(e.to_string().into()))
@@ -59,19 +70,20 @@ pub async fn run_scan(
 ) -> Result<()> {
     let scan_started_at = start_scan(pool).await?;
 
-    let scanned_count_or_err = match scan_mode {
-        ScanMode::Full => scan_full(
-            pool,
-            &scan_started_at,
-            music_folders,
-            parsing_config,
-            scan_config,
-        )
-        .await
-        .map(|result| result.0),
+    let scan_result = match scan_mode {
+        ScanMode::Full => {
+            scan_full(
+                pool,
+                &scan_started_at,
+                music_folders,
+                parsing_config,
+                scan_config,
+            )
+            .await
+        }
     };
     build_artist_indices(pool, artist_index_config).await?;
-    finish_scan(pool, &scan_started_at, scanned_count_or_err).await?;
+    finish_scan(pool, &scan_started_at, scan_result.as_ref()).await?;
 
     Ok(())
 }
