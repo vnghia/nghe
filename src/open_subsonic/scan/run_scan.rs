@@ -62,10 +62,8 @@ pub async fn run_scan(
     };
     if let Err(e) = &scanned_count_or_err {
         tracing::error!("error while scanning: {:?}", e);
-    } else {
-        build_artist_indices(pool, artist_index_config).await?;
     }
-
+    build_artist_indices(pool, artist_index_config).await?;
     finish_scan(pool, &scan_started_at, scanned_count_or_err).await?;
 
     Ok(())
