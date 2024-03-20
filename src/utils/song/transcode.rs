@@ -16,8 +16,6 @@ use std::{
     sync::atomic::{AtomicI64, Ordering},
 };
 
-use crate::OSError;
-
 fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext, usize)> {
     let input_fmt_ctx =
         AVFormatContextInput::open(path, None, &mut None).context("could not open input file")?;
@@ -59,10 +57,10 @@ fn open_output_file(
     path: &CStr,
     dec_ctx: &AVCodecContext,
     output_bitrate: u32,
-    io_ctx: Option<AVIOContextContainer>,
+    io_ctx: AVIOContextContainer,
 ) -> Result<(AVFormatContextOutput, AVCodecContext)> {
     let mut output_fmt_ctx =
-        AVFormatContextOutput::create(path, io_ctx).context("could not open output file")?;
+        AVFormatContextOutput::create(path, Some(io_ctx)).context("could not open output file")?;
 
     let enc_codec = AVCodec::find_encoder(output_fmt_ctx.oformat().audio_codec)
         .context("could not find output codec")?;
@@ -77,7 +75,7 @@ fn open_output_file(
     enc_ctx.set_sample_fmt(
         enc_codec
             .sample_fmts()
-            .ok_or_else(|| OSError::NotFound("could not get sample formats".into()))?[0],
+            .ok_or_else(|| anyhow::anyhow!("can not get encoder sample formats"))?[0],
     );
     enc_ctx.set_sample_rate(output_sample_rate);
     enc_ctx.set_bit_rate(output_bitrate as i64);
@@ -230,16 +228,21 @@ fn flush_encoder(
     }
 }
 
-fn transcode_with_io_context(
+pub fn transcode<S: MPSCShared + 'static>(
     input_path: &CStr,
     output_path: &CStr,
     output_bit_rate: u32,
     output_time_offset: Option<u32>,
-    io_ctx: Option<AVIOContextContainer>,
+    buffer_size: usize,
+    tx: mpsc::TxBlocking<Vec<u8>, S>,
 ) -> Result<()> {
     let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
-    let (mut output_fmt_ctx, mut enc_ctx) =
-        open_output_file(output_path, &dec_ctx, output_bit_rate, io_ctx)?;
+    let (mut output_fmt_ctx, mut enc_ctx) = open_output_file(
+        output_path,
+        &dec_ctx,
+        output_bit_rate,
+        make_output_io_context(buffer_size, tx),
+    )?;
 
     let mut filter_specs = vec![];
     if let Some(output_time_offset) = output_time_offset {
@@ -325,24 +328,6 @@ fn transcode_with_io_context(
     Ok(())
 }
 
-pub fn transcode<S: MPSCShared + 'static>(
-    input_path: &CStr,
-    output_path: &CStr,
-    output_bit_rate: u32,
-    output_time_offset: Option<u32>,
-    tx: mpsc::TxBlocking<Vec<u8>, S>,
-) {
-    if let Err(err) = transcode_with_io_context(
-        input_path,
-        output_path,
-        output_bit_rate,
-        output_time_offset,
-        Some(make_output_io_context(32 * 1024, tx)),
-    ) {
-        tracing::error!("error while transcoding: {:?}", err);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -378,12 +363,13 @@ mod tests {
         let output_path = output_path.to_owned();
 
         let transcode_thread = tokio::task::spawn_blocking(move || {
-            transcode_with_io_context(
+            transcode(
                 &input_path,
                 &output_path,
                 output_bit_rate,
                 output_time_offset,
-                Some(make_output_io_context(32 * 1024, tx)),
+                32 * 1024,
+                tx,
             )
         });
 

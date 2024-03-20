@@ -42,15 +42,32 @@ async fn stream(
     let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(1);
 
     tokio::task::spawn_blocking(move || {
-        transcode(
-            &CString::new(absolute_path.to_str().expect("non utf-8 path encountered")).unwrap(),
+        let input_path = absolute_path.to_str().expect("non utf-8 path encountered");
+        let output_path = output_path.as_str();
+
+        tracing::debug!(
+            "start transcoding {} to {} with bitrate {}",
+            input_path,
+            output_path,
+            max_bit_rate
+        );
+        if let Err(e) = transcode(
+            &CString::new(input_path).unwrap(),
             &CString::new(output_path).unwrap(),
             max_bit_rate,
             params.time_offset,
+            32 * 1024,
             tx,
-        )
+        ) {
+            tracing::debug!(
+                "can not transcode {} to {} with bitrate {} because of {:?}",
+                input_path,
+                output_path,
+                max_bit_rate,
+                e
+            );
+        }
     });
-    tracing::debug!("spawned a new task for transcoding");
 
     Ok((
         [(
