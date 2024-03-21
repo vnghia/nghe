@@ -80,8 +80,8 @@ impl SongInformation {
     pub fn to_update_information_db(
         &self,
         album_id: Uuid,
-        file_hash: u64,
-        file_size: u64,
+        file_hash: i64,
+        file_size: i64,
     ) -> songs::SongUpdateInformationDB<'_> {
         let (year, month, day) = self.tag.date_or_default().to_ymd();
         let (release_year, release_month, release_day) =
@@ -119,16 +119,16 @@ impl SongInformation {
             sample_rate: self.property.sample_rate as i32,
             channel_count: self.property.channel_count as i16,
             // Filesystem property
-            file_hash: file_hash as i64,
-            file_size: file_size as i64,
+            file_hash,
+            file_size,
         }
     }
 
     pub fn to_full_information_db<'a, S: AsRef<str> + 'a>(
         &'a self,
         album_id: Uuid,
-        file_hash: u64,
-        file_size: u64,
+        file_hash: i64,
+        file_size: i64,
         music_folder_id: Uuid,
         relative_path: &'a S,
     ) -> songs::SongFullInformationDB<'a> {

@@ -14,7 +14,7 @@ use crate::{
 use anyhow::Result;
 use diesel::{
     dsl::{exists, not},
-    ExpressionMethods, OptionalExtension, QueryDsl,
+    BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use lofty::FileType;
@@ -47,21 +47,50 @@ pub async fn scan_full(
             let (song_file_hash, song_data) =
                 tokio::task::spawn_blocking(move || (xxh3_64(&song_data), song_data)).await?;
 
-            let song_id = if let Some((song_id_db, song_file_hash_db, song_file_size_db)) =
-                diesel::update(songs::table)
-                    .filter(songs::music_folder_id.eq(music_folder.id))
-                    .filter(songs::relative_path.eq(&song_relative_path))
-                    .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
-                    .returning((songs::id, songs::file_hash, songs::file_size))
-                    .get_result::<(Uuid, i64, i64)>(&mut pool.get().await?)
-                    .await
-                    .optional()?
+            let song_file_hash = song_file_hash as i64;
+            let song_file_size = song_file_size as i64;
+
+            let song_id = if let Some((
+                song_id_db,
+                song_file_hash_db,
+                song_file_size_db,
+                song_relative_path_db,
+            )) = diesel::update(songs::table)
+                .filter(songs::music_folder_id.eq(music_folder.id))
+                .filter(
+                    songs::relative_path
+                        .eq(&song_relative_path)
+                        .or(songs::file_hash
+                            .eq(song_file_hash)
+                            .and(songs::file_size.eq(song_file_size))),
+                )
+                .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
+                .returning((
+                    songs::id,
+                    songs::file_hash,
+                    songs::file_size,
+                    songs::relative_path,
+                ))
+                .get_result::<(Uuid, i64, i64, String)>(&mut pool.get().await?)
+                .await
+                .optional()?
             {
                 // there is already an entry in the database with the same music folder and relative path
                 // and it has the same size and hash with the file on local disk, continue.
-                if song_file_size_db as u64 == song_file_size
-                    && song_file_hash_db as u64 == song_file_hash
-                {
+                if song_file_size_db == song_file_size && song_file_hash_db == song_file_hash {
+                    if song_relative_path != song_relative_path_db {
+                        tracing::info!(
+                            "duplicated song detected ({} vs {}), updating path to the latest one.",
+                            &song_relative_path_db,
+                            &song_relative_path
+                        );
+                        diesel::update(songs::table)
+                            .filter(songs::id.eq(song_id_db))
+                            .set(songs::relative_path.eq(&song_relative_path))
+                            .execute(&mut pool.get().await?)
+                            .await?;
+                        upserted_song_count += 1;
+                    }
                     continue;
                 }
                 Some(song_id_db)
@@ -792,5 +821,105 @@ mod tests {
         .await;
         assert_eq!(deleted_artist_count, 1);
         assert_album_artist_names(test_infra.pool(), &["artist2", "artist3"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_duplicate_song() {
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[1], None).await;
+        wrap_scan_full(
+            test_infra.pool(),
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+
+        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
+        let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
+        let new_song_path = old_song_path
+            .with_file_name(Faker.fake::<String>())
+            .with_extension(old_song_path.extension().unwrap());
+        std::fs::copy(
+            music_folder_path.join(&old_song_path),
+            music_folder_path.join(&new_song_path),
+        )
+        .unwrap();
+
+        let ScanStatistic {
+            scanned_song_count,
+            upserted_song_count,
+            deleted_song_count,
+            ..
+        } = wrap_scan_full(
+            test_infra.pool(),
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+        assert_eq!(scanned_song_count, 2);
+        assert_eq!(deleted_song_count, 0);
+
+        if upserted_song_count == 2 {
+            // The new song is scanned before the old song.
+            // The path is set to the new song and then back to the old song.
+            assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        } else if upserted_song_count == 1 {
+            // The old song is scanned after the old song.
+            // The path is set to the new song.
+            assert_songs_info(
+                test_infra.pool(),
+                &[SongFsInformation {
+                    relative_path: new_song_path.to_str().unwrap().to_owned(),
+                    ..song_fs_infos[0].clone()
+                }],
+            )
+            .await;
+        } else {
+            panic!("upserted song count value is invalid")
+        }
+    }
+
+    #[tokio::test]
+    async fn test_move_song() {
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[1], None).await;
+        wrap_scan_full(
+            test_infra.pool(),
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+
+        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
+        let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
+        let new_song_path = old_song_path
+            .with_file_name(Faker.fake::<String>())
+            .with_extension(old_song_path.extension().unwrap());
+        std::fs::rename(
+            music_folder_path.join(&old_song_path),
+            music_folder_path.join(&new_song_path),
+        )
+        .unwrap();
+
+        let ScanStatistic {
+            scanned_song_count,
+            upserted_song_count,
+            deleted_song_count,
+            ..
+        } = wrap_scan_full(
+            test_infra.pool(),
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+        assert_eq!(scanned_song_count, 1);
+        assert_eq!(deleted_song_count, 0);
+        assert_eq!(upserted_song_count, 1);
+        assert_songs_info(
+            test_infra.pool(),
+            &[SongFsInformation {
+                relative_path: new_song_path.to_str().unwrap().to_owned(),
+                ..song_fs_infos[0].clone()
+            }],
+        )
+        .await;
     }
 }
