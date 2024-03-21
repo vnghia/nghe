@@ -45,7 +45,7 @@ async fn get_song(
             songs::track_number,
             songs::disc_number,
             sql::<sql_types::Array<sql_types::Uuid>>(
-                "array_agg(songs_artists.artist_id) basic_artist_ids",
+                "array_agg(songs_artists.artist_id) artist_ids",
             ),
         ))
         .first::<ChildId3Db>(&mut pool.get().await?)

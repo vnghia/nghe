@@ -12,8 +12,7 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::{
     dsl::{count_distinct, max, sql, sum},
-    sql_types, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, OptionalExtension,
-    QueryDsl,
+    sql_types, ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl,
 };
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -48,7 +47,6 @@ async fn get_album_and_song_ids(
     songs::table
         .inner_join(albums::table)
         .inner_join(songs_album_artists::table)
-        .inner_join(artists::table.on(artists::id.eq(songs_album_artists::album_artist_id)))
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(albums::id.eq(album_id))
         .group_by(albums::id)
@@ -63,7 +61,7 @@ async fn get_album_and_song_ids(
                     albums::created_at,
                 ),
                 sql::<sql_types::Array<sql_types::Uuid>>(
-                    "array_agg(distinct(artists.id)) basic_artist_ids",
+                    "array_agg(distinct(songs_album_artists.album_artist_id)) album_artist_ids",
                 ),
                 max(songs::year),
                 (
@@ -132,6 +130,7 @@ mod tests {
         },
     };
 
+    use diesel::JoinOnDsl;
     use fake::{Fake, Faker};
     use itertools::Itertools;
     use rand::Rng;
