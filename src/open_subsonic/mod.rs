@@ -6,8 +6,8 @@ pub mod scan;
 pub mod system;
 pub mod user;
 
-pub use common::binary_response::StreamResponse;
 pub use common::error::{OSError, ServerError};
+pub use common::stream::StreamResponse;
 
 #[cfg(test)]
 pub mod test {

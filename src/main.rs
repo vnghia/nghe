@@ -4,7 +4,6 @@ mod built_info {
 
 use axum::Router;
 use itertools::Itertools;
-use nghe::models::music_folders;
 use nghe::open_subsonic::extension;
 use tokio::signal;
 use tower::ServiceBuilder;
@@ -80,13 +79,13 @@ async fn main() {
         .await
         .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app(database, upserted_music_folders))
+    axum::serve(listener, app(database))
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
 }
 
-fn app(database: Database, music_folders: Vec<music_folders::MusicFolder>) -> Router {
+fn app(database: Database) -> Router {
     Router::new()
         // system
         .merge(system::router())
@@ -97,7 +96,7 @@ fn app(database: Database, music_folders: Vec<music_folders::MusicFolder>) -> Ro
         // user
         .merge(user::router())
         // media retrieval
-        .merge(media_retrieval::router(music_folders))
+        .merge(media_retrieval::router())
         // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(database)
