@@ -5,6 +5,7 @@ mod built_info {
 use axum::Router;
 use itertools::Itertools;
 use nghe::models::music_folders;
+use nghe::open_subsonic::extension;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -89,6 +90,8 @@ fn app(database: Database, music_folders: Vec<music_folders::MusicFolder>) -> Ro
     Router::new()
         // system
         .merge(system::router())
+        // extension
+        .merge(extension::router())
         // browsing
         .merge(browsing::router())
         // user

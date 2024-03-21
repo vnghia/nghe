@@ -1,5 +1,6 @@
 pub mod browsing;
 mod common;
+pub mod extension;
 pub mod media_retrieval;
 pub mod scan;
 pub mod system;
