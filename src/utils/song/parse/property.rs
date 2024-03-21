@@ -6,7 +6,7 @@ use lofty::FileType;
 pub struct SongProperty {
     #[cfg_attr(test, derivative(Default(value = "FileType::Flac")))]
     pub format: FileType,
-    pub duration: u32,
+    pub duration: f32,
     pub bitrate: u32,
     pub sample_rate: u32,
     pub channel_count: u8,

@@ -34,7 +34,8 @@ pub struct BasicAlbumId3 {
     pub id: Uuid,
     pub name: String,
     pub song_count: i64,
-    pub duration: i64,
+    #[derivative(PartialEq = "ignore")]
+    pub duration: f32,
     #[serde(with = "crate::utils::time::iso8601_datetime")]
     pub created: OffsetDateTime,
 }
@@ -56,7 +57,8 @@ pub struct AlbumId3 {
 pub struct BasicSongId3 {
     pub id: Uuid,
     pub title: String,
-    pub duration: i32,
+    #[derivative(PartialEq = "ignore")]
+    pub duration: f32,
     pub size: i64,
     #[serde(with = "crate::utils::time::iso8601_datetime")]
     pub created: OffsetDateTime,

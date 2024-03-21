@@ -36,7 +36,7 @@ impl SongInformation {
                 let flac_property = flac_file.properties();
                 let song_property = SongProperty {
                     format: file_type,
-                    duration: flac_property.duration().as_secs_f32() as u32,
+                    duration: flac_property.duration().as_secs_f32(),
                     bitrate: flac_property.audio_bitrate(),
                     sample_rate: flac_property.sample_rate(),
                     channel_count: flac_property.channels(),
@@ -56,7 +56,7 @@ impl SongInformation {
                 let mp3_property = mp3_file.properties();
                 let song_property = SongProperty {
                     format: file_type,
-                    duration: mp3_property.duration().as_secs_f32() as u32,
+                    duration: mp3_property.duration().as_secs_f32(),
                     bitrate: mp3_property.audio_bitrate(),
                     sample_rate: mp3_property.sample_rate(),
                     channel_count: mp3_property.channels(),
@@ -114,7 +114,7 @@ impl SongInformation {
                 .collect_vec(),
             // Song property
             format: to_extension(&self.property.format).into(),
-            duration: self.property.duration as i32,
+            duration: self.property.duration,
             bitrate: self.property.bitrate as i32,
             sample_rate: self.property.sample_rate as i32,
             channel_count: self.property.channel_count as i16,

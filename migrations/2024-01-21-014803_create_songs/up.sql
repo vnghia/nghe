@@ -21,7 +21,7 @@ create table
     languages text[] not null default array[]::text[] check (array_position(languages, null) is null),
     -- Song property
     format text not null,
-    duration integer not null,
+    duration real not null,
     bitrate integer not null,
     sample_rate integer not null,
     channel_count smallint not null,
