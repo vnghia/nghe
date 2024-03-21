@@ -1,4 +1,4 @@
-use super::common::{extract_common_tags, parse_number_and_total};
+use super::common::{extract_common_tags, parse_track_and_disc};
 use super::tag::{SongDate, SongTag};
 use crate::config::parsing::Id3v2ParsingConfig;
 use crate::OSError;
@@ -23,13 +23,6 @@ fn extract_and_split_str<'a>(
         })
 }
 
-fn extract_number_and_total(
-    tag: &mut Id3v2Tag,
-    number_id: &FrameId<'_>,
-) -> Result<(Option<u32>, Option<u32>)> {
-    parse_number_and_total(tag.get_text(number_id), None)
-}
-
 impl SongTag {
     pub fn from_id3v2(tag: &mut Id3v2Tag, parsing_config: &Id3v2ParsingConfig) -> Result<Self> {
         let (title, album) = extract_common_tags(tag)?;
@@ -41,9 +34,12 @@ impl SongTag {
             extract_and_split_str(tag, &parsing_config.album_artist, parsing_config.separator)
                 .map_or_else(Vec::default, |v| v.map(String::from).collect_vec());
 
-        let (track_number, track_total) =
-            extract_number_and_total(tag, &parsing_config.track_number)?;
-        let (disc_number, disc_total) = extract_number_and_total(tag, &parsing_config.disc_number)?;
+        let ((track_number, track_total), (disc_number, disc_total)) = parse_track_and_disc(
+            tag.get_text(&parsing_config.track_number),
+            None,
+            tag.get_text(&parsing_config.disc_number),
+            None,
+        )?;
 
         let date = SongDate::parse(tag.get_text(&parsing_config.date))?;
         let release_date = SongDate::parse(tag.get_text(&parsing_config.release_date))?;

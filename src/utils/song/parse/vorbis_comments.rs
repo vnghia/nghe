@@ -1,6 +1,6 @@
 use crate::config::parsing::VorbisCommentsParsingConfig;
 
-use super::common::{extract_common_tags, parse_number_and_total};
+use super::common::{extract_common_tags, parse_track_and_disc};
 use super::tag::{SongDate, SongTag};
 
 use anyhow::Result;
@@ -8,14 +8,6 @@ use isolang::Language;
 use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use std::str::FromStr;
-
-fn extract_number_and_total(
-    tag: &mut VorbisComments,
-    number_keys: &str,
-    total_keys: &str,
-) -> Result<(Option<u32>, Option<u32>)> {
-    parse_number_and_total(tag.get(number_keys), tag.get(total_keys))
-}
 
 impl SongTag {
     pub fn from_vorbis_comments(
@@ -27,13 +19,12 @@ impl SongTag {
         let artists = tag.remove(&parsing_config.artist).collect_vec();
         let album_artists = tag.remove(&parsing_config.album_artist).collect_vec();
 
-        let (track_number, track_total) = extract_number_and_total(
-            tag,
-            &parsing_config.track_number,
-            &parsing_config.track_total,
+        let ((track_number, track_total), (disc_number, disc_total)) = parse_track_and_disc(
+            tag.get(&parsing_config.track_number),
+            tag.get(&parsing_config.track_total),
+            tag.get(&parsing_config.disc_number),
+            tag.get(&parsing_config.disc_total),
         )?;
-        let (disc_number, disc_total) =
-            extract_number_and_total(tag, &parsing_config.disc_number, &parsing_config.disc_total)?;
 
         let date = SongDate::parse(tag.get(&parsing_config.date))?;
         let release_date = SongDate::parse(tag.get(&parsing_config.release_date))?;
