@@ -4,7 +4,6 @@ mod built_info {
 
 use axum::Router;
 use itertools::Itertools;
-use nghe::open_subsonic::extension;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -14,7 +13,7 @@ use nghe::config::Config;
 use nghe::open_subsonic::{
     browsing,
     browsing::{refresh_music_folders, refresh_permissions},
-    media_retrieval, scan, system, user,
+    extension, media_retrieval, scan, searching, system, user,
 };
 use nghe::Database;
 
@@ -97,6 +96,8 @@ fn app(database: Database) -> Router {
         .merge(user::router())
         // media retrieval
         .merge(media_retrieval::router())
+        // searching
+        .merge(searching::router())
         // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(database)
