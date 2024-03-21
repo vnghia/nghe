@@ -1,7 +1,7 @@
 use crate::{
     models::*,
     open_subsonic::common::{
-        id3::{BasicArtistId3, BasicSongId3},
+        id3::{db::*, response::*},
         music_folder::check_user_music_folder_ids,
     },
     Database, DatabasePool, OSError,
@@ -30,8 +30,9 @@ pub struct GetMusicDirectoryParams {
 #[serde(rename_all = "camelCase")]
 pub struct BasicArtistId3WithSongs {
     #[serde(flatten)]
-    artist: BasicArtistId3,
-    child: Vec<BasicSongId3>,
+    artist: ArtistId3,
+    #[serde(rename = "child")]
+    children: Vec<ChildId3>,
 }
 
 #[wrap_subsonic_response]
@@ -43,7 +44,7 @@ async fn get_basic_artist_and_song_ids(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     artist_id: &Uuid,
-) -> Result<(BasicArtistId3, Vec<Uuid>)> {
+) -> Result<(BasicArtistId3Db, Vec<Uuid>)> {
     artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
@@ -60,7 +61,7 @@ async fn get_basic_artist_and_song_ids(
             (artists::id, artists::name),
             sql::<sql_types::Array<sql_types::Uuid>>("array_agg(distinct(songs.id)) song_ids"),
         ))
-        .first::<(BasicArtistId3, Vec<Uuid>)>(&mut pool.get().await?)
+        .first::<(BasicArtistId3Db, Vec<Uuid>)>(&mut pool.get().await?)
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Music directory".into()).into())
@@ -78,8 +79,8 @@ async fn get_music_directory(
     let basic_songs = get_basic_songs(pool, &music_folder_ids, &song_ids).await?;
 
     Ok(BasicArtistId3WithSongs {
-        artist,
-        child: basic_songs,
+        artist: artist.into_res(),
+        children: basic_songs.into_iter().map(|v| v.into_res()).collect(),
     })
 }
 

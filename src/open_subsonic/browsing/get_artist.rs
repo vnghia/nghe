@@ -1,7 +1,7 @@
 use crate::{
     models::*,
     open_subsonic::common::{
-        id3::{ArtistId3, BasicAlbumId3},
+        id3::{db::*, response::*},
         music_folder::check_user_music_folder_ids,
     },
     Database, DatabasePool, OSError,
@@ -30,7 +30,8 @@ pub struct GetArtistParams {
 pub struct ArtistId3WithAlbums {
     #[serde(flatten)]
     artist: ArtistId3,
-    album: Vec<BasicAlbumId3>,
+    #[serde(rename = "album")]
+    albums: Vec<AlbumId3>,
 }
 
 #[wrap_subsonic_response]
@@ -42,7 +43,7 @@ async fn get_artist_and_album_ids(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     artist_id: &Uuid,
-) -> Result<(ArtistId3, Vec<Uuid>)> {
+) -> Result<(ArtistId3Db, Vec<Uuid>)> {
     artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
@@ -56,12 +57,15 @@ async fn get_artist_and_album_ids(
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
         .select((
-            ((artists::id, artists::name),),
+            (
+                (artists::id, artists::name),
+                count_distinct(songs::album_id),
+            ),
             sql::<sql_types::Array<sql_types::Uuid>>(
                 "array_agg(distinct(songs.album_id)) album_ids",
             ),
         ))
-        .first::<(ArtistId3, Vec<Uuid>)>(&mut pool.get().await?)
+        .first::<(ArtistId3Db, Vec<Uuid>)>(&mut pool.get().await?)
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Artist".into()).into())
@@ -71,7 +75,7 @@ async fn get_basic_albums(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     album_ids: &[Uuid],
-) -> Result<Vec<BasicAlbumId3>> {
+) -> Result<Vec<BasicAlbumId3Db>> {
     albums::table
         .inner_join(songs::table)
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
@@ -84,7 +88,7 @@ async fn get_basic_albums(
             sum(songs::duration).assume_not_null(),
             albums::created_at,
         ))
-        .get_results::<BasicAlbumId3>(&mut pool.get().await?)
+        .get_results::<BasicAlbumId3Db>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)
 }
@@ -100,8 +104,8 @@ async fn get_artist(
     let basic_albums = get_basic_albums(pool, &music_folder_ids, &album_ids).await?;
 
     Ok(ArtistId3WithAlbums {
-        artist,
-        album: basic_albums,
+        artist: artist.into_res(),
+        albums: basic_albums.into_iter().map(|v| v.into_res()).collect(),
     })
 }
 

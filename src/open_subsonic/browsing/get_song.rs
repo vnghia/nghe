@@ -1,7 +1,7 @@
 use crate::{
     models::*,
     open_subsonic::common::{
-        id3::{BasicArtistId3Record, SongId3},
+        id3::{db::*, response::*},
         music_folder::check_user_music_folder_ids,
     },
     Database, DatabasePool, OSError,
@@ -9,7 +9,7 @@ use crate::{
 
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{dsl::sql, sql_types, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl};
+use diesel::{dsl::sql, sql_types, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use uuid::Uuid;
@@ -22,38 +22,33 @@ pub struct GetSongParams {
 
 #[wrap_subsonic_response]
 pub struct GetSongBody {
-    song: SongId3,
+    song: ChildId3,
 }
 
 async fn get_song(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     song_id: &Uuid,
-) -> Result<SongId3> {
+) -> Result<ChildId3Db> {
     songs::table
         .inner_join(songs_artists::table)
-        .inner_join(artists::table.on(artists::id.eq(songs_artists::artist_id)))
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(songs::id.eq(song_id))
         .group_by(songs::id)
         .select((
-            (
-                songs::id,
-                songs::title,
-                songs::duration,
-                songs::file_size,
-                songs::created_at,
-            ),
-            sql::<sql_types::Array<BasicArtistId3Record>>(
-                "array_agg(distinct(artists.id, artists.name)) basic_artists",
-            ),
-            songs::track_number,
-            songs::disc_number,
-            songs::year,
+            (songs::id, songs::title, songs::duration, songs::created_at),
+            songs::file_size,
             songs::format,
             songs::bitrate,
+            songs::album_id,
+            songs::year,
+            songs::track_number,
+            songs::disc_number,
+            sql::<sql_types::Array<sql_types::Uuid>>(
+                "array_agg(songs_artists.artist_id) basic_artist_ids",
+            ),
         ))
-        .first::<SongId3>(&mut pool.get().await?)
+        .first::<ChildId3Db>(&mut pool.get().await?)
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Song".into()).into())
@@ -66,7 +61,10 @@ pub async fn get_song_handler(
     let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
 
     GetSongBody {
-        song: get_song(&database.pool, &music_folder_ids, &req.params.id).await?,
+        song: get_song(&database.pool, &music_folder_ids, &req.params.id)
+            .await?
+            .into_res(&database.pool)
+            .await?,
     }
     .into()
 }
@@ -74,36 +72,31 @@ pub async fn get_song_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        open_subsonic::common::id3::BasicArtistId3,
-        utils::{
-            song::test::SongTag,
-            test::{media::song_paths_to_ids, setup::TestInfra},
-        },
+    use crate::utils::{
+        song::test::SongTag,
+        test::{media::song_paths_to_ids, setup::TestInfra},
     };
 
     use fake::{Fake, Faker};
     use itertools::Itertools;
 
-    async fn get_basic_artists(
+    async fn get_artist_ids(
         pool: &DatabasePool,
         music_folder_ids: &[Uuid],
         song_id: &Uuid,
-    ) -> Vec<BasicArtistId3> {
+    ) -> Vec<Uuid> {
         songs::table
-            .inner_join(albums::table)
             .inner_join(songs_artists::table)
-            .inner_join(artists::table.on(artists::id.eq(songs_artists::artist_id)))
             .filter(songs::music_folder_id.eq_any(music_folder_ids))
             .filter(songs::id.eq(song_id))
-            .select((artists::id, artists::name))
-            .get_results::<BasicArtistId3>(&mut pool.get().await.unwrap())
+            .select(songs_artists::artist_id)
+            .distinct()
+            .get_results::<Uuid>(&mut pool.get().await.unwrap())
             .await
             .unwrap()
             .into_iter()
-            .unique()
             .sorted()
-            .collect_vec()
+            .collect()
     }
 
     #[tokio::test]
@@ -121,12 +114,12 @@ mod tests {
         let song_id3 = get_song(test_infra.pool(), &music_folder_ids, &song_id)
             .await
             .unwrap();
-        let basic_artists = get_basic_artists(test_infra.pool(), &music_folder_ids, &song_id).await;
+        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, &song_id).await;
 
         assert_eq!(song_id3.basic.title, song_tag.title);
         assert_eq!(
-            song_id3.artists.into_iter().sorted().collect_vec(),
-            basic_artists
+            song_id3.artist_ids.into_iter().sorted().collect_vec(),
+            artist_ids
         );
     }
 
