@@ -11,9 +11,9 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use nghe::config::Config;
 use nghe::open_subsonic::{
-    browsing,
+    bookmarks, browsing,
     browsing::{refresh_music_folders, refresh_permissions},
-    extension, media_retrieval, scan, searching, system, user,
+    extension, media_list, media_retrieval, scan, searching, system, user,
 };
 use nghe::Database;
 
@@ -96,6 +96,10 @@ fn app(database: Database) -> Router {
         .merge(user::router())
         // media retrieval
         .merge(media_retrieval::router())
+        // meida list
+        .merge(media_list::router())
+        // bookmarks
+        .merge(bookmarks::router())
         // searching
         .merge(searching::router())
         // layer

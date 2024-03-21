@@ -1,6 +1,7 @@
 mod get_album;
 mod get_artist;
 mod get_artists;
+mod get_genres;
 mod get_indexes;
 mod get_music_directory;
 mod get_music_folders;
@@ -54,4 +55,7 @@ pub fn router() -> Router<crate::Database> {
             "/rest/getMusicDirectory.view",
             get(get_music_directory::get_music_directory_handler),
         )
+        // gen_genres
+        .route("/rest/getGenres", get(get_genres::get_genres_handler))
+        .route("/rest/getGenres.view", get(get_genres::get_genres_handler))
 }
