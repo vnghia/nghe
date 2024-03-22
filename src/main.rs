@@ -78,13 +78,13 @@ async fn main() {
         .await
         .unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app(database))
+    axum::serve(listener, app(database, config))
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
 }
 
-fn app(database: Database) -> Router {
+fn app(database: Database, config: Config) -> Router {
     Router::new()
         // system
         .merge(system::router())
@@ -95,7 +95,7 @@ fn app(database: Database) -> Router {
         // user
         .merge(user::router())
         // media retrieval
-        .merge(media_retrieval::router())
+        .merge(media_retrieval::router(config.transcoding))
         // meida list
         .merge(media_list::router())
         // bookmarks

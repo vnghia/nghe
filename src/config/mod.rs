@@ -18,6 +18,8 @@ pub type FolderConfig = raw::FolderConfig;
 
 pub type ScanConfig = raw::ScanConfig;
 
+pub type TranscodingConfig = raw::TranscodingConfig;
+
 #[derive(Debug, Clone)]
 pub struct ArtistIndexConfig {
     pub ignored_articles: String,
@@ -34,6 +36,7 @@ pub struct Config {
     pub artist_index: ArtistIndexConfig,
     pub parsing: ParsingConfig,
     pub scan: ScanConfig,
+    pub transcoding: TranscodingConfig,
 }
 
 impl ServerConfig {
@@ -75,6 +78,8 @@ impl Config {
 
         let scan = raw_config.scan;
 
+        let transcoding = raw_config.transcoding;
+
         Self {
             server,
             database,
@@ -82,6 +87,7 @@ impl Config {
             artist_index,
             parsing,
             scan,
+            transcoding,
         }
     }
 }

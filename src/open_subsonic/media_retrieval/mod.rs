@@ -2,9 +2,10 @@ mod download;
 mod stream;
 mod utils;
 
-use axum::{routing::get, Router};
+use crate::config::TranscodingConfig;
+use axum::{routing::get, Extension, Router};
 
-pub fn router() -> Router<crate::Database> {
+pub fn router(transcoding_config: TranscodingConfig) -> Router<crate::Database> {
     Router::new()
         // download
         .route("/rest/download", get(download::download_handler))
@@ -12,4 +13,6 @@ pub fn router() -> Router<crate::Database> {
         // stream
         .route("/rest/stream", get(stream::stream_handler))
         .route("/rest/stream.view", get(stream::stream_handler))
+        // transcoding config
+        .layer(Extension(transcoding_config))
 }

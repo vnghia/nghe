@@ -1,10 +1,11 @@
 use super::{download::download, utils::get_song_download_info};
 use crate::{
-    open_subsonic::StreamResponse, utils::song::transcode, Database, DatabasePool, ServerError,
+    config::TranscodingConfig, open_subsonic::StreamResponse, utils::song::transcode, Database,
+    DatabasePool, ServerError,
 };
 
 use anyhow::Result;
-use axum::extract::State;
+use axum::{extract::State, Extension};
 use concat_string::concat_string;
 use nghe_proc_macros::add_validate;
 use std::ffi::CString;
@@ -23,6 +24,7 @@ async fn stream(
     pool: &DatabasePool,
     user_id: Uuid,
     params: StreamParams,
+    transcoding_config: TranscodingConfig,
 ) -> Result<StreamResponse> {
     let format = params.format.unwrap_or("raw".to_owned());
     if format == "raw" {
@@ -53,7 +55,7 @@ async fn stream(
             &CString::new(output_path).unwrap(),
             max_bit_rate,
             params.time_offset,
-            32 * 1024,
+            transcoding_config.buffer_size,
             tx,
         ) {
             tracing::debug!(
@@ -71,9 +73,10 @@ async fn stream(
 
 pub async fn stream_handler(
     State(database): State<Database>,
+    Extension(transcoding_config): Extension<TranscodingConfig>,
     req: StreamRequest,
 ) -> Result<StreamResponse, ServerError> {
-    stream(&database.pool, req.user_id, req.params)
+    stream(&database.pool, req.user_id, req.params, transcoding_config)
         .await
         .map_err(ServerError)
 }

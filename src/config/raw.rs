@@ -55,6 +55,13 @@ pub struct ScanConfig {
     pub channel_size: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
+pub struct TranscodingConfig {
+    #[derivative(Default(value = "32 * 1024"))]
+    pub buffer_size: usize,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
@@ -63,6 +70,7 @@ pub struct Config {
     pub artist: ArtistConfig,
     pub parsing: ParsingConfig,
     pub scan: ScanConfig,
+    pub transcoding: TranscodingConfig,
 }
 
 impl Config {
@@ -80,6 +88,10 @@ impl Config {
             .join(Serialized::default("artist", ArtistConfig::default()))
             .join(Serialized::default("parsing", ParsingConfig::default()))
             .join(Serialized::default("scan", ScanConfig::default()))
+            .join(Serialized::default(
+                "transcoding",
+                TranscodingConfig::default(),
+            ))
             .extract()
             .expect("can not parse initial config")
     }
