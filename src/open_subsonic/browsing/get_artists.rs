@@ -8,7 +8,10 @@ use crate::{
 
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl};
+use diesel::{
+    dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl,
+    SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -57,7 +60,7 @@ async fn get_indexed_artists(
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
-        .select((artists::index, (artists::id, artists::name)))
+        .select((artists::index, BasicArtistId3Db::as_select()))
         .get_results::<(String, BasicArtistId3Db)>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)

@@ -12,6 +12,7 @@ use axum::extract::State;
 use diesel::{
     dsl::{count_distinct, sql},
     sql_types, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl,
+    SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -58,7 +59,7 @@ async fn get_basic_artist_and_song_ids(
         .group_by(artists::id)
         .having(count_distinct(songs::id).gt(0))
         .select((
-            (artists::id, artists::name),
+            BasicArtistId3Db::as_select(),
             sql::<sql_types::Array<sql_types::Uuid>>("array_agg(distinct(songs.id)) song_ids"),
         ))
         .first::<(BasicArtistId3Db, Vec<Uuid>)>(&mut pool.get().await?)

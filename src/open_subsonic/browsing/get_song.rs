@@ -9,7 +9,7 @@ use crate::{
 
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{dsl::sql, sql_types, ExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use uuid::Uuid;
@@ -35,19 +35,7 @@ async fn get_song(
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(songs::id.eq(song_id))
         .group_by(songs::id)
-        .select((
-            (songs::id, songs::title, songs::duration, songs::created_at),
-            songs::file_size,
-            songs::format,
-            songs::bitrate,
-            songs::album_id,
-            songs::year,
-            songs::track_number,
-            songs::disc_number,
-            sql::<sql_types::Array<sql_types::Uuid>>(
-                "array_agg(songs_artists.artist_id) artist_ids",
-            ),
-        ))
+        .select(ChildId3Db::as_select())
         .first::<ChildId3Db>(&mut pool.get().await?)
         .await
         .optional()?

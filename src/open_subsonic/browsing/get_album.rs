@@ -11,8 +11,8 @@ use crate::{
 use anyhow::Result;
 use axum::extract::State;
 use diesel::{
-    dsl::{count_distinct, max, sql, sum},
-    sql_types, ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl,
+    dsl::{count_distinct, sql},
+    sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -52,29 +52,7 @@ async fn get_album_and_song_ids(
         .group_by(albums::id)
         .having(count_distinct(songs::id).gt(0))
         .select((
-            (
-                (
-                    albums::id,
-                    albums::name,
-                    count_distinct(songs::id),
-                    sum(songs::duration).assume_not_null(),
-                    albums::created_at,
-                ),
-                sql::<sql_types::Array<sql_types::Uuid>>(
-                    "array_agg(distinct(songs_album_artists.album_artist_id)) album_artist_ids",
-                ),
-                max(songs::year),
-                (
-                    max(songs::release_year),
-                    max(songs::release_month),
-                    max(songs::release_day),
-                ),
-                (
-                    max(songs::original_release_year),
-                    max(songs::original_release_month),
-                    max(songs::original_release_day),
-                ),
-            ),
+            AlbumId3Db::as_select(),
             sql::<sql_types::Array<sql_types::Uuid>>("array_agg(distinct(songs.id)) song_ids"),
         ))
         .first::<(AlbumId3Db, Vec<Uuid>)>(&mut pool.get().await?)
@@ -91,7 +69,7 @@ pub async fn get_basic_songs(
     songs::table
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(songs::id.eq_any(song_ids))
-        .select((songs::id, songs::title, songs::duration, songs::created_at))
+        .select(BasicChildId3Db::as_select())
         .get_results::<BasicChildId3Db>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)

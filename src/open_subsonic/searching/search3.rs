@@ -10,9 +10,8 @@ use crate::{
 use anyhow::Result;
 use axum::extract::State;
 use diesel::{
-    dsl::{count_distinct, max, sql, sum},
-    sql_types, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods,
-    QueryDsl,
+    dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl,
+    SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
@@ -83,7 +82,7 @@ async fn syncing(
         .order(artists::name.asc())
         .limit(artist_count)
         .offset(artist_offset)
-        .select((artists::id, artists::name))
+        .select(BasicArtistId3Db::as_select())
         .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
         .await?;
 
@@ -95,29 +94,7 @@ async fn syncing(
         .order(albums::name.asc())
         .limit(album_count)
         .offset(album_offset)
-        .select((
-            (
-                albums::id,
-                albums::name,
-                count_distinct(songs::id),
-                sum(songs::duration).assume_not_null(),
-                albums::created_at,
-            ),
-            sql::<sql_types::Array<sql_types::Uuid>>(
-                "array_agg(distinct(songs_album_artists.album_artist_id)) album_artist_ids",
-            ),
-            max(songs::year),
-            (
-                max(songs::release_year),
-                max(songs::release_month),
-                max(songs::release_day),
-            ),
-            (
-                max(songs::original_release_year),
-                max(songs::original_release_month),
-                max(songs::original_release_day),
-            ),
-        ))
+        .select(AlbumId3Db::as_select())
         .get_results::<AlbumId3Db>(&mut pool.get().await?)
         .await?;
 
@@ -128,19 +105,7 @@ async fn syncing(
         .order(songs::title.asc())
         .limit(song_count)
         .offset(song_offset)
-        .select((
-            (songs::id, songs::title, songs::duration, songs::created_at),
-            songs::file_size,
-            songs::format,
-            songs::bitrate,
-            songs::album_id,
-            songs::year,
-            songs::track_number,
-            songs::disc_number,
-            sql::<sql_types::Array<sql_types::Uuid>>(
-                "array_agg(songs_artists.artist_id) artist_ids",
-            ),
-        ))
+        .select(ChildId3Db::as_select())
         .get_results::<ChildId3Db>(&mut pool.get().await?)
         .await?;
 

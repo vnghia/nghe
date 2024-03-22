@@ -10,9 +10,9 @@ use crate::{
 use anyhow::Result;
 use axum::extract::State;
 use diesel::{
-    dsl::{count, count_distinct, sql, sum},
-    sql_types, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods,
-    OptionalExtension, QueryDsl,
+    dsl::{count_distinct, sql},
+    sql_types, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl,
+    SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -57,10 +57,7 @@ async fn get_artist_and_album_ids(
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
         .select((
-            (
-                (artists::id, artists::name),
-                count_distinct(songs::album_id),
-            ),
+            ArtistId3Db::as_select(),
             sql::<sql_types::Array<sql_types::Uuid>>(
                 "array_agg(distinct(songs.album_id)) album_ids",
             ),
@@ -81,13 +78,7 @@ async fn get_basic_albums(
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(albums::id.eq_any(album_ids))
         .group_by(albums::id)
-        .select((
-            albums::id,
-            albums::name,
-            count(songs::id),
-            sum(songs::duration).assume_not_null(),
-            albums::created_at,
-        ))
+        .select(BasicAlbumId3Db::as_select())
         .get_results::<BasicAlbumId3Db>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)

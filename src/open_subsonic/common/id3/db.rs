@@ -2,7 +2,12 @@ use super::response::*;
 use crate::{models::*, DatabasePool};
 
 use anyhow::Result;
-use diesel::{ExpressionMethods, QueryDsl, Queryable};
+use diesel::{
+    dsl::{count_distinct, max, sql, sum, AssumeNotNull},
+    expression::SqlLiteral,
+    helper_types, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable,
+    Selectable,
+};
 use diesel_async::RunQueryDsl;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -14,54 +19,99 @@ pub struct DateId3Db {
     pub day: Option<i16>,
 }
 
-#[derive(Debug, Queryable)]
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = artists)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct BasicArtistId3Db {
     pub id: Uuid,
     pub name: String,
 }
 
-#[derive(Debug, Queryable)]
+#[derive(Debug, Queryable, Selectable)]
 pub struct ArtistId3Db {
+    #[diesel(embed)]
     pub basic: BasicArtistId3Db,
+    #[diesel(select_expression = count_distinct(songs::album_id))]
+    #[diesel(select_expression_type = count_distinct<songs::album_id>)]
     pub album_count: i64,
 }
 
-#[derive(Debug, Queryable)]
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = albums)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct BasicAlbumId3Db {
     pub id: Uuid,
     pub name: String,
+    #[diesel(select_expression = count_distinct(songs::id))]
+    #[diesel(select_expression_type = count_distinct<songs::id>)]
     pub song_count: i64,
+    #[diesel(select_expression = sum(songs::duration).assume_not_null())]
+    #[diesel(select_expression_type = AssumeNotNull<helper_types::sum<songs::duration>>)]
     pub duration: f32,
-    pub created: OffsetDateTime,
+    pub created_at: OffsetDateTime,
 }
 
-#[derive(Debug, Queryable)]
+#[derive(Debug, Queryable, Selectable)]
 pub struct AlbumId3Db {
+    #[diesel(embed)]
     pub basic: BasicAlbumId3Db,
+    #[diesel(select_expression = sql(
+        "array_agg(distinct(songs_album_artists.album_artist_id)) album_artist_ids",
+    ))]
+    #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
+    #[diesel(select_expression = max(songs::year))]
+    #[diesel(select_expression_type = helper_types::max<songs::year>)]
     pub year: Option<i16>,
+    #[diesel(select_expression = (
+        max(songs::release_year),
+        max(songs::release_month),
+        max(songs::release_day),
+    ))]
+    #[diesel(select_expression_type = (
+        helper_types::max<songs::release_year>,
+        helper_types::max<songs::release_month>,
+        helper_types::max<songs::release_day>,
+    ))]
     pub release_date: DateId3Db,
+    #[diesel(select_expression = (
+        max(songs::original_release_year),
+        max(songs::original_release_month),
+        max(songs::original_release_day),
+    ))]
+    #[diesel(select_expression_type = (
+        helper_types::max<songs::original_release_year>,
+        helper_types::max<songs::original_release_month>,
+        helper_types::max<songs::original_release_day>,
+    ))]
     pub original_release_date: DateId3Db,
 }
 
-#[derive(Debug, Queryable)]
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = songs)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct BasicChildId3Db {
     pub id: Uuid,
     pub title: String,
     pub duration: f32,
-    pub created: OffsetDateTime,
+    pub created_at: OffsetDateTime,
 }
 
-#[derive(Debug, Queryable)]
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = songs)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ChildId3Db {
+    #[diesel(embed)]
     pub basic: BasicChildId3Db,
-    pub size: i64,
+    pub file_size: i64,
     pub format: String,
-    pub bit_rate: i32,
+    pub bitrate: i32,
     pub album_id: Uuid,
     pub year: Option<i16>,
     pub track_number: Option<i32>,
     pub disc_number: Option<i32>,
+    #[diesel(select_expression = sql("array_agg(songs_artists.artist_id) artist_ids"))]
+    #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
 }
 
@@ -102,7 +152,7 @@ impl BasicAlbumId3Db {
             name: self.name,
             song_count: self.song_count as _,
             duration: self.duration as _,
-            created: self.created,
+            created: self.created_at,
             ..Default::default()
         }
     }
@@ -124,7 +174,7 @@ impl AlbumId3Db {
             name: self.basic.name,
             song_count: self.basic.song_count as _,
             duration: self.basic.duration as _,
-            created: self.basic.created,
+            created: self.basic.created_at,
             year: self.year.map(|v| v as _),
             artists,
             release_date: self.release_date.into_res(),
@@ -140,7 +190,7 @@ impl BasicChildId3Db {
             is_dir: false,
             title: self.title,
             duration: self.duration as _,
-            created: self.created,
+            created: self.created_at,
             ..Default::default()
         }
     }
@@ -162,8 +212,8 @@ impl ChildId3Db {
             is_dir: false,
             title: self.basic.title,
             duration: self.basic.duration as _,
-            created: self.basic.created,
-            size: Some(self.size as _),
+            created: self.basic.created_at,
+            size: Some(self.file_size as _),
             content_type: Some(
                 mime_guess::from_ext(&self.format)
                     .first_or_octet_stream()
@@ -171,7 +221,7 @@ impl ChildId3Db {
                     .to_owned(),
             ),
             suffix: Some(self.format),
-            bit_rate: Some(self.bit_rate as _),
+            bit_rate: Some(self.bitrate as _),
             album_id: Some(self.album_id),
             year: self.year.map(|v| v as _),
             track: self.track_number.map(|v| v as _),
