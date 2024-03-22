@@ -9,20 +9,19 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
     root: P,
     tx: mpsc::TxBlocking<(PathBuf, String, u64), S>,
 ) {
-    let mut types = TypesBuilder::new();
-    for song_file_type in SONG_FILE_TYPES {
-        if let Err(err) = types.add(
-            to_extension(&song_file_type),
-            to_glob_pattern(&song_file_type),
-        ) {
-            tracing::error!("error while building scan pattern: {:?}", err);
-            return;
+    let types = match try {
+        let mut types = TypesBuilder::new();
+        for song_file_type in SONG_FILE_TYPES {
+            types.add(
+                to_extension(&song_file_type),
+                to_glob_pattern(&song_file_type),
+            )?;
         }
-    }
-    let types = match types.select("all").build() {
-        Ok(t) => t,
-        Err(err) => {
-            tracing::error!("error while building scan pattern: {:?}", err);
+        types.select("all").build()?
+    } {
+        Ok(r) => r,
+        Err::<_, anyhow::Error>(e) => {
+            tracing::error!("error while building scan pattern: {:?}", e);
             return;
         }
     };
@@ -33,41 +32,37 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
         .run(|| {
             let tx = tx.clone();
             let root = root.clone();
-            Box::new(move |entry| match entry {
-                Ok(entry) => match entry.metadata() {
-                    Ok(metadata) => {
-                        if metadata.is_file() {
-                            let entry_path = entry.path();
-                            if let Err(e) = tx.send((
-                                entry_path.into(),
-                                entry_path
-                                    .strip_prefix(&root)
+            Box::new(move |entry| {
+                match try {
+                    let entry = entry?;
+                    let metadata = entry.metadata()?;
+                    let path = entry.path();
+                    if metadata.is_file()
+                        && tx
+                            .send((
+                                path.into(),
+                                path.strip_prefix(&root)
                                     .expect("this path should always contains the root path")
                                     .to_str()
                                     .expect("non utf-8 path encountered")
                                     .to_string(),
                                 metadata.len(),
-                            )) {
-                                tracing::info!(
-                                    "error {} while scanning for media files, stop scanning",
-                                    e
-                                );
-                                ignore::WalkState::Quit
-                            } else {
-                                ignore::WalkState::Continue
-                            }
-                        } else {
-                            ignore::WalkState::Continue
-                        }
-                    }
-                    Err(e) => {
-                        tracing::info!("error {} while scanning for media files", e);
+                            ))
+                            .is_err()
+                    {
+                        tracing::error!(
+                            "can not send path back to the main process, stop scanning"
+                        );
+                        ignore::WalkState::Quit
+                    } else {
                         ignore::WalkState::Continue
                     }
-                },
-                Err(e) => {
-                    tracing::info!("error {} while scanning for media files", e);
-                    ignore::WalkState::Continue
+                } {
+                    Ok(r) => r,
+                    Err::<_, anyhow::Error>(e) => {
+                        tracing::error!("error while scanning for media files: {}", e);
+                        ignore::WalkState::Continue
+                    }
                 }
             })
         });
