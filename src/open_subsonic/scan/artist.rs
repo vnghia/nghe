@@ -33,10 +33,10 @@ pub async fn upsert_artists<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) -> 
 // TODO: better index building mechanism
 fn build_artist_index<S: AsRef<str>>(ignored_prefixes: &[S], name: &str) -> Cow<'static, str> {
     for ignored_prefix in ignored_prefixes {
-        if let Some(stripped) = name.strip_prefix(ignored_prefix.as_ref()) {
-            if let Some(index_char) = stripped.chars().next() {
-                return index_char_to_string(index_char);
-            }
+        if let Some(stripped) = name.strip_prefix(ignored_prefix.as_ref())
+            && let Some(index_char) = stripped.chars().next()
+        {
+            return index_char_to_string(index_char);
         }
     }
 

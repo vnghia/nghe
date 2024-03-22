@@ -70,20 +70,20 @@ fn parse_number_and_total(
 }
 
 fn parse_track_and_disc_number_letter_prefix(track_number_value: &str) -> Result<(u32, u32)> {
-    let disc_letter = track_number_value.chars().next().ok_or_else(|| {
-        anyhow::anyhow!(OSError::InvalidParameter("track number value empty".into()))
-    })?;
-    if !disc_letter.is_ascii_alphabetic() {
+    if let Some(disc_letter) = track_number_value.chars().next()
+        && disc_letter.is_ascii_alphabetic()
+    {
+        // 'A' = 65 ASCII
+        let disc_number = (disc_letter.to_ascii_uppercase() as u8 - 64) as u32;
+        let track_number = track_number_value[1..]
+            .parse()
+            .with_context(|| concat_string!("track number value: ", track_number_value))?;
+        Ok((track_number, disc_number))
+    } else {
         anyhow::bail!(OSError::InvalidParameter(
-            concat_string!("track number value prefix with value ", track_number_value).into()
+            concat_string!("track number ", track_number_value).into()
         ))
     }
-    // 'A' = 65 ASCII
-    let disc_number = (disc_letter.to_ascii_uppercase() as u8 - 64) as u32;
-    let track_number = track_number_value[1..]
-        .parse()
-        .with_context(|| concat_string!("track number value: ", track_number_value))?;
-    Ok((track_number, disc_number))
 }
 
 pub type NumberTotal = (Option<u32>, Option<u32>);
@@ -93,37 +93,20 @@ pub fn parse_track_and_disc(
     disc_number: Option<&str>,
     disc_total: Option<&str>,
 ) -> Result<(NumberTotal, NumberTotal)> {
-    let track_result = parse_number_and_total(track_number, track_total);
-    let disc_result = parse_number_and_total(disc_number, disc_total);
-    let mut error_message = vec![];
-
-    if track_result.is_ok() && disc_result.is_ok() {
-        let track_result = track_result.expect("can not fail");
-        let disc_result = disc_result.expect("can not fail");
-        Ok((track_result, disc_result))
-    } else if let Some(v) = track_number {
-        let letter_result = parse_track_and_disc_number_letter_prefix(v);
-        match letter_result {
-            Err(e) => {
-                if let Err(e) = track_result {
-                    error_message.push(concat_string!("track ", e.to_string()));
+    match try {
+        let track_result = parse_number_and_total(track_number, track_total)?;
+        let disc_result = parse_number_and_total(disc_number, disc_total)?;
+        (track_result, disc_result)
+    } {
+        Err::<_, anyhow::Error>(e) if let Some(v) = track_number => {
+            match parse_track_and_disc_number_letter_prefix(v) {
+                Ok(r) => Ok(((Some(r.0), None), (Some(r.1), None))),
+                Err(le) => {
+                    anyhow::bail!(concat_string!(e.to_string(), "; ", le.to_string()))
                 }
-                if let Err(e) = disc_result {
-                    error_message.push(concat_string!("disc ", e.to_string()));
-                }
-                error_message.push(e.to_string());
-                anyhow::bail!(error_message.join("; "))
             }
-            Ok(r) => Ok(((Some(r.0), None), (Some(r.1), None))),
         }
-    } else {
-        if let Err(e) = track_result {
-            error_message.push(concat_string!("track ", e.to_string()));
-        }
-        if let Err(e) = disc_result {
-            error_message.push(concat_string!("disc ", e.to_string()));
-        }
-        anyhow::bail!(error_message.join("; "))
+        r => r,
     }
 }
 
