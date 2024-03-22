@@ -23,7 +23,7 @@ async fn main() {
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 [
-                    format!("{}=info", built_info::PKG_NAME),
+                    constcat::concat!(built_info::PKG_NAME, "=info").to_owned(),
                     "tower_http=info".to_owned(),
                 ]
                 .join(",")

@@ -1,4 +1,5 @@
 #![deny(clippy::all)]
+#![feature(const_precise_live_drops)]
 
 use mimalloc::MiMalloc;
 

@@ -76,10 +76,7 @@ pub struct Config {
 impl Config {
     pub fn new() -> Self {
         Figment::new()
-            .merge(
-                Env::prefixed(&concat_string::concat_string!(built_info::PKG_NAME, "_"))
-                    .split("__"),
-            )
+            .merge(Env::prefixed(constcat::concat!(built_info::PKG_NAME, "_")).split("__"))
             .join(Serialized::default("server", ServerConfig::default()))
             .join(Serialized::default(
                 "folder.depth_levels",
