@@ -1,5 +1,5 @@
 #![deny(clippy::all)]
-#![feature(const_precise_live_drops)]
+#![feature(const_option, const_option_ext)]
 #![feature(if_let_guard)]
 #![feature(let_chains)]
 #![feature(try_blocks)]

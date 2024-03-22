@@ -7,6 +7,6 @@ pub const SERVER_TYPE: &str = built_info::PKG_NAME;
 pub const SERVER_VERSION: &str = constcat::concat!(
     built_info::PKG_VERSION,
     " (",
-    crate::utils::constu::unwrap(built_info::GIT_COMMIT_HASH_SHORT),
+    built_info::GIT_COMMIT_HASH_SHORT.unwrap(),
     ")"
 );
