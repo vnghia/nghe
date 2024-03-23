@@ -57,6 +57,18 @@ impl ArtistIndexConfig {
     }
 }
 
+impl TranscodingConfig {
+    pub fn new(raw: raw::TranscodingConfig) -> Self {
+        Self {
+            buffer_size: raw.buffer_size,
+            cache_path: match raw.cache_path {
+                Some(p) if !p.is_absolute() => None,
+                p => p,
+            },
+        }
+    }
+}
+
 impl Config {
     pub fn new() -> Self {
         let raw_config = raw::Config::default();
@@ -73,7 +85,7 @@ impl Config {
 
         let scan = raw_config.scan;
 
-        let transcoding = raw_config.transcoding;
+        let transcoding = TranscodingConfig::new(raw_config.transcoding);
 
         Self { server, database, folder, artist_index, parsing, scan, transcoding }
     }
@@ -98,6 +110,8 @@ mod test {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
 
     #[test]
@@ -108,5 +122,24 @@ mod tests {
             artist_index_config.ignored_prefixes,
             vec!["The ", "A ", "An "].into_iter().map(std::borrow::ToOwned::to_owned).collect_vec()
         );
+    }
+
+    #[test]
+    fn test_new_transcoding_config() {
+        let config =
+            TranscodingConfig::new(raw::TranscodingConfig { buffer_size: 10, cache_path: None });
+        assert_eq!(config.cache_path, None);
+
+        let config = TranscodingConfig::new(raw::TranscodingConfig {
+            buffer_size: 10,
+            cache_path: Some(PathBuf::from("non-absolute")),
+        });
+        assert_eq!(config.cache_path, None);
+
+        let config = TranscodingConfig::new(raw::TranscodingConfig {
+            buffer_size: 10,
+            cache_path: Some(PathBuf::from("/absolute")),
+        });
+        assert_eq!(config.cache_path, Some(PathBuf::from("/absolute")));
     }
 }

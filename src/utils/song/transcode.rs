@@ -1,4 +1,7 @@
 use std::ffi::{CStr, CString};
+use std::fs::{File, OpenOptions};
+use std::io::Write;
+use std::path::Path;
 use std::sync::atomic::{AtomicI64, Ordering};
 
 use anyhow::{Context, Result};
@@ -37,15 +40,25 @@ fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext,
 fn make_output_io_context<S: MPSCShared + 'static>(
     buffer_size: usize,
     tx: mpsc::TxBlocking<Vec<u8>, S>,
+    mut output_file: Option<File>,
 ) -> AVIOContextContainer {
     AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
         AVMem::new(buffer_size),
         true,
         vec![],
         None,
-        Some(Box::new(move |_, data| match tx.send(data.to_vec()) {
-            Ok(()) => data.len() as i32,
-            Err(_) => ffi::AVERROR_EXTERNAL,
+        Some(Box::new(move |_, data| {
+            // Always send as much as possible.
+            let send_err = tx.send(data.to_vec()).is_err();
+            // And write to file as much as possible.
+            let write_err =
+                if let Some(ref mut f) = output_file { f.write_all(data).is_err() } else { false };
+            if send_err && write_err {
+                tracing::error!("both sending and writing operation have failed, stop transcoding");
+                ffi::AVERROR_EXTERNAL
+            } else {
+                data.len() as i32
+            }
         })),
         None,
     ))
@@ -220,31 +233,49 @@ fn flush_encoder(
     }
 }
 
-pub fn transcode<S: MPSCShared + 'static>(
-    input_path: &CStr,
-    output_path: &CStr,
+pub fn transcode<S: MPSCShared + 'static, PI: AsRef<Path>, PO: AsRef<Path>>(
+    input_path: PI,
+    output_path: PO,
+    write_to_file: bool,
     output_bit_rate: u32,
-    output_time_offset: Option<u32>,
+    output_time_offset: u32,
     buffer_size: usize,
     tx: mpsc::TxBlocking<Vec<u8>, S>,
 ) -> Result<()> {
-    let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(input_path)?;
+    let input_path = input_path.as_ref();
+    let output_path = output_path.as_ref();
+    let output_file = if write_to_file {
+        Some(OpenOptions::new().write(true).create_new(true).open(output_path)?)
+    } else {
+        None
+    };
+    let output_bit_rate = output_bit_rate * 1000; // bit to kbit
+
+    let input_cpath = CString::new(input_path.to_str().expect("non utf-8 path encountered"))
+        .expect("could not create cstring from str");
+    let output_cpath = CString::new(output_path.to_str().expect("non utf-8 path encountered"))
+        .expect("could not create cstring from str");
+
+    let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(&input_cpath)?;
     let (mut output_fmt_ctx, mut enc_ctx) = open_output_file(
-        output_path,
+        &output_cpath,
         &dec_ctx,
         output_bit_rate,
-        make_output_io_context(buffer_size, tx),
+        make_output_io_context(buffer_size, tx, output_file),
     )?;
 
     let mut filter_specs = vec![];
-    if let Some(output_time_offset) = output_time_offset {
+    if output_time_offset > 0 {
         filter_specs.push(concat_string!("atrim=start=", output_time_offset.to_string()));
     }
-    filter_specs.push("aresample=resampler=soxr".to_owned());
+    if dec_ctx.sample_rate != enc_ctx.sample_rate {
+        filter_specs.push("aresample=resampler=soxr".to_owned());
+    }
     if enc_ctx.frame_size > 0 {
         filter_specs.push(concat_string!("asetnsamples=n=", enc_ctx.frame_size.to_string(), ":p=0"))
     }
-    let filter_spec = filter_specs.join(",");
+    let filter_spec =
+        if !filter_specs.is_empty() { filter_specs.join(",") } else { "anull".to_owned() };
 
     let mut filter_graph = AVFilterGraph::new();
     let (mut src_ctx, mut sink_ctx) = init_filter(
@@ -310,10 +341,9 @@ pub fn transcode<S: MPSCShared + 'static>(
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::PathBuf;
 
     use fake::{Fake, Faker};
-    use lofty::FileType;
 
     use super::*;
     use crate::utils::song::file_type::SONG_FILE_TYPES;
@@ -321,29 +351,27 @@ mod tests {
     use crate::utils::test::TemporaryFs;
 
     const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
-    const OUTPUT_BITRATE: &[u32] = &[32000, 64000, 128000, 192000, 320000];
-    const OUTPUT_TIME_OFFSETS: &[Option<u32>] = &[None, Some(5), Some(u32::MAX)];
-
-    fn path_to_cstring<P: AsRef<Path>>(path: P) -> CString {
-        CString::new(path.as_ref().to_str().unwrap()).unwrap()
-    }
-
-    fn get_media_asset_cstring(file_type: &FileType) -> CString {
-        path_to_cstring(get_media_asset_path(file_type))
-    }
+    const OUTPUT_BITRATE: &[u32] = &[32, 64, 128, 192, 320];
+    const OUTPUT_TIME_OFFSETS: &[u32] = &[0, 5, u32::MAX];
 
     async fn wrap_transcode(
-        input_path: &CStr,
-        output_path: &CStr,
+        input_path: PathBuf,
+        output_path: PathBuf,
         output_bit_rate: u32,
-        output_time_offset: Option<u32>,
+        output_time_offset: u32,
     ) -> Vec<u8> {
         let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(1);
-        let input_path = input_path.to_owned();
-        let output_path = output_path.to_owned();
 
         let transcode_thread = tokio::task::spawn_blocking(move || {
-            transcode(&input_path, &output_path, output_bit_rate, output_time_offset, 32 * 1024, tx)
+            transcode(
+                input_path,
+                output_path,
+                false,
+                output_bit_rate,
+                output_time_offset,
+                32 * 1024,
+                tx,
+            )
         });
 
         let mut result = vec![];
@@ -360,18 +388,17 @@ mod tests {
         let fs = TemporaryFs::new();
 
         for file_type in SONG_FILE_TYPES {
-            let media_path = get_media_asset_cstring(&file_type);
+            let media_path = get_media_asset_path(&file_type);
             for output_extension in OUTPUT_EXTENSIONS {
                 for output_bitrate in OUTPUT_BITRATE {
                     for output_time_offset in OUTPUT_TIME_OFFSETS {
-                        let output_path = path_to_cstring(
-                            fs.root_path()
-                                .join(Faker.fake::<String>())
-                                .with_extension(output_extension),
-                        );
+                        let output_path = fs
+                            .root_path()
+                            .join(Faker.fake::<String>())
+                            .with_extension(output_extension);
                         wrap_transcode(
-                            &media_path,
-                            &output_path,
+                            media_path.clone(),
+                            output_path,
                             *output_bitrate,
                             *output_time_offset,
                         )

@@ -36,9 +36,9 @@ pub struct StreamResponse {
 }
 
 impl StreamResponse {
-    pub async fn from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub async fn try_from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let mime = mime_guess::from_path(&path).first_or_octet_stream();
-        let stream = ReaderStream::new(tokio::fs::File::open(path).await?);
+        let stream = ReaderStream::new(tokio::fs::File::open(&path).await?);
         Ok(Self { mime, stream: StreamType::File(stream) })
     }
 

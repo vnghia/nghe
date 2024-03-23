@@ -60,6 +60,10 @@ pub struct ScanConfig {
 pub struct TranscodingConfig {
     #[derivative(Default(value = "32 * 1024"))]
     pub buffer_size: usize,
+    #[derivative(Default(
+        value = "Some(std::env::temp_dir().join(\"nghe\").join(\"cache\").join(\"transcoding\"))"
+    ))]
+    pub cache_path: Option<PathBuf>,
 }
 
 #[derive(Debug, Deserialize)]
