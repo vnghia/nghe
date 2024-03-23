@@ -1,5 +1,6 @@
-use super::*;
 use serde::{Serialize, Serializer};
+
+use super::*;
 
 macro_rules! emit_constant_serialize {
     ($constant_name:ident, $constant_type:ty, $constant_value:expr) => {
@@ -56,11 +57,10 @@ emit_constant_serialize!(status_failed, str, "failed");
 
 #[cfg(test)]
 mod tests {
-    use super::constant;
-
+    use nghe_proc_macros::wrap_subsonic_response;
     use serde_json::{json, to_value};
 
-    use nghe_proc_macros::wrap_subsonic_response;
+    use super::constant;
 
     #[test]
     fn test_ser_success_empty() {

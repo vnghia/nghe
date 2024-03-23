@@ -1,20 +1,18 @@
+use std::ffi::{CStr, CString};
+use std::sync::atomic::{AtomicI64, Ordering};
+
 use anyhow::{Context, Result};
 use concat_string::concat_string;
-use crossfire::{channel::MPSCShared, mpsc};
-use rsmpeg::{
-    avcodec::{AVCodec, AVCodecContext},
-    avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut},
-    avformat::{
-        AVFormatContextInput, AVFormatContextOutput, AVIOContextContainer, AVIOContextCustom,
-    },
-    avutil::{get_sample_fmt_name, ra, AVFrame, AVMem},
-    error::RsmpegError,
-    ffi,
+use crossfire::channel::MPSCShared;
+use crossfire::mpsc;
+use rsmpeg::avcodec::{AVCodec, AVCodecContext};
+use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
+use rsmpeg::avformat::{
+    AVFormatContextInput, AVFormatContextOutput, AVIOContextContainer, AVIOContextCustom,
 };
-use std::{
-    ffi::{CStr, CString},
-    sync::atomic::{AtomicI64, Ordering},
-};
+use rsmpeg::avutil::{get_sample_fmt_name, ra, AVFrame, AVMem};
+use rsmpeg::error::RsmpegError;
+use rsmpeg::ffi;
 
 fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext, usize)> {
     let input_fmt_ctx =
@@ -97,9 +95,7 @@ fn open_output_file(
     }
 
     // Write the header of the output file container.
-    output_fmt_ctx
-        .write_header(&mut None)
-        .context("could not write output file header")?;
+    output_fmt_ctx.write_header(&mut None).context("could not write output file header")?;
 
     Ok((output_fmt_ctx, enc_ctx))
 }
@@ -123,9 +119,7 @@ fn init_filter<'a>(
         ":sample_fmt=",
         // We can unwrap here, because we are sure that the given
         // sample_fmt is valid.
-        get_sample_fmt_name(dec_ctx.sample_fmt)
-            .unwrap()
-            .to_string_lossy(),
+        get_sample_fmt_name(dec_ctx.sample_fmt).unwrap().to_string_lossy(),
         ":channel_layout=",
         dec_ctx.ch_layout().describe().unwrap().to_string_lossy()
     );
@@ -188,9 +182,7 @@ fn encode_audio_frame(
         packet.set_stream_index(0);
         packet.rescale_ts(enc_ctx.time_base, output_fmt_ctx.streams()[0].time_base);
 
-        output_fmt_ctx
-            .interleaved_write_frame(&mut packet)
-            .context("could not write frame")?;
+        output_fmt_ctx.interleaved_write_frame(&mut packet).context("could not write frame")?;
     }
 }
 
@@ -209,7 +201,7 @@ fn filter_and_encode_audio_frame(
         let frame = match sink_ctx.buffersink_get_frame(None) {
             Ok(frame) => frame,
             Err(RsmpegError::BufferSinkDrainError) | Err(RsmpegError::BufferSinkEofError) => {
-                break Ok(())
+                break Ok(());
             }
             Err(err) => anyhow::bail!(err),
         };
@@ -246,18 +238,11 @@ pub fn transcode<S: MPSCShared + 'static>(
 
     let mut filter_specs = vec![];
     if let Some(output_time_offset) = output_time_offset {
-        filter_specs.push(concat_string!(
-            "atrim=start=",
-            output_time_offset.to_string()
-        ));
+        filter_specs.push(concat_string!("atrim=start=", output_time_offset.to_string()));
     }
     filter_specs.push("aresample=resampler=soxr".to_owned());
     if enc_ctx.frame_size > 0 {
-        filter_specs.push(concat_string!(
-            "asetnsamples=n=",
-            enc_ctx.frame_size.to_string(),
-            ":p=0"
-        ))
+        filter_specs.push(concat_string!("asetnsamples=n=", enc_ctx.frame_size.to_string(), ":p=0"))
     }
     let filter_spec = filter_specs.join(",");
 
@@ -276,16 +261,11 @@ pub fn transcode<S: MPSCShared + 'static>(
         };
 
         // Ignore non audio stream packets.
-        if packet
-            .as_ref()
-            .is_some_and(|p| p.stream_index as usize != audio_idx)
-        {
+        if packet.as_ref().is_some_and(|p| p.stream_index as usize != audio_idx) {
             continue;
         }
 
-        dec_ctx
-            .send_packet(packet.as_ref())
-            .context("could not send packet for decoding")?;
+        dec_ctx.send_packet(packet.as_ref()).context("could not send packet for decoding")?;
 
         // If packet is none, it means that we are at EOF.
         // The decoder is flush as above.
@@ -330,15 +310,15 @@ pub fn transcode<S: MPSCShared + 'static>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::utils::{
-        song::file_type::SONG_FILE_TYPES,
-        test::{asset::get_media_asset_path, TemporaryFs},
-    };
+    use std::path::Path;
 
     use fake::{Fake, Faker};
     use lofty::FileType;
-    use std::path::Path;
+
+    use super::*;
+    use crate::utils::song::file_type::SONG_FILE_TYPES;
+    use crate::utils::test::asset::get_media_asset_path;
+    use crate::utils::test::TemporaryFs;
 
     const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
     const OUTPUT_BITRATE: &[u32] = &[32000, 64000, 128000, 192000, 320000];
@@ -363,14 +343,7 @@ mod tests {
         let output_path = output_path.to_owned();
 
         let transcode_thread = tokio::task::spawn_blocking(move || {
-            transcode(
-                &input_path,
-                &output_path,
-                output_bit_rate,
-                output_time_offset,
-                32 * 1024,
-                tx,
-            )
+            transcode(&input_path, &output_path, output_bit_rate, output_time_offset, 32 * 1024, tx)
         });
 
         let mut result = vec![];

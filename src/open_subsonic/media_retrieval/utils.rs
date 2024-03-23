@@ -1,10 +1,12 @@
-use crate::{models::*, DatabasePool, OSError};
+use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
-use std::path::{Path, PathBuf};
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::{DatabasePool, OSError};
 
 pub async fn get_song_download_info(
     pool: &DatabasePool,

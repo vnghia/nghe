@@ -1,16 +1,17 @@
-use super::response::*;
-use crate::{models::*, DatabasePool};
-
 use anyhow::Result;
+use diesel::dsl::{count_distinct, max, sql, sum, AssumeNotNull};
+use diesel::expression::SqlLiteral;
 use diesel::{
-    dsl::{count_distinct, max, sql, sum, AssumeNotNull},
-    expression::SqlLiteral,
     helper_types, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable,
     Selectable,
 };
 use diesel_async::RunQueryDsl;
 use time::OffsetDateTime;
 use uuid::Uuid;
+
+use super::response::*;
+use crate::models::*;
+use crate::DatabasePool;
 
 #[derive(Debug, Queryable)]
 pub struct DateId3Db {
@@ -127,11 +128,7 @@ impl DateId3Db {
 
 impl BasicArtistId3Db {
     pub fn into_res(self) -> ArtistId3 {
-        ArtistId3 {
-            id: self.id,
-            name: self.name,
-            ..Default::default()
-        }
+        ArtistId3 { id: self.id, name: self.name, ..Default::default() }
     }
 }
 
@@ -215,10 +212,7 @@ impl ChildId3Db {
             created: self.basic.created_at,
             size: Some(self.file_size as _),
             content_type: Some(
-                mime_guess::from_ext(&self.format)
-                    .first_or_octet_stream()
-                    .essence_str()
-                    .to_owned(),
+                mime_guess::from_ext(&self.format).first_or_octet_stream().essence_str().to_owned(),
             ),
             suffix: Some(self.format),
             bit_rate: Some(self.bitrate as _),

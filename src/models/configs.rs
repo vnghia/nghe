@@ -1,8 +1,9 @@
-pub use crate::schema::configs;
-pub use configs::*;
-
-use diesel::prelude::*;
 use std::borrow::Cow;
+
+pub use configs::*;
+use diesel::prelude::*;
+
+pub use crate::schema::configs;
 
 #[derive(Identifiable, Insertable)]
 #[diesel(table_name = configs, primary_key(key))]

@@ -1,9 +1,10 @@
-pub use crate::schema::scans;
-pub use scans::*;
+use std::borrow::Cow;
 
 use diesel::prelude::*;
-use std::borrow::Cow;
+pub use scans::*;
 use time::OffsetDateTime;
+
+pub use crate::schema::scans;
 
 #[derive(AsChangeset)]
 #[diesel(table_name = scans)]

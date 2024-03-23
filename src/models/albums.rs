@@ -1,8 +1,9 @@
-pub use crate::schema::albums;
-pub use albums::*;
-
-use diesel::prelude::*;
 use std::borrow::Cow;
+
+pub use albums::*;
+use diesel::prelude::*;
+
+pub use crate::schema::albums;
 
 #[derive(Insertable)]
 #[diesel(table_name = albums)]

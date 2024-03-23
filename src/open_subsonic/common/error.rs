@@ -1,10 +1,10 @@
+use std::borrow::Cow;
+
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use nghe_proc_macros::wrap_subsonic_response;
 use serde::Serialize;
 use thiserror::Error;
-
-use nghe_proc_macros::wrap_subsonic_response;
-use std::borrow::Cow;
 
 #[derive(Debug, Error)]
 pub enum OSError {
@@ -50,10 +50,7 @@ struct ErrorBody {
 fn to_error_response(code: u8, err: &anyhow::Error) -> ErrorJsonResponse {
     let message = err.to_string();
     tracing::error!("{:?}", err);
-    ErrorBody {
-        error: ActualError { code, message },
-    }
-    .into()
+    ErrorBody { error: ActualError { code, message } }.into()
 }
 
 impl IntoResponse for ServerError {

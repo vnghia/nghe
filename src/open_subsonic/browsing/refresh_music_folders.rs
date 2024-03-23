@@ -1,11 +1,12 @@
-use crate::models::*;
-use crate::utils::fs::folders::build_music_folders;
-use crate::DatabasePool;
+use std::path::Path;
 
 use diesel::{ExpressionMethods, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use std::path::Path;
+
+use crate::models::*;
+use crate::utils::fs::folders::build_music_folders;
+use crate::DatabasePool;
 
 pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
     pool: &DatabasePool,
@@ -50,10 +51,10 @@ pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
     use crate::utils::test::{TemporaryDatabase, TemporaryFs};
-
-    use std::path::PathBuf;
 
     #[tokio::test]
     async fn test_refresh_insert() {
@@ -67,10 +68,7 @@ mod tests {
 
         let (upserted_folders, deleted_folder_count) =
             refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
-        let results = upserted_folders
-            .iter()
-            .map(|model| PathBuf::from(&model.path))
-            .collect_vec();
+        let results = upserted_folders.iter().map(|model| PathBuf::from(&model.path)).collect_vec();
 
         assert_eq!(
             temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
@@ -105,10 +103,7 @@ mod tests {
 
         let (upserted_folders, deleted_folder_count) =
             refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
-        let results = upserted_folders
-            .iter()
-            .map(|model| PathBuf::from(&model.path))
-            .collect_vec();
+        let results = upserted_folders.iter().map(|model| PathBuf::from(&model.path)).collect_vec();
 
         assert_eq!(
             temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
@@ -144,10 +139,7 @@ mod tests {
 
         let (upserted_folders, deleted_folder_count) =
             refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
-        let results = upserted_folders
-            .iter()
-            .map(|model| PathBuf::from(&model.path))
-            .collect_vec();
+        let results = upserted_folders.iter().map(|model| PathBuf::from(&model.path)).collect_vec();
 
         assert_eq!(
             temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),

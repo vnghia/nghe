@@ -2,22 +2,23 @@ mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
-use super::asset::get_media_asset_path;
-use crate::config::parsing::ParsingConfig;
-use crate::utils::song::file_type::to_extension;
-use crate::utils::song::file_type::SONG_FILE_TYPES;
-use crate::utils::song::test::SongTag;
-use crate::utils::song::SongInformation;
+use std::ffi::OsStr;
+use std::fs::*;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use lofty::{FileType, TagExt, TagType, TaggedFileExt};
 use rand::seq::SliceRandom;
-use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
-use std::{fs::*, io::Write};
 use tempfile::{Builder, TempDir};
 use xxhash_rust::xxh3::xxh3_64;
+
+use super::asset::get_media_asset_path;
+use crate::config::parsing::ParsingConfig;
+use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
+use crate::utils::song::test::SongTag;
+use crate::utils::song::SongInformation;
 
 #[derive(Debug, Clone)]
 pub struct SongFsInformation {
@@ -51,12 +52,7 @@ impl TemporaryFs {
         let root_path = _root.path().to_owned();
         let canonicalized_root_path = _root.path().canonicalize().unwrap();
 
-        Self {
-            _root,
-            root_path,
-            canonicalized_root_path,
-            parsing_config: Default::default(),
-        }
+        Self { _root, root_path, canonicalized_root_path, parsing_config: Default::default() }
     }
 
     fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
@@ -197,10 +193,7 @@ impl TemporaryFs {
     }
 
     pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
-        paths
-            .iter()
-            .map(|path| self.get_absolute_path(path))
-            .collect()
+        paths.iter().map(|path| self.get_absolute_path(path)).collect()
     }
 
     pub fn canonicalize_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
@@ -230,11 +223,7 @@ fn test_roundtrip_media_file() {
         )
         .unwrap()
         .tag;
-        assert_eq!(
-            song_tag, read_song_tag,
-            "{:?} tag does not match",
-            file_type
-        );
+        assert_eq!(song_tag, read_song_tag, "{:?} tag does not match", file_type);
     }
 }
 
@@ -263,10 +252,6 @@ fn test_roundtrip_media_file_none_value() {
         )
         .unwrap()
         .tag;
-        assert_eq!(
-            song_tag, read_song_tag,
-            "{:?} tag does not match",
-            file_type
-        );
+        assert_eq!(song_tag, read_song_tag, "{:?} tag does not match", file_type);
     }
 }

@@ -1,12 +1,11 @@
-use crate::database::EncryptionKey;
-use crate::Database;
-use crate::DatabasePool;
-
 use axum::extract::State;
 use concat_string::concat_string;
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 use url::Url;
 use uuid::Uuid;
+
+use crate::database::EncryptionKey;
+use crate::{Database, DatabasePool};
 
 pub struct TemporaryDatabase {
     name: String,
@@ -20,9 +19,8 @@ impl TemporaryDatabase {
         let mut new_url = Url::parse(&url).expect("can not parse database url");
         new_url.set_path(&name);
 
-        let mut root_conn = AsyncPgConnection::establish(&url)
-            .await
-            .expect("can not connect to the database");
+        let mut root_conn =
+            AsyncPgConnection::establish(&url).await.expect("can not connect to the database");
         diesel_async::RunQueryDsl::execute(
             diesel::sql_query(concat_string!("CREATE DATABASE \"", name, "\";")),
             &mut root_conn,
@@ -64,7 +62,8 @@ impl TemporaryDatabase {
 #[cfg(not(target_env = "musl"))]
 impl Drop for TemporaryDatabase {
     fn drop(&mut self) {
-        use diesel::{pg::PgConnection, Connection};
+        use diesel::pg::PgConnection;
+        use diesel::Connection;
 
         let raw_statement =
             concat_string!("DROP DATABASE IF EXISTS \"", &self.name, "\" WITH (FORCE);");

@@ -1,7 +1,8 @@
-use concat_string::concat_string;
-use itertools::Itertools;
 use std::fs::*;
 use std::path::{Path, PathBuf};
+
+use concat_string::concat_string;
+use itertools::Itertools;
 use walkdir::WalkDir;
 
 fn get_deepest_folders<P: AsRef<Path> + Sync>(root: P, max_depth: usize) -> Vec<PathBuf> {
@@ -66,13 +67,9 @@ pub fn build_music_folders<P: AsRef<Path> + Sync>(
                 || canonicalized_top_paths[j].starts_with(&canonicalized_top_paths[i])
             {
                 std::panic::panic_any(concat_string!(
-                    &canonicalized_top_paths[i]
-                        .to_str()
-                        .expect("non utf-8 path encountered"),
+                    &canonicalized_top_paths[i].to_str().expect("non utf-8 path encountered"),
                     " and ",
-                    &canonicalized_top_paths[j]
-                        .to_str()
-                        .expect("non utf-8 path encountered"),
+                    &canonicalized_top_paths[j].to_str().expect("non utf-8 path encountered"),
                     " contain each other"
                 ))
             }
@@ -94,11 +91,11 @@ pub fn build_music_folders<P: AsRef<Path> + Sync>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::utils::test::fs::TemporaryFs;
-
     use std::panic::catch_unwind;
     use std::str::FromStr;
+
+    use super::*;
+    use crate::utils::test::fs::TemporaryFs;
 
     #[test]
     fn test_top_paths_non_existent() {
@@ -106,21 +103,19 @@ mod tests {
             build_music_folders(&[PathBuf::from_str("/non-existent").unwrap()], &[0])
         });
 
-        assert!(result
-            .as_ref()
-            .err()
-            .unwrap()
-            .downcast_ref::<String>()
-            .unwrap()
-            .contains("top path is not a directory or it can not be canonicalized"));
+        assert!(
+            result
+                .as_ref()
+                .err()
+                .unwrap()
+                .downcast_ref::<String>()
+                .unwrap()
+                .contains("top path is not a directory or it can not be canonicalized")
+        );
 
-        assert!(result
-            .as_ref()
-            .err()
-            .unwrap()
-            .downcast_ref::<String>()
-            .unwrap()
-            .contains("NotFound"));
+        assert!(
+            result.as_ref().err().unwrap().downcast_ref::<String>().unwrap().contains("NotFound")
+        );
     }
 
     #[test]
@@ -130,12 +125,9 @@ mod tests {
 
         let result = catch_unwind(|| build_music_folders(&[&file], &[0]));
 
-        assert!(result
-            .err()
-            .unwrap()
-            .downcast_ref::<String>()
-            .unwrap()
-            .contains("is not a directory"));
+        assert!(
+            result.err().unwrap().downcast_ref::<String>().unwrap().contains("is not a directory")
+        );
     }
 
     #[test]
@@ -149,17 +141,9 @@ mod tests {
         assert_eq!(
             *result.err().unwrap().downcast_ref::<String>().unwrap(),
             concat_string!(
-                &parent
-                    .canonicalize()
-                    .unwrap()
-                    .to_str()
-                    .expect("non utf-8 path encountered"),
+                &parent.canonicalize().unwrap().to_str().expect("non utf-8 path encountered"),
                 " and ",
-                &child
-                    .canonicalize()
-                    .unwrap()
-                    .to_str()
-                    .expect("non utf-8 path encountered"),
+                &child.canonicalize().unwrap().to_str().expect("non utf-8 path encountered"),
                 " contain each other"
             )
         );

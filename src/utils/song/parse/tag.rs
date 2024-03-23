@@ -1,13 +1,11 @@
 use anyhow::{Context, Result};
 use concat_string::concat_string;
-use isolang::Language;
-use time::macros::format_description;
-
 #[cfg(test)]
 pub use fake::{Dummy, Fake};
-
+use isolang::Language;
 #[cfg(test)]
 pub use itertools::Itertools;
+use time::macros::format_description;
 
 type SongDateInner = Option<(u16, Option<(u8, Option<u8>)>)>;
 
@@ -26,15 +24,9 @@ const Y_FORMAT: FormatDescription = format_description!("[year]");
 pub struct SongTag {
     pub title: String,
     pub album: String,
-    #[cfg_attr(
-        test,
-        dummy(expr = "fake::vec![String; 1..=5].into_iter().sorted().collect()")
-    )]
+    #[cfg_attr(test, dummy(expr = "fake::vec![String; 1..=5].into_iter().sorted().collect()"))]
     pub artists: Vec<String>,
-    #[cfg_attr(
-        test,
-        dummy(expr = "fake::vec![String; 0..=5].into_iter().sorted().collect()")
-    )]
+    #[cfg_attr(test, dummy(expr = "fake::vec![String; 0..=5].into_iter().sorted().collect()"))]
     pub album_artists: Vec<String>,
     pub track_number: Option<u32>,
     pub track_total: Option<u32>,
@@ -46,26 +38,19 @@ pub struct SongTag {
     pub original_release_date: SongDate,
     #[cfg_attr(
         test,
-        dummy(
-            expr = "((0..=7915), 0..=2).fake::<Vec<usize>>().into_iter().map(|i| Language::from_usize(i).unwrap()).sorted().collect()"
-        )
+        dummy(expr = "((0..=7915), 0..=2).fake::<Vec<usize>>().into_iter().map(|i| \
+                      Language::from_usize(i).unwrap()).sorted().collect()")
     )]
     pub languages: Vec<Language>,
 }
 
 impl SongTag {
     pub fn album_artists_or_default(&self) -> &Vec<String> {
-        if !self.album_artists.is_empty() {
-            &self.album_artists
-        } else {
-            &self.artists
-        }
+        if !self.album_artists.is_empty() { &self.album_artists } else { &self.artists }
     }
 
     pub fn date_or_default(&self) -> SongDate {
-        self.date
-            .or(self.original_release_date)
-            .or(self.release_date)
+        self.date.or(self.original_release_date).or(self.release_date)
     }
 
     pub fn release_date_or_default(&self) -> SongDate {
@@ -108,11 +93,7 @@ impl SongDate {
     }
 
     pub fn or(self, date: Self) -> Self {
-        if self.0.is_some() {
-            self
-        } else {
-            date
-        }
+        if self.0.is_some() { self } else { date }
     }
 
     pub fn to_ymd(self) -> (Option<i16>, Option<i16>, Option<i16>) {
@@ -137,17 +118,14 @@ impl SongDate {
 
 #[cfg(test)]
 pub mod test {
+    use fake::Faker;
+
     use super::*;
     use crate::utils::song::SongInformation;
 
-    use fake::Faker;
-
     impl SongTag {
         pub fn to_information(&self) -> SongInformation {
-            SongInformation {
-                tag: self.clone(),
-                property: Default::default(),
-            }
+            SongInformation { tag: self.clone(), property: Default::default() }
         }
     }
 
@@ -195,16 +173,9 @@ pub mod test {
             } else {
                 None
             };
-            let month = if Fake::fake_with_rng(&Faker, rng) {
-                Some(date.month() as i16)
-            } else {
-                None
-            };
-            let day = if Fake::fake_with_rng(&Faker, rng) {
-                Some(date.day() as i16)
-            } else {
-                None
-            };
+            let month =
+                if Fake::fake_with_rng(&Faker, rng) { Some(date.month() as i16) } else { None };
+            let day = if Fake::fake_with_rng(&Faker, rng) { Some(date.day() as i16) } else { None };
             Self::from_ymd(year, month, day)
         }
     }

@@ -1,8 +1,8 @@
-use crate::database::EncryptionKey;
-use crate::OSError;
-
 use anyhow::Result;
 use libaes::Cipher;
+
+use crate::database::EncryptionKey;
+use crate::OSError;
 
 const IV_LEN: usize = 16;
 
@@ -10,11 +10,7 @@ pub type MD5Token = [u8; 16];
 
 pub fn encrypt_password(key: &EncryptionKey, data: &[u8]) -> Vec<u8> {
     let iv: [u8; IV_LEN] = rand::random();
-    [
-        iv.as_slice(),
-        Cipher::new_128(key).cbc_encrypt(&iv, data).as_slice(),
-    ]
-    .concat()
+    [iv.as_slice(), Cipher::new_128(key).cbc_encrypt(&iv, data).as_slice()].concat()
 }
 
 pub fn decrypt_password(key: &EncryptionKey, data: &[u8]) -> Result<Vec<u8>> {
@@ -32,30 +28,24 @@ pub fn to_password_token(password: &[u8], client_salt: &[u8]) -> MD5Token {
 
 pub fn check_password(password: &[u8], client_salt: &[u8], client_token: &MD5Token) -> Result<()> {
     let password_token = to_password_token(password, client_salt);
-    if password_token == *client_token {
-        Ok(())
-    } else {
-        anyhow::bail!(OSError::Unauthorized)
-    }
+    if password_token == *client_token { Ok(()) } else { anyhow::bail!(OSError::Unauthorized) }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use fake::{faker::internet::en::Password, Fake};
+    use fake::faker::internet::en::Password;
+    use fake::Fake;
     use serde::Deserialize;
     use serde_json::json;
     use serde_with::serde_as;
+
+    use super::*;
 
     #[test]
     fn test_roundtrip_password() {
         let key: EncryptionKey = rand::random();
         let password = Password(16..32).fake::<String>().into_bytes();
-        assert_eq!(
-            password,
-            decrypt_password(&key, &encrypt_password(&key, &password)).unwrap()
-        )
+        assert_eq!(password, decrypt_password(&key, &encrypt_password(&key, &password)).unwrap())
     }
 
     #[test]

@@ -1,17 +1,19 @@
-use super::fs::SongFsInformation;
-use crate::models::*;
-use crate::utils::song::test::{SongDate, SongTag};
-use crate::DatabasePool;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::str::FromStr;
 
-use diesel::{dsl::exists, ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::dsl::exists;
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
 use isolang::Language;
 use itertools::Itertools;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::str::FromStr;
 use uuid::Uuid;
+
+use super::fs::SongFsInformation;
+use crate::models::*;
+use crate::utils::song::test::{SongDate, SongTag};
+use crate::DatabasePool;
 
 #[derive(Debug)]
 pub struct SongDbInformation {
@@ -111,21 +113,12 @@ pub async fn query_all_song_information(pool: &DatabasePool, song_id: Uuid) -> S
 pub async fn query_all_songs_information(
     pool: &DatabasePool,
 ) -> HashMap<(PathBuf, String), SongDbInformation> {
-    let song_ids = songs::table
-        .select(songs::id)
-        .get_results(&mut pool.get().await.unwrap())
-        .await
-        .unwrap();
+    let song_ids =
+        songs::table.select(songs::id).get_results(&mut pool.get().await.unwrap()).await.unwrap();
     stream::iter(song_ids)
         .then(|song_id| async move {
             let result = query_all_song_information(pool, song_id).await;
-            (
-                (
-                    result.music_folder_path.clone(),
-                    result.relative_path.clone(),
-                ),
-                result,
-            )
+            ((result.music_folder_path.clone(), result.relative_path.clone()), result)
         })
         .collect::<HashMap<_, _>>()
         .await
@@ -136,13 +129,7 @@ pub async fn assert_artists_info(pool: &DatabasePool, song_fs_infos: &[SongFsInf
         pool,
         &song_fs_infos
             .iter()
-            .flat_map(|s| {
-                s.tag
-                    .album_artists
-                    .iter()
-                    .chain(s.tag.artists.iter())
-                    .collect_vec()
-            })
+            .flat_map(|s| s.tag.album_artists.iter().chain(s.tag.artists.iter()).collect_vec())
             .unique()
             .sorted()
             .collect_vec(),
@@ -166,12 +153,7 @@ pub async fn assert_albums_artists_info(pool: &DatabasePool, song_fs_infos: &[So
 pub async fn assert_albums_info(pool: &DatabasePool, song_fs_infos: &[SongFsInformation]) {
     assert_album_names(
         pool,
-        &song_fs_infos
-            .iter()
-            .map(|s| s.tag.album.clone())
-            .unique()
-            .sorted()
-            .collect_vec(),
+        &song_fs_infos.iter().map(|s| s.tag.album.clone()).unique().sorted().collect_vec(),
     )
     .await;
 }
@@ -182,10 +164,7 @@ pub async fn assert_songs_info(pool: &DatabasePool, song_fs_infos: &[SongFsInfor
 
     for song_fs_info in song_fs_infos {
         let song_db_info = song_db_infos
-            .remove(&(
-                song_fs_info.music_folder_path.clone(),
-                song_fs_info.relative_path.clone(),
-            ))
+            .remove(&(song_fs_info.music_folder_path.clone(), song_fs_info.relative_path.clone()))
             .unwrap();
         let song_fs_tag = &song_fs_info.tag;
         let song_db_tag = &song_db_info.tag;
@@ -193,10 +172,7 @@ pub async fn assert_songs_info(pool: &DatabasePool, song_fs_infos: &[SongFsInfor
         assert_eq!(song_fs_tag.title, song_db_tag.title);
         assert_eq!(song_fs_tag.album, song_db_tag.album);
         assert_eq!(song_fs_tag.artists, song_db_tag.artists);
-        assert_eq!(
-            song_fs_tag.album_artists_or_default(),
-            &song_db_tag.album_artists,
-        );
+        assert_eq!(song_fs_tag.album_artists_or_default(), &song_db_tag.album_artists,);
 
         assert_eq!(song_fs_tag.track_number, song_db_tag.track_number);
         assert_eq!(song_fs_tag.track_total, song_db_tag.track_total);
@@ -204,14 +180,8 @@ pub async fn assert_songs_info(pool: &DatabasePool, song_fs_infos: &[SongFsInfor
         assert_eq!(song_fs_tag.disc_total, song_db_tag.disc_total);
 
         assert_eq!(song_fs_tag.date_or_default(), song_db_tag.date);
-        assert_eq!(
-            song_fs_tag.release_date_or_default(),
-            song_db_tag.release_date
-        );
-        assert_eq!(
-            song_fs_tag.original_release_date,
-            song_db_tag.original_release_date
-        );
+        assert_eq!(song_fs_tag.release_date_or_default(), song_db_tag.release_date);
+        assert_eq!(song_fs_tag.original_release_date, song_db_tag.original_release_date);
 
         assert_eq!(song_fs_tag.languages, song_db_tag.languages);
 
@@ -223,12 +193,7 @@ pub async fn assert_songs_info(pool: &DatabasePool, song_fs_infos: &[SongFsInfor
 
 pub async fn assert_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        names
-            .iter()
-            .map(|name| name.as_ref())
-            .unique()
-            .sorted()
-            .collect_vec(),
+        names.iter().map(|name| name.as_ref()).unique().sorted().collect_vec(),
         artists::table
             .select(artists::name)
             .load::<String>(&mut pool.get().await.unwrap())
@@ -243,16 +208,9 @@ pub async fn assert_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]
 
 pub async fn assert_song_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        names
-            .iter()
-            .map(|name| name.as_ref())
-            .unique()
-            .sorted()
-            .collect_vec(),
+        names.iter().map(|name| name.as_ref()).unique().sorted().collect_vec(),
         artists::table
-            .filter(exists(
-                songs_artists::table.filter(songs_artists::artist_id.eq(artists::id))
-            ))
+            .filter(exists(songs_artists::table.filter(songs_artists::artist_id.eq(artists::id))))
             .select(artists::name)
             .distinct()
             .load::<String>(&mut pool.get().await.unwrap())
@@ -267,12 +225,7 @@ pub async fn assert_song_artist_names<S: AsRef<str>>(pool: &DatabasePool, names:
 
 pub async fn assert_album_artist_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        names
-            .iter()
-            .map(|name| name.as_ref())
-            .unique()
-            .sorted()
-            .collect_vec(),
+        names.iter().map(|name| name.as_ref()).unique().sorted().collect_vec(),
         artists::table
             .filter(exists(
                 songs_album_artists::table
@@ -292,12 +245,7 @@ pub async fn assert_album_artist_names<S: AsRef<str>>(pool: &DatabasePool, names
 
 pub async fn assert_album_names<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) {
     assert_eq!(
-        names
-            .iter()
-            .map(|name| name.as_ref())
-            .unique()
-            .sorted()
-            .collect_vec(),
+        names.iter().map(|name| name.as_ref()).unique().sorted().collect_vec(),
         albums::table
             .select(albums::name)
             .load::<String>(&mut pool.get().await.unwrap())

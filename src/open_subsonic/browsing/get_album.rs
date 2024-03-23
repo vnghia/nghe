@@ -1,23 +1,18 @@
-use crate::{
-    models::*,
-    open_subsonic::common::{
-        error::OSError,
-        id3::{db::*, response::*},
-        music_folder::check_user_music_folder_ids,
-    },
-    Database, DatabasePool,
-};
-
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{
-    dsl::{count_distinct, sql},
-    sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
-};
+use diesel::dsl::{count_distinct, sql};
+use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::open_subsonic::common::error::OSError;
+use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::response::*;
+use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::{Database, DatabasePool};
 
 #[add_validate]
 #[derive(Debug)]
@@ -88,10 +83,7 @@ pub async fn get_album_handler(
     GetAlbumBody {
         album: AlbumId3WithSongs {
             album: album.into_res(&database.pool).await?,
-            songs: basic_songs
-                .into_iter()
-                .map(BasicChildId3Db::into_res)
-                .collect(),
+            songs: basic_songs.into_iter().map(BasicChildId3Db::into_res).collect(),
         },
     }
     .into()
@@ -99,19 +91,16 @@ pub async fn get_album_handler(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{
-        open_subsonic::scan::test::upsert_album,
-        utils::{
-            song::test::SongTag,
-            test::{media::song_paths_to_ids, setup::TestInfra},
-        },
-    };
-
     use diesel::JoinOnDsl;
     use fake::{Fake, Faker};
     use itertools::Itertools;
     use rand::Rng;
+
+    use super::*;
+    use crate::open_subsonic::scan::test::upsert_album;
+    use crate::utils::song::test::SongTag;
+    use crate::utils::test::media::song_paths_to_ids;
+    use crate::utils::test::setup::TestInfra;
 
     async fn get_artist_ids(
         pool: &DatabasePool,
@@ -142,17 +131,12 @@ mod tests {
         let (test_infra, _) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
-                .map(|_| SongTag {
-                    album: album_name.to_owned(),
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { album: album_name.to_owned(), ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
 
-        let album_id = upsert_album(test_infra.pool(), album_name.into())
-            .await
-            .unwrap();
+        let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
         let music_folder_ids = test_infra.music_folder_ids(..);
 
         let album_id3 = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
@@ -164,10 +148,7 @@ mod tests {
         assert_eq!(album_id3.basic.id, album_id);
         assert_eq!(album_id3.basic.name, album_name);
         assert_eq!(album_id3.basic.song_count as usize, n_song);
-        assert_eq!(
-            album_id3.artist_ids.into_iter().sorted().collect_vec(),
-            artist_ids
-        );
+        assert_eq!(album_id3.artist_ids.into_iter().sorted().collect_vec(), artist_ids);
     }
 
     #[tokio::test]
@@ -192,9 +173,7 @@ mod tests {
         )
         .await;
 
-        let album_id = upsert_album(test_infra.pool(), album_name.into())
-            .await
-            .unwrap();
+        let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
         let music_folder_ids = test_infra.music_folder_ids(..);
 
         let album_id3 = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
@@ -203,15 +182,7 @@ mod tests {
             .0;
         let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, &album_id).await;
 
-        assert_eq!(
-            album_id3
-                .artist_ids
-                .clone()
-                .into_iter()
-                .sorted()
-                .collect_vec(),
-            artist_ids
-        );
+        assert_eq!(album_id3.artist_ids.clone().into_iter().sorted().collect_vec(), artist_ids);
         assert_eq!(
             album_id3
                 .into_res(test_infra.pool())
@@ -234,17 +205,12 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
-                .map(|_| SongTag {
-                    album: album_name.to_owned(),
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { album: album_name.to_owned(), ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
 
-        let album_id = upsert_album(test_infra.pool(), album_name.into())
-            .await
-            .unwrap();
+        let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
         let music_folder_ids = test_infra.music_folder_ids(..);
 
         let song_ids = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
@@ -268,17 +234,12 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs(
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
-                .map(|_| SongTag {
-                    album: album_name.to_owned(),
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { album: album_name.to_owned(), ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
 
-        let album_id = upsert_album(test_infra.pool(), album_name.into())
-            .await
-            .unwrap();
+        let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
         let music_folder_idx = rand::thread_rng().gen_range(0..test_infra.music_folders.len());
         let music_folder_ids = test_infra.music_folder_ids(music_folder_idx..=music_folder_idx);
 
@@ -320,9 +281,7 @@ mod tests {
         )
         .await;
         let music_folder_ids = test_infra.music_folder_ids(..);
-        let album_id = upsert_album(test_infra.pool(), album_name.into())
-            .await
-            .unwrap();
+        let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
 
         assert!(matches!(
             get_album_and_song_ids(

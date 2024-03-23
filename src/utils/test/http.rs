@@ -1,4 +1,5 @@
-use axum::{body::Bytes, response::Response};
+use axum::body::Bytes;
+use axum::response::Response;
 use http_body_util::BodyExt;
 
 pub async fn to_bytes(res: Response) -> Bytes {

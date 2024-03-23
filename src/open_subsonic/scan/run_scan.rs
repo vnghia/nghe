@@ -1,15 +1,17 @@
-use super::{artist::build_artist_indices, scan_full::scan_full};
-use crate::{
-    config::{parsing::ParsingConfig, ArtistIndexConfig, ScanConfig},
-    models::*,
-    DatabasePool,
-};
+use std::borrow::Cow;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use std::{borrow::Cow, path::PathBuf};
 use time::OffsetDateTime;
+
+use super::artist::build_artist_indices;
+use super::scan_full::scan_full;
+use crate::config::parsing::ParsingConfig;
+use crate::config::{ArtistIndexConfig, ScanConfig};
+use crate::models::*;
+use crate::DatabasePool;
 
 #[derive(Debug, PartialEq)]
 pub enum ScanMode {
@@ -72,14 +74,7 @@ pub async fn run_scan(
 
     let scan_result = match scan_mode {
         ScanMode::Full => {
-            scan_full(
-                pool,
-                &scan_started_at,
-                music_folders,
-                parsing_config,
-                scan_config,
-            )
-            .await
+            scan_full(pool, &scan_started_at, music_folders, parsing_config, scan_config).await
         }
     };
     build_artist_indices(pool, artist_index_config).await?;

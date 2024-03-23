@@ -1,12 +1,13 @@
+use fake::faker::internet::en::*;
+use fake::{Fake, Faker};
+use futures::stream::{self, StreamExt};
+
 use super::database::TemporaryDatabase;
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::test::CommonParams;
 use crate::open_subsonic::user::test::{create_user, CreateUserParams};
 use crate::utils::password::{decrypt_password, to_password_token, MD5Token};
-
-use fake::{faker::internet::en::*, Fake, Faker};
-use futures::stream::{self, StreamExt};
 
 pub fn create_username_password() -> (String, Vec<u8>) {
     let username: String = Username().fake();
@@ -29,12 +30,7 @@ pub async fn create_users(n_user: usize, n_admin: usize) -> (TemporaryDatabase, 
             let (username, password) = create_username_password();
             create_user(
                 database,
-                CreateUserParams {
-                    username,
-                    password,
-                    admin_role: i < n_admin,
-                    ..Faker.fake()
-                },
+                CreateUserParams { username, password, admin_role: i < n_admin, ..Faker.fake() },
             )
             .await
             .unwrap()
@@ -49,10 +45,6 @@ impl users::User {
     pub fn to_common_params(&self, key: &EncryptionKey) -> CommonParams {
         let decrypted_password = decrypt_password(key, &self.password).unwrap();
         let (salt, token) = create_password_token(&decrypted_password);
-        CommonParams {
-            username: self.username.to_owned(),
-            salt,
-            token,
-        }
+        CommonParams { username: self.username.to_owned(), salt, token }
     }
 }

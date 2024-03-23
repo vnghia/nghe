@@ -1,13 +1,14 @@
-use super::common::{extract_common_tags, parse_track_and_disc};
-use super::tag::{SongDate, SongTag};
-use crate::config::parsing::Id3v2ParsingConfig;
-use crate::OSError;
+use std::str::{FromStr, Split};
 
 use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
 use lofty::id3::v2::{FrameId, Id3v2Tag, Id3v2Version};
-use std::str::{FromStr, Split};
+
+use super::common::{extract_common_tags, parse_track_and_disc};
+use super::tag::{SongDate, SongTag};
+use crate::config::parsing::Id3v2ParsingConfig;
+use crate::OSError;
 
 const V4_MULTI_VALUE_SEPARATOR: char = '\0';
 
@@ -16,11 +17,10 @@ fn extract_and_split_str<'a>(
     frame_id: &FrameId<'_>,
     multi_value_separator: char,
 ) -> Option<Split<'a, char>> {
-    tag.get_text(frame_id)
-        .map(|text| match tag.original_version() {
-            Id3v2Version::V4 => text.split(V4_MULTI_VALUE_SEPARATOR),
-            _ => text.split(multi_value_separator),
-        })
+    tag.get_text(frame_id).map(|text| match tag.original_version() {
+        Id3v2Version::V4 => text.split(V4_MULTI_VALUE_SEPARATOR),
+        _ => text.split(multi_value_separator),
+    })
 }
 
 impl SongTag {
@@ -48,10 +48,7 @@ impl SongTag {
 
         let languages =
             extract_and_split_str(tag, &parsing_config.language, parsing_config.separator)
-                .map_or_else(
-                    || Ok(Vec::default()),
-                    |v| v.map(Language::from_str).try_collect(),
-                )?;
+                .map_or_else(|| Ok(Vec::default()), |v| v.map(Language::from_str).try_collect())?;
 
         Ok(Self {
             title,
@@ -72,23 +69,18 @@ impl SongTag {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     use concat_string::concat_string;
     use fake::{Fake, Faker};
-    use lofty::{
-        id3::v2::{Frame, FrameFlags, TextInformationFrame},
-        Accessor,
-    };
+    use lofty::id3::v2::{Frame, FrameFlags, TextInformationFrame};
+    use lofty::Accessor;
+
+    use super::*;
 
     fn write_id3v2_text_tag(tag: &mut Id3v2Tag, frame_id: FrameId<'static>, value: String) {
         tag.insert(
             Frame::new(
                 frame_id,
-                TextInformationFrame {
-                    encoding: lofty::TextEncoding::UTF8,
-                    value,
-                },
+                TextInformationFrame { encoding: lofty::TextEncoding::UTF8, value },
                 FrameFlags::default(),
             )
             .unwrap(),
@@ -164,10 +156,7 @@ mod test {
                 write_id3v2_text_tag(
                     &mut tag,
                     parsing_config.language,
-                    self.languages
-                        .iter()
-                        .map(Language::to_639_3)
-                        .join(&multi_value_separator),
+                    self.languages.iter().map(Language::to_639_3).join(&multi_value_separator),
                 );
             }
 

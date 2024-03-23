@@ -1,7 +1,4 @@
-use super::error::ServerError;
-use crate::models::*;
-use crate::utils::password::*;
-use crate::{Database, OSError};
+use std::marker::PhantomData;
 
 use anyhow::Result;
 use axum::extract::{FromRef, FromRequest, Request};
@@ -9,10 +6,15 @@ use axum_extra::extract::Form;
 use derivative::Derivative;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde_with::serde_as;
-use std::marker::PhantomData;
 use uuid::Uuid;
+
+use super::error::ServerError;
+use crate::models::*;
+use crate::utils::password::*;
+use crate::{Database, OSError};
 
 #[serde_as]
 #[derive(Derivative, Deserialize)]
@@ -82,24 +84,19 @@ where
             .map_err(std::convert::Into::<OSError>::into)?;
         let database = Database::from_ref(state);
         let user_id = request_params.validate::<A>(&database).await?;
-        Ok(ValidatedForm {
-            params: request_params.params(),
-            user_id,
-            phantom: PhantomData,
-        })
+        Ok(ValidatedForm { params: request_params.params(), user_id, phantom: PhantomData })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{
-        open_subsonic::user::test::{create_user, CreateUserParams},
-        utils::test::user::{create_password_token, create_username_password, create_users},
-    };
-
-    use fake::{faker::internet::en::*, Fake, Faker};
+    use fake::faker::internet::en::*;
+    use fake::{Fake, Faker};
     use nghe_proc_macros::add_validate;
+
+    use super::*;
+    use crate::open_subsonic::user::test::{create_user, CreateUserParams};
+    use crate::utils::test::user::{create_password_token, create_username_password, create_users};
 
     #[add_validate]
     struct TestParams {}
@@ -107,11 +104,13 @@ mod tests {
     #[tokio::test]
     async fn test_validate_success() {
         let (temp_db, users) = create_users(1, 0).await;
-        assert!(TestParams {}
-            .to_validate(users[0].to_common_params(temp_db.key()))
-            .validate::<false>(temp_db.database())
-            .await
-            .is_ok());
+        assert!(
+            TestParams {}
+                .to_validate(users[0].to_common_params(temp_db.key()))
+                .validate::<false>(temp_db.database())
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]
@@ -142,21 +141,13 @@ mod tests {
         let (client_salt, client_token) = create_password_token(&wrong_password);
         let _ = create_user(
             temp_db.database(),
-            CreateUserParams {
-                username: username.clone(),
-                password,
-                ..Faker.fake()
-            },
+            CreateUserParams { username: username.clone(), password, ..Faker.fake() },
         )
         .await;
 
         assert!(matches!(
             TestParams {}
-                .to_validate(CommonParams {
-                    username,
-                    salt: client_salt,
-                    token: client_token
-                })
+                .to_validate(CommonParams { username, salt: client_salt, token: client_token })
                 .validate::<false>(temp_db.database())
                 .await
                 .unwrap_err()
@@ -170,11 +161,13 @@ mod tests {
     #[tokio::test]
     async fn test_validate_admin_success() {
         let (temp_db, users) = create_users(1, 1).await;
-        assert!(TestParams {}
-            .to_validate(users[0].to_common_params(temp_db.key()))
-            .validate::<true>(temp_db.database())
-            .await
-            .is_ok());
+        assert!(
+            TestParams {}
+                .to_validate(users[0].to_common_params(temp_db.key()))
+                .validate::<true>(temp_db.database())
+                .await
+                .is_ok()
+        );
     }
 
     #[tokio::test]

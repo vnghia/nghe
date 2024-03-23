@@ -1,10 +1,11 @@
-pub use crate::schema::music_folders;
-pub use music_folders::*;
+use std::borrow::Cow;
 
 use diesel::prelude::*;
+pub use music_folders::*;
 use serde::Serialize;
-use std::borrow::Cow;
 use uuid::Uuid;
+
+pub use crate::schema::music_folders;
 
 #[derive(Debug, Queryable, Selectable, Serialize)]
 #[diesel(table_name = music_folders)]

@@ -4,32 +4,29 @@ mod built_info {
 
 use axum::Router;
 use itertools::Itertools;
+use nghe::config::Config;
+use nghe::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
+use nghe::open_subsonic::{
+    bookmarks, browsing, extension, media_list, media_retrieval, scan, searching, system, user,
+};
+use nghe::Database;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-use nghe::config::Config;
-use nghe::open_subsonic::{
-    bookmarks, browsing,
-    browsing::{refresh_music_folders, refresh_permissions},
-    extension, media_list, media_retrieval, scan, searching, system, user,
-};
-use nghe::Database;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                [
-                    constcat::concat!(built_info::PKG_NAME, "=info").to_owned(),
-                    "tower_http=info".to_owned(),
-                ]
-                .join(",")
-                .into()
-            }),
-        )
+        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            [
+                constcat::concat!(built_info::PKG_NAME, "=info").to_owned(),
+                "tower_http=info".to_owned(),
+            ]
+            .join(",")
+            .into()
+        }))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -51,12 +48,7 @@ async fn main() {
     refresh_permissions(
         &database.pool,
         None,
-        Some(
-            &upserted_music_folders
-                .iter()
-                .map(|music_folder| music_folder.id)
-                .collect_vec(),
-        ),
+        Some(&upserted_music_folders.iter().map(|music_folder| music_folder.id).collect_vec()),
     )
     .await
     .expect("can not set music folders permissions");
@@ -74,9 +66,7 @@ async fn main() {
     .expect("can not scan song");
 
     // run it
-    let listener = tokio::net::TcpListener::bind(config.server.bind_addr)
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(config.server.bind_addr).await.unwrap();
     tracing::info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app(database, config))
         .with_graceful_shutdown(shutdown_signal())
@@ -86,32 +76,21 @@ async fn main() {
 
 fn app(database: Database, config: Config) -> Router {
     Router::new()
-        // system
         .merge(system::router())
-        // extension
         .merge(extension::router())
-        // browsing
         .merge(browsing::router())
-        // user
         .merge(user::router())
-        // media retrieval
         .merge(media_retrieval::router(config.transcoding))
-        // meida list
         .merge(media_list::router())
-        // bookmarks
         .merge(bookmarks::router())
-        // searching
         .merge(searching::router())
-        // layer
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(database)
 }
 
 async fn shutdown_signal() {
     let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
+        signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
     };
 
     #[cfg(unix)]

@@ -1,8 +1,10 @@
 use concat_string::concat_string;
-use darling::{ast::NestedMeta, Error, FromMeta};
+use darling::ast::NestedMeta;
+use darling::{Error, FromMeta};
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse::Parser, parse_macro_input, Ident, ItemStruct};
+use syn::parse::Parser;
+use syn::{parse_macro_input, Ident, ItemStruct};
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
 const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
@@ -62,13 +64,9 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     };
 
     let json_response_type_token: proc_macro2::TokenStream =
-        concat_string!(COMMON_ERROR_IMPORT_PREFIX, "::ServerJsonResponse")
-            .parse()
-            .unwrap();
-    let json_response_type_ident = Ident::new(
-        &concat_string!(base_type, "JsonResponse"),
-        item_struct_ident.span(),
-    );
+        concat_string!(COMMON_ERROR_IMPORT_PREFIX, "::ServerJsonResponse").parse().unwrap();
+    let json_response_type_ident =
+        Ident::new(&concat_string!(base_type, "JsonResponse"), item_struct_ident.span());
 
     quote! {
         #[derive(serde::Serialize)]
@@ -138,9 +136,8 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         }
     };
 
-    let need_admin_token: proc_macro2::TokenStream = (if _args.admin { "true" } else { "false" })
-        .parse()
-        .unwrap();
+    let need_admin_token: proc_macro2::TokenStream =
+        (if _args.admin { "true" } else { "false" }).parse().unwrap();
 
     let params_fields = if let syn::Fields::Named(ref fields) = item_struct.fields {
         match fields
@@ -168,17 +165,11 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     };
 
     let common_type_token: proc_macro2::TokenStream =
-        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams")
-            .parse()
-            .unwrap();
+        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams").parse().unwrap();
     let validate_trait_token: proc_macro2::TokenStream =
-        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::Validate")
-            .parse()
-            .unwrap();
+        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::Validate").parse().unwrap();
     let validated_form_token: proc_macro2::TokenStream =
-        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::ValidatedForm")
-            .parse()
-            .unwrap();
+        concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::ValidatedForm").parse().unwrap();
 
     let validated_type = match item_struct_ident.to_string().strip_suffix("Params") {
         Some(result) => result.to_owned(),
@@ -191,15 +182,11 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             .into();
         }
     };
-    let validated_form_ident = Ident::new(
-        &concat_string!(validated_type, "Request"),
-        item_struct_ident.span(),
-    );
+    let validated_form_ident =
+        Ident::new(&concat_string!(validated_type, "Request"), item_struct_ident.span());
 
-    validate_item_struct.ident = Ident::new(
-        &concat_string!(validated_type, "Validate"),
-        item_struct_ident.span(),
-    );
+    validate_item_struct.ident =
+        Ident::new(&concat_string!(validated_type, "Validate"), item_struct_ident.span());
     let validate_item_ident = &validate_item_struct.ident;
     if let syn::Fields::Named(ref mut fields) = validate_item_struct.fields {
         fields.named.push(
@@ -235,7 +222,8 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
 
-        pub type #validated_form_ident = #validated_form_token<#validate_item_ident, #item_struct_ident, #need_admin_token>;
+        pub type #validated_form_ident =
+            #validated_form_token<#validate_item_ident, #item_struct_ident, #need_admin_token>;
 
         #[cfg(test)]
         impl #item_struct_ident {

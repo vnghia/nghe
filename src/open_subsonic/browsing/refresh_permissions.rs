@@ -1,12 +1,13 @@
-use crate::models::*;
-use crate::DatabasePool;
+use std::borrow::Cow;
 
 use anyhow::Result;
 use diesel::query_dsl::methods::SelectDsl;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use std::borrow::Cow;
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::DatabasePool;
 
 pub async fn refresh_permissions(
     pool: &DatabasePool,
@@ -15,11 +16,7 @@ pub async fn refresh_permissions(
 ) -> Result<()> {
     let user_ids: Cow<[Uuid]> = match user_ids {
         Some(user_ids) => user_ids.into(),
-        None => users::table
-            .select(users::id)
-            .load::<Uuid>(&mut pool.get().await?)
-            .await?
-            .into(),
+        None => users::table.select(users::id).load::<Uuid>(&mut pool.get().await?).await?.into(),
     };
 
     let music_folder_ids: Cow<[Uuid]> = match music_folder_ids {
@@ -65,13 +62,9 @@ mod tests {
             TestInfra::setup_users_and_music_folders_no_refresh(2, 2, &[true, true, true, true])
                 .await;
 
-        refresh_permissions(
-            test_infra.pool(),
-            None,
-            Some(&test_infra.music_folder_ids(..)),
-        )
-        .await
-        .unwrap();
+        refresh_permissions(test_infra.pool(), None, Some(&test_infra.music_folder_ids(..)))
+            .await
+            .unwrap();
 
         let results = user_music_folder_permissions::table
             .load(&mut test_infra.pool().get().await.unwrap())
@@ -96,13 +89,9 @@ mod tests {
             .await
             .unwrap();
 
-        refresh_permissions(
-            test_infra.pool(),
-            None,
-            Some(&test_infra.music_folder_ids(..)),
-        )
-        .await
-        .unwrap();
+        refresh_permissions(test_infra.pool(), None, Some(&test_infra.music_folder_ids(..)))
+            .await
+            .unwrap();
 
         let results = user_music_folder_permissions::table
             .load(&mut test_infra.pool().get().await.unwrap())

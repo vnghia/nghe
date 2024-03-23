@@ -1,11 +1,11 @@
 pub mod parsing;
 mod raw;
 
-use parsing::ParsingConfig;
+use std::net::SocketAddr;
 
 use derivative::Derivative;
 use itertools::Itertools;
-use std::net::SocketAddr;
+use parsing::ParsingConfig;
 
 #[derive(Debug)]
 pub struct ServerConfig {
@@ -41,9 +41,7 @@ pub struct Config {
 
 impl ServerConfig {
     pub fn new(raw::ServerConfig { host, port }: raw::ServerConfig) -> Self {
-        Self {
-            bind_addr: SocketAddr::new(host, port),
-        }
+        Self { bind_addr: SocketAddr::new(host, port) }
     }
 }
 
@@ -55,10 +53,7 @@ impl ArtistIndexConfig {
             .split_ascii_whitespace()
             .map(|v| concat_string::concat_string!(v, " "))
             .collect_vec();
-        Self {
-            ignored_articles,
-            ignored_prefixes,
-        }
+        Self { ignored_articles, ignored_prefixes }
     }
 }
 
@@ -80,15 +75,7 @@ impl Config {
 
         let transcoding = raw_config.transcoding;
 
-        Self {
-            server,
-            database,
-            folder,
-            artist_index,
-            parsing,
-            scan,
-            transcoding,
-        }
+        Self { server, database, folder, artist_index, parsing, scan, transcoding }
     }
 }
 
@@ -119,10 +106,7 @@ mod tests {
         let artist_index_config = ArtistIndexConfig::new(ignored_articles);
         assert_eq!(
             artist_index_config.ignored_prefixes,
-            vec!["The ", "A ", "An "]
-                .into_iter()
-                .map(std::borrow::ToOwned::to_owned)
-                .collect_vec()
+            vec!["The ", "A ", "An "].into_iter().map(std::borrow::ToOwned::to_owned).collect_vec()
         );
     }
 }

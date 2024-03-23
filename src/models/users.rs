@@ -1,10 +1,11 @@
-pub use crate::schema::users;
-pub use users::*;
+use std::borrow::Cow;
 
 use diesel::prelude::*;
-use std::borrow::Cow;
 use time::OffsetDateTime;
+pub use users::*;
 use uuid::Uuid;
+
+pub use crate::schema::users;
 
 #[derive(Debug, Identifiable, Queryable, Selectable, Clone, PartialEq, Eq)]
 #[diesel(table_name = users)]

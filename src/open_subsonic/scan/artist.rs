@@ -1,6 +1,4 @@
-use crate::config::ArtistIndexConfig;
-use crate::models::*;
-use crate::DatabasePool;
+use std::borrow::Cow;
 
 use anyhow::Result;
 use diesel::{ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl};
@@ -8,17 +6,18 @@ use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
 use futures::TryStreamExt;
 use itertools::Itertools;
-use std::borrow::Cow;
 use uuid::Uuid;
+
+use crate::config::ArtistIndexConfig;
+use crate::models::*;
+use crate::DatabasePool;
 
 pub async fn upsert_artists<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) -> Result<Vec<Uuid>> {
     diesel::insert_into(artists::table)
         .values(
             names
                 .iter()
-                .map(|name| artists::NewArtist {
-                    name: name.as_ref().into(),
-                })
+                .map(|name| artists::NewArtist { name: name.as_ref().into() })
                 .collect_vec(),
         )
         .on_conflict(artists::name)
@@ -49,15 +48,10 @@ fn build_artist_index<S: AsRef<str>>(ignored_prefixes: &[S], name: &str) -> Cow<
 
 pub async fn build_artist_indices(
     pool: &DatabasePool,
-    ArtistIndexConfig {
-        ignored_articles,
-        ignored_prefixes,
-    }: &ArtistIndexConfig,
+    ArtistIndexConfig { ignored_articles, ignored_prefixes }: &ArtistIndexConfig,
 ) -> Result<()> {
     let artist_ids_names = {
-        let mut artist_query = artists::table
-            .select((artists::id, artists::name))
-            .into_boxed();
+        let mut artist_query = artists::table.select((artists::id, artists::name)).into_boxed();
 
         let need_full_rebuild = configs::table
             .select(configs::text.is_distinct_from(ignored_articles))
@@ -70,9 +64,7 @@ pub async fn build_artist_indices(
             artist_query = artist_query.filter(artists::index.eq("?"));
         }
 
-        artist_query
-            .load::<(Uuid, String)>(&mut pool.get().await?)
-            .await?
+        artist_query.load::<(Uuid, String)>(&mut pool.get().await?).await?
     };
 
     if !artist_ids_names.is_empty() {
@@ -114,10 +106,10 @@ fn index_char_to_string(index_char: char) -> Cow<'static, str> {
 
 #[cfg(test)]
 mod tests {
+    use rand::seq::SliceRandom;
+
     use super::*;
     use crate::utils::test::TemporaryDatabase;
-
-    use rand::seq::SliceRandom;
 
     async fn assert_artist_indices<SN: AsRef<str>, SP: AsRef<str>>(
         pool: &DatabasePool,
@@ -183,16 +175,10 @@ mod tests {
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
         upsert_artists(temp_db.pool(), &artist_names).await.unwrap();
-        build_artist_indices(temp_db.pool(), &artist_index_config)
-            .await
-            .unwrap();
+        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
 
-        assert_artist_indices(
-            temp_db.pool(),
-            &artist_names,
-            &artist_index_config.ignored_prefixes,
-        )
-        .await;
+        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
+            .await;
     }
 
     #[tokio::test]
@@ -202,26 +188,14 @@ mod tests {
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
         upsert_artists(temp_db.pool(), &artist_names).await.unwrap();
-        build_artist_indices(temp_db.pool(), &artist_index_config)
-            .await
-            .unwrap();
-        assert_artist_indices(
-            temp_db.pool(),
-            &artist_names,
-            &artist_index_config.ignored_prefixes,
-        )
-        .await;
+        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
+            .await;
 
         let artist_index_config = ArtistIndexConfig::new("Le La".to_owned());
-        build_artist_indices(temp_db.pool(), &artist_index_config)
-            .await
-            .unwrap();
-        assert_artist_indices(
-            temp_db.pool(),
-            &artist_names,
-            &artist_index_config.ignored_prefixes,
-        )
-        .await;
+        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
+            .await;
     }
 
     #[tokio::test]
@@ -231,21 +205,12 @@ mod tests {
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
         let artist_ids = upsert_artists(temp_db.pool(), &artist_names).await.unwrap();
-        build_artist_indices(temp_db.pool(), &artist_index_config)
-            .await
-            .unwrap();
-        assert_artist_indices(
-            temp_db.pool(),
-            &artist_names,
-            &artist_index_config.ignored_prefixes,
-        )
-        .await;
+        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
+            .await;
 
-        let artist_update_index_ids = artist_ids
-            .choose_multiple(&mut rand::thread_rng(), 5)
-            .cloned()
-            .sorted()
-            .collect_vec();
+        let artist_update_index_ids =
+            artist_ids.choose_multiple(&mut rand::thread_rng(), 5).cloned().sorted().collect_vec();
         let update_count = diesel::update(artists::table)
             .filter(artists::id.eq_any(&artist_update_index_ids))
             .set(artists::index.eq("?"))
@@ -255,15 +220,9 @@ mod tests {
         assert_eq!(update_count, artist_update_index_ids.len());
 
         let current_time = time::OffsetDateTime::now_utc();
-        build_artist_indices(temp_db.pool(), &artist_index_config)
-            .await
-            .unwrap();
-        assert_artist_indices(
-            temp_db.pool(),
-            &artist_names,
-            &artist_index_config.ignored_prefixes,
-        )
-        .await;
+        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
+            .await;
 
         assert_eq!(
             artist_update_index_ids,

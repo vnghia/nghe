@@ -1,18 +1,12 @@
-use crate::OSError;
-
 use anyhow::{Context, Result};
 use concat_string::concat_string;
 use lofty::Accessor;
 
+use crate::OSError;
+
 pub fn extract_common_tags<T: Accessor>(tag: &mut T) -> Result<(String, String)> {
-    let title = tag
-        .title()
-        .ok_or_else(|| OSError::NotFound("Title tag".into()))?
-        .into_owned();
-    let album = tag
-        .album()
-        .ok_or_else(|| OSError::NotFound("Album tag".into()))?
-        .into_owned();
+    let title = tag.title().ok_or_else(|| OSError::NotFound("Title tag".into()))?.into_owned();
+    let album = tag.album().ok_or_else(|| OSError::NotFound("Album tag".into()))?.into_owned();
     Ok((title, album))
 }
 
@@ -49,10 +43,7 @@ fn parse_number_and_total(
                         .with_context(|| concat_string!("number value: ", number_value))?,
                 ),
                 total_value
-                    .map(|v| {
-                        v.parse()
-                            .with_context(|| concat_string!("total value: ", v))
-                    })
+                    .map(|v| v.parse().with_context(|| concat_string!("total value: ", v)))
                     .transpose()?,
             ))
         }
@@ -60,10 +51,7 @@ fn parse_number_and_total(
         Ok((
             None,
             total_value
-                .map(|v| {
-                    v.parse()
-                        .with_context(|| concat_string!("total value: ", v))
-                })
+                .map(|v| v.parse().with_context(|| concat_string!("total value: ", v)))
                 .transpose()?,
         ))
     }

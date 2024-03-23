@@ -2,17 +2,17 @@ mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
-use crate::database::EncryptionKey;
+use std::net::IpAddr;
+use std::path::PathBuf;
 
-use super::parsing::ParsingConfig;
 use derivative::Derivative;
-use figment::{
-    providers::{Env, Serialized},
-    Figment,
-};
+use figment::providers::{Env, Serialized};
+use figment::Figment;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
-use std::{net::IpAddr, path::PathBuf};
+
+use super::parsing::ParsingConfig;
+use crate::database::EncryptionKey;
 
 #[derive(Debug, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
@@ -78,17 +78,11 @@ impl Config {
         Figment::new()
             .merge(Env::prefixed(constcat::concat!(built_info::PKG_NAME, "_")).split("__"))
             .join(Serialized::default("server", ServerConfig::default()))
-            .join(Serialized::default(
-                "folder.depth_levels",
-                Vec::<usize>::default(),
-            ))
+            .join(Serialized::default("folder.depth_levels", Vec::<usize>::default()))
             .join(Serialized::default("artist", ArtistConfig::default()))
             .join(Serialized::default("parsing", ParsingConfig::default()))
             .join(Serialized::default("scan", ScanConfig::default()))
-            .join(Serialized::default(
-                "transcoding",
-                TranscodingConfig::default(),
-            ))
+            .join(Serialized::default("transcoding", TranscodingConfig::default()))
             .extract()
             .expect("can not parse initial config")
     }

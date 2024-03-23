@@ -14,9 +14,7 @@ where
     D: Deserializer<'de>,
 {
     let s = <String>::deserialize(deserializer)?;
-    FrameId::new(s)
-        .map(|f| f.into_owned())
-        .map_err(de::Error::custom)
+    FrameId::new(s).map(|f| f.into_owned()).map_err(de::Error::custom)
 }
 
 #[derive(Debug, Serialize, Deserialize, Derivative)]

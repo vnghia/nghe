@@ -1,8 +1,3 @@
-use crate::models::*;
-use crate::open_subsonic::browsing::refresh_permissions;
-use crate::utils::password::encrypt_password;
-use crate::Database;
-
 use anyhow::Result;
 use axum::extract::State;
 use derivative::Derivative;
@@ -10,6 +5,11 @@ use diesel::SelectableHelper;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde_with::serde_as;
+
+use crate::models::*;
+use crate::open_subsonic::browsing::refresh_permissions;
+use crate::utils::password::encrypt_password;
+use crate::Database;
 
 #[serde_as]
 #[add_validate(admin = true)]
@@ -43,13 +43,7 @@ pub async fn create_user(
     params: CreateUserParams,
 ) -> Result<users::User> {
     let CreateUserParams {
-        username,
-        password,
-        email,
-        admin_role,
-        download_role,
-        share_role,
-        ..
+        username, password, email, admin_role, download_role, share_role, ..
     } = params;
     let password = encrypt_password(key, &password);
 
@@ -71,13 +65,14 @@ pub async fn create_user(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::utils::test::{setup::TestInfra, user::create_username_password};
-
     use diesel::{ExpressionMethods, QueryDsl};
     use fake::{Fake, Faker};
     use itertools::Itertools;
     use uuid::Uuid;
+
+    use super::*;
+    use crate::utils::test::setup::TestInfra;
+    use crate::utils::test::user::create_username_password;
 
     #[tokio::test]
     async fn test_create_user_with_music_folders() {
@@ -87,11 +82,7 @@ mod tests {
         // should re-trigger the refreshing of music folders
         let user = create_user(
             test_infra.database(),
-            CreateUserParams {
-                username,
-                password,
-                ..Faker.fake()
-            },
+            CreateUserParams { username, password, ..Faker.fake() },
         )
         .await
         .unwrap();
@@ -106,13 +97,6 @@ mod tests {
             .sorted()
             .collect_vec();
 
-        assert_eq!(
-            test_infra
-                .music_folder_ids(..)
-                .into_iter()
-                .sorted()
-                .collect_vec(),
-            results
-        );
+        assert_eq!(test_infra.music_folder_ids(..).into_iter().sorted().collect_vec(), results);
     }
 }

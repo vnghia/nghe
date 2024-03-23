@@ -1,16 +1,7 @@
-use crate::{
-    models::*,
-    open_subsonic::common::{
-        id3::{db::*, response::*},
-        music_folder::check_user_music_folder_ids,
-    },
-    Database, DatabasePool, OSError,
-};
-
 use anyhow::Result;
 use axum::extract::State;
+use diesel::dsl::{count_distinct, sql};
 use diesel::{
-    dsl::{count_distinct, sql},
     sql_types, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl,
     SelectableHelper,
 };
@@ -20,6 +11,11 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use super::get_album::get_basic_songs;
+use crate::models::*;
+use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::response::*;
+use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
 #[derive(Debug)]
@@ -49,11 +45,9 @@ async fn get_basic_artist_and_song_ids(
     artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
-        .inner_join(
-            songs::table.on(songs::id
-                .eq(songs_album_artists::song_id)
-                .or(songs::id.eq(songs_artists::song_id))),
-        )
+        .inner_join(songs::table.on(
+            songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
+        ))
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(artists::id.eq(artist_id))
         .group_by(artists::id)

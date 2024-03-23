@@ -1,8 +1,8 @@
-pub use crate::schema::songs_album_artists;
-pub use songs_album_artists::*;
-
 use diesel::prelude::*;
+pub use songs_album_artists::*;
 use uuid::Uuid;
+
+pub use crate::schema::songs_album_artists;
 
 #[derive(Insertable)]
 #[diesel(table_name = songs_album_artists)]

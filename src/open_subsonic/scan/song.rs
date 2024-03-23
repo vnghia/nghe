@@ -1,10 +1,11 @@
-use crate::{models::*, DatabasePool};
-
 use anyhow::Result;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::DatabasePool;
 
 pub async fn upsert_song_artists(
     pool: &DatabasePool,
@@ -51,21 +52,20 @@ pub async fn update_song<'a>(
 
 #[cfg(test)]
 mod tests {
+    use fake::{Fake, Faker};
+
     use super::super::album::upsert_album;
     use super::*;
+    use crate::utils::song::test::SongTag;
     use crate::utils::test::media::query_all_song_information;
-    use crate::utils::{song::test::SongTag, test::setup::TestInfra};
-
-    use fake::{Fake, Faker};
+    use crate::utils::test::setup::TestInfra;
 
     #[tokio::test]
     async fn test_insert_song() {
         let test_infra = TestInfra::setup_users_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(test_infra.pool(), (&song_tag.album).into())
-            .await
-            .unwrap();
+        let album_id = upsert_album(test_infra.pool(), (&song_tag.album).into()).await.unwrap();
 
         let song_path = Faker.fake::<String>();
         let song_hash: i64 = rand::random();
@@ -97,9 +97,7 @@ mod tests {
         let test_infra = TestInfra::setup_users_and_music_folders(1, 1, &[true]).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(test_infra.pool(), (&song_tag.album).into())
-            .await
-            .unwrap();
+        let album_id = upsert_album(test_infra.pool(), (&song_tag.album).into()).await.unwrap();
 
         let song_path = Faker.fake::<String>();
         let song_hash: i64 = rand::random();
@@ -119,9 +117,8 @@ mod tests {
         .unwrap();
 
         let new_song_tag = Faker.fake::<SongTag>();
-        let new_album_id = upsert_album(test_infra.pool(), (&new_song_tag.album).into())
-            .await
-            .unwrap();
+        let new_album_id =
+            upsert_album(test_infra.pool(), (&new_song_tag.album).into()).await.unwrap();
 
         let new_song_hash: i64 = rand::random();
         let new_song_size: i64 = rand::random();

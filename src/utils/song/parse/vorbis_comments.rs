@@ -1,13 +1,13 @@
-use crate::config::parsing::VorbisCommentsParsingConfig;
-
-use super::common::{extract_common_tags, parse_track_and_disc};
-use super::tag::{SongDate, SongTag};
+use std::str::FromStr;
 
 use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
 use lofty::ogg::VorbisComments;
-use std::str::FromStr;
+
+use super::common::{extract_common_tags, parse_track_and_disc};
+use super::tag::{SongDate, SongTag};
+use crate::config::parsing::VorbisCommentsParsingConfig;
 
 impl SongTag {
     pub fn from_vorbis_comments(
@@ -31,10 +31,8 @@ impl SongTag {
         let original_release_date =
             SongDate::parse(tag.get(&parsing_config.original_release_date))?;
 
-        let languages = tag
-            .remove(&parsing_config.language)
-            .map(|s| Language::from_str(&s))
-            .try_collect()?;
+        let languages =
+            tag.remove(&parsing_config.language).map(|s| Language::from_str(&s)).try_collect()?;
 
         Ok(Self {
             title,
@@ -55,9 +53,10 @@ impl SongTag {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use fake::{Fake, Faker};
     use lofty::Accessor;
+
+    use super::*;
 
     impl SongTag {
         pub fn into_vorbis_comments(
@@ -101,10 +100,7 @@ mod test {
             }
 
             self.languages.into_iter().for_each(|language| {
-                tag.push(
-                    parsing_config.language.to_owned(),
-                    language.to_639_3().to_owned(),
-                )
+                tag.push(parsing_config.language.to_owned(), language.to_639_3().to_owned())
             });
 
             tag

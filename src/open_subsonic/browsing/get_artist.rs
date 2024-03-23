@@ -1,16 +1,7 @@
-use crate::{
-    models::*,
-    open_subsonic::common::{
-        id3::{db::*, response::*},
-        music_folder::check_user_music_folder_ids,
-    },
-    Database, DatabasePool, OSError,
-};
-
 use anyhow::Result;
 use axum::extract::State;
+use diesel::dsl::{count_distinct, sql};
 use diesel::{
-    dsl::{count_distinct, sql},
     sql_types, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl,
     SelectableHelper,
 };
@@ -18,6 +9,12 @@ use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::response::*;
+use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
 #[derive(Debug)]
@@ -47,11 +44,9 @@ async fn get_artist_and_album_ids(
     artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
-        .inner_join(
-            songs::table.on(songs::id
-                .eq(songs_album_artists::song_id)
-                .or(songs::id.eq(songs_artists::song_id))),
-        )
+        .inner_join(songs::table.on(
+            songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
+        ))
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(artists::id.eq(artist_id))
         .group_by(artists::id)
@@ -104,26 +99,20 @@ pub async fn get_artist_handler(
     State(database): State<Database>,
     req: GetArtistRequest,
 ) -> GetArtistJsonResponse {
-    GetArtistBody {
-        artist: get_artist(&database.pool, req.user_id, req.params.id).await?,
-    }
-    .into()
+    GetArtistBody { artist: get_artist(&database.pool, req.user_id, req.params.id).await? }.into()
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{
-        open_subsonic::scan::test::upsert_artists,
-        utils::{
-            song::test::SongTag,
-            test::{media::song_paths_to_album_ids, setup::TestInfra},
-        },
-    };
-
     use fake::{Fake, Faker};
     use itertools::Itertools;
     use rand::Rng;
+
+    use super::*;
+    use crate::open_subsonic::scan::test::upsert_artists;
+    use crate::utils::song::test::SongTag;
+    use crate::utils::test::media::song_paths_to_album_ids;
+    use crate::utils::test::setup::TestInfra;
 
     #[tokio::test]
     async fn test_get_artist_own_albums() {
@@ -133,18 +122,12 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
-                .map(|_| SongTag {
-                    album_artists: vec![artist_name.to_owned()],
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { album_artists: vec![artist_name.to_owned()], ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
 
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_ids = test_infra.music_folder_ids(..);
         let album_fs_ids = song_paths_to_album_ids(test_infra.pool(), &song_fs_infos).await;
 
@@ -167,18 +150,12 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
-                .map(|_| SongTag {
-                    artists: vec![artist_name.to_owned()],
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
 
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_ids = test_infra.music_folder_ids(..);
         let album_fs_ids = song_paths_to_album_ids(test_infra.pool(), &song_fs_infos).await;
 
@@ -215,10 +192,7 @@ mod tests {
         )
         .await;
 
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_ids = test_infra.music_folder_ids(..);
         let album_fs_ids = song_paths_to_album_ids(test_infra.pool(), &song_fs_infos).await;
 
@@ -243,18 +217,12 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs(
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
-                .map(|_| SongTag {
-                    artists: vec![artist_name.to_owned()],
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
 
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_idx = rand::thread_rng().gen_range(0..test_infra.music_folders.len());
         let music_folder_ids = test_infra.music_folder_ids(music_folder_idx..=music_folder_idx);
         let album_fs_ids = song_paths_to_album_ids(
@@ -296,10 +264,7 @@ mod tests {
         )
         .await;
 
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_ids = test_infra.music_folder_ids(..);
 
         assert!(matches!(

@@ -1,14 +1,18 @@
-use super::property::SongProperty;
-use super::tag::SongTag;
-use crate::{
-    config::parsing::ParsingConfig, models::songs, utils::song::file_type::to_extension, OSError,
-};
+use std::io::{Read, Seek};
 
 use anyhow::Result;
 use itertools::Itertools;
-use lofty::{flac::FlacFile, mpeg::MpegFile, AudioFile, FileType, ParseOptions, ParsingMode};
-use std::io::{Read, Seek};
+use lofty::flac::FlacFile;
+use lofty::mpeg::MpegFile;
+use lofty::{AudioFile, FileType, ParseOptions, ParsingMode};
 use uuid::Uuid;
+
+use super::property::SongProperty;
+use super::tag::SongTag;
+use crate::config::parsing::ParsingConfig;
+use crate::models::songs;
+use crate::utils::song::file_type::to_extension;
+use crate::OSError;
 
 pub struct SongInformation {
     pub tag: SongTag,
@@ -71,10 +75,7 @@ impl SongInformation {
             anyhow::bail!(OSError::NotFound("Artist".into()));
         }
 
-        Ok(Self {
-            tag: song_tag,
-            property: song_property,
-        })
+        Ok(Self { tag: song_tag, property: song_property })
     }
 
     pub fn to_update_information_db(
@@ -106,12 +107,7 @@ impl SongInformation {
             original_release_year,
             original_release_month,
             original_release_day,
-            languages: self
-                .tag
-                .languages
-                .iter()
-                .map(|language| language.to_639_3())
-                .collect_vec(),
+            languages: self.tag.languages.iter().map(|language| language.to_639_3()).collect_vec(),
             // Song property
             format: to_extension(&self.property.format).into(),
             duration: self.property.duration,
@@ -144,10 +140,11 @@ impl SongInformation {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::utils::{song::file_type::SONG_FILE_TYPES, test::asset::get_media_asset_path};
-
     use isolang::Language;
+
+    use super::*;
+    use crate::utils::song::file_type::SONG_FILE_TYPES;
+    use crate::utils::test::asset::get_media_asset_path;
 
     #[test]
     fn test_parse_media_file() {
@@ -174,40 +171,17 @@ mod tests {
                 "{:?} album artists does not match",
                 file_type
             );
-            assert_eq!(
-                tag.track_number,
-                Some(10),
-                "{:?} track number does not match",
-                file_type
-            );
-            assert_eq!(
-                tag.track_total, None,
-                "{:?} track total does not match",
-                file_type
-            );
-            assert_eq!(
-                tag.disc_number,
-                Some(5),
-                "{:?} disc number does not match",
-                file_type
-            );
-            assert_eq!(
-                tag.disc_total,
-                Some(10),
-                "{:?} disc total does not match",
-                file_type
-            );
+            assert_eq!(tag.track_number, Some(10), "{:?} track number does not match", file_type);
+            assert_eq!(tag.track_total, None, "{:?} track total does not match", file_type);
+            assert_eq!(tag.disc_number, Some(5), "{:?} disc number does not match", file_type);
+            assert_eq!(tag.disc_total, Some(10), "{:?} disc total does not match", file_type);
             assert_eq!(
                 tag.date.0,
                 Some((2000, Some((12, Some(31))))),
                 "{:?} date does not match",
                 file_type
             );
-            assert_eq!(
-                tag.release_date.0, None,
-                "{:?} release date does not match",
-                file_type
-            );
+            assert_eq!(tag.release_date.0, None, "{:?} release date does not match", file_type);
             assert_eq!(
                 tag.original_release_date.0,
                 Some((3000, Some((1, None)))),

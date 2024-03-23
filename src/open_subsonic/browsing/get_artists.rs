@@ -1,22 +1,19 @@
-use crate::{
-    config::ArtistIndexConfig,
-    models::*,
-    open_subsonic::common::id3::{db::*, response::*},
-    open_subsonic::common::music_folder::check_user_music_folder_ids,
-    Database, DatabasePool, OSError,
-};
-
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{
-    dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl,
-    SelectableHelper,
-};
+use diesel::dsl::count_distinct;
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
+
+use crate::config::ArtistIndexConfig;
+use crate::models::*;
+use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::response::*;
+use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
 #[derive(Debug)]
@@ -52,11 +49,9 @@ async fn get_indexed_artists(
     artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
-        .inner_join(
-            songs::table.on(songs::id
-                .eq(songs_album_artists::song_id)
-                .or(songs::id.eq(songs_artists::song_id))),
-        )
+        .inner_join(songs::table.on(
+            songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
+        ))
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
@@ -86,16 +81,10 @@ pub async fn get_artists(
         .into_iter()
         .into_group_map()
         .into_iter()
-        .map(|(k, v)| Index {
-            name: k,
-            artists: v.into_iter().map(|v| v.into_res()).collect(),
-        })
+        .map(|(k, v)| Index { name: k, artists: v.into_iter().map(|v| v.into_res()).collect() })
         .collect_vec();
 
-    Ok(Indexes {
-        ignored_articles,
-        index,
-    })
+    Ok(Indexes { ignored_articles, index })
 }
 
 pub async fn get_artists_handler(
@@ -113,13 +102,10 @@ mod tests {
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::{
-        open_subsonic::scan::test::upsert_artists,
-        utils::{
-            song::test::SongTag,
-            test::{media::song_paths_to_artist_ids, setup::TestInfra},
-        },
-    };
+    use crate::open_subsonic::scan::test::upsert_artists;
+    use crate::utils::song::test::SongTag;
+    use crate::utils::test::media::song_paths_to_artist_ids;
+    use crate::utils::test::setup::TestInfra;
 
     #[tokio::test]
     async fn test_get_artists() {
@@ -148,17 +134,11 @@ mod tests {
         let (test_infra, _) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
-                .map(|_| SongTag {
-                    artists: vec![artist_name.to_owned()],
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
         let artist_ids =
             get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
@@ -180,17 +160,11 @@ mod tests {
         let (test_infra, _) = TestInfra::setup_songs(
             &[n_song],
             (0..n_song)
-                .map(|_| SongTag {
-                    album_artists: vec![artist_name.to_owned()],
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { album_artists: vec![artist_name.to_owned()], ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
         let artist_ids =
             get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
@@ -213,17 +187,11 @@ mod tests {
         let (test_infra, _) = TestInfra::setup_songs(
             &vec![n_song; n_folder],
             (0..n_folder * n_song)
-                .map(|_| SongTag {
-                    artists: vec![artist_name.to_owned()],
-                    ..Faker.fake()
-                })
+                .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
         let artist_ids =
             get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
@@ -257,10 +225,7 @@ mod tests {
                 .collect_vec(),
         )
         .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name])
-            .await
-            .unwrap()
-            .remove(0);
+        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
         let artist_ids = get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..2))
             .await

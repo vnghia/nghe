@@ -1,6 +1,6 @@
-use crate::{migration, DatabasePool};
-
 use diesel_async::pooled_connection::AsyncDieselConnectionManager;
+
+use crate::{migration, DatabasePool};
 
 pub type EncryptionKey = [u8; libaes::AES_128_KEY_LEN];
 

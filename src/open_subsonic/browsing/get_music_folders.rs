@@ -1,11 +1,11 @@
-use crate::models::*;
-use crate::Database;
-
 use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
+
+use crate::models::*;
+use crate::Database;
 
 #[add_validate]
 pub struct GetMusicFoldersParams {}
@@ -34,20 +34,15 @@ pub async fn get_music_folders_handler(
         .load(&mut database.pool.get().await?)
         .await?;
 
-    GetMusicFoldersBody {
-        music_folders: MusicFolders {
-            music_folder: music_folders,
-        },
-    }
-    .into()
+    GetMusicFoldersBody { music_folders: MusicFolders { music_folder: music_folders } }.into()
 }
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use super::*;
     use crate::utils::test::setup::TestInfra;
-
-    use itertools::Itertools;
 
     #[tokio::test]
     async fn test_allow_all() {
@@ -101,12 +96,7 @@ mod tests {
                 0 => assert_eq!(results, &test_infra.music_folders[0..1]),
                 1 => assert_eq!(
                     results,
-                    test_infra
-                        .music_folders
-                        .clone()
-                        .into_iter()
-                        .sorted()
-                        .collect_vec()
+                    test_infra.music_folders.clone().into_iter().sorted().collect_vec()
                 ),
                 _ => panic!(),
             };

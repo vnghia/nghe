@@ -1,12 +1,13 @@
-use crate::models::*;
-use crate::DatabasePool;
+use std::borrow::Cow;
 
 use anyhow::Result;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use std::borrow::Cow;
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::DatabasePool;
 
 pub async fn upsert_album<'a>(pool: &DatabasePool, name: Cow<'a, str>) -> Result<Uuid> {
     diesel::insert_into(albums::table)
@@ -35,10 +36,7 @@ pub async fn upsert_song_album_artists(
                 })
                 .collect_vec(),
         )
-        .on_conflict((
-            songs_album_artists::song_id,
-            songs_album_artists::album_artist_id,
-        ))
+        .on_conflict((songs_album_artists::song_id, songs_album_artists::album_artist_id))
         .do_update()
         .set(songs_album_artists::upserted_at.eq(time::OffsetDateTime::now_utc()))
         .execute(&mut pool.get().await?)

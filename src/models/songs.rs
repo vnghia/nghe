@@ -1,9 +1,10 @@
-pub use crate::schema::songs;
-pub use songs::*;
+use std::borrow::Cow;
 
 use diesel::prelude::*;
-use std::borrow::Cow;
+pub use songs::*;
 use uuid::Uuid;
+
+pub use crate::schema::songs;
 
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = songs)]

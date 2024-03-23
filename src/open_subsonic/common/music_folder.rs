@@ -1,13 +1,13 @@
-use crate::{models::*, DatabasePool, OSError};
+use std::borrow::Cow;
 
 use anyhow::Result;
-use diesel::{
-    dsl::{exists, not},
-    select, ExpressionMethods, QueryDsl,
-};
+use diesel::dsl::{exists, not};
+use diesel::{select, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use std::borrow::Cow;
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::{DatabasePool, OSError};
 
 pub async fn check_user_music_folder_ids<'a>(
     pool: &DatabasePool,
@@ -44,10 +44,10 @@ pub async fn check_user_music_folder_ids<'a>(
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use super::*;
     use crate::utils::test::setup::TestInfra;
-
-    use itertools::Itertools;
 
     fn assert_music_folder_ids(
         music_folders: &[music_folders::MusicFolder],

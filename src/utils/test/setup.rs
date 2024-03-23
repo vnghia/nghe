@@ -1,20 +1,22 @@
-use super::fs::SongFsInformation;
-use super::user::create_users;
-use super::{TemporaryDatabase, TemporaryFs};
-use crate::config::{ArtistIndexConfig, ScanConfig};
-use crate::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
-use crate::open_subsonic::scan::{run_scan, ScanMode};
-use crate::utils::song::file_type::to_extensions;
-use crate::utils::song::test::SongTag;
-use crate::{models::*, Database, DatabasePool};
+use std::path::PathBuf;
+use std::slice::SliceIndex;
 
 use axum::extract::State;
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use itertools::Itertools;
-use std::path::PathBuf;
-use std::slice::SliceIndex;
 use uuid::Uuid;
+
+use super::fs::SongFsInformation;
+use super::user::create_users;
+use super::{TemporaryDatabase, TemporaryFs};
+use crate::config::{ArtistIndexConfig, ScanConfig};
+use crate::models::*;
+use crate::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
+use crate::open_subsonic::scan::{run_scan, ScanMode};
+use crate::utils::song::file_type::to_extensions;
+use crate::utils::song::test::SongTag;
+use crate::{Database, DatabasePool};
 
 pub struct TestInfra {
     pub db: TemporaryDatabase,
@@ -28,10 +30,7 @@ impl TestInfra {
         n_user: usize,
         n_folder: usize,
         allows: &[bool],
-    ) -> (
-        Self,
-        Vec<user_music_folder_permissions::UserMusicFolderPermission>,
-    ) {
+    ) -> (Self, Vec<user_music_folder_permissions::UserMusicFolderPermission>) {
         let (db, users) = create_users(n_user, 0).await;
         let fs = TemporaryFs::new();
         let music_folders = Self::setup_music_folders(&db, &fs, n_folder).await;
@@ -47,15 +46,7 @@ impl TestInfra {
             })
             .collect_vec();
 
-        (
-            Self {
-                db,
-                fs,
-                users,
-                music_folders,
-            },
-            user_music_folder_permissions,
-        )
+        (Self { db, fs, users, music_folders }, user_music_folder_permissions)
     }
 
     pub async fn setup_users_and_music_folders(
@@ -72,9 +63,7 @@ impl TestInfra {
             .await
             .unwrap();
 
-        refresh_permissions(test_infra.pool(), None, None)
-            .await
-            .unwrap();
+        refresh_permissions(test_infra.pool(), None, None).await.unwrap();
 
         test_infra
     }
@@ -140,9 +129,8 @@ impl TestInfra {
         fs: &TemporaryFs,
         n_folder: usize,
     ) -> Vec<music_folders::MusicFolder> {
-        let music_folder_paths = (0..n_folder)
-            .map(|_| fs.create_dir(Faker.fake::<String>()))
-            .collect_vec();
+        let music_folder_paths =
+            (0..n_folder).map(|_| fs.create_dir(Faker.fake::<String>())).collect_vec();
         let (upserted_folders, _) =
             refresh_music_folders(db.pool(), &music_folder_paths, &[]).await;
         upserted_folders
@@ -164,10 +152,6 @@ impl TestInfra {
     where
         S: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
-        self.music_folders[slice]
-            .as_ref()
-            .iter()
-            .map(|music_folder| music_folder.id)
-            .collect_vec()
+        self.music_folders[slice].as_ref().iter().map(|music_folder| music_folder.id).collect_vec()
     }
 }

@@ -1,23 +1,18 @@
-use crate::{
-    models::*,
-    open_subsonic::common::{
-        id3::{db::*, response::*},
-        music_folder::check_user_music_folder_ids,
-    },
-    Database, DatabasePool,
-};
-
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{
-    dsl::count_distinct, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl,
-    SelectableHelper,
-};
+use diesel::dsl::count_distinct;
+use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
+
+use crate::models::*;
+use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::response::*;
+use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::{Database, DatabasePool};
 
 #[add_validate]
 #[derive(Debug)]
@@ -71,11 +66,9 @@ async fn syncing(
     let artists = artists::table
         .left_join(songs_album_artists::table)
         .left_join(songs_artists::table)
-        .inner_join(
-            songs::table.on(songs::id
-                .eq(songs_album_artists::song_id)
-                .or(songs::id.eq(songs_artists::song_id))),
-        )
+        .inner_join(songs::table.on(
+            songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
+        ))
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
@@ -153,8 +146,5 @@ pub async fn search3_handler(
 
     let search_result = syncing(&database.pool, &music_folder_ids, search_offset_count).await?;
 
-    Search3Body {
-        search_result_3: search_result,
-    }
-    .into()
+    Search3Body { search_result_3: search_result }.into()
 }

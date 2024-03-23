@@ -1,14 +1,13 @@
 mod create;
 mod setup;
 
-use axum::{routing::get, Router};
+use axum::routing::get;
+use axum::Router;
 
 pub fn router() -> Router<crate::Database> {
     Router::new()
-        // setup
         .route("/rest/setup", get(setup::setup_handler))
         .route("/rest/setup.view", get(setup::setup_handler))
-        // create_user
         .route("/rest/createUser", get(create::create_user_handler))
         .route("/rest/createUser.view", get(create::create_user_handler))
 }

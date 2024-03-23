@@ -15,10 +15,7 @@ pub struct GetOpenSubsonicExtensionsBody {
 
 pub async fn get_open_subsonic_extensions_handler() -> GetOpenSubsonicExtensionsJsonResponse {
     GetOpenSubsonicExtensionsBody {
-        open_subsonic_extensions: &[OSExtension {
-            name: "transcodeOffset",
-            versions: &[1],
-        }],
+        open_subsonic_extensions: &[OSExtension { name: "transcodeOffset", versions: &[1] }],
     }
     .into()
 }
