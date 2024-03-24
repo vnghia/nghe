@@ -1,4 +1,5 @@
 #![deny(clippy::all)]
+#![feature(ascii_char)]
 #![feature(const_option, const_option_ext)]
 #![feature(if_let_guard)]
 #![feature(let_chains)]
