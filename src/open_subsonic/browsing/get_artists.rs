@@ -25,21 +25,21 @@ pub struct GetArtistsParams {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Index {
-    name: String,
+    pub name: String,
     #[serde(rename = "artist")]
-    artists: Vec<ArtistId3>,
+    pub artists: Vec<ArtistId3>,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Indexes {
-    ignored_articles: String,
-    index: Vec<Index>,
+    pub ignored_articles: String,
+    pub index: Vec<Index>,
 }
 
 #[wrap_subsonic_response]
 pub struct GetArtistsBody {
-    artists: Indexes,
+    pub artists: Indexes,
 }
 
 async fn get_indexed_artists(

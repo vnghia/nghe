@@ -26,9 +26,9 @@ pub struct GetArtistParams {
 #[serde(rename_all = "camelCase")]
 pub struct ArtistId3WithAlbums {
     #[serde(flatten)]
-    artist: ArtistId3,
+    pub artist: ArtistId3,
     #[serde(rename = "album")]
-    albums: Vec<AlbumId3>,
+    pub albums: Vec<AlbumId3>,
 }
 
 #[wrap_subsonic_response]
@@ -79,7 +79,7 @@ async fn get_basic_albums(
         .map_err(anyhow::Error::from)
 }
 
-async fn get_artist(
+pub async fn get_artist(
     pool: &DatabasePool,
     user_id: Uuid,
     artist_id: Uuid,

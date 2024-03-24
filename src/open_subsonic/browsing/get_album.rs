@@ -24,9 +24,9 @@ pub struct GetAlbumParams {
 #[serde(rename_all = "camelCase")]
 pub struct AlbumId3WithSongs {
     #[serde(flatten)]
-    album: AlbumId3,
+    pub album: AlbumId3,
     #[serde(rename = "song")]
-    songs: Vec<ChildId3>,
+    pub songs: Vec<ChildId3>,
 }
 
 #[wrap_subsonic_response]
@@ -56,7 +56,7 @@ async fn get_album_and_song_ids(
         .ok_or_else(|| OSError::NotFound("Album".into()).into())
 }
 
-pub async fn get_basic_songs(
+async fn get_basic_songs(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     song_ids: &[Uuid],
@@ -70,23 +70,27 @@ pub async fn get_basic_songs(
         .map_err(anyhow::Error::from)
 }
 
+pub async fn get_album(
+    pool: &DatabasePool,
+    user_id: Uuid,
+    album_id: Uuid,
+) -> Result<AlbumId3WithSongs> {
+    let music_folder_ids = check_user_music_folder_ids(pool, &user_id, None).await?;
+
+    let (album, song_ids) = get_album_and_song_ids(pool, &music_folder_ids, &album_id).await?;
+    let basic_songs = get_basic_songs(pool, &music_folder_ids, &song_ids).await?;
+
+    Ok(AlbumId3WithSongs {
+        album: album.into_res(pool).await?,
+        songs: basic_songs.into_iter().map(BasicChildId3Db::into_res).collect(),
+    })
+}
+
 pub async fn get_album_handler(
     State(database): State<Database>,
     req: GetAlbumRequest,
 ) -> GetAlbumJsonResponse {
-    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
-
-    let (album, song_ids) =
-        get_album_and_song_ids(&database.pool, &music_folder_ids, &req.params.id).await?;
-    let basic_songs = get_basic_songs(&database.pool, &music_folder_ids, &song_ids).await?;
-
-    GetAlbumBody {
-        album: AlbumId3WithSongs {
-            album: album.into_res(&database.pool).await?,
-            songs: basic_songs.into_iter().map(BasicChildId3Db::into_res).collect(),
-        },
-    }
-    .into()
+    GetAlbumBody { album: get_album(&database.pool, req.user_id, req.params.id).await? }.into()
 }
 
 #[cfg(test)]
