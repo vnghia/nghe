@@ -43,7 +43,7 @@ pub struct Search3Result {
     #[serde(rename = "album", skip_serializing_if = "Vec::is_empty")]
     albums: Vec<AlbumId3>,
     #[serde(rename = "song", skip_serializing_if = "Vec::is_empty")]
-    songs: Vec<ChildId3>,
+    songs: Vec<SongId3>,
 }
 
 #[wrap_subsonic_response]
@@ -98,8 +98,8 @@ async fn syncing(
         .order(songs::title.asc())
         .limit(song_count)
         .offset(song_offset)
-        .select(ChildId3Db::as_select())
-        .get_results::<ChildId3Db>(&mut pool.get().await?)
+        .select(SongId3Db::as_select())
+        .get_results::<SongId3Db>(&mut pool.get().await?)
         .await?;
 
     Ok(Search3Result {

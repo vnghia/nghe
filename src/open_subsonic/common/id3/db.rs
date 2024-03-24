@@ -91,19 +91,11 @@ pub struct AlbumId3Db {
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = songs)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct BasicChildId3Db {
+pub struct BasicSongId3Db {
     pub id: Uuid,
     pub title: String,
     pub duration: f32,
     pub created_at: OffsetDateTime,
-}
-
-#[derive(Debug, Queryable, Selectable)]
-#[diesel(table_name = songs)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct ChildId3Db {
-    #[diesel(embed)]
-    pub basic: BasicChildId3Db,
     pub file_size: i64,
     pub format: String,
     pub bitrate: i32,
@@ -111,6 +103,14 @@ pub struct ChildId3Db {
     pub year: Option<i16>,
     pub track_number: Option<i32>,
     pub disc_number: Option<i32>,
+}
+
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = songs)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct SongId3Db {
+    #[diesel(embed)]
+    pub basic: BasicSongId3Db,
     #[diesel(select_expression = sql("array_agg(songs_artists.artist_id) artist_ids"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
@@ -180,21 +180,27 @@ impl AlbumId3Db {
     }
 }
 
-impl BasicChildId3Db {
-    pub fn into_res(self) -> ChildId3 {
-        ChildId3 {
+impl BasicSongId3Db {
+    pub fn into_res(self) -> SongId3 {
+        SongId3 {
             id: self.id,
-            is_dir: false,
             title: self.title,
             duration: self.duration as _,
             created: self.created_at,
+            size: self.file_size as _,
+            suffix: self.format,
+            bit_rate: self.bitrate as _,
+            album_id: self.album_id,
+            year: self.year.map(|v| v as _),
+            track: self.track_number.map(|v| v as _),
+            disc_number: self.disc_number.map(|v| v as _),
             ..Default::default()
         }
     }
 }
 
-impl ChildId3Db {
-    pub async fn into_res(self, pool: &DatabasePool) -> Result<ChildId3> {
+impl SongId3Db {
+    pub async fn into_res(self, pool: &DatabasePool) -> Result<SongId3> {
         let artists = artists::table
             .select((artists::id, artists::name))
             .filter(artists::id.eq_any(self.artist_ids))
@@ -204,22 +210,21 @@ impl ChildId3Db {
             .map(BasicArtistId3Db::into_res)
             .collect();
 
-        Ok(ChildId3 {
+        Ok(SongId3 {
             id: self.basic.id,
-            is_dir: false,
             title: self.basic.title,
             duration: self.basic.duration as _,
             created: self.basic.created_at,
-            size: Some(self.file_size as _),
+            size: self.basic.file_size as _,
+            bit_rate: self.basic.bitrate as _,
+            album_id: self.basic.album_id,
+            year: self.basic.year.map(|v| v as _),
+            track: self.basic.track_number.map(|v| v as _),
+            disc_number: self.basic.disc_number.map(|v| v as _),
             content_type: Some(
-                mime_guess::from_ext(&self.format).first_or_octet_stream().essence_str().to_owned(),
+                mime_guess::from_ext(&self.basic.format).first_or_octet_stream().essence_str().to_owned(),
             ),
-            suffix: Some(self.format),
-            bit_rate: Some(self.bitrate as _),
-            album_id: Some(self.album_id),
-            year: self.year.map(|v| v as _),
-            track: self.track_number.map(|v| v as _),
-            disc_number: self.disc_number.map(|v| v as _),
+            suffix: self.basic.format,
             artists,
         })
     }

@@ -53,30 +53,25 @@ pub struct AlbumId3 {
 #[derive(Debug, Serialize, Derivative)]
 #[derivative(Default)]
 #[serde(rename_all = "camelCase")]
-pub struct ChildId3 {
+pub struct SongId3 {
     pub id: Uuid,
-    pub is_dir: bool,
     pub title: String,
     pub duration: u32,
     #[serde(with = "crate::utils::time::iso8601_datetime")]
     #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
     pub created: OffsetDateTime,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub size: Option<u64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub suffix: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub bit_rate: Option<u16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub album_id: Option<Uuid>,
+    pub size: u64,
+    pub suffix: String,
+    pub bit_rate: u32,
+    pub album_id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub track: Option<u16>,
+    pub track: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub disc_number: Option<u16>,
+    pub disc_number: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub artists: Vec<ArtistId3>,
 }

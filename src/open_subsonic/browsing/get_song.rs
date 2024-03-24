@@ -19,21 +19,21 @@ pub struct GetSongParams {
 
 #[wrap_subsonic_response]
 pub struct GetSongBody {
-    song: ChildId3,
+    song: SongId3,
 }
 
 async fn get_song(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     song_id: &Uuid,
-) -> Result<ChildId3Db> {
+) -> Result<SongId3Db> {
     songs::table
         .inner_join(songs_artists::table)
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(songs::id.eq(song_id))
         .group_by(songs::id)
-        .select(ChildId3Db::as_select())
-        .first::<ChildId3Db>(&mut pool.get().await?)
+        .select(SongId3Db::as_select())
+        .first::<SongId3Db>(&mut pool.get().await?)
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Song".into()).into())

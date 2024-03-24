@@ -26,7 +26,7 @@ pub struct AlbumId3WithSongs {
     #[serde(flatten)]
     pub album: AlbumId3,
     #[serde(rename = "song")]
-    pub songs: Vec<ChildId3>,
+    pub songs: Vec<SongId3>,
 }
 
 #[wrap_subsonic_response]
@@ -60,12 +60,12 @@ async fn get_basic_songs(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
     song_ids: &[Uuid],
-) -> Result<Vec<BasicChildId3Db>> {
+) -> Result<Vec<BasicSongId3Db>> {
     songs::table
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
         .filter(songs::id.eq_any(song_ids))
-        .select(BasicChildId3Db::as_select())
-        .get_results::<BasicChildId3Db>(&mut pool.get().await?)
+        .select(BasicSongId3Db::as_select())
+        .get_results::<BasicSongId3Db>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)
 }
@@ -82,7 +82,7 @@ pub async fn get_album(
 
     Ok(AlbumId3WithSongs {
         album: album.into_res(pool).await?,
-        songs: basic_songs.into_iter().map(BasicChildId3Db::into_res).collect(),
+        songs: basic_songs.into_iter().map(BasicSongId3Db::into_res).collect(),
     })
 }
 
