@@ -68,7 +68,7 @@ async fn get_album_directory(
             parent: Some(parent_id),
             is_dir: Some(false),
             name: None,
-            title: Some(s.title)
+            title: Some(s.title),
         })
         .collect();
 

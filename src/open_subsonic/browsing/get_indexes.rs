@@ -35,7 +35,7 @@ pub struct ChildItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>
+    pub name: Option<String>,
 }
 
 #[derive(Serialize)]

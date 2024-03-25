@@ -222,7 +222,10 @@ impl SongId3Db {
             track: self.basic.track_number.map(|v| v as _),
             disc_number: self.basic.disc_number.map(|v| v as _),
             content_type: Some(
-                mime_guess::from_ext(&self.basic.format).first_or_octet_stream().essence_str().to_owned(),
+                mime_guess::from_ext(&self.basic.format)
+                    .first_or_octet_stream()
+                    .essence_str()
+                    .to_owned(),
             ),
             suffix: self.basic.format,
             artists,
