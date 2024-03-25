@@ -1,3 +1,6 @@
+#![deny(clippy::all)]
+#![feature(try_blocks)]
+
 use concat_string::concat_string;
 use darling::ast::NestedMeta;
 use darling::{Error, FromMeta};
@@ -21,20 +24,17 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     let item_struct = parse_macro_input!(input as ItemStruct);
     let item_struct_ident = &item_struct.ident;
 
-    let attr_args = match NestedMeta::parse_meta_list(args.into()) {
-        Ok(v) => v,
-        Err(e) => {
-            return TokenStream::from(Error::from(e).write_errors());
-        }
-    };
-    let _args = match WrapSubsonicResponse::from_list(&attr_args) {
-        Ok(v) => v,
-        Err(e) => {
+    let args = match try {
+        let attr_args = NestedMeta::parse_meta_list(args.into())?;
+        WrapSubsonicResponse::from_list(&attr_args)?
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => {
             return TokenStream::from(e.write_errors());
         }
     };
 
-    let constant_type = if _args.success {
+    let constant_type = if args.success {
         concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::SuccessConstantResponse")
     } else {
         concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::ErrorConstantResponse")
@@ -123,21 +123,18 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut validate_item_struct = item_struct.clone();
 
-    let attr_args = match NestedMeta::parse_meta_list(args.into()) {
-        Ok(v) => v,
-        Err(e) => {
-            return TokenStream::from(Error::from(e).write_errors());
-        }
-    };
-    let _args = match AddValidateResponse::from_list(&attr_args) {
-        Ok(v) => v,
-        Err(e) => {
-            return TokenStream::from(e.write_errors());
+    let args = match try {
+        let attr_args = NestedMeta::parse_meta_list(args.into())?;
+        AddValidateResponse::from_list(&attr_args)?
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(err) => {
+            return TokenStream::from(err.write_errors());
         }
     };
 
     let need_admin_token: proc_macro2::TokenStream =
-        (if _args.admin { "true" } else { "false" }).parse().unwrap();
+        (if args.admin { "true" } else { "false" }).parse().unwrap();
 
     let params_fields = if let syn::Fields::Named(ref fields) = item_struct.fields {
         match fields
@@ -155,7 +152,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             })
             .collect::<Result<_, Error>>()
         {
-            Ok(v) => v,
+            Ok(r) => r,
             Err(e) => {
                 return TokenStream::from(e.write_errors());
             }
@@ -172,7 +169,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::ValidatedForm").parse().unwrap();
 
     let validated_type = match item_struct_ident.to_string().strip_suffix("Params") {
-        Some(result) => result.to_owned(),
+        Some(some) => some.to_owned(),
         _ => {
             return syn::Error::new(
                 item_struct_ident.span(),

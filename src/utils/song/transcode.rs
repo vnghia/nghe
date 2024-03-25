@@ -50,12 +50,14 @@ fn make_output_io_context<S: MPSCShared + 'static>(
         None,
         Some(Box::new(move |_, data| {
             // Always send as much as possible.
-            let send_err = tx.send(data.to_vec()).is_err();
+            let send_err = tx.send(data.to_vec()).err();
             // And write to file as much as possible.
             let write_err =
-                if let Some(ref mut f) = output_file { f.write_all(data).is_err() } else { false };
-            if send_err && write_err {
-                tracing::error!("both sending and writing operation have failed, stop transcoding");
+                if let Some(ref mut f) = output_file { f.write_all(data).err() } else { None };
+            if let Some(send_err) = send_err
+                && let Some(write_err) = write_err
+            {
+                tracing::error!(sending_transcoded = ?send_err, writing_transcoded = ?write_err);
                 ffi::AVERROR_EXTERNAL
             } else {
                 data.len() as i32
@@ -180,13 +182,13 @@ fn encode_audio_frame(
     // Check for errors, but proceed with fetching encoded samples if the
     // encoder signals that it has nothing more to encode.
     match enc_ctx.send_frame(frame.as_ref()) {
-        Err(err) if err.raw_error().is_some_and(|err| err == ffi::AVERROR_EOF) => (),
+        Err(e) if e.raw_error().is_some_and(|e| e == ffi::AVERROR_EOF) => (),
         r => r?,
     };
 
     loop {
         let mut packet = match enc_ctx.receive_packet() {
-            Ok(packet) => packet,
+            Ok(r) => r,
             Err(RsmpegError::EncoderDrainError) | Err(RsmpegError::EncoderFlushedError) => {
                 break Ok(());
             }
@@ -213,11 +215,11 @@ fn filter_and_encode_audio_frame(
 
     loop {
         let frame = match sink_ctx.buffersink_get_frame(None) {
-            Ok(frame) => frame,
+            Ok(r) => r,
             Err(RsmpegError::BufferSinkDrainError) | Err(RsmpegError::BufferSinkEofError) => {
                 break Ok(());
             }
-            Err(err) => anyhow::bail!(err),
+            Err(e) => anyhow::bail!(e),
         };
         encode_audio_frame(Some(frame), enc_ctx, output_fmt_ctx)?;
     }
@@ -289,7 +291,7 @@ pub fn transcode<S: MPSCShared + 'static, PI: AsRef<Path>, PO: AsRef<Path>>(
 
     loop {
         let packet = match input_fmt_ctx.read_packet() {
-            Err(err) if err.raw_error().is_some_and(|err| err == ffi::AVERROR_EOF) => None,
+            Err(e) if e.raw_error().is_some_and(|e| e == ffi::AVERROR_EOF) => None,
             r => r.context("could not read input frame")?,
         };
 
@@ -308,7 +310,7 @@ pub fn transcode<S: MPSCShared + 'static, PI: AsRef<Path>, PO: AsRef<Path>>(
 
         loop {
             let input_frame = match dec_ctx.receive_frame() {
-                Ok(frame) => frame,
+                Ok(r) => r,
                 // There is nothing to read anymore.
                 Err(RsmpegError::DecoderDrainError) | Err(RsmpegError::DecoderFlushedError) => {
                     break;

@@ -46,8 +46,6 @@ pub async fn refresh_permissions(
         .on_conflict_do_nothing()
         .execute(&mut pool.get().await?)
         .await?;
-
-    tracing::info!("done refreshing user music folders");
     Ok(())
 }
 

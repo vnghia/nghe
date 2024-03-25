@@ -67,25 +67,12 @@ impl Drop for TemporaryDatabase {
 
         let raw_statement =
             concat_string!("DROP DATABASE IF EXISTS \"", &self.name, "\" WITH (FORCE);");
-
-        let mut conn = match PgConnection::establish(&self.root_url) {
-            Ok(conn) => conn,
-            Err(e) => {
-                println!("{}", e);
-                println!(
-                    "can not drop database, please drop the database manually with '{}'",
-                    &raw_statement
-                );
-                return;
-            }
-        };
-
-        if let Err(e) = diesel::RunQueryDsl::execute(diesel::sql_query(&raw_statement), &mut conn) {
-            println!("{}", e);
-            println!(
-                "can not drop database, please drop the database manually with '{}'",
-                &raw_statement
-            )
+        if let Err::<_, anyhow::Error>(e) = try {
+            let mut conn = PgConnection::establish(&self.root_url)?;
+            diesel::RunQueryDsl::execute(diesel::sql_query(&raw_statement), &mut conn)?;
+        } {
+            println!("could not drop temporary database because of {:?}", &e);
+            println!("please drop the database manually with '{}'", &raw_statement);
         }
     }
 }

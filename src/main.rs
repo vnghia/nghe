@@ -31,7 +31,7 @@ async fn main() {
         .init();
 
     let config = Config::default();
-    tracing::info!("configuration: {:?}", config);
+    tracing::info!(?config);
 
     // database
     let database = Database::new(&config.database.url, config.database.key).await;
@@ -67,7 +67,7 @@ async fn main() {
 
     // run it
     let listener = tokio::net::TcpListener::bind(config.server.bind_addr).await.unwrap();
-    tracing::info!("listening on {}", listener.local_addr().unwrap());
+    tracing::info!(listening_addr = %listener.local_addr().unwrap());
     axum::serve(listener, app(database, config))
         .with_graceful_shutdown(shutdown_signal())
         .await

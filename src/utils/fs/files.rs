@@ -25,8 +25,8 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
         types.select("all").build()?
     } {
         Ok(r) => r,
-        Err::<_, anyhow::Error>(err) => {
-            tracing::error!(?err);
+        Err::<_, anyhow::Error>(e) => {
+            tracing::error!(building_scan_pattern = ?e);
             return;
         }
     };
@@ -44,27 +44,25 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
                 let metadata = entry.metadata()?;
                 let path = entry.path();
                 if metadata.is_file()
-                    && tx
-                        .send((
-                            path.into(),
-                            path.strip_prefix(&root)
-                                .expect("this path should always contains the root path")
-                                .to_str()
-                                .expect("non utf-8 path encountered")
-                                .to_string(),
-                            metadata.len(),
-                        ))
-                        .is_err()
+                    && let Err(e) = tx.send((
+                        path.into(),
+                        path.strip_prefix(&root)
+                            .expect("this path should always contains the root path")
+                            .to_str()
+                            .expect("non utf-8 path encountered")
+                            .to_string(),
+                        metadata.len(),
+                    ))
                 {
-                    tracing::error!("can not send path back to the main process, stop scanning");
+                    tracing::error!(sending_walkdir_result = ?e);
                     ignore::WalkState::Quit
                 } else {
                     ignore::WalkState::Continue
                 }
             } {
                 Ok(r) => r,
-                Err::<_, anyhow::Error>(err) => {
-                    tracing::error!(?err);
+                Err::<_, anyhow::Error>(e) => {
+                    tracing::error!(walking_media_directory = ?e);
                     ignore::WalkState::Continue
                 }
             }

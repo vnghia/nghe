@@ -3,12 +3,14 @@ use std::path::Path;
 use diesel::{ExpressionMethods, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
+use tracing::instrument;
 
 use crate::models::*;
 use crate::utils::fs::folders::build_music_folders;
 use crate::DatabasePool;
 
-pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
+#[instrument(skip(pool))]
+pub async fn refresh_music_folders<P: AsRef<Path> + Sync + std::fmt::Debug>(
     pool: &DatabasePool,
     top_paths: &[P],
     depth_levels: &[usize],
@@ -40,10 +42,10 @@ pub async fn refresh_music_folders<P: AsRef<Path> + Sync>(
         .expect("can not delete old music folder");
 
     for upserted_folder in &upserted_folders {
-        tracing::info!("new music folder added: {}", &upserted_folder.path);
+        tracing::info!(upserted_folder = &upserted_folder.path);
     }
     for deleted_folder in &deleted_folders {
-        tracing::info!("old music folder deleted: {}", &deleted_folder.path);
+        tracing::info!(deleted_folder = &deleted_folder.path);
     }
 
     (upserted_folders, deleted_folders.len())

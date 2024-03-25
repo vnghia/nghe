@@ -54,13 +54,13 @@ fn spawn_transcoding(
         )
         .is_err()
         {
-            if write_to_file && std::fs::remove_file(&output_path).is_err() {
-                tracing::error!("could not remove transcoding temporary cache")
+            if write_to_file && let Err(e) = std::fs::remove_file(&output_path) {
+                tracing::error!(removing = ?e);
             }
         } else if let Some(done_path) = done_path
-            && std::fs::rename(&output_path, done_path).is_err()
+            && let Err(e) = std::fs::rename(&output_path, done_path)
         {
-            tracing::error!("could not move transcoding temporary cache to final cache")
+            tracing::error!(moving = ?e);
         }
 
         tracing::debug!("finish transcoding");
