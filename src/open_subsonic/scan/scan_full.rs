@@ -5,6 +5,7 @@ use diesel::dsl::{exists, not};
 use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lofty::FileType;
+use tracing::instrument;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -19,6 +20,7 @@ use crate::utils::fs::files::scan_media_files;
 use crate::utils::song::SongInformation;
 use crate::{DatabasePool, OSError};
 
+#[instrument(skip(pool, music_folders, parsing_config, scan_config), ret, err)]
 pub async fn scan_full(
     pool: &DatabasePool,
     scan_started_at: &time::OffsetDateTime,
@@ -216,16 +218,14 @@ pub async fn scan_full(
         .execute(&mut pool.get().await?)
         .await?;
 
-    let scan_statistic = ScanStatistic {
+    Ok(ScanStatistic {
         scanned_song_count,
         upserted_song_count,
         deleted_song_count,
         deleted_album_count,
         deleted_artist_count,
         parsing_error_paths,
-    };
-    tracing::info!("done scanning songs with statistic {:?}", &scan_statistic);
-    Ok(scan_statistic)
+    })
 }
 
 #[cfg(test)]

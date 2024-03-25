@@ -25,7 +25,7 @@ pub struct StreamParams {
     time_offset: Option<u32>,
 }
 
-#[instrument(level = "debug", skip(output_path, buffer_size))]
+#[instrument(skip(output_path, buffer_size))]
 fn spawn_transcoding(
     input_path: PathBuf,
     output_path: PathBuf,
@@ -35,12 +35,15 @@ fn spawn_transcoding(
     output_time_offset: u32,
     buffer_size: usize,
 ) -> StreamResponse {
-    tracing::debug!("new transcoding task");
+    let span = tracing::Span::current();
 
     let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(1);
     tokio::task::spawn_blocking(move || {
+        let _enter = span.enter();
+        tracing::debug!("start transcoding");
+
         let write_to_file = done_path.is_some();
-        if let Err(e) = transcode(
+        if transcode(
             &input_path,
             &output_path,
             write_to_file,
@@ -48,8 +51,9 @@ fn spawn_transcoding(
             output_time_offset,
             buffer_size,
             tx,
-        ) {
-            tracing::error!("{:?}", e);
+        )
+        .is_err()
+        {
             if write_to_file && std::fs::remove_file(&output_path).is_err() {
                 tracing::error!("could not remove transcoding temporary cache")
             }
@@ -58,6 +62,8 @@ fn spawn_transcoding(
         {
             tracing::error!("could not move transcoding temporary cache to final cache")
         }
+
+        tracing::debug!("finish transcoding");
     });
 
     StreamResponse::from_rx(output_ext, rx)

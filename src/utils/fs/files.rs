@@ -4,14 +4,18 @@ use crossfire::channel::MPSCShared;
 use crossfire::mpsc;
 use ignore::types::TypesBuilder;
 use ignore::WalkBuilder;
+use tracing::instrument;
 
 use super::super::song::file_type::SONG_FILE_TYPES;
 use crate::utils::song::file_type::{to_extension, to_glob_pattern};
 
-pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
+#[instrument(skip(tx))]
+pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSCShared>(
     root: P,
     tx: mpsc::TxBlocking<(PathBuf, String, u64), S>,
 ) {
+    tracing::debug!("start scanning");
+
     let types = match try {
         let mut types = TypesBuilder::new();
         for song_file_type in SONG_FILE_TYPES {
@@ -61,6 +65,8 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send, S: MPSCShared>(
             }
         })
     });
+
+    tracing::debug!("finish scanning");
 }
 
 #[cfg(test)]

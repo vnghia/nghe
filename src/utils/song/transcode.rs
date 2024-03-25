@@ -16,6 +16,7 @@ use rsmpeg::avformat::{
 use rsmpeg::avutil::{get_sample_fmt_name, ra, AVFrame, AVMem};
 use rsmpeg::error::RsmpegError;
 use rsmpeg::ffi;
+use tracing::instrument;
 
 fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext, usize)> {
     let input_fmt_ctx =
@@ -233,6 +234,7 @@ fn flush_encoder(
     }
 }
 
+#[instrument(skip_all, err(Debug))]
 pub fn transcode<S: MPSCShared + 'static, PI: AsRef<Path>, PO: AsRef<Path>>(
     input_path: PI,
     output_path: PO,
