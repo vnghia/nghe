@@ -18,7 +18,7 @@ use crate::config::ScanConfig;
 use crate::models::*;
 use crate::utils::fs::files::scan_media_files;
 use crate::utils::song::SongInformation;
-use crate::{DatabasePool, OSError};
+use crate::DatabasePool;
 
 #[instrument(skip(pool, music_folders, parsing_config, scan_config), ret, err)]
 pub async fn scan_full(
@@ -45,6 +45,9 @@ pub async fn scan_full(
         });
 
         while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
+            let _span = tracing::info_span!("scan_one", song_path = ?song_absolute_path).entered();
+            tracing::trace!("start processing");
+
             scanned_song_count += 1;
 
             let song_data = tokio::fs::read(&song_absolute_path).await?;
@@ -75,11 +78,7 @@ pub async fn scan_full(
                 // disk, continue.
                 if song_file_size_db == song_file_size && song_file_hash_db == song_file_hash {
                     if song_relative_path != song_relative_path_db {
-                        tracing::info!(
-                            "duplicated song detected ({} vs {}), updating path to the latest one.",
-                            &song_relative_path_db,
-                            &song_relative_path
-                        );
+                        tracing::info!(msg = "duplicated song", new_path = ?song_relative_path);
                         diesel::update(songs::table)
                             .filter(songs::id.eq(song_id_db))
                             .set(songs::relative_path.eq(&song_relative_path))
@@ -87,6 +86,7 @@ pub async fn scan_full(
                             .await?;
                         upserted_song_count += 1;
                     }
+                    tracing::trace!("finish processing");
                     continue;
                 }
                 Some(song_id_db)
@@ -94,29 +94,14 @@ pub async fn scan_full(
                 None
             };
 
-            let song_information = match SongInformation::read_from(
+            let Ok(song_information) = SongInformation::read_from(
                 &mut Cursor::new(&song_data),
-                FileType::from_path(&song_absolute_path).ok_or_else(|| {
-                    OSError::InvalidParameter(
-                        concat_string::concat_string!(
-                            "File type of ",
-                            song_absolute_path.to_string_lossy()
-                        )
-                        .into(),
-                    )
-                })?,
+                FileType::from_path(&song_absolute_path).expect("this should not happen"),
                 parsing_config,
-            ) {
-                Ok(r) => r,
-                Err(err) => {
-                    tracing::error!(
-                        "can not parse song tag from {:?} because of {:?}",
-                        song_absolute_path.to_string_lossy(),
-                        err
-                    );
-                    parsing_error_paths.push(song_absolute_path);
-                    continue;
-                }
+            ) else {
+                parsing_error_paths.push(song_absolute_path);
+                tracing::trace!("finish processing");
+                continue;
             };
 
             let song_tag = &song_information.tag;
@@ -179,6 +164,7 @@ pub async fn scan_full(
                 .await?;
 
             upserted_song_count += 1;
+            tracing::trace!("finish processing");
         }
 
         scan_media_files_task.await?;

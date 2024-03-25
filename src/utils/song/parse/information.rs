@@ -5,6 +5,7 @@ use itertools::Itertools;
 use lofty::flac::FlacFile;
 use lofty::mpeg::MpegFile;
 use lofty::{AudioFile, FileType, ParseOptions, ParsingMode};
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::property::SongProperty;
@@ -20,6 +21,7 @@ pub struct SongInformation {
 }
 
 impl SongInformation {
+    #[instrument(skip_all, err(Debug))]
     pub fn read_from<R: Read + Seek>(
         reader: &mut R,
         file_type: FileType,
