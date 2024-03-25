@@ -14,6 +14,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
     root: P,
     tx: mpsc::TxBlocking<(PathBuf, String, u64), S>,
 ) {
+    let span = tracing::Span::current();
     tracing::debug!("start scanning");
 
     let types = match try {
@@ -24,16 +25,20 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
         types.select("all").build()?
     } {
         Ok(r) => r,
-        Err::<_, anyhow::Error>(e) => {
-            tracing::error!("error while building scan pattern: {:?}", e);
+        Err::<_, anyhow::Error>(err) => {
+            tracing::error!(?err);
             return;
         }
     };
 
     WalkBuilder::new(&root).types(types).build_parallel().run(|| {
+        let span = span.clone();
         let tx = tx.clone();
         let root = root.clone();
+
         Box::new(move |entry| {
+            let _enter = span.enter();
+
             match try {
                 let entry = entry?;
                 let metadata = entry.metadata()?;
@@ -58,8 +63,8 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
                 }
             } {
                 Ok(r) => r,
-                Err::<_, anyhow::Error>(e) => {
-                    tracing::error!("error while scanning for media files: {}", e);
+                Err::<_, anyhow::Error>(err) => {
+                    tracing::error!(?err);
                     ignore::WalkState::Continue
                 }
             }

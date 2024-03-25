@@ -28,16 +28,21 @@ pub async fn scan_full(
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
 ) -> Result<ScanStatistic> {
+    let span = tracing::Span::current();
+
     let mut scanned_song_count: usize = 0;
     let mut upserted_song_count: usize = 0;
     let mut parsing_error_paths = vec![];
 
     for music_folder in music_folders {
+        let span = span.clone();
         let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(scan_config.channel_size);
 
         let music_folder_path = std::path::PathBuf::from(&music_folder.path);
-        let scan_media_files_task =
-            tokio::task::spawn_blocking(move || scan_media_files(music_folder_path, tx));
+        let scan_media_files_task = tokio::task::spawn_blocking(move || {
+            let _enter = span.enter();
+            scan_media_files(music_folder_path, tx)
+        });
 
         while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
             scanned_song_count += 1;

@@ -45,10 +45,7 @@ pub async fn finish_scan(
 ) -> Result<()> {
     let (scanned_count, error_message) = match scan_result {
         Ok(r) => (r.scanned_song_count, None),
-        Err(e) => {
-            tracing::error!("error while scanning: {:?}", e);
-            (0, Some::<Cow<'_, str>>(e.to_string().into()))
-        }
+        Err(e) => (0, Some::<Cow<'_, str>>(e.to_string().into())),
     };
     diesel::update(scans::table.filter(scans::started_at.eq(scan_started_at)))
         .set(&scans::FinishScan {
