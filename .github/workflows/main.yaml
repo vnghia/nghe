@@ -48,6 +48,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --name postgres
         ports:
           - 5432:5432
 
@@ -73,6 +74,13 @@ jobs:
           echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
           echo "profile=dev" >> "$GITHUB_OUTPUT"
           echo "output-dir=debug" >> "$GITHUB_OUTPUT"
+      - name: Increase postgres max connection
+        run: |
+          docker exec -i postgres bash << EOF
+            sed -i -e 's/max_connections = 100/max_connections = 1000/' /var/lib/postgresql/data/postgresql.conf
+            sed -i -e 's/shared_buffers = 128MB/shared_buffers = 2GB/' /var/lib/postgresql/data/postgresql.conf
+          EOF
+          docker restart postgres
 
       - name: Setup x64 environment
         uses: rui314/setup-mold@v1
@@ -224,7 +232,7 @@ jobs:
           cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
 
       - name: Build and test
-        run: cargo test --locked --target x86_64-pc-windows-msvc
+        run: cargo test --locked --target x86_64-pc-windows-msvc -- --test-threads=1
         env:
           DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
 
@@ -263,6 +271,13 @@ jobs:
         run: brew install postgresql@14
       - uses: ikalnytskyi/action-setup-postgres@v5
         id: postgres
+      - name: Increase postgres max connection
+        run: |
+          psql -c "ALTER SYSTEM SET max_connections = 1000"
+          psql -c "ALTER SYSTEM SET shared_buffers = '2GB'"
+          brew services restart postgresql
+        env:
+          PGSERVICE: ${{ steps.postgres.outputs.service-name }}
 
       - name: Install ffmpeg build deps
         run: brew install nasm
