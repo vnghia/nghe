@@ -136,10 +136,12 @@ mod tests {
         });
         assert_eq!(config.cache_path, None);
 
+        let abs_path = std::env::temp_dir().canonicalize().unwrap();
+        assert!(abs_path.is_absolute());
         let config = TranscodingConfig::new(raw::TranscodingConfig {
             buffer_size: 10,
-            cache_path: Some(PathBuf::from("/absolute")),
+            cache_path: Some(abs_path.clone()),
         });
-        assert_eq!(config.cache_path, Some(PathBuf::from("/absolute")));
+        assert_eq!(config.cache_path, Some(abs_path));
     }
 }
