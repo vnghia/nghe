@@ -42,10 +42,16 @@ pub async fn refresh_music_folders<P: AsRef<Path> + Sync + std::fmt::Debug>(
         .expect("can not delete old music folder");
 
     for upserted_folder in &upserted_folders {
-        tracing::info!(upserted_folder = &upserted_folder.path);
+        tracing::info!(
+            upserted_folder.id = %upserted_folder.id,
+            upserted_folder.path = upserted_folder.path
+        );
     }
     for deleted_folder in &deleted_folders {
-        tracing::info!(deleted_folder = &deleted_folder.path);
+        tracing::info!(
+            deleted_folder.id = %deleted_folder.id,
+            deleted_folder.path = deleted_folder.path
+        );
     }
 
     (upserted_folders, deleted_folders.len())

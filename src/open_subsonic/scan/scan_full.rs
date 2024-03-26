@@ -1,9 +1,12 @@
 use std::io::Cursor;
+use std::path::Path;
 
 use anyhow::Result;
 use diesel::dsl::{exists, not};
 use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
+use futures::{StreamExt, TryStreamExt};
+use futures_buffered::FuturesUnorderedBounded;
 use lofty::FileType;
 use tracing::instrument;
 use uuid::Uuid;
@@ -20,50 +23,31 @@ use crate::utils::fs::files::scan_media_files;
 use crate::utils::song::SongInformation;
 use crate::DatabasePool;
 
-#[instrument(skip(pool, music_folders, parsing_config, scan_config), ret, err)]
-pub async fn scan_full(
+#[instrument(
+    skip(pool, song_absolute_path, song_file_size, parsing_config),
+    ret(level = "trace"),
+    err
+)]
+pub async fn process_path<P: AsRef<Path> + std::fmt::Debug>(
     pool: &DatabasePool,
-    scan_started_at: &time::OffsetDateTime,
-    music_folders: &[music_folders::MusicFolder],
+    scan_started_at: time::OffsetDateTime,
+    music_folder_id: Uuid,
+    song_absolute_path: P,
+    song_relative_path: &str,
+    song_file_size: u64,
     parsing_config: &ParsingConfig,
-    scan_config: &ScanConfig,
-) -> Result<ScanStatistic> {
-    let span = tracing::Span::current();
+) -> Result<bool> {
+    let song_data = tokio::fs::read(&song_absolute_path).await?;
+    let (song_file_hash, song_data) =
+        tokio::task::spawn_blocking(move || (xxh3_64(&song_data), song_data)).await?;
 
-    let mut scanned_song_count: usize = 0;
-    let mut upserted_song_count: usize = 0;
-    let mut parsing_error_paths = vec![];
+    let song_file_hash = song_file_hash as i64;
+    let song_file_size = song_file_size as i64;
 
-    for music_folder in music_folders {
-        let span = span.clone();
-        let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(scan_config.channel_size);
-
-        let music_folder_path = std::path::PathBuf::from(&music_folder.path);
-        let scan_media_files_task = tokio::task::spawn_blocking(move || {
-            let _enter = span.enter();
-            scan_media_files(music_folder_path, tx)
-        });
-
-        while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
-            let _span = tracing::info_span!("scan_one", song_path = ?song_absolute_path).entered();
-            tracing::trace!("start processing");
-
-            scanned_song_count += 1;
-
-            let song_data = tokio::fs::read(&song_absolute_path).await?;
-            let (song_file_hash, song_data) =
-                tokio::task::spawn_blocking(move || (xxh3_64(&song_data), song_data)).await?;
-
-            let song_file_hash = song_file_hash as i64;
-            let song_file_size = song_file_size as i64;
-
-            let song_id = if let Some((
-                song_id_db,
-                song_file_hash_db,
-                song_file_size_db,
-                song_relative_path_db,
-            )) = diesel::update(songs::table)
-                .filter(songs::music_folder_id.eq(music_folder.id))
+    let song_id =
+        if let Some((song_id_db, song_file_hash_db, song_file_size_db, song_relative_path_db)) =
+            diesel::update(songs::table)
+                .filter(songs::music_folder_id.eq(music_folder_id))
                 .filter(songs::relative_path.eq(&song_relative_path).or(
                     songs::file_hash.eq(song_file_hash).and(songs::file_size.eq(song_file_size)),
                 ))
@@ -72,102 +56,178 @@ pub async fn scan_full(
                 .get_result::<(Uuid, i64, i64, String)>(&mut pool.get().await?)
                 .await
                 .optional()?
-            {
-                // there is already an entry in the database with the same music folder and relative
-                // path and it has the same size and hash with the file on local
-                // disk, continue.
-                if song_file_size_db == song_file_size && song_file_hash_db == song_file_hash {
-                    if song_relative_path != song_relative_path_db {
-                        tracing::info!(msg = "duplicated song", new_path = ?song_relative_path);
-                        diesel::update(songs::table)
-                            .filter(songs::id.eq(song_id_db))
-                            .set(songs::relative_path.eq(&song_relative_path))
-                            .execute(&mut pool.get().await?)
-                            .await?;
-                        upserted_song_count += 1;
-                    }
-                    tracing::trace!("finish processing");
-                    continue;
+        {
+            // there is already an entry in the database with the same music folder and relative
+            // path and it has the same size and hash with the file on local
+            // disk, continue.
+            if song_file_size_db == song_file_size && song_file_hash_db == song_file_hash {
+                if song_relative_path != song_relative_path_db {
+                    tracing::info!(new_path = ?song_relative_path, "duplicated song");
+                    diesel::update(songs::table)
+                        .filter(songs::id.eq(song_id_db))
+                        .set(songs::relative_path.eq(&song_relative_path))
+                        .execute(&mut pool.get().await?)
+                        .await?;
+                    return Ok(true);
+                } else {
+                    return Ok(false);
                 }
-                Some(song_id_db)
-            } else {
-                None
-            };
-
-            let Ok(song_information) = SongInformation::read_from(
-                &mut Cursor::new(&song_data),
-                FileType::from_path(&song_absolute_path).expect("this should not happen"),
-                parsing_config,
-            ) else {
-                parsing_error_paths.push(song_absolute_path);
-                tracing::trace!("finish processing");
-                continue;
-            };
-
-            let song_tag = &song_information.tag;
-
-            let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
-            let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
-
-            let song_id = if let Some(song_id) = song_id {
-                update_song(
-                    pool,
-                    song_id,
-                    song_information.to_update_information_db(
-                        album_id,
-                        song_file_hash,
-                        song_file_size,
-                    ),
-                )
-                .await?;
-                song_id
-            } else {
-                insert_song(
-                    pool,
-                    song_information.to_full_information_db(
-                        album_id,
-                        song_file_hash,
-                        song_file_size,
-                        music_folder.id,
-                        &song_relative_path,
-                    ),
-                )
-                .await?
-            };
-
-            // if there are no album artists,
-            // we assume that they are the same as artists.
-            if !song_tag.album_artists.is_empty() {
-                let album_artist_ids = upsert_artists(pool, &song_tag.album_artists).await?;
-                upsert_song_album_artists(pool, &song_id, &album_artist_ids).await?;
-            } else {
-                upsert_song_album_artists(pool, &song_id, &artist_ids).await?;
             }
-            // album artists for the same album
-            // that are extracted from multiple songs
-            // will be combined into a list.
-            // for example:
-            // song1 -> album -> album_artist1
-            // song2 -> album -> album_artist2
-            // album -> [album_artist1, album_artist2]
-            diesel::delete(songs_album_artists::table)
-                .filter(songs_album_artists::song_id.eq(song_id))
-                .filter(songs_album_artists::upserted_at.lt(scan_started_at))
-                .execute(&mut pool.get().await?)
-                .await?;
+            Some(song_id_db)
+        } else {
+            None
+        };
 
-            upsert_song_artists(pool, &song_id, &artist_ids).await?;
-            diesel::delete(songs_artists::table)
-                .filter(songs_artists::song_id.eq(song_id))
-                .filter(songs_artists::upserted_at.lt(scan_started_at))
-                .execute(&mut pool.get().await?)
-                .await?;
+    let Ok(song_information) = SongInformation::read_from(
+        &mut Cursor::new(&song_data),
+        FileType::from_path(&song_absolute_path).expect("this should not happen"),
+        parsing_config,
+    ) else {
+        return Ok(false);
+    };
 
-            upserted_song_count += 1;
-            tracing::trace!("finish processing");
+    let song_tag = &song_information.tag;
+
+    let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
+    let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
+
+    let song_id = if let Some(song_id) = song_id {
+        update_song(
+            pool,
+            song_id,
+            song_information.to_update_information_db(album_id, song_file_hash, song_file_size),
+        )
+        .await?;
+        song_id
+    } else {
+        insert_song(
+            pool,
+            song_information.to_full_information_db(
+                album_id,
+                song_file_hash,
+                song_file_size,
+                music_folder_id,
+                &song_relative_path,
+            ),
+        )
+        .await?
+    };
+
+    // if there are no album artists,
+    // we assume that they are the same as artists.
+    if !song_tag.album_artists.is_empty() {
+        let album_artist_ids = upsert_artists(pool, &song_tag.album_artists).await?;
+        upsert_song_album_artists(pool, &song_id, &album_artist_ids).await?;
+    } else {
+        upsert_song_album_artists(pool, &song_id, &artist_ids).await?;
+    }
+    // album artists for the same album
+    // that are extracted from multiple songs
+    // will be combined into a list.
+    // for example:
+    // song1 -> album -> album_artist1
+    // song2 -> album -> album_artist2
+    // album -> [album_artist1, album_artist2]
+    diesel::delete(songs_album_artists::table)
+        .filter(songs_album_artists::song_id.eq(song_id))
+        .filter(songs_album_artists::upserted_at.lt(scan_started_at))
+        .execute(&mut pool.get().await?)
+        .await?;
+
+    upsert_song_artists(pool, &song_id, &artist_ids).await?;
+    diesel::delete(songs_artists::table)
+        .filter(songs_artists::song_id.eq(song_id))
+        .filter(songs_artists::upserted_at.lt(scan_started_at))
+        .execute(&mut pool.get().await?)
+        .await?;
+
+    Ok(true)
+}
+
+#[instrument(skip(pool, music_folders, parsing_config, scan_config), ret, err)]
+pub async fn scan_full(
+    pool: &DatabasePool,
+    scan_started_at: time::OffsetDateTime,
+    music_folders: &[music_folders::MusicFolder],
+    parsing_config: &ParsingConfig,
+    scan_config: &ScanConfig,
+) -> Result<ScanStatistic> {
+    let span = tracing::Span::current();
+
+    let mut scanned_song_count: usize = 0;
+    let mut upserted_song_count: usize = 0;
+    let mut scan_error_count: usize = 0;
+
+    let mut scan_media_files_tasks = FuturesUnorderedBounded::new(scan_config.scan_media_task_size);
+    let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.process_path_task_size);
+
+    for music_folder in music_folders {
+        let span = span.clone();
+        let span_scan_one = span.clone();
+
+        let music_folder_id = music_folder.id;
+        let music_folder_path = std::path::PathBuf::from(&music_folder.path);
+
+        while scan_media_files_tasks.len() == scan_media_files_tasks.capacity()
+            && let Some(scan_media_files_task) = scan_media_files_tasks.next().await
+        {
+            scan_media_files_task?;
         }
 
-        scan_media_files_task.await?;
+        let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(scan_config.channel_size);
+        scan_media_files_tasks.push(tokio::task::spawn_blocking(move || {
+            let _enter = span.enter();
+            scan_media_files(music_folder_path, tx)
+        }));
+
+        while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
+            let span = span_scan_one.clone();
+            let pool = pool.clone();
+            let parsing_config = parsing_config.clone();
+
+            while process_path_tasks.len() >= process_path_tasks.capacity()
+                && let Some(process_path_join_result) = process_path_tasks.next().await
+            {
+                if let Ok(process_path_result) = process_path_join_result
+                    && let Ok(is_upserted) = process_path_result
+                {
+                    if is_upserted {
+                        upserted_song_count += 1;
+                    }
+                } else {
+                    scan_error_count += 1;
+                }
+            }
+
+            scanned_song_count += 1;
+            process_path_tasks.push(tokio::task::spawn(async move {
+                let _enter = span.enter();
+                process_path(
+                    &pool,
+                    scan_started_at,
+                    music_folder_id,
+                    &song_absolute_path,
+                    &song_relative_path,
+                    song_file_size,
+                    &parsing_config,
+                )
+                .await
+            }));
+        }
+    }
+
+    scan_media_files_tasks.try_collect().await?;
+
+    while let Some(process_path_join_result) = process_path_tasks.next().await {
+        if let Ok(process_path_result) = process_path_join_result
+            && let Ok(is_upserted) = process_path_result
+        {
+            if is_upserted {
+                upserted_song_count += 1;
+            }
+        } else {
+            scan_error_count += 1;
+        }
     }
 
     let deleted_song_count = diesel::delete(songs::table)
@@ -215,13 +275,13 @@ pub async fn scan_full(
         deleted_song_count,
         deleted_album_count,
         deleted_artist_count,
-        parsing_error_paths,
+        scan_error_count,
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
+    use std::path::PathBuf;
 
     use fake::{Fake, Faker};
     use itertools::Itertools;
@@ -286,16 +346,11 @@ mod tests {
         parsing_config: &ParsingConfig,
     ) -> ScanStatistic {
         let scan_started_at = start_scan(pool).await.unwrap();
-        let scan_statistic = scan_full(
-            pool,
-            &scan_started_at,
-            music_folders,
-            parsing_config,
-            &ScanConfig::default(),
-        )
-        .await
-        .unwrap();
-        finish_scan(pool, &scan_started_at, Ok(&scan_statistic)).await.unwrap();
+        let scan_statistic =
+            scan_full(pool, scan_started_at, music_folders, parsing_config, &ScanConfig::default())
+                .await
+                .unwrap();
+        finish_scan(pool, scan_started_at, Ok(&scan_statistic)).await.unwrap();
         scan_statistic
     }
 

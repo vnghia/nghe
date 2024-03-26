@@ -17,8 +17,7 @@ where
     FrameId::new(s).map(|f| f.into_owned()).map_err(de::Error::custom)
 }
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
-#[cfg_attr(test, derive(Clone))]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct Id3v2ParsingConfig {
     #[derivative(Default(value = "'/'"))]
@@ -57,8 +56,7 @@ pub struct Id3v2ParsingConfig {
     pub language: FrameId<'static>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
-#[cfg_attr(test, derive(Clone))]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct VorbisCommentsParsingConfig {
     #[derivative(Default(value = "\"ARTIST\".into()"))]
@@ -83,7 +81,7 @@ pub struct VorbisCommentsParsingConfig {
     pub language: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct ParsingConfig {
     pub id3v2: Id3v2ParsingConfig,

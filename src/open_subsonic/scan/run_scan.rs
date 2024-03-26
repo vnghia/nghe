@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::path::PathBuf;
 
 use anyhow::Result;
 use diesel::{ExpressionMethods, QueryDsl};
@@ -26,7 +25,7 @@ pub struct ScanStatistic {
     pub deleted_song_count: usize,
     pub deleted_album_count: usize,
     pub deleted_artist_count: usize,
-    pub parsing_error_paths: Vec<PathBuf>,
+    pub scan_error_count: usize,
 }
 
 pub async fn start_scan(pool: &DatabasePool) -> Result<OffsetDateTime> {
@@ -40,7 +39,7 @@ pub async fn start_scan(pool: &DatabasePool) -> Result<OffsetDateTime> {
 
 pub async fn finish_scan(
     pool: &DatabasePool,
-    scan_started_at: &OffsetDateTime,
+    scan_started_at: OffsetDateTime,
     scan_result: Result<&ScanStatistic, &anyhow::Error>,
 ) -> Result<()> {
     let (scanned_count, error_message) = match scan_result {
@@ -71,11 +70,11 @@ pub async fn run_scan(
 
     let scan_result = match scan_mode {
         ScanMode::Full => {
-            scan_full(pool, &scan_started_at, music_folders, parsing_config, scan_config).await
+            scan_full(pool, scan_started_at, music_folders, parsing_config, scan_config).await
         }
     };
     build_artist_indices(pool, artist_index_config).await?;
-    finish_scan(pool, &scan_started_at, scan_result.as_ref()).await?;
+    finish_scan(pool, scan_started_at, scan_result.as_ref()).await?;
 
     Ok(())
 }

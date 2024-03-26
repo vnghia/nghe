@@ -53,6 +53,10 @@ pub struct ArtistConfig {
 pub struct ScanConfig {
     #[derivative(Default(value = "100"))]
     pub channel_size: usize,
+    #[derivative(Default(value = "10"))]
+    pub scan_media_task_size: usize,
+    #[derivative(Default(value = "100"))]
+    pub process_path_task_size: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
