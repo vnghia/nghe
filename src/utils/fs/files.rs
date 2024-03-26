@@ -14,7 +14,6 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
     root: P,
     tx: mpsc::TxBlocking<(PathBuf, String, u64), S>,
 ) {
-    let span = tracing::Span::current();
     tracing::debug!("start scanning");
 
     let types = match try {
@@ -32,7 +31,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
     };
 
     WalkBuilder::new(&root).types(types).build_parallel().run(|| {
-        let span = span.clone();
+        let span = tracing::Span::current();
         let tx = tx.clone();
         let root = root.clone();
 

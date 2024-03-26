@@ -8,7 +8,7 @@ use diesel_async::RunQueryDsl;
 use futures::{StreamExt, TryStreamExt};
 use futures_buffered::FuturesUnorderedBounded;
 use lofty::FileType;
-use tracing::instrument;
+use tracing::{instrument, Instrument};
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -152,8 +152,6 @@ pub async fn scan_full(
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
 ) -> Result<ScanStatistic> {
-    let span = tracing::Span::current();
-
     let mut scanned_song_count: usize = 0;
     let mut upserted_song_count: usize = 0;
     let mut scan_error_count: usize = 0;
@@ -162,9 +160,6 @@ pub async fn scan_full(
     let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.process_path_task_size);
 
     for music_folder in music_folders {
-        let span = span.clone();
-        let span_scan_one = span.clone();
-
         let music_folder_id = music_folder.id;
         let music_folder_path = std::path::PathBuf::from(&music_folder.path);
 
@@ -174,6 +169,7 @@ pub async fn scan_full(
             scan_media_files_task?;
         }
 
+        let span = tracing::Span::current();
         let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(scan_config.channel_size);
         scan_media_files_tasks.push(tokio::task::spawn_blocking(move || {
             let _enter = span.enter();
@@ -181,7 +177,6 @@ pub async fn scan_full(
         }));
 
         while let Ok((song_absolute_path, song_relative_path, song_file_size)) = rx.recv().await {
-            let span = span_scan_one.clone();
             let pool = pool.clone();
             let parsing_config = parsing_config.clone();
 
@@ -200,19 +195,23 @@ pub async fn scan_full(
             }
 
             scanned_song_count += 1;
-            process_path_tasks.push(tokio::task::spawn(async move {
-                let _enter = span.enter();
-                process_path(
-                    &pool,
-                    scan_started_at,
-                    music_folder_id,
-                    &song_absolute_path,
-                    &song_relative_path,
-                    song_file_size,
-                    &parsing_config,
-                )
-                .await
-            }));
+
+            let span = tracing::Span::current();
+            process_path_tasks.push(tokio::task::spawn(
+                async move {
+                    process_path(
+                        &pool,
+                        scan_started_at,
+                        music_folder_id,
+                        &song_absolute_path,
+                        &song_relative_path,
+                        song_file_size,
+                        &parsing_config,
+                    )
+                    .await
+                }
+                .instrument(span),
+            ));
         }
     }
 
