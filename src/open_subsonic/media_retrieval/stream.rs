@@ -58,9 +58,9 @@ fn spawn_transcoding(
                 tracing::error!(removing = ?e);
             }
         } else if let Some(done_path) = done_path
-            && let Err(e) = std::fs::rename(&output_path, done_path)
+            && let Err(e) = std::fs::copy(&output_path, done_path)
         {
-            tracing::error!(moving = ?e);
+            tracing::error!(copying = ?e);
         }
 
         tracing::debug!("finish transcoding");
