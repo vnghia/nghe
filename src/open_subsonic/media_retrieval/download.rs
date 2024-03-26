@@ -14,7 +14,7 @@ pub struct DownloadParams {
 }
 
 pub async fn download(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<StreamResponse> {
-    let (absolute_path, _) = get_song_download_info(pool, user_id, song_id).await?;
+    let (absolute_path, ..) = get_song_download_info(pool, user_id, song_id).await?;
     StreamResponse::try_from_path(&absolute_path).await
 }
 

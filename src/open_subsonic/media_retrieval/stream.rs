@@ -12,7 +12,7 @@ use super::download::download;
 use super::utils::get_song_download_info;
 use crate::config::TranscodingConfig;
 use crate::open_subsonic::StreamResponse;
-use crate::utils::fs::path::hash_to_path;
+use crate::utils::fs::path::hash_size_to_path;
 use crate::utils::song::transcode;
 use crate::{Database, DatabasePool, ServerError};
 
@@ -84,13 +84,14 @@ async fn stream(
         let time_offset = params.time_offset.unwrap_or(0);
         let buffer_size = transcoding_config.buffer_size;
 
-        let (absolute_path, song_file_hash) =
+        let (absolute_path, song_file_hash, song_file_size) =
             get_song_download_info(pool, user_id, params.id).await?;
 
         if let Some(cache_path) = transcoding_config.cache_path {
             // Transcoding cache is enabled
-            let cache_dir =
-                hash_to_path(cache_path, song_file_hash).join(&format).join(bit_rate.to_string());
+            let cache_dir = hash_size_to_path(cache_path, song_file_hash, song_file_size)
+                .join(&format)
+                .join(bit_rate.to_string());
             tokio::fs::create_dir_all(&cache_dir).await?;
 
             let done_path = cache_dir.join(concat_string!("done.", &format));
