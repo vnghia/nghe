@@ -58,9 +58,9 @@ fn spawn_transcoding(
                 tracing::error!(removing = ?e);
             }
         } else if let Some(done_path) = done_path
-            && let Err(e) = std::fs::copy(&output_path, done_path)
+            && let Err(e) = std::fs::rename(&output_path, done_path)
         {
-            tracing::error!(copying = ?e);
+            tracing::error!(moving = ?e);
         }
 
         tracing::debug!("finish transcoding");
@@ -115,19 +115,16 @@ async fn stream(
                         buffer_size,
                     ))
                 }
-            } else if tokio::fs::metadata(&transcoding_path).await.is_ok() && time_offset == 0 {
-                // if the song is being transcoding and time offset is 0,
-                // we will stream the file, which is being written to by another process.
-                StreamResponse::try_from_path(&transcoding_path).await
             } else {
-                // If the song is being transcoding but time offset is not 0,
-                // or it is not being transcoding, spawn a new transcoding processs,
-                // and only write to output if time offset is 0.
+                // If the song is not transcoded yet, spawn a new transcoding process,
+                // only write to file if the file is not being transcoding,
+                // i.e transcoding.format does not exist and time offset is 0.
+                let is_transcoding = tokio::fs::metadata(&transcoding_path).await.is_err();
                 Ok(spawn_transcoding(
                     absolute_path,
                     transcoding_path,
                     &format,
-                    if time_offset == 0 { Some(done_path) } else { None },
+                    if is_transcoding && time_offset == 0 { Some(done_path) } else { None },
                     bit_rate,
                     time_offset,
                     buffer_size,

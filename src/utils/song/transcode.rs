@@ -50,14 +50,26 @@ fn make_output_io_context<S: MPSCShared + 'static>(
         None,
         Some(Box::new(move |_, data| {
             // Always send as much as possible.
-            let send_err = tx.send(data.to_vec()).err();
-            // And write to file as much as possible.
-            let write_err =
-                if let Some(ref mut f) = output_file { f.write_all(data).err() } else { None };
-            if let Some(send_err) = send_err
-                && let Some(write_err) = write_err
-            {
-                tracing::error!(sending_transcoded = ?send_err, writing_transcoded = ?write_err);
+            let send_ret = tx.send(data.to_vec());
+
+            if let Some(ref mut f) = output_file {
+                // If we write the output to a file, we will try
+                // writing as much as possible and ignore the sending error.
+                // Abort if both sending and writing operations are failed.
+                if let Err(write_err) = f.write_all(data)
+                    && let Err(send_err) = send_ret
+                {
+                    tracing::error!(writing_transcoded = ?write_err, sending_transcoded = ?send_err);
+                    ffi::AVERROR_EXTERNAL
+                } else {
+                    data.len() as i32
+                }
+            } else if let Err(send_err) = send_ret {
+                // If we do not write the output to a file, abort as soon as
+                // we can not send the output back to the receiver.
+                // In this case, it is usually because the `stream` request is dropped,
+                // and the receiver is therefore closed as well.
+                tracing::error!(sending_transcoded = ?send_err);
                 ffi::AVERROR_EXTERNAL
             } else {
                 data.len() as i32
