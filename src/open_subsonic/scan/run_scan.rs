@@ -350,6 +350,7 @@ mod tests {
 
     async fn wrap_run_scan(
         pool: &DatabasePool,
+        scan_mode: ScanMode,
         music_folders: &[music_folders::MusicFolder],
         parsing_config: &ParsingConfig,
     ) -> ScanStatistic {
@@ -357,7 +358,7 @@ mod tests {
         let scan_statistic = run_scan(
             pool,
             scan_started_at,
-            ScanMode::Full,
+            scan_mode,
             music_folders,
             parsing_config,
             &ScanConfig::default(),
@@ -374,6 +375,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
         let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -391,6 +393,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
         let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -408,6 +411,7 @@ mod tests {
 
         let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -427,6 +431,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
         let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -444,6 +449,7 @@ mod tests {
 
         let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -462,6 +468,7 @@ mod tests {
             TestInfra::setup_songs_no_scan(&[n_song, n_song], None).await;
         let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -489,8 +496,13 @@ mod tests {
             ],
         )
         .await;
-        wrap_run_scan(test_infra.pool(), &test_infra.music_folders, &test_infra.fs.parsing_config)
-            .await;
+        wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Full,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
 
         assert_songs_info(test_infra.pool(), &song_fs_infos).await;
         assert_albums_artists_info(test_infra.pool(), &song_fs_infos).await;
@@ -505,6 +517,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
         let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -522,6 +535,7 @@ mod tests {
 
         let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -543,6 +557,7 @@ mod tests {
         .await;
         let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -554,6 +569,7 @@ mod tests {
 
         let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -569,8 +585,13 @@ mod tests {
         let n_update_song = 4;
 
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        wrap_run_scan(test_infra.pool(), &test_infra.music_folders, &test_infra.fs.parsing_config)
-            .await;
+        wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Full,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
 
         assert_artists_info(test_infra.pool(), &song_fs_infos).await;
 
@@ -582,8 +603,13 @@ mod tests {
             n_update_song,
         );
 
-        wrap_run_scan(test_infra.pool(), &test_infra.music_folders, &test_infra.fs.parsing_config)
-            .await;
+        wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Full,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
 
         assert_artists_info(test_infra.pool(), &song_fs_infos).await;
     }
@@ -606,6 +632,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[3], song_tags).await;
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -622,6 +649,7 @@ mod tests {
 
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -649,6 +677,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[2], song_tags).await;
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -660,6 +689,7 @@ mod tests {
 
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -695,6 +725,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[3], song_tags).await;
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -706,6 +737,7 @@ mod tests {
 
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -742,6 +774,7 @@ mod tests {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[3], song_tags).await;
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -762,6 +795,7 @@ mod tests {
 
         let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
             test_infra.pool(),
+            ScanMode::Full,
             &test_infra.music_folders,
             &test_infra.fs.parsing_config,
         )
@@ -773,8 +807,13 @@ mod tests {
     #[tokio::test]
     async fn test_duplicate_song() {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[1], None).await;
-        wrap_run_scan(test_infra.pool(), &test_infra.music_folders, &test_infra.fs.parsing_config)
-            .await;
+        wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Full,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
 
         let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
         let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
@@ -790,6 +829,7 @@ mod tests {
         let ScanStatistic { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
             wrap_run_scan(
                 test_infra.pool(),
+                ScanMode::Full,
                 &test_infra.music_folders,
                 &test_infra.fs.parsing_config,
             )
@@ -820,8 +860,13 @@ mod tests {
     #[tokio::test]
     async fn test_move_song() {
         let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[1], None).await;
-        wrap_run_scan(test_infra.pool(), &test_infra.music_folders, &test_infra.fs.parsing_config)
-            .await;
+        wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Full,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
 
         let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
         let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
@@ -837,6 +882,7 @@ mod tests {
         let ScanStatistic { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
             wrap_run_scan(
                 test_infra.pool(),
+                ScanMode::Full,
                 &test_infra.music_folders,
                 &test_infra.fs.parsing_config,
             )
@@ -850,6 +896,95 @@ mod tests {
                 relative_path: new_song_path.to_str().unwrap().to_owned(),
                 ..song_fs_infos[0].clone()
             }],
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn test_force_scan() {
+        let n_song = 50_usize;
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Force,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+        assert_eq!(upserted_song_count, n_song);
+        assert_eq!(deleted_song_count, 0);
+        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+    }
+
+    #[tokio::test]
+    async fn test_full_and_force_scan() {
+        let n_song = 50_usize;
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Full,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+        assert_eq!(upserted_song_count, n_song);
+        assert_eq!(deleted_song_count, 0);
+        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Force,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+        assert_eq!(upserted_song_count, n_song);
+        assert_eq!(deleted_song_count, 0);
+        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+    }
+
+    #[tokio::test]
+    async fn test_force_scan_move_song() {
+        let n_song = 50_usize;
+        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
+        wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Full,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+
+        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
+        let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
+        let new_song_path = old_song_path
+            .with_file_name(Faker.fake::<String>())
+            .with_extension(old_song_path.extension().unwrap());
+        std::fs::rename(
+            music_folder_path.join(&old_song_path),
+            music_folder_path.join(&new_song_path),
+        )
+        .unwrap();
+
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
+            test_infra.pool(),
+            ScanMode::Force,
+            &test_infra.music_folders,
+            &test_infra.fs.parsing_config,
+        )
+        .await;
+        assert_eq!(upserted_song_count, n_song);
+        assert_eq!(deleted_song_count, 0);
+        assert_songs_info(
+            test_infra.pool(),
+            &[
+                &[SongFsInformation {
+                    relative_path: new_song_path.to_str().unwrap().to_owned(),
+                    ..song_fs_infos[0].clone()
+                }],
+                &song_fs_infos[1..],
+            ]
+            .concat(),
         )
         .await;
     }

@@ -19,7 +19,9 @@ pub async fn upsert_song_artists(
                 .map(|artist_id| songs_artists::NewSongArtist { song_id, artist_id })
                 .collect_vec(),
         )
-        .on_conflict_do_nothing()
+        .on_conflict((songs_artists::song_id, songs_artists::artist_id))
+        .do_update()
+        .set(songs_artists::upserted_at.eq(time::OffsetDateTime::now_utc()))
         .execute(&mut pool.get().await?)
         .await?;
     Ok(())
