@@ -9,10 +9,29 @@ use tracing::instrument;
 use super::super::song::file_type::SONG_FILE_TYPES;
 use crate::utils::song::file_type::{to_extension, to_glob_pattern};
 
+#[cfg_attr(test, derive(Clone))]
+pub struct ScannedMediaFile {
+    pub song_absolute_path: PathBuf,
+    pub song_relative_path: String,
+    pub song_file_size: u64,
+}
+
+impl ScannedMediaFile {
+    pub fn new<P: AsRef<Path>>(root: P, song_absolute_path: PathBuf, song_file_size: u64) -> Self {
+        let song_relative_path = song_absolute_path
+            .strip_prefix(&root)
+            .expect("this path should always contains the root path")
+            .to_str()
+            .expect("non utf-8 path encountered")
+            .to_string();
+        Self { song_absolute_path, song_relative_path, song_file_size }
+    }
+}
+
 #[instrument(skip(tx))]
 pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSCShared>(
     root: P,
-    tx: mpsc::TxBlocking<(PathBuf, String, u64), S>,
+    tx: mpsc::TxBlocking<ScannedMediaFile, S>,
 ) {
     tracing::debug!("start scanning");
 
@@ -43,15 +62,8 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSC
                 let metadata = entry.metadata()?;
                 let path = entry.path();
                 if metadata.is_file()
-                    && let Err(e) = tx.send((
-                        path.into(),
-                        path.strip_prefix(&root)
-                            .expect("this path should always contains the root path")
-                            .to_str()
-                            .expect("non utf-8 path encountered")
-                            .to_string(),
-                        metadata.len(),
-                    ))
+                    && let Err(e) =
+                        tx.send(ScannedMediaFile::new(&root, path.to_path_buf(), metadata.len()))
                 {
                     tracing::error!(sending_walkdir_result = ?e);
                     ignore::WalkState::Quit
@@ -79,7 +91,7 @@ mod tests {
     use crate::utils::song::file_type::to_extensions;
     use crate::utils::test::fs::TemporaryFs;
 
-    async fn wrap_scan_media_file(fs: &TemporaryFs) -> Vec<(PathBuf, String, u64)> {
+    async fn wrap_scan_media_file(fs: &TemporaryFs) -> Vec<ScannedMediaFile> {
         let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(100);
         let root_path = fs.root_path().to_path_buf();
 
@@ -103,8 +115,10 @@ mod tests {
             .collect_vec();
 
         let scanned_results = wrap_scan_media_file(&fs).await;
-        let scanned_lens = scanned_results.iter().cloned().map(|result| result.2).collect_vec();
-        let scanned_paths = scanned_results.iter().cloned().map(|result| result.0).collect_vec();
+        let scanned_lens =
+            scanned_results.iter().cloned().map(|result| result.song_file_size).collect_vec();
+        let scanned_paths =
+            scanned_results.iter().cloned().map(|result| result.song_absolute_path).collect_vec();
 
         assert_eq!(
             media_paths
@@ -133,7 +147,7 @@ mod tests {
             .await
             .iter()
             .cloned()
-            .map(|result| PathBuf::from(result.1))
+            .map(|result| PathBuf::from(result.song_relative_path))
             .collect_vec();
 
         assert_eq!(
@@ -165,8 +179,11 @@ mod tests {
         })
         .collect_vec();
 
-        let scanned_paths =
-            wrap_scan_media_file(&fs).await.into_iter().map(|result| result.0).collect_vec();
+        let scanned_paths = wrap_scan_media_file(&fs)
+            .await
+            .into_iter()
+            .map(|result| result.song_absolute_path)
+            .collect_vec();
 
         assert_eq!(
             media_paths.into_iter().sorted().collect_vec(),
@@ -190,8 +207,11 @@ mod tests {
             })
             .collect_vec();
 
-        let scanned_paths =
-            wrap_scan_media_file(&fs).await.into_iter().map(|result| result.0).collect_vec();
+        let scanned_paths = wrap_scan_media_file(&fs)
+            .await
+            .into_iter()
+            .map(|result| result.song_absolute_path)
+            .collect_vec();
 
         assert_eq!(
             media_paths.into_iter().sorted().collect_vec(),

@@ -54,7 +54,7 @@ async fn main() {
     .expect("can not set music folders permissions");
 
     // scan song
-    scan::run_scan(
+    scan::start_scan(
         &database.pool,
         scan::ScanMode::Full,
         &upserted_music_folders,

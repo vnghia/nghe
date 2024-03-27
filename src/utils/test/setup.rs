@@ -13,7 +13,7 @@ use super::{TemporaryDatabase, TemporaryFs};
 use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::models::*;
 use crate::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
-use crate::open_subsonic::scan::{run_scan, ScanMode};
+use crate::open_subsonic::scan::{start_scan, ScanMode};
 use crate::utils::song::file_type::to_extensions;
 use crate::utils::song::test::SongTag;
 use crate::{Database, DatabasePool};
@@ -111,7 +111,7 @@ impl TestInfra {
         song_tags: S,
     ) -> (Self, Vec<SongFsInformation>) {
         let (test_infra, song_fs_infos) = Self::setup_songs_no_scan(n_songs, song_tags).await;
-        run_scan(
+        start_scan(
             test_infra.pool(),
             ScanMode::Full,
             &test_infra.music_folders,

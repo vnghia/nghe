@@ -1,13 +1,12 @@
 mod album;
 mod artist;
 mod run_scan;
-mod scan_full;
 mod song;
 mod start_scan;
 
 use axum::routing::get;
 use axum::{Extension, Router};
-pub use run_scan::{run_scan, ScanMode};
+pub use start_scan::{start_scan, ScanMode, ScanStatistic};
 
 use crate::config::parsing::ParsingConfig;
 use crate::config::{ArtistIndexConfig, ScanConfig};
