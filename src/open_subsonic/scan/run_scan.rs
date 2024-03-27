@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use anyhow::Result;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
+use serde::Deserialize;
 use time::OffsetDateTime;
 
 use super::artist::build_artist_indices;
@@ -12,7 +13,8 @@ use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::models::*;
 use crate::DatabasePool;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ScanMode {
     Full,
 }
@@ -61,8 +63,8 @@ pub async fn finish_scan(
 pub async fn run_scan(
     pool: &DatabasePool,
     scan_mode: ScanMode,
-    artist_index_config: &ArtistIndexConfig,
     music_folders: &[music_folders::MusicFolder],
+    artist_index_config: &ArtistIndexConfig,
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
 ) -> Result<()> {

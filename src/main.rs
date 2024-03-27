@@ -57,8 +57,8 @@ async fn main() {
     scan::run_scan(
         &database.pool,
         scan::ScanMode::Full,
-        &config.artist_index,
         &upserted_music_folders,
+        &config.artist_index,
         &config.parsing,
         &config.scan,
     )
@@ -84,6 +84,7 @@ fn app(database: Database, config: Config) -> Router {
         .merge(media_list::router())
         .merge(bookmarks::router())
         .merge(searching::router())
+        .merge(scan::router(config.artist_index, config.parsing, config.scan))
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(database)
 }

@@ -114,8 +114,8 @@ impl TestInfra {
         run_scan(
             test_infra.pool(),
             ScanMode::Full,
-            &ArtistIndexConfig::default(),
             &test_infra.music_folders,
+            &ArtistIndexConfig::default(),
             &test_infra.fs.parsing_config,
             &ScanConfig::default(),
         )

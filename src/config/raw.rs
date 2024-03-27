@@ -41,14 +41,14 @@ pub struct FolderConfig {
     pub depth_levels: Vec<usize>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct ArtistConfig {
     #[derivative(Default(value = "\"The An A Die Das Ein Eine Les Le La\".into()"))]
     pub ignored_articles: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct ScanConfig {
     #[derivative(Default(value = "100"))]
