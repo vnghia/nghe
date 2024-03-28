@@ -70,6 +70,15 @@ pub struct TranscodingConfig {
     pub cache_path: Option<PathBuf>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
+pub struct ArtConfig {
+    #[derivative(Default(
+        value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"song\"))"
+    ))]
+    pub song_path: Option<PathBuf>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
@@ -79,6 +88,7 @@ pub struct Config {
     pub parsing: ParsingConfig,
     pub scan: ScanConfig,
     pub transcoding: TranscodingConfig,
+    pub art: ArtConfig,
 }
 
 impl Config {
@@ -91,6 +101,7 @@ impl Config {
             .join(Serialized::default("parsing", ParsingConfig::default()))
             .join(Serialized::default("scan", ScanConfig::default()))
             .join(Serialized::default("transcoding", TranscodingConfig::default()))
+            .join(Serialized::default("art", ArtConfig::default()))
             .extract()
             .expect("can not parse initial config")
     }

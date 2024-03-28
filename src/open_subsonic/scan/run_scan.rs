@@ -13,10 +13,10 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use super::album::{upsert_album, upsert_song_album_artists};
 use super::artist::upsert_artists;
-use super::song::{insert_song, update_song, upsert_song_artists};
+use super::song::{insert_song, update_song, upsert_song_artists, upsert_song_cover_art};
 use super::{ScanMode, ScanStatistic};
 use crate::config::parsing::ParsingConfig;
-use crate::config::ScanConfig;
+use crate::config::{ArtConfig, ScanConfig};
 use crate::models::*;
 use crate::utils::fs::files::{scan_media_files, ScannedMediaFile};
 use crate::utils::song::SongInformation;
@@ -34,6 +34,7 @@ pub async fn process_path(
     music_folder_id: Uuid,
     ScannedMediaFile { song_absolute_path, song_relative_path, song_file_size }: ScannedMediaFile,
     parsing_config: &ParsingConfig,
+    art_config: &ArtConfig,
 ) -> Result<bool> {
     let song_data = tokio::fs::read(&song_absolute_path).await?;
     let song_file_hash = xxh3_64(&song_data);
@@ -99,11 +100,24 @@ pub async fn process_path(
     let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
     let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
 
+    let cover_art_id = if let Some(ref picture) = song_information.picture
+        && let Some(ref song_path) = art_config.song_path
+    {
+        Some(upsert_song_cover_art(pool, picture, song_path).await?)
+    } else {
+        None
+    };
+
     let song_id = if let Some(song_id) = song_id {
         update_song(
             pool,
             song_id,
-            song_information.to_update_information_db(album_id, song_file_hash, song_file_size),
+            song_information.to_update_information_db(
+                album_id,
+                song_file_hash,
+                song_file_size,
+                cover_art_id,
+            ),
         )
         .await?;
         song_id
@@ -114,6 +128,7 @@ pub async fn process_path(
                 album_id,
                 song_file_hash,
                 song_file_size,
+                cover_art_id,
                 music_folder_id,
                 &song_relative_path,
             ),
@@ -160,6 +175,7 @@ pub async fn run_scan(
     music_folders: &[music_folders::MusicFolder],
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
+    art_config: &ArtConfig,
 ) -> Result<ScanStatistic> {
     let mut scanned_song_count: usize = 0;
     let mut upserted_song_count: usize = 0;
@@ -186,9 +202,6 @@ pub async fn run_scan(
         }));
 
         while let Ok(scanned_media_file) = rx.recv().await {
-            let pool = pool.clone();
-            let parsing_config = parsing_config.clone();
-
             while process_path_tasks.len() >= process_path_tasks.capacity()
                 && let Some(process_path_join_result) = process_path_tasks.next().await
             {
@@ -205,6 +218,10 @@ pub async fn run_scan(
 
             scanned_song_count += 1;
 
+            let pool = pool.clone();
+            let parsing_config = parsing_config.clone();
+            let art_config = art_config.clone();
+
             let span = tracing::Span::current();
             process_path_tasks.push(tokio::task::spawn(
                 async move {
@@ -215,6 +232,7 @@ pub async fn run_scan(
                         music_folder_id,
                         scanned_media_file,
                         &parsing_config,
+                        &art_config,
                     )
                     .await
                 }
@@ -361,6 +379,7 @@ mod tests {
             music_folders,
             parsing_config,
             &ScanConfig::default(),
+            &ArtConfig::default(),
         )
         .await
         .unwrap();

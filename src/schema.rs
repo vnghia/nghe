@@ -49,6 +49,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    song_cover_arts (id) {
+        id -> Uuid,
+        format -> Text,
+        file_hash -> Int8,
+        file_size -> Int8,
+        upserted_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     songs (id) {
         id -> Uuid,
         title -> Text,
@@ -79,6 +89,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
+        cover_art_id -> Nullable<Uuid>,
     }
 }
 
@@ -122,6 +133,7 @@ diesel::table! {
 
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
+diesel::joinable!(songs -> song_cover_arts (cover_art_id));
 diesel::joinable!(songs_album_artists -> artists (album_artist_id));
 diesel::joinable!(songs_album_artists -> songs (song_id));
 diesel::joinable!(songs_artists -> artists (artist_id));
@@ -135,6 +147,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     configs,
     music_folders,
     scans,
+    song_cover_arts,
     songs,
     songs_album_artists,
     songs_artists,

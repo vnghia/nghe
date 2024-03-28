@@ -2,6 +2,7 @@ pub mod parsing;
 mod raw;
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use derivative::Derivative;
 use itertools::Itertools;
@@ -20,6 +21,8 @@ pub type ScanConfig = raw::ScanConfig;
 
 pub type TranscodingConfig = raw::TranscodingConfig;
 
+pub type ArtConfig = raw::ArtConfig;
+
 #[derive(Debug, Clone)]
 pub struct ArtistIndexConfig {
     pub ignored_articles: String,
@@ -37,6 +40,7 @@ pub struct Config {
     pub parsing: ParsingConfig,
     pub scan: ScanConfig,
     pub transcoding: TranscodingConfig,
+    pub art: ArtConfig,
 }
 
 impl ServerConfig {
@@ -59,13 +63,13 @@ impl ArtistIndexConfig {
 
 impl TranscodingConfig {
     pub fn new(raw: raw::TranscodingConfig) -> Self {
-        Self {
-            buffer_size: raw.buffer_size,
-            cache_path: match raw.cache_path {
-                Some(p) if !p.is_absolute() => None,
-                p => p,
-            },
-        }
+        Self { buffer_size: raw.buffer_size, cache_path: to_path_config(raw.cache_path) }
+    }
+}
+
+impl ArtConfig {
+    pub fn new(raw: raw::ArtConfig) -> Self {
+        Self { song_path: to_path_config(raw.song_path) }
     }
 }
 
@@ -87,13 +91,22 @@ impl Config {
 
         let transcoding = TranscodingConfig::new(raw_config.transcoding);
 
-        Self { server, database, folder, artist_index, parsing, scan, transcoding }
+        let art = ArtConfig::new(raw_config.art);
+
+        Self { server, database, folder, artist_index, parsing, scan, transcoding, art }
     }
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+fn to_path_config(p: Option<PathBuf>) -> Option<PathBuf> {
+    match p {
+        Some(p) if !p.is_absolute() => None,
+        p => p,
     }
 }
 
@@ -110,8 +123,6 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::*;
 
     #[test]
@@ -125,23 +136,12 @@ mod tests {
     }
 
     #[test]
-    fn test_new_transcoding_config() {
-        let config =
-            TranscodingConfig::new(raw::TranscodingConfig { buffer_size: 10, cache_path: None });
-        assert_eq!(config.cache_path, None);
+    fn test_to_path_config() {
+        assert_eq!(to_path_config(None), None);
 
-        let config = TranscodingConfig::new(raw::TranscodingConfig {
-            buffer_size: 10,
-            cache_path: Some(PathBuf::from("non-absolute")),
-        });
-        assert_eq!(config.cache_path, None);
+        assert_eq!(to_path_config(Some(PathBuf::from("non-absolute"))), None);
 
         let abs_path = std::env::temp_dir().canonicalize().unwrap();
-        assert!(abs_path.is_absolute());
-        let config = TranscodingConfig::new(raw::TranscodingConfig {
-            buffer_size: 10,
-            cache_path: Some(abs_path.clone()),
-        });
-        assert_eq!(config.cache_path, Some(abs_path));
+        assert_eq!(to_path_config(Some(abs_path.clone())), Some(abs_path));
     }
 }

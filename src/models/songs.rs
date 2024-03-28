@@ -36,6 +36,8 @@ pub struct SongUpdateInformationDB<'a> {
     // Filesystem property
     pub file_hash: i64,
     pub file_size: i64,
+    // Foreign key columns
+    pub cover_art_id: Option<Uuid>,
 }
 
 #[derive(Insertable)]

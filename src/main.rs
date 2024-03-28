@@ -61,6 +61,7 @@ async fn main() {
         &config.artist_index,
         &config.parsing,
         &config.scan,
+        &config.art,
     )
     .await
     .expect("can not scan song");
@@ -84,7 +85,7 @@ fn app(database: Database, config: Config) -> Router {
         .merge(media_list::router())
         .merge(bookmarks::router())
         .merge(searching::router())
-        .merge(scan::router(config.artist_index, config.parsing, config.scan))
+        .merge(scan::router(config.artist_index, config.parsing, config.scan, config.art))
         .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
         .with_state(database)
 }

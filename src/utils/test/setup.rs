@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::fs::SongFsInformation;
 use super::user::create_users;
 use super::{TemporaryDatabase, TemporaryFs};
-use crate::config::{ArtistIndexConfig, ScanConfig};
+use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
 use crate::models::*;
 use crate::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
 use crate::open_subsonic::scan::{start_scan, ScanMode};
@@ -118,6 +118,7 @@ impl TestInfra {
             &ArtistIndexConfig::default(),
             &test_infra.fs.parsing_config,
             &ScanConfig::default(),
+            &ArtConfig::default(),
         )
         .await
         .unwrap();

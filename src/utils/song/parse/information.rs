@@ -86,6 +86,7 @@ impl SongInformation {
         album_id: Uuid,
         file_hash: i64,
         file_size: i64,
+        cover_art_id: Option<Uuid>,
     ) -> songs::SongUpdateInformationDB<'_> {
         let (year, month, day) = self.tag.date_or_default().to_ymd();
         let (release_year, release_month, release_day) =
@@ -120,6 +121,8 @@ impl SongInformation {
             // Filesystem property
             file_hash,
             file_size,
+            // Foreign key columns
+            cover_art_id,
         }
     }
 
@@ -128,10 +131,12 @@ impl SongInformation {
         album_id: Uuid,
         file_hash: i64,
         file_size: i64,
+        cover_art_id: Option<Uuid>,
         music_folder_id: Uuid,
         relative_path: &'a S,
     ) -> songs::SongFullInformationDB<'a> {
-        let update_information = self.to_update_information_db(album_id, file_hash, file_size);
+        let update_information =
+            self.to_update_information_db(album_id, file_hash, file_size, cover_art_id);
 
         songs::SongFullInformationDB {
             update_information,

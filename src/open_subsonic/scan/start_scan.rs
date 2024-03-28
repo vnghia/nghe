@@ -12,7 +12,7 @@ use time::OffsetDateTime;
 use super::artist::build_artist_indices;
 use super::run_scan::run_scan;
 use crate::config::parsing::ParsingConfig;
-use crate::config::{ArtistIndexConfig, ScanConfig};
+use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
 use crate::models::*;
 use crate::{Database, DatabasePool};
 
@@ -80,11 +80,19 @@ pub async fn start_scan(
     artist_index_config: &ArtistIndexConfig,
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
+    art_config: &ArtConfig,
 ) -> Result<()> {
     let scan_started_at = initialize_scan(pool).await?;
-    let scan_result =
-        run_scan(pool, scan_started_at, scan_mode, music_folders, parsing_config, scan_config)
-            .await;
+    let scan_result = run_scan(
+        pool,
+        scan_started_at,
+        scan_mode,
+        music_folders,
+        parsing_config,
+        scan_config,
+        art_config,
+    )
+    .await;
     build_artist_indices(pool, artist_index_config).await?;
     finalize_scan(pool, scan_started_at, scan_result.as_ref()).await?;
     Ok(())
@@ -95,6 +103,7 @@ pub async fn start_scan_handler(
     Extension(artist_index_config): Extension<ArtistIndexConfig>,
     Extension(parsing_config): Extension<ParsingConfig>,
     Extension(scan_config): Extension<ScanConfig>,
+    Extension(art_config): Extension<ArtConfig>,
     req: StartScanRequest,
 ) -> StartScanJsonResponse {
     let music_folders = music_folders::table
@@ -109,6 +118,7 @@ pub async fn start_scan_handler(
             &artist_index_config,
             &parsing_config,
             &scan_config,
+            &art_config,
         )
         .await
     });

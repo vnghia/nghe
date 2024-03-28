@@ -9,12 +9,13 @@ use axum::{Extension, Router};
 pub use start_scan::{start_scan, ScanMode, ScanStatistic};
 
 use crate::config::parsing::ParsingConfig;
-use crate::config::{ArtistIndexConfig, ScanConfig};
+use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
 
 pub fn router(
     artist_index_config: ArtistIndexConfig,
     parsing_config: ParsingConfig,
     scan_config: ScanConfig,
+    art_config: ArtConfig,
 ) -> Router<crate::Database> {
     Router::new()
         .route("/rest/startScan", get(start_scan::start_scan_handler))
@@ -22,6 +23,7 @@ pub fn router(
         .layer(Extension(artist_index_config))
         .layer(Extension(parsing_config))
         .layer(Extension(scan_config))
+        .layer(Extension(art_config))
 }
 
 #[cfg(test)]

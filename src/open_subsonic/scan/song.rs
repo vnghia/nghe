@@ -1,11 +1,18 @@
+use std::path::Path;
+
 use anyhow::Result;
+use concat_string::concat_string;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
+use lofty::Picture;
 use uuid::Uuid;
+use xxhash_rust::xxh3::xxh3_64;
 
 use crate::models::*;
-use crate::DatabasePool;
+use crate::utils::fs::path::hash_size_to_path;
+use crate::utils::song::file_type::picture_to_extension;
+use crate::{DatabasePool, OSError};
 
 pub async fn upsert_song_artists(
     pool: &DatabasePool,
@@ -52,6 +59,42 @@ pub async fn update_song<'a>(
     Ok(())
 }
 
+pub async fn upsert_song_cover_art<P: AsRef<Path>>(
+    pool: &DatabasePool,
+    picture: &Picture,
+    song_art_dir: P,
+) -> Result<Uuid> {
+    let file_format = picture_to_extension(
+        picture.mime_type().ok_or_else(|| OSError::InvalidParameter("Picture format".into()))?,
+    );
+    let file_name = concat_string!("cover.", &file_format);
+    let data = picture.data();
+    let file_hash = xxh3_64(data);
+    let file_size = data.len() as u64;
+
+    let art_dir = hash_size_to_path(song_art_dir, file_hash, file_size);
+    tokio::fs::create_dir_all(&art_dir).await?;
+    tokio::fs::write(art_dir.join(file_name), data).await?;
+
+    diesel::insert_into(song_cover_arts::table)
+        .values(song_cover_arts::NewSongCoverArt {
+            format: file_format.into(),
+            file_hash: file_hash as _,
+            file_size: file_size as _,
+        })
+        .on_conflict((
+            song_cover_arts::format,
+            song_cover_arts::file_hash,
+            song_cover_arts::file_size,
+        ))
+        .do_update()
+        .set(song_cover_arts::upserted_at.eq(time::OffsetDateTime::now_utc()))
+        .returning(song_cover_arts::id)
+        .get_result::<Uuid>(&mut pool.get().await?)
+        .await
+        .map_err(anyhow::Error::from)
+}
+
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
@@ -79,6 +122,7 @@ mod tests {
                 album_id,
                 song_hash,
                 song_size,
+                None,
                 test_infra.music_folder_ids(0..=0)[0],
                 &song_path,
             ),
@@ -111,6 +155,7 @@ mod tests {
                 album_id,
                 song_hash,
                 song_size,
+                None,
                 test_infra.music_folder_ids(0..=0)[0],
                 &song_path,
             ),
@@ -132,6 +177,7 @@ mod tests {
                 new_album_id,
                 new_song_hash,
                 new_song_size,
+                None,
             ),
         )
         .await
