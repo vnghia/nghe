@@ -81,7 +81,7 @@ fn app(database: Database, config: Config) -> Router {
         .merge(extension::router())
         .merge(browsing::router())
         .merge(user::router())
-        .merge(media_retrieval::router(config.transcoding))
+        .merge(media_retrieval::router(config.transcoding, config.art.clone()))
         .merge(media_list::router())
         .merge(bookmarks::router())
         .merge(searching::router())

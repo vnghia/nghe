@@ -3,6 +3,8 @@ use serde::Serialize;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+use super::super::id::MediaTypedId;
+
 #[derive(Debug, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct DateId3 {
@@ -70,6 +72,8 @@ pub struct SongId3 {
     pub track: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disc_number: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover_art: Option<MediaTypedId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content_type: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]

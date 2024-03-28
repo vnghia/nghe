@@ -9,6 +9,7 @@ use diesel_async::RunQueryDsl;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+use super::super::id::{MediaType, MediaTypedId};
 use super::response::*;
 use crate::models::*;
 use crate::DatabasePool;
@@ -103,6 +104,7 @@ pub struct BasicSongId3Db {
     pub year: Option<i16>,
     pub track_number: Option<i32>,
     pub disc_number: Option<i32>,
+    pub cover_art_id: Option<Uuid>,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -194,6 +196,7 @@ impl BasicSongId3Db {
             year: self.year.map(|v| v as _),
             track: self.track_number.map(|v| v as _),
             disc_number: self.disc_number.map(|v| v as _),
+            cover_art: self.cover_art_id.map(|v| MediaTypedId { t: Some(MediaType::Song), id: v }),
             ..Default::default()
         }
     }
@@ -221,6 +224,10 @@ impl SongId3Db {
             year: self.basic.year.map(|v| v as _),
             track: self.basic.track_number.map(|v| v as _),
             disc_number: self.basic.disc_number.map(|v| v as _),
+            cover_art: self
+                .basic
+                .cover_art_id
+                .map(|v| MediaTypedId { t: Some(MediaType::Song), id: v }),
             content_type: Some(
                 mime_guess::from_ext(&self.basic.format)
                     .first_or_octet_stream()
