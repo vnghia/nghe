@@ -36,8 +36,7 @@ pub async fn process_path(
     parsing_config: &ParsingConfig,
 ) -> Result<bool> {
     let song_data = tokio::fs::read(&song_absolute_path).await?;
-    let (song_file_hash, song_data) =
-        tokio::task::spawn_blocking(move || (xxh3_64(&song_data), song_data)).await?;
+    let song_file_hash = xxh3_64(&song_data);
 
     let song_file_hash = song_file_hash as i64;
     let song_file_size = song_file_size as i64;
