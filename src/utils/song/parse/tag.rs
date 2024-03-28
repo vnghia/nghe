@@ -24,9 +24,15 @@ const Y_FORMAT: FormatDescription = format_description!("[year]");
 pub struct SongTag {
     pub title: String,
     pub album: String,
-    #[cfg_attr(test, dummy(expr = "fake::vec![String; 1..=5].into_iter().sorted().collect()"))]
+    #[cfg_attr(
+        test,
+        dummy(expr = "fake::vec![String; 1..=5].into_iter().unique().sorted().collect()")
+    )]
     pub artists: Vec<String>,
-    #[cfg_attr(test, dummy(expr = "fake::vec![String; 0..=5].into_iter().sorted().collect()"))]
+    #[cfg_attr(
+        test,
+        dummy(expr = "fake::vec![String; 0..=5].into_iter().unique().sorted().collect()")
+    )]
     pub album_artists: Vec<String>,
     pub track_number: Option<u32>,
     pub track_total: Option<u32>,
@@ -38,7 +44,7 @@ pub struct SongTag {
     pub original_release_date: SongDate,
     #[cfg_attr(
         test,
-        dummy(expr = "((0..=7915), 0..=2).fake::<Vec<usize>>().into_iter().map(|i| \
+        dummy(expr = "((0..=7915), 0..=2).fake::<Vec<usize>>().into_iter().unique().map(|i| \
                       Language::from_usize(i).unwrap()).sorted().collect()")
     )]
     pub languages: Vec<Language>,
