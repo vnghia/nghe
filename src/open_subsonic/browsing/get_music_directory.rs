@@ -5,8 +5,8 @@ use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
-use super::super::common::id::TypedId;
-use super::get_indexes::{ChildItem, DirectoryType};
+use super::super::common::id::{MediaType, MediaTypedId};
+use super::get_indexes::ChildItem;
 use crate::open_subsonic::browsing::get_album::get_album;
 use crate::open_subsonic::browsing::get_artist::get_artist;
 use crate::{Database, DatabasePool, OSError};
@@ -14,13 +14,13 @@ use crate::{Database, DatabasePool, OSError};
 #[add_validate]
 #[derive(Debug)]
 pub struct GetMusicDirectoryParams {
-    id: TypedId<DirectoryType>,
+    id: MediaTypedId,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MusicDirectory {
-    id: TypedId<DirectoryType>,
+    id: MediaTypedId,
     name: String,
     #[serde(rename = "child")]
     children: Vec<ChildItem>,
@@ -34,7 +34,7 @@ pub struct GetMusicDirectoryBody {
 async fn get_artist_directory(
     pool: &DatabasePool,
     user_id: Uuid,
-    parent_id: TypedId<DirectoryType>,
+    parent_id: MediaTypedId,
 ) -> Result<MusicDirectory> {
     let artist = get_artist(pool, user_id, parent_id.id).await?;
     let children = artist
@@ -42,7 +42,7 @@ async fn get_artist_directory(
         .into_iter()
         .sorted_by(|a, b| Ord::cmp(&a.name, &b.name))
         .map(|a| ChildItem {
-            id: TypedId { t: Some(DirectoryType::Album), id: a.id },
+            id: MediaTypedId { t: Some(MediaType::Album), id: a.id },
             parent: Some(parent_id),
             is_dir: Some(true),
             name: None,
@@ -56,7 +56,7 @@ async fn get_artist_directory(
 async fn get_album_directory(
     pool: &DatabasePool,
     user_id: Uuid,
-    parent_id: TypedId<DirectoryType>,
+    parent_id: MediaTypedId,
 ) -> Result<MusicDirectory> {
     let album = get_album(pool, user_id, parent_id.id).await?;
     let children = album
@@ -64,7 +64,7 @@ async fn get_album_directory(
         .into_iter()
         .sorted_by(|a, b| Ord::cmp(&a.title, &b.title))
         .map(|s| ChildItem {
-            id: TypedId { t: None, id: s.id },
+            id: MediaTypedId { t: None, id: s.id },
             parent: Some(parent_id),
             is_dir: Some(false),
             name: None,
@@ -81,10 +81,10 @@ pub async fn get_music_directory_handler(
 ) -> GetMusicDirectoryJsonResponse {
     GetMusicDirectoryBody {
         directory: match req.params.id.t {
-            Some(DirectoryType::Aritst) => {
+            Some(MediaType::Aritst) => {
                 get_artist_directory(&database.pool, req.user_id, req.params.id).await?
             }
-            Some(DirectoryType::Album) => {
+            Some(MediaType::Album) => {
                 get_album_directory(&database.pool, req.user_id, req.params.id).await?
             }
             _ => Err(anyhow::anyhow!(OSError::NotFound("Music directory".into())))?,

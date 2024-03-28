@@ -1,15 +1,12 @@
-use std::str::FromStr;
-
-use anyhow::Result;
 use axum::extract::State;
 use itertools::Itertools;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
-use super::super::common::id::TypedId;
+use super::super::common::id::{MediaType, MediaTypedId};
 use super::get_artists::get_artists;
-use crate::{Database, OSError};
+use crate::Database;
 
 #[add_validate]
 #[derive(Debug)]
@@ -18,18 +15,12 @@ pub struct GetIndexesParams {
     music_folder_ids: Option<Vec<Uuid>>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum DirectoryType {
-    Aritst,
-    Album,
-}
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChildItem {
-    pub id: TypedId<DirectoryType>,
+    pub id: MediaTypedId,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent: Option<TypedId<DirectoryType>>,
+    pub parent: Option<MediaTypedId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_dir: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -75,7 +66,7 @@ pub async fn get_indexed_handler(
                 .into_iter()
                 .sorted_by(|a, b| Ord::cmp(&a.name, &b.name))
                 .map(|c| ChildItem {
-                    id: TypedId { t: Some(DirectoryType::Aritst), id: c.id },
+                    id: MediaTypedId { t: Some(MediaType::Aritst), id: c.id },
                     parent: None,
                     is_dir: None,
                     name: Some(c.name),
@@ -88,27 +79,4 @@ pub async fn get_indexed_handler(
         indexes: Indexes { ignored_articles: indexed_artists.ignored_articles, index },
     }
     .into()
-}
-
-impl AsRef<str> for DirectoryType {
-    fn as_ref(&self) -> &'static str {
-        match self {
-            DirectoryType::Aritst => "ar",
-            DirectoryType::Album => "al",
-        }
-    }
-}
-
-impl FromStr for DirectoryType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            "ar" => Ok(DirectoryType::Aritst),
-            "al" => Ok(DirectoryType::Album),
-            _ => anyhow::bail!(OSError::InvalidParameter(
-                concat_string::concat_string!("Value passed to enum DirectoryType {}", s).into()
-            )),
-        }
-    }
 }

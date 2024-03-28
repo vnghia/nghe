@@ -1,17 +1,54 @@
 use std::str::FromStr;
 
 use ::uuid::Uuid;
+use anyhow::Result;
 use concat_string::concat_string;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::OSError;
+
 const TYPED_ID_SEPARATOR: char = ':';
 const TYPED_ID_STR: &str = TYPED_ID_SEPARATOR.as_ascii().unwrap().as_str();
+
+#[derive(Debug, Clone, Copy)]
+pub enum MediaType {
+    Aritst,
+    Album,
+    Song,
+}
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct TypedId<T> {
     pub t: Option<T>,
     pub id: Uuid,
+}
+
+pub type MediaTypedId = TypedId<MediaType>;
+
+impl AsRef<str> for MediaType {
+    fn as_ref(&self) -> &'static str {
+        match self {
+            MediaType::Aritst => "ar",
+            MediaType::Album => "al",
+            MediaType::Song => "so",
+        }
+    }
+}
+
+impl FromStr for MediaType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "ar" => Ok(MediaType::Aritst),
+            "al" => Ok(MediaType::Album),
+            "so" => Ok(MediaType::Song),
+            _ => anyhow::bail!(OSError::InvalidParameter(
+                concat_string::concat_string!("Value passed to enum DirectoryType {}", s).into()
+            )),
+        }
+    }
 }
 
 impl<T: AsRef<str>> Serialize for TypedId<T> {
