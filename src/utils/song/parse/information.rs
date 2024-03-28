@@ -4,7 +4,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use lofty::flac::FlacFile;
 use lofty::mpeg::MpegFile;
-use lofty::{AudioFile, FileType, ParseOptions, ParsingMode};
+use lofty::{AudioFile, FileProperties, FileType, ParseOptions, ParsingMode};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -29,7 +29,7 @@ impl SongInformation {
     ) -> Result<Self> {
         let parse_options = ParseOptions::new().parsing_mode(ParsingMode::Strict);
 
-        let (song_tag, song_property) = match file_type {
+        let (song_tag, file_property): (_, FileProperties) = match file_type {
             FileType::Flac => {
                 let mut flac_file = FlacFile::read_from(reader, parse_options)?;
                 let song_tag = SongTag::from_vorbis_comments(
@@ -38,17 +38,7 @@ impl SongInformation {
                     })?,
                     &parsing_config.vorbis,
                 )?;
-
-                let flac_property = flac_file.properties();
-                let song_property = SongProperty {
-                    format: file_type,
-                    duration: flac_property.duration().as_secs_f32(),
-                    bitrate: flac_property.audio_bitrate(),
-                    sample_rate: flac_property.sample_rate(),
-                    channel_count: flac_property.channels(),
-                };
-
-                (song_tag, song_property)
+                (song_tag, (*flac_file.properties()).into())
             }
             FileType::Mpeg => {
                 let mut mp3_file = MpegFile::read_from(reader, parse_options)?;
@@ -58,17 +48,7 @@ impl SongInformation {
                         .ok_or_else(|| OSError::NotFound("Id3v2 inside mp3 file".into()))?,
                     &parsing_config.id3v2,
                 )?;
-
-                let mp3_property = mp3_file.properties();
-                let song_property = SongProperty {
-                    format: file_type,
-                    duration: mp3_property.duration().as_secs_f32(),
-                    bitrate: mp3_property.audio_bitrate(),
-                    sample_rate: mp3_property.sample_rate(),
-                    channel_count: mp3_property.channels(),
-                };
-
-                (song_tag, song_property)
+                (song_tag, (*mp3_file.properties()).into())
             }
             _ => unreachable!("not supported file type: {:?}", file_type),
         };
@@ -76,6 +56,20 @@ impl SongInformation {
         if song_tag.artists.is_empty() {
             anyhow::bail!(OSError::NotFound("Artist".into()));
         }
+
+        let song_property = SongProperty {
+            format: file_type,
+            duration: file_property.duration().as_secs_f32(),
+            bitrate: file_property
+                .audio_bitrate()
+                .ok_or_else(|| OSError::NotFound("Audio bitrate".into()))?,
+            sample_rate: file_property
+                .sample_rate()
+                .ok_or_else(|| OSError::NotFound("Sample rate".into()))?,
+            channel_count: file_property
+                .channels()
+                .ok_or_else(|| OSError::NotFound("Channel count".into()))?,
+        };
 
         Ok(Self { tag: song_tag, property: song_property })
     }
