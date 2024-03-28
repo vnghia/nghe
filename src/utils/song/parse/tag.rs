@@ -131,7 +131,7 @@ pub mod test {
 
     impl SongTag {
         pub fn to_information(&self) -> SongInformation {
-            SongInformation { tag: self.clone(), property: Default::default() }
+            SongInformation { tag: self.clone(), property: Default::default(), picture: None }
         }
     }
 

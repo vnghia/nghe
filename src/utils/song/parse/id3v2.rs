@@ -1,9 +1,11 @@
+use std::borrow::Cow;
 use std::str::{FromStr, Split};
 
 use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
-use lofty::id3::v2::{FrameId, Id3v2Tag, Id3v2Version};
+use lofty::id3::v2::{FrameId, FrameValue, Id3v2Tag, Id3v2Version};
+use lofty::Picture;
 
 use super::common::{extract_common_tags, parse_track_and_disc};
 use super::tag::{SongDate, SongTag};
@@ -11,6 +13,7 @@ use crate::config::parsing::Id3v2ParsingConfig;
 use crate::OSError;
 
 const V4_MULTI_VALUE_SEPARATOR: char = '\0';
+const PICTIRE_FRAME_ID: FrameId<'_> = FrameId::Valid(Cow::Borrowed("APIC"));
 
 fn extract_and_split_str<'a>(
     tag: &'a mut Id3v2Tag,
@@ -64,6 +67,20 @@ impl SongTag {
             original_release_date,
             languages,
         })
+    }
+
+    pub fn extract_id3v2_picture(tag: &mut Id3v2Tag) -> Result<Option<Picture>> {
+        tag.remove(&PICTIRE_FRAME_ID)
+            .next()
+            .map(|f| {
+                if let FrameValue::Picture(p) = f.content() {
+                    Ok(p.picture.clone())
+                } else {
+                    Err(OSError::InvalidParameter("Picture frame in id3v2".into()))
+                }
+            })
+            .transpose()
+            .map_err(anyhow::Error::from)
     }
 }
 

@@ -4,7 +4,8 @@ use anyhow::Result;
 use itertools::Itertools;
 use lofty::flac::FlacFile;
 use lofty::mpeg::MpegFile;
-use lofty::{AudioFile, FileProperties, FileType, ParseOptions, ParsingMode};
+use lofty::ogg::OggPictureStorage;
+use lofty::{AudioFile, FileProperties, FileType, ParseOptions, ParsingMode, Picture};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -18,6 +19,7 @@ use crate::OSError;
 pub struct SongInformation {
     pub tag: SongTag,
     pub property: SongProperty,
+    pub picture: Option<Picture>,
 }
 
 impl SongInformation {
@@ -29,7 +31,7 @@ impl SongInformation {
     ) -> Result<Self> {
         let parse_options = ParseOptions::new().parsing_mode(ParsingMode::Strict);
 
-        let (song_tag, file_property): (_, FileProperties) = match file_type {
+        let (song_tag, file_property, picture): (_, FileProperties, _) = match file_type {
             FileType::Flac => {
                 let mut flac_file = FlacFile::read_from(reader, parse_options)?;
                 let song_tag = SongTag::from_vorbis_comments(
@@ -38,17 +40,22 @@ impl SongInformation {
                     })?,
                     &parsing_config.vorbis,
                 )?;
-                (song_tag, (*flac_file.properties()).into())
+                // Pictures in flac file are stored directly in that file and not its tag.
+                let picture = if !flac_file.pictures().is_empty() {
+                    Some(flac_file.remove_picture(0).0)
+                } else {
+                    None
+                };
+                (song_tag, (*flac_file.properties()).into(), picture)
             }
             FileType::Mpeg => {
                 let mut mp3_file = MpegFile::read_from(reader, parse_options)?;
-                let song_tag = SongTag::from_id3v2(
-                    mp3_file
-                        .id3v2_mut()
-                        .ok_or_else(|| OSError::NotFound("Id3v2 inside mp3 file".into()))?,
-                    &parsing_config.id3v2,
-                )?;
-                (song_tag, (*mp3_file.properties()).into())
+                let id3v2_tag = mp3_file
+                    .id3v2_mut()
+                    .ok_or_else(|| OSError::NotFound("Id3v2 inside mp3 file".into()))?;
+                let song_tag = SongTag::from_id3v2(id3v2_tag, &parsing_config.id3v2)?;
+                let picture = SongTag::extract_id3v2_picture(id3v2_tag)?;
+                (song_tag, (*mp3_file.properties()).into(), picture)
             }
             _ => unreachable!("not supported file type: {:?}", file_type),
         };
@@ -71,7 +78,7 @@ impl SongInformation {
                 .ok_or_else(|| OSError::NotFound("Channel count".into()))?,
         };
 
-        Ok(Self { tag: song_tag, property: song_property })
+        Ok(Self { tag: song_tag, property: song_property, picture })
     }
 
     pub fn to_update_information_db(
@@ -140,19 +147,19 @@ mod tests {
 
     use super::*;
     use crate::utils::song::file_type::SONG_FILE_TYPES;
-    use crate::utils::test::asset::get_media_asset_path;
+    use crate::utils::test::asset::{get_asset_dir, get_media_asset_path};
 
     #[test]
     fn test_parse_media_file() {
         for file_type in SONG_FILE_TYPES {
             let path = get_media_asset_path(&file_type);
-            let tag = SongInformation::read_from(
+            let SongInformation { tag, picture, .. } = SongInformation::read_from(
                 &mut std::fs::File::open(&path).unwrap(),
                 file_type,
                 &ParsingConfig::default(),
             )
-            .unwrap()
-            .tag;
+            .unwrap();
+
             assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
             assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
             assert_eq!(
@@ -188,6 +195,15 @@ mod tests {
                 tag.languages.into_iter().sorted().collect_vec(),
                 [Language::Eng, Language::Vie],
                 "{:?} language does not match",
+                file_type
+            );
+
+            let picture_data =
+                std::fs::read(get_asset_dir().join("test").join("sample.jpg")).unwrap();
+            assert_eq!(
+                picture.unwrap().into_data(),
+                picture_data,
+                "{:?} picture does not match",
                 file_type
             );
         }
