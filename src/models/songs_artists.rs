@@ -6,7 +6,7 @@ pub use crate::schema::songs_artists;
 
 #[derive(Insertable)]
 #[diesel(table_name = songs_artists)]
-pub struct NewSongArtist<'a> {
-    pub song_id: &'a Uuid,
-    pub artist_id: &'a Uuid,
+pub struct NewSongArtist {
+    pub song_id: Uuid,
+    pub artist_id: Uuid,
 }

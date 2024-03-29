@@ -37,7 +37,7 @@ pub struct GetAlbumBody {
 async fn get_album_and_song_ids(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
-    album_id: &Uuid,
+    album_id: Uuid,
 ) -> Result<(AlbumId3Db, Vec<Uuid>)> {
     songs::table
         .inner_join(albums::table)
@@ -77,7 +77,7 @@ pub async fn get_album(
 ) -> Result<AlbumId3WithSongs> {
     let music_folder_ids = check_user_music_folder_ids(pool, &user_id, None).await?;
 
-    let (album, song_ids) = get_album_and_song_ids(pool, &music_folder_ids, &album_id).await?;
+    let (album, song_ids) = get_album_and_song_ids(pool, &music_folder_ids, album_id).await?;
     let basic_songs = get_basic_songs(pool, &music_folder_ids, &song_ids).await?;
 
     Ok(AlbumId3WithSongs {
@@ -109,7 +109,7 @@ mod tests {
     async fn get_artist_ids(
         pool: &DatabasePool,
         music_folder_ids: &[Uuid],
-        album_id: &Uuid,
+        album_id: Uuid,
     ) -> Vec<Uuid> {
         songs::table
             .inner_join(albums::table)
@@ -143,11 +143,9 @@ mod tests {
         let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
         let music_folder_ids = test_infra.music_folder_ids(..);
 
-        let album_id3 = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
-            .await
-            .unwrap()
-            .0;
-        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, &album_id).await;
+        let album_id3 =
+            get_album_and_song_ids(test_infra.pool(), &music_folder_ids, album_id).await.unwrap().0;
+        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, album_id).await;
 
         assert_eq!(album_id3.basic.id, album_id);
         assert_eq!(album_id3.basic.name, album_name);
@@ -180,11 +178,9 @@ mod tests {
         let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
         let music_folder_ids = test_infra.music_folder_ids(..);
 
-        let album_id3 = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
-            .await
-            .unwrap()
-            .0;
-        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, &album_id).await;
+        let album_id3 =
+            get_album_and_song_ids(test_infra.pool(), &music_folder_ids, album_id).await.unwrap().0;
+        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, album_id).await;
 
         assert_eq!(album_id3.artist_ids.clone().into_iter().sorted().collect_vec(), artist_ids);
         assert_eq!(
@@ -217,7 +213,7 @@ mod tests {
         let album_id = upsert_album(test_infra.pool(), album_name.into()).await.unwrap();
         let music_folder_ids = test_infra.music_folder_ids(..);
 
-        let song_ids = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
+        let song_ids = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, album_id)
             .await
             .unwrap()
             .1
@@ -247,7 +243,7 @@ mod tests {
         let music_folder_idx = rand::thread_rng().gen_range(0..test_infra.music_folders.len());
         let music_folder_ids = test_infra.music_folder_ids(music_folder_idx..=music_folder_idx);
 
-        let song_ids = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, &album_id)
+        let song_ids = get_album_and_song_ids(test_infra.pool(), &music_folder_ids, album_id)
             .await
             .unwrap()
             .1
@@ -291,7 +287,7 @@ mod tests {
             get_album_and_song_ids(
                 test_infra.pool(),
                 &music_folder_ids[..n_scan_folder],
-                &album_id,
+                album_id,
             )
             .await
             .unwrap_err()

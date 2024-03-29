@@ -16,13 +16,14 @@ use crate::{DatabasePool, OSError};
 
 pub async fn upsert_song_artists(
     pool: &DatabasePool,
-    song_id: &Uuid,
+    song_id: Uuid,
     artist_ids: &[Uuid],
 ) -> Result<()> {
     diesel::insert_into(songs_artists::table)
         .values(
             artist_ids
                 .iter()
+                .copied()
                 .map(|artist_id| songs_artists::NewSongArtist { song_id, artist_id })
                 .collect_vec(),
         )

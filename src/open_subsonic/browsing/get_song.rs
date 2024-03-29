@@ -25,7 +25,7 @@ pub struct GetSongBody {
 async fn get_song(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
-    song_id: &Uuid,
+    song_id: Uuid,
 ) -> Result<SongId3Db> {
     songs::table
         .inner_join(songs_artists::table)
@@ -46,7 +46,7 @@ pub async fn get_song_handler(
     let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
 
     GetSongBody {
-        song: get_song(&database.pool, &music_folder_ids, &req.params.id)
+        song: get_song(&database.pool, &music_folder_ids, req.params.id)
             .await?
             .into_res(&database.pool)
             .await?,
@@ -67,7 +67,7 @@ mod tests {
     async fn get_artist_ids(
         pool: &DatabasePool,
         music_folder_ids: &[Uuid],
-        song_id: &Uuid,
+        song_id: Uuid,
     ) -> Vec<Uuid> {
         songs::table
             .inner_join(songs_artists::table)
@@ -93,8 +93,8 @@ mod tests {
         let music_folder_ids = test_infra.music_folder_ids(..);
         let song_id = song_paths_to_ids(test_infra.pool(), &song_fs_infos).await.remove(0);
 
-        let song_id3 = get_song(test_infra.pool(), &music_folder_ids, &song_id).await.unwrap();
-        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, &song_id).await;
+        let song_id3 = get_song(test_infra.pool(), &music_folder_ids, song_id).await.unwrap();
+        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, song_id).await;
 
         assert_eq!(song_id3.basic.title, song_tag.title);
         assert_eq!(song_id3.artist_ids.into_iter().sorted().collect_vec(), artist_ids);
@@ -108,7 +108,7 @@ mod tests {
         let song_id = song_paths_to_ids(test_infra.pool(), &song_fs_infos[1..]).await.remove(0);
 
         assert!(matches!(
-            get_song(test_infra.pool(), &music_folder_ids, &song_id)
+            get_song(test_infra.pool(), &music_folder_ids, song_id)
                 .await
                 .unwrap_err()
                 .root_cause()

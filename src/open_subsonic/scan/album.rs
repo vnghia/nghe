@@ -23,13 +23,14 @@ pub async fn upsert_album<'a>(pool: &DatabasePool, name: Cow<'a, str>) -> Result
 
 pub async fn upsert_song_album_artists(
     pool: &DatabasePool,
-    song_id: &Uuid,
+    song_id: Uuid,
     album_artist_ids: &[Uuid],
 ) -> Result<()> {
     diesel::insert_into(songs_album_artists::table)
         .values(
             album_artist_ids
                 .iter()
+                .copied()
                 .map(|album_artist_id| songs_album_artists::NewSongAlbumArtist {
                     song_id,
                     album_artist_id,

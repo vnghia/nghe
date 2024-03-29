@@ -39,7 +39,7 @@ pub struct GetArtistBody {
 async fn get_artist_and_album_ids(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
-    artist_id: &Uuid,
+    artist_id: Uuid,
 ) -> Result<(ArtistId3Db, Vec<Uuid>)> {
     artists::table
         .left_join(songs_album_artists::table)
@@ -86,7 +86,7 @@ pub async fn get_artist(
 ) -> Result<ArtistId3WithAlbums> {
     let music_folder_ids = check_user_music_folder_ids(pool, &user_id, None).await?;
 
-    let (artist, album_ids) = get_artist_and_album_ids(pool, &music_folder_ids, &artist_id).await?;
+    let (artist, album_ids) = get_artist_and_album_ids(pool, &music_folder_ids, artist_id).await?;
     let basic_albums = get_basic_albums(pool, &music_folder_ids, &album_ids).await?;
 
     Ok(ArtistId3WithAlbums {
@@ -131,7 +131,7 @@ mod tests {
         let music_folder_ids = test_infra.music_folder_ids(..);
         let album_fs_ids = song_paths_to_album_ids(test_infra.pool(), &song_fs_infos).await;
 
-        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, &artist_id)
+        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, artist_id)
             .await
             .unwrap()
             .1
@@ -159,7 +159,7 @@ mod tests {
         let music_folder_ids = test_infra.music_folder_ids(..);
         let album_fs_ids = song_paths_to_album_ids(test_infra.pool(), &song_fs_infos).await;
 
-        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, &artist_id)
+        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, artist_id)
             .await
             .unwrap()
             .1
@@ -196,7 +196,7 @@ mod tests {
         let music_folder_ids = test_infra.music_folder_ids(..);
         let album_fs_ids = song_paths_to_album_ids(test_infra.pool(), &song_fs_infos).await;
 
-        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, &artist_id)
+        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, artist_id)
             .await
             .unwrap()
             .1
@@ -231,7 +231,7 @@ mod tests {
         )
         .await;
 
-        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, &artist_id)
+        let album_ids = get_artist_and_album_ids(test_infra.pool(), &music_folder_ids, artist_id)
             .await
             .unwrap()
             .1
@@ -271,7 +271,7 @@ mod tests {
             get_artist_and_album_ids(
                 test_infra.pool(),
                 &music_folder_ids[..n_scan_folder],
-                &artist_id,
+                artist_id,
             )
             .await
             .unwrap_err()

@@ -140,9 +140,9 @@ pub async fn process_path(
     // we assume that they are the same as artists.
     if !song_tag.album_artists.is_empty() {
         let album_artist_ids = upsert_artists(pool, &song_tag.album_artists).await?;
-        upsert_song_album_artists(pool, &song_id, &album_artist_ids).await?;
+        upsert_song_album_artists(pool, song_id, &album_artist_ids).await?;
     } else {
-        upsert_song_album_artists(pool, &song_id, &artist_ids).await?;
+        upsert_song_album_artists(pool, song_id, &artist_ids).await?;
     }
     // album artists for the same album
     // that are extracted from multiple songs
@@ -157,7 +157,7 @@ pub async fn process_path(
         .execute(&mut pool.get().await?)
         .await?;
 
-    upsert_song_artists(pool, &song_id, &artist_ids).await?;
+    upsert_song_artists(pool, song_id, &artist_ids).await?;
     diesel::delete(songs_artists::table)
         .filter(songs_artists::song_id.eq(song_id))
         .filter(songs_artists::upserted_at.lt(scan_started_at))
