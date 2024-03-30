@@ -2,7 +2,10 @@ use std::path::Path;
 use std::slice::SliceIndex;
 
 use axum::extract::State;
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
+use futures::stream::{self, StreamExt};
 use itertools::Itertools;
 use uuid::Uuid;
 
@@ -253,5 +256,77 @@ impl Infra {
         S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
     {
         self.song_fs_infos_vec[slice].as_ref().iter().flat_map(|v| v.clone()).collect()
+    }
+
+    pub async fn song_ids<S>(&self, slice: S) -> Vec<Uuid>
+    where
+        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
+    {
+        stream::iter(self.song_fs_infos(slice))
+            .then(|song_fs_info| async move {
+                songs::table
+                    .select(songs::id)
+                    .inner_join(music_folders::table)
+                    .filter(
+                        music_folders::path.eq(&song_fs_info.music_folder_path.to_str().unwrap()),
+                    )
+                    .filter(songs::file_hash.eq(song_fs_info.file_hash as i64))
+                    .filter(songs::file_size.eq(song_fs_info.file_size as i64))
+                    .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
+                    .await
+                    .unwrap()
+            })
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .sorted()
+            .collect()
+    }
+
+    pub async fn artist_ids<S>(&self, slice: S) -> Vec<Uuid>
+    where
+        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
+    {
+        let artist_names = self
+            .song_fs_infos(slice)
+            .iter()
+            .flat_map(|s| [s.tag.album_artists.clone(), s.tag.artists.clone()].concat())
+            .unique()
+            .collect_vec();
+        artists::table
+            .select(artists::id)
+            .filter(artists::name.eq_any(&artist_names))
+            .get_results::<Uuid>(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec()
+    }
+
+    pub async fn album_ids<S>(&self, slice: S) -> Vec<Uuid>
+    where
+        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
+    {
+        stream::iter(self.song_fs_infos(slice))
+            .then(|song_fs_info| async move {
+                songs::table
+                    .select(songs::album_id)
+                    .inner_join(music_folders::table)
+                    .filter(
+                        music_folders::path.eq(&song_fs_info.music_folder_path.to_str().unwrap()),
+                    )
+                    .filter(songs::file_hash.eq(song_fs_info.file_hash as i64))
+                    .filter(songs::file_size.eq(song_fs_info.file_size as i64))
+                    .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
+                    .await
+                    .unwrap()
+            })
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .unique()
+            .sorted()
+            .collect_vec()
     }
 }

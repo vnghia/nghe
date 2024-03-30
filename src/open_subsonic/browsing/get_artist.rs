@@ -111,7 +111,6 @@ mod tests {
     use super::*;
     use crate::open_subsonic::scan::test::upsert_artists;
     use crate::utils::song::test::SongTag;
-    use crate::utils::test::media::song_paths_to_album_ids;
     use crate::utils::test::Infra;
 
     #[tokio::test]
@@ -134,7 +133,6 @@ mod tests {
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_ids = infra.music_folder_ids(..);
-        let album_fs_ids = song_paths_to_album_ids(infra.pool(), &infra.song_fs_infos(..)).await;
 
         let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
             .await
@@ -144,7 +142,7 @@ mod tests {
             .sorted()
             .collect_vec();
 
-        assert_eq!(album_ids, album_fs_ids);
+        assert_eq!(album_ids, infra.album_ids(..).await);
     }
 
     #[tokio::test]
@@ -164,7 +162,6 @@ mod tests {
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_ids = infra.music_folder_ids(..);
-        let album_fs_ids = song_paths_to_album_ids(infra.pool(), &infra.song_fs_infos(..)).await;
 
         let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
             .await
@@ -174,7 +171,7 @@ mod tests {
             .sorted()
             .collect_vec();
 
-        assert_eq!(album_ids, album_fs_ids);
+        assert_eq!(album_ids, infra.album_ids(..).await);
     }
 
     #[tokio::test]
@@ -203,7 +200,6 @@ mod tests {
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_ids = infra.music_folder_ids(..);
-        let album_fs_ids = song_paths_to_album_ids(infra.pool(), &infra.song_fs_infos(..)).await;
 
         let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
             .await
@@ -214,7 +210,7 @@ mod tests {
             .collect_vec();
 
         assert_eq!(album_ids.len(), album_names.len());
-        assert_eq!(album_ids, album_fs_ids);
+        assert_eq!(album_ids, infra.album_ids(..).await);
     }
 
     #[tokio::test]
@@ -236,11 +232,6 @@ mod tests {
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_idx = rand::thread_rng().gen_range(0..infra.music_folders.len());
         let music_folder_ids = infra.music_folder_ids(music_folder_idx..=music_folder_idx);
-        let album_fs_ids = song_paths_to_album_ids(
-            infra.pool(),
-            &infra.song_fs_infos(music_folder_idx..=music_folder_idx),
-        )
-        .await;
 
         let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
             .await
@@ -250,7 +241,7 @@ mod tests {
             .sorted()
             .collect_vec();
 
-        assert_eq!(album_ids, album_fs_ids);
+        assert_eq!(album_ids, infra.album_ids(music_folder_idx..=music_folder_idx).await);
     }
 
     #[tokio::test]
@@ -318,15 +309,16 @@ mod tests {
             .scan(.., None)
             .await;
 
-        let album_fs_ids = song_paths_to_album_ids(infra.pool(), &infra.song_fs_infos(..)).await;
-
-        let basic_albums =
-            get_basic_albums(infra.pool(), &infra.music_folder_ids(..2), &album_fs_ids)
-                .await
-                .unwrap()
-                .into_iter()
-                .sorted_by(|a, b| a.name.cmp(&b.name))
-                .collect_vec();
+        let basic_albums = get_basic_albums(
+            infra.pool(),
+            &infra.music_folder_ids(..2),
+            &infra.album_ids(..).await,
+        )
+        .await
+        .unwrap()
+        .into_iter()
+        .sorted_by(|a, b| a.name.cmp(&b.name))
+        .collect_vec();
 
         assert_eq!(basic_albums[0].song_count as usize, n_song);
         assert_eq!(basic_albums[1].song_count as usize, n_song + n_diff);

@@ -61,7 +61,6 @@ mod tests {
 
     use super::*;
     use crate::utils::song::test::SongTag;
-    use crate::utils::test::media::song_paths_to_ids;
     use crate::utils::test::Infra;
 
     async fn get_artist_ids(
@@ -90,7 +89,7 @@ mod tests {
         infra.add_songs(0, vec![song_tag.clone()]).scan(.., None).await;
 
         let music_folder_ids = infra.music_folder_ids(..);
-        let song_id = song_paths_to_ids(infra.pool(), &infra.song_fs_infos(..)).await.remove(0);
+        let song_id = infra.song_ids(..).await.remove(0);
 
         let song_id3 = get_song(infra.pool(), &music_folder_ids, song_id).await.unwrap();
         let artist_ids = get_artist_ids(infra.pool(), &music_folder_ids, song_id).await;
@@ -105,7 +104,7 @@ mod tests {
         infra.add_n_song(0, 1).add_n_song(1, 1).scan(.., None).await;
 
         let music_folder_ids = infra.music_folder_ids(0..=0);
-        let song_id = song_paths_to_ids(infra.pool(), &infra.song_fs_infos(1..)).await.remove(0);
+        let song_id = infra.song_ids(1..).await.remove(0);
 
         assert!(matches!(
             get_song(infra.pool(), &music_folder_ids, song_id)

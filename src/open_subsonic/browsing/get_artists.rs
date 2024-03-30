@@ -104,7 +104,6 @@ mod tests {
     use super::*;
     use crate::open_subsonic::scan::test::upsert_artists;
     use crate::utils::song::test::SongTag;
-    use crate::utils::test::media::song_paths_to_artist_ids;
     use crate::utils::test::Infra;
 
     #[tokio::test]
@@ -121,9 +120,7 @@ mod tests {
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-        let artist_fs_ids = song_paths_to_artist_ids(infra.pool(), &infra.song_fs_infos(..)).await;
-
-        assert_eq!(artist_ids, artist_fs_ids);
+        assert_eq!(artist_ids, infra.artist_ids(..).await);
     }
 
     #[tokio::test]

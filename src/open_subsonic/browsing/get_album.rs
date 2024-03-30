@@ -103,7 +103,6 @@ mod tests {
     use super::*;
     use crate::open_subsonic::scan::test::upsert_album;
     use crate::utils::song::test::SongTag;
-    use crate::utils::test::media::song_paths_to_ids;
     use crate::utils::test::Infra;
 
     async fn get_artist_ids(
@@ -226,9 +225,7 @@ mod tests {
             .into_iter()
             .sorted()
             .collect_vec();
-        let song_fs_ids = song_paths_to_ids(infra.pool(), &infra.song_fs_infos(..)).await;
-
-        assert_eq!(song_ids, song_fs_ids);
+        assert_eq!(song_ids, infra.song_ids(..).await);
     }
 
     #[tokio::test]
@@ -258,13 +255,7 @@ mod tests {
             .into_iter()
             .sorted()
             .collect_vec();
-        let song_fs_ids = song_paths_to_ids(
-            infra.pool(),
-            &infra.song_fs_infos(music_folder_idx..=music_folder_idx),
-        )
-        .await;
-
-        assert_eq!(song_ids, song_fs_ids);
+        assert_eq!(song_ids, infra.song_ids(music_folder_idx..=music_folder_idx).await);
     }
 
     #[tokio::test]
