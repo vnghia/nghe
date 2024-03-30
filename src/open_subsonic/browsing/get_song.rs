@@ -62,7 +62,7 @@ mod tests {
     use super::*;
     use crate::utils::song::test::SongTag;
     use crate::utils::test::media::song_paths_to_ids;
-    use crate::utils::test::setup::TestInfra;
+    use crate::utils::test::Infra;
 
     async fn get_artist_ids(
         pool: &DatabasePool,
@@ -86,15 +86,14 @@ mod tests {
     #[tokio::test]
     async fn test_get_song_id3() {
         let song_tag = Faker.fake::<SongTag>();
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_songs(0, vec![song_tag.clone()]).scan(.., None).await;
 
-        let (test_infra, song_fs_infos) =
-            TestInfra::setup_songs(&[1], vec![song_tag.clone()]).await;
+        let music_folder_ids = infra.music_folder_ids(..);
+        let song_id = song_paths_to_ids(infra.pool(), &infra.song_fs_infos(..)).await.remove(0);
 
-        let music_folder_ids = test_infra.music_folder_ids(..);
-        let song_id = song_paths_to_ids(test_infra.pool(), &song_fs_infos).await.remove(0);
-
-        let song_id3 = get_song(test_infra.pool(), &music_folder_ids, song_id).await.unwrap();
-        let artist_ids = get_artist_ids(test_infra.pool(), &music_folder_ids, song_id).await;
+        let song_id3 = get_song(infra.pool(), &music_folder_ids, song_id).await.unwrap();
+        let artist_ids = get_artist_ids(infra.pool(), &music_folder_ids, song_id).await;
 
         assert_eq!(song_id3.basic.title, song_tag.title);
         assert_eq!(song_id3.artist_ids.into_iter().sorted().collect_vec(), artist_ids);
@@ -102,13 +101,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_song_id3_deny_music_folders() {
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs(&[1, 1], None).await;
+        let mut infra = Infra::new().await.n_folder(2).await;
+        infra.add_n_song(0, 1).add_n_song(1, 1).scan(.., None).await;
 
-        let music_folder_ids = test_infra.music_folder_ids(0..=0);
-        let song_id = song_paths_to_ids(test_infra.pool(), &song_fs_infos[1..]).await.remove(0);
+        let music_folder_ids = infra.music_folder_ids(0..=0);
+        let song_id = song_paths_to_ids(infra.pool(), &infra.song_fs_infos(1..)).await.remove(0);
 
         assert!(matches!(
-            get_song(test_infra.pool(), &music_folder_ids, song_id)
+            get_song(infra.pool(), &music_folder_ids, song_id)
                 .await
                 .unwrap_err()
                 .root_cause()

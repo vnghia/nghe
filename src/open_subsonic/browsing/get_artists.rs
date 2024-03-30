@@ -105,23 +105,23 @@ mod tests {
     use crate::open_subsonic::scan::test::upsert_artists;
     use crate::utils::song::test::SongTag;
     use crate::utils::test::media::song_paths_to_artist_ids;
-    use crate::utils::test::setup::TestInfra;
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_get_artists() {
         let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_n_song(0, n_song).scan(.., None).await;
+        let music_folder_ids = infra.music_folder_ids(..);
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs(&[n_song], None).await;
-        let music_folder_ids = test_infra.music_folder_ids(..);
-
-        let artist_ids = get_indexed_artists(test_infra.pool(), &music_folder_ids)
+        let artist_ids = get_indexed_artists(infra.pool(), &music_folder_ids)
             .await
             .unwrap()
             .into_iter()
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-        let artist_fs_ids = song_paths_to_artist_ids(test_infra.pool(), &song_fs_infos).await;
+        let artist_fs_ids = song_paths_to_artist_ids(infra.pool(), &infra.song_fs_infos(..)).await;
 
         assert_eq!(artist_ids, artist_fs_ids);
     }
@@ -130,24 +130,26 @@ mod tests {
     async fn test_get_song_artists() {
         let artist_name = "artist";
         let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
+                    .collect(),
+            )
+            .scan(.., None)
+            .await;
 
-        let (test_infra, _) = TestInfra::setup_songs(
-            &[n_song],
-            (0..n_song)
-                .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
-                .collect_vec(),
-        )
-        .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
-        let artist_ids =
-            get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
-                .await
-                .unwrap()
-                .into_iter()
-                .map(|(_, artist)| artist.id)
-                .sorted()
-                .collect_vec();
+        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..=0))
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
 
         assert!(artist_ids.contains(&artist_id));
     }
@@ -156,24 +158,29 @@ mod tests {
     async fn test_get_album_artists() {
         let artist_name = "artist";
         let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag {
+                        album_artists: vec![artist_name.to_owned()],
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            )
+            .scan(.., None)
+            .await;
 
-        let (test_infra, _) = TestInfra::setup_songs(
-            &[n_song],
-            (0..n_song)
-                .map(|_| SongTag { album_artists: vec![artist_name.to_owned()], ..Faker.fake() })
-                .collect_vec(),
-        )
-        .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
-        let artist_ids =
-            get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
-                .await
-                .unwrap()
-                .into_iter()
-                .map(|(_, artist)| artist.id)
-                .sorted()
-                .collect_vec();
+        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..=0))
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
 
         assert!(artist_ids.contains(&artist_id));
     }
@@ -183,24 +190,26 @@ mod tests {
         let artist_name = "artist";
         let n_folder = 5_usize;
         let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(n_folder).await;
+        (0..n_folder).for_each(|i| {
+            infra.add_songs(
+                i,
+                (0..n_song)
+                    .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
+                    .collect(),
+            );
+        });
+        infra.scan(.., None).await;
 
-        let (test_infra, _) = TestInfra::setup_songs(
-            &vec![n_song; n_folder],
-            (0..n_folder * n_song)
-                .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
-                .collect_vec(),
-        )
-        .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
-        let artist_ids =
-            get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..=0))
-                .await
-                .unwrap()
-                .into_iter()
-                .map(|(_, artist)| artist.id)
-                .sorted()
-                .collect_vec();
+        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..=0))
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|(_, artist)| artist.id)
+            .sorted()
+            .collect_vec();
 
         assert!(artist_ids.contains(&artist_id));
     }
@@ -210,24 +219,27 @@ mod tests {
         let artist_name = "artist";
         let n_folder = 5_usize;
         let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(n_folder).await;
+        (0..n_folder).for_each(|i| {
+            infra.add_songs(
+                i,
+                (0..n_song)
+                    .map(|_| SongTag {
+                        artists: if i >= 2 {
+                            vec![artist_name.to_owned()]
+                        } else {
+                            fake::vec![String; 1..2]
+                        },
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            );
+        });
+        infra.scan(.., None).await;
 
-        let (test_infra, _) = TestInfra::setup_songs(
-            &vec![n_song; n_folder],
-            (0..n_folder * n_song)
-                .map(|i| SongTag {
-                    artists: if i >= 2 * n_song {
-                        vec![artist_name.to_owned()]
-                    } else {
-                        fake::vec![String; 1..2]
-                    },
-                    ..Faker.fake()
-                })
-                .collect_vec(),
-        )
-        .await;
-        let artist_id = upsert_artists(test_infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
 
-        let artist_ids = get_indexed_artists(test_infra.pool(), &test_infra.music_folder_ids(0..2))
+        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..2))
             .await
             .unwrap()
             .into_iter()

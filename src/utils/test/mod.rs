@@ -5,7 +5,6 @@ pub mod http;
 pub mod infra;
 pub mod media;
 pub mod random;
-pub mod setup;
 pub mod user;
 
 pub use database::TemporaryDatabase;
