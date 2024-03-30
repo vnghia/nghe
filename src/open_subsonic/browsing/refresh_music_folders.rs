@@ -62,40 +62,34 @@ mod tests {
     use std::path::PathBuf;
 
     use super::*;
-    use crate::utils::test::{TemporaryDatabase, TemporaryFs};
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_refresh_insert() {
-        let temp_db = TemporaryDatabase::new_from_env().await;
-
-        let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/");
-        let dir_2 = temp_fs.create_dir("test2/");
-
-        let inputs = vec![dir_1, dir_2];
+        let infra = Infra::new().await;
+        let dir_1 = infra.fs.create_dir("test1/");
+        let dir_2 = infra.fs.create_dir("test2/");
+        let inputs = vec![dir_1, dir_2].into_iter().sorted().collect_vec();
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
-        let results = upserted_folders.iter().map(|model| PathBuf::from(&model.path)).collect_vec();
+            refresh_music_folders(infra.pool(), &inputs, &[]).await;
+        let upserted_folders =
+            upserted_folders.iter().map(|model| PathBuf::from(&model.path)).sorted().collect_vec();
 
-        assert_eq!(
-            temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
-            results.into_iter().sorted().collect_vec()
-        );
+        assert_eq!(infra.fs.canonicalize_paths(&inputs), upserted_folders);
         assert_eq!(deleted_folder_count, 0);
     }
 
     #[tokio::test]
     async fn test_refresh_upsert() {
-        let temp_db = TemporaryDatabase::new_from_env().await;
-
-        let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/");
-        let dir_2 = temp_fs.create_dir("test2/");
+        let infra = Infra::new().await;
+        let dir_1 = infra.fs.create_dir("test1/");
+        let dir_2 = infra.fs.create_dir("test2/");
 
         diesel::insert_into(music_folders::table)
             .values(
-                temp_fs
+                infra
+                    .fs
                     .canonicalize_paths(&[&dir_1])
                     .iter()
                     .map(|path| music_folders::NewMusicFolder {
@@ -103,35 +97,32 @@ mod tests {
                     })
                     .collect_vec(),
             )
-            .execute(&mut temp_db.pool().get().await.unwrap())
+            .execute(&mut infra.pool().get().await.unwrap())
             .await
             .unwrap();
 
-        let inputs = vec![dir_1, dir_2];
+        let inputs = vec![dir_1, dir_2].into_iter().sorted().collect_vec();
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
-        let results = upserted_folders.iter().map(|model| PathBuf::from(&model.path)).collect_vec();
+            refresh_music_folders(infra.pool(), &inputs, &[]).await;
+        let upserted_folders =
+            upserted_folders.iter().map(|model| PathBuf::from(&model.path)).sorted().collect_vec();
 
-        assert_eq!(
-            temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
-            results.into_iter().sorted().collect_vec()
-        );
+        assert_eq!(infra.fs.canonicalize_paths(&inputs), upserted_folders);
         assert_eq!(deleted_folder_count, 0);
     }
 
     #[tokio::test]
     async fn test_refresh_delete() {
-        let temp_db = TemporaryDatabase::new_from_env().await;
-
-        let temp_fs = TemporaryFs::new();
-        let dir_1 = temp_fs.create_dir("test1/");
-        let dir_2 = temp_fs.create_dir("test2/");
-        let dir_3 = temp_fs.create_dir("test3/");
+        let infra = Infra::new().await;
+        let dir_1 = infra.fs.create_dir("test1/");
+        let dir_2 = infra.fs.create_dir("test2/");
+        let dir_3 = infra.fs.create_dir("test3/");
 
         diesel::insert_into(music_folders::table)
             .values(
-                temp_fs
+                infra
+                    .fs
                     .canonicalize_paths(&[&dir_1, &dir_3])
                     .iter()
                     .map(|path| music_folders::NewMusicFolder {
@@ -139,20 +130,18 @@ mod tests {
                     })
                     .collect_vec(),
             )
-            .execute(&mut temp_db.pool().get().await.unwrap())
+            .execute(&mut infra.pool().get().await.unwrap())
             .await
             .unwrap();
 
-        let inputs = vec![dir_1, dir_2];
+        let inputs = vec![dir_1, dir_2].into_iter().sorted().collect_vec();
 
         let (upserted_folders, deleted_folder_count) =
-            refresh_music_folders(temp_db.pool(), &inputs, &[]).await;
-        let results = upserted_folders.iter().map(|model| PathBuf::from(&model.path)).collect_vec();
+            refresh_music_folders(infra.pool(), &inputs, &[]).await;
+        let upserted_folders =
+            upserted_folders.iter().map(|model| PathBuf::from(&model.path)).sorted().collect_vec();
 
-        assert_eq!(
-            temp_fs.canonicalize_paths(&inputs.into_iter().sorted().collect_vec()),
-            results.into_iter().sorted().collect_vec()
-        );
+        assert_eq!(infra.fs.canonicalize_paths(&inputs), upserted_folders);
         assert_eq!(deleted_folder_count, 1);
     }
 }
