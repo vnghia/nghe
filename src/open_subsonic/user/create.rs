@@ -7,7 +7,7 @@ use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde_with::serde_as;
 use uuid::Uuid;
 
-use super::set_music_folder_permissions::set_music_folder_permissions;
+use super::set_music_folder_permissions;
 use crate::models::*;
 use crate::utils::password::encrypt_password;
 use crate::Database;

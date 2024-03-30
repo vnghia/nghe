@@ -10,7 +10,7 @@ use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_music_folders;
 use crate::open_subsonic::test::CommonParams;
-use crate::open_subsonic::user::test::set_music_folder_permissions;
+use crate::open_subsonic::user::set_music_folder_permissions;
 use crate::{Database, DatabasePool};
 
 pub struct Infra {

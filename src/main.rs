@@ -3,9 +3,8 @@ mod built_info {
 }
 
 use axum::Router;
-use itertools::Itertools;
 use nghe::config::Config;
-use nghe::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
+use nghe::open_subsonic::browsing::refresh_music_folders;
 use nghe::open_subsonic::{
     bookmarks, browsing, extension, media_list, media_retrieval, scan, searching, system, user,
 };
@@ -44,14 +43,10 @@ async fn main() {
     )
     .await;
 
-    // user music folders
-    refresh_permissions(
-        &database.pool,
-        None,
-        Some(&upserted_music_folders.iter().map(|music_folder| music_folder.id).collect_vec()),
-    )
-    .await
-    .expect("can not set music folders permissions");
+    // build music folder permissions
+    user::build_music_folder_permissions(&database.pool)
+        .await
+        .expect("can not build music folder permissions");
 
     // scan song
     scan::start_scan(

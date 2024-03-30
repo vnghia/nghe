@@ -7,12 +7,10 @@ mod get_music_directory;
 mod get_music_folders;
 mod get_song;
 mod refresh_music_folders;
-mod refresh_permissions;
 
 use axum::routing::get;
 use axum::Router;
 pub use refresh_music_folders::refresh_music_folders;
-pub use refresh_permissions::refresh_permissions;
 
 pub fn router() -> Router<crate::Database> {
     Router::new()

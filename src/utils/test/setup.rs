@@ -12,7 +12,7 @@ use super::user::create_users;
 use super::{TemporaryDatabase, TemporaryFs};
 use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
 use crate::models::*;
-use crate::open_subsonic::browsing::{refresh_music_folders, refresh_permissions};
+use crate::open_subsonic::browsing::refresh_music_folders;
 use crate::open_subsonic::scan::{start_scan, ScanMode};
 use crate::utils::song::file_type::to_extensions;
 use crate::utils::song::test::SongTag;
@@ -62,8 +62,6 @@ impl TestInfra {
             .execute(&mut test_infra.pool().get().await.unwrap())
             .await
             .unwrap();
-
-        refresh_permissions(test_infra.pool(), None, None).await.unwrap();
 
         test_infra
     }
