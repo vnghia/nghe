@@ -91,23 +91,22 @@ where
 #[cfg(test)]
 mod tests {
     use fake::faker::internet::en::*;
-    use fake::{Fake, Faker};
+    use fake::Fake;
     use nghe_proc_macros::add_validate;
 
     use super::*;
-    use crate::open_subsonic::user::test::{create_user, CreateUserParams};
-    use crate::utils::test::user::{create_password_token, create_username_password, create_users};
+    use crate::utils::test::Infra;
 
     #[add_validate]
     struct TestParams {}
 
     #[tokio::test]
     async fn test_validate_success() {
-        let (temp_db, users) = create_users(1, 0).await;
+        let infra = Infra::new().await.add_user(None).await;
         assert!(
             TestParams {}
-                .to_validate(users[0].to_common_params(temp_db.key()))
-                .validate::<false>(temp_db.database())
+                .to_validate(infra.to_common_params(0))
+                .validate::<false>(infra.database())
                 .await
                 .is_ok()
         );
@@ -115,15 +114,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_username() {
-        let (temp_db, users) = create_users(1, 0).await;
+        let infra = Infra::new().await.add_user(None).await;
         let wrong_username: String = Username().fake();
         assert!(matches!(
             TestParams {}
-                .to_validate(CommonParams {
-                    username: wrong_username,
-                    ..users[0].to_common_params(temp_db.key())
-                })
-                .validate::<false>(temp_db.database())
+                .to_validate(CommonParams { username: wrong_username, ..infra.to_common_params(0) })
+                .validate::<false>(infra.database())
                 .await
                 .unwrap_err()
                 .root_cause()
@@ -135,20 +131,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_wrong_password() {
-        let (temp_db, _) = create_users(0, 0).await;
-        let (username, password) = create_username_password();
-        let wrong_password = Password(16..32).fake::<String>().into_bytes();
-        let (client_salt, client_token) = create_password_token(&wrong_password);
-        let _ = create_user(
-            temp_db.database(),
-            CreateUserParams { username: username.clone(), password, ..Faker.fake() },
-        )
-        .await;
+        let infra = Infra::new().await.add_user(None).await;
+
+        let username = infra.users[0].username.clone();
+        let client_salt = Password(8..16).fake::<String>().into_bytes();
+        let client_token =
+            to_password_token(&Password(16..32).fake::<String>().into_bytes(), &client_salt);
 
         assert!(matches!(
             TestParams {}
                 .to_validate(CommonParams { username, salt: client_salt, token: client_token })
-                .validate::<false>(temp_db.database())
+                .validate::<false>(infra.database())
                 .await
                 .unwrap_err()
                 .root_cause()
@@ -160,11 +153,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_admin_success() {
-        let (temp_db, users) = create_users(1, 1).await;
+        let infra = Infra::new().await.add_user(Some(true)).await;
         assert!(
             TestParams {}
-                .to_validate(users[0].to_common_params(temp_db.key()))
-                .validate::<true>(temp_db.database())
+                .to_validate(infra.to_common_params(0))
+                .validate::<true>(infra.database())
                 .await
                 .is_ok()
         );
@@ -172,11 +165,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_no_admin() {
-        let (temp_db, users) = create_users(1, 0).await;
+        let infra = Infra::new().await.add_user(None).await;
         assert!(matches!(
             TestParams {}
-                .to_validate(users[0].to_common_params(temp_db.key()))
-                .validate::<true>(temp_db.database())
+                .to_validate(infra.to_common_params(0))
+                .validate::<true>(infra.database())
                 .await
                 .unwrap_err()
                 .root_cause()

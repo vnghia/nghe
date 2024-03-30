@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+#[cfg(test)]
+use derivative::Derivative;
 use diesel::prelude::*;
 use time::OffsetDateTime;
 pub use users::*;
@@ -10,6 +12,8 @@ pub use crate::schema::users;
 #[derive(Debug, Identifiable, Queryable, Selectable, Clone, PartialEq, Eq)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[cfg_attr(test, derive(Derivative))]
+#[cfg_attr(test, derivative(Default))]
 pub struct User {
     pub id: Uuid,
     pub username: String,
@@ -18,7 +22,9 @@ pub struct User {
     pub admin_role: bool,
     pub download_role: bool,
     pub share_role: bool,
+    #[cfg_attr(test, derivative(Default(value = "OffsetDateTime::UNIX_EPOCH")))]
     pub created_at: OffsetDateTime,
+    #[cfg_attr(test, derivative(Default(value = "OffsetDateTime::UNIX_EPOCH")))]
     pub updated_at: OffsetDateTime,
 }
 

@@ -1,4 +1,5 @@
 mod create;
+mod set_music_folder_permissions;
 mod setup;
 
 use axum::routing::get;
@@ -15,4 +16,5 @@ pub fn router() -> Router<crate::Database> {
 #[cfg(test)]
 pub mod test {
     pub use super::create::{create_user, CreateUserParams};
+    pub use super::set_music_folder_permissions::set_music_folder_permissions;
 }

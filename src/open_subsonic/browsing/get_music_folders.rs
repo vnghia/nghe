@@ -42,64 +42,50 @@ mod tests {
     use itertools::Itertools;
 
     use super::*;
-    use crate::utils::test::setup::TestInfra;
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_allow_all() {
-        let test_infra =
-            TestInfra::setup_users_and_music_folders(2, 2, &[true, true, true, true]).await;
-        let state = test_infra.state();
+        let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
 
-        let sorted_music_folders = test_infra.music_folders.into_iter().sorted().collect_vec();
-
-        for user in test_infra.users {
-            let form = GetMusicFoldersParams {}.to_validated_form(user.id);
-
-            let results = get_music_folders_handler(state.clone(), form)
-                .await
-                .unwrap()
-                .0
-                .root
-                .body
-                .music_folders
-                .music_folder
-                .into_iter()
-                .sorted()
-                .collect_vec();
-
-            assert_eq!(&results, &sorted_music_folders);
-        }
+        let results = get_music_folders_handler(
+            infra.state(),
+            GetMusicFoldersParams {}.to_validated_form(infra.user_id(0)),
+        )
+        .await
+        .unwrap()
+        .0
+        .root
+        .body
+        .music_folders
+        .music_folder
+        .into_iter()
+        .map(|f| f.id)
+        .sorted()
+        .collect_vec();
+        assert_eq!(results, infra.music_folder_ids(..));
     }
 
     #[tokio::test]
     async fn test_deny_some() {
-        let test_infra =
-            TestInfra::setup_users_and_music_folders(2, 2, &[true, false, true, true]).await;
-        let state = test_infra.state();
+        let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
+        infra.permissions(.., 1.., false).await;
 
-        for (i, user) in test_infra.users.into_iter().enumerate() {
-            let form = GetMusicFoldersParams {}.to_validated_form(user.id);
-
-            let results = get_music_folders_handler(state.clone(), form)
-                .await
-                .unwrap()
-                .0
-                .root
-                .body
-                .music_folders
-                .music_folder
-                .into_iter()
-                .sorted()
-                .collect_vec();
-
-            match i {
-                0 => assert_eq!(results, &test_infra.music_folders[0..1]),
-                1 => assert_eq!(
-                    results,
-                    test_infra.music_folders.clone().into_iter().sorted().collect_vec()
-                ),
-                _ => panic!(),
-            };
-        }
+        let results = get_music_folders_handler(
+            infra.state(),
+            GetMusicFoldersParams {}.to_validated_form(infra.user_id(0)),
+        )
+        .await
+        .unwrap()
+        .0
+        .root
+        .body
+        .music_folders
+        .music_folder
+        .into_iter()
+        .map(|f| f.id)
+        .sorted()
+        .collect_vec();
+        assert_eq!(results, infra.music_folder_ids(..1));
     }
 }

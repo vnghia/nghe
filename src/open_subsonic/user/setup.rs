@@ -52,26 +52,22 @@ mod tests {
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::utils::test::user::{create_username_password, create_users};
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_setup_no_user() {
-        let (temp_db, _) = create_users(0, 0).await;
-        let (username, password) = create_username_password();
-
+        let infra = Infra::new().await;
+        let users::User { username, password, .. } = users::User::fake(None);
         let form = Form(SetupParams { username, password, ..Faker.fake() });
-
-        assert!(setup_handler(temp_db.state(), form).await.is_ok());
+        assert!(setup_handler(infra.state(), form).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_setup_with_user() {
-        let (temp_db, _) = create_users(1, 1).await;
-        let (username, password) = create_username_password();
-
+        let infra = Infra::new().await.add_user(None).await;
+        let users::User { username, password, .. } = users::User::fake(None);
         let form = Form(SetupParams { username, password, ..Faker.fake() });
-
-        if let Some(err) = setup_handler(temp_db.state(), form).await.err() {
+        if let Some(err) = setup_handler(infra.state(), form).await.err() {
             assert!(matches!(
                 err.0.root_cause().downcast_ref::<OSError>().unwrap(),
                 OSError::Forbidden(_)

@@ -104,34 +104,34 @@ mod tests {
     use super::*;
     use crate::utils::song::test::SongTag;
     use crate::utils::test::media::query_all_song_information;
-    use crate::utils::test::setup::TestInfra;
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_insert_song() {
-        let test_infra = TestInfra::setup_users_and_music_folders(1, 1, &[true]).await;
+        let infra = Infra::new().await.n_folder(1).await.add_user(None).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(test_infra.pool(), (&song_tag.album).into()).await.unwrap();
+        let album_id = upsert_album(infra.pool(), (&song_tag.album).into()).await.unwrap();
 
         let song_path = Faker.fake::<String>();
         let song_hash: i64 = rand::random();
         let song_size: i64 = rand::random();
 
         let song_id = insert_song(
-            test_infra.pool(),
+            infra.pool(),
             song_tag.to_information().to_full_information_db(
                 album_id,
                 song_hash,
                 song_size,
                 None,
-                test_infra.music_folder_ids(0..=0)[0],
+                infra.music_folder_id(0),
                 &song_path,
             ),
         )
         .await
         .unwrap();
 
-        let song_db_info = query_all_song_information(test_infra.pool(), song_id).await;
+        let song_db_info = query_all_song_information(infra.pool(), song_id).await;
 
         assert_eq!(song_tag.title, song_db_info.tag.title);
         assert_eq!(song_path, song_db_info.relative_path);
@@ -141,23 +141,23 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_song() {
-        let test_infra = TestInfra::setup_users_and_music_folders(1, 1, &[true]).await;
+        let infra = Infra::new().await.n_folder(1).await.add_user(None).await;
 
         let song_tag = Faker.fake::<SongTag>();
-        let album_id = upsert_album(test_infra.pool(), (&song_tag.album).into()).await.unwrap();
+        let album_id = upsert_album(infra.pool(), (&song_tag.album).into()).await.unwrap();
 
         let song_path = Faker.fake::<String>();
         let song_hash: i64 = rand::random();
         let song_size: i64 = rand::random();
 
         let song_id = insert_song(
-            test_infra.pool(),
+            infra.pool(),
             song_tag.to_information().to_full_information_db(
                 album_id,
                 song_hash,
                 song_size,
                 None,
-                test_infra.music_folder_ids(0..=0)[0],
+                infra.music_folder_id(0),
                 &song_path,
             ),
         )
@@ -165,14 +165,13 @@ mod tests {
         .unwrap();
 
         let new_song_tag = Faker.fake::<SongTag>();
-        let new_album_id =
-            upsert_album(test_infra.pool(), (&new_song_tag.album).into()).await.unwrap();
+        let new_album_id = upsert_album(infra.pool(), (&new_song_tag.album).into()).await.unwrap();
 
         let new_song_hash: i64 = rand::random();
         let new_song_size: i64 = rand::random();
 
         update_song(
-            test_infra.pool(),
+            infra.pool(),
             song_id,
             new_song_tag.to_information().to_update_information_db(
                 new_album_id,
@@ -184,7 +183,7 @@ mod tests {
         .await
         .unwrap();
 
-        let song_db_info = query_all_song_information(test_infra.pool(), song_id).await;
+        let song_db_info = query_all_song_information(infra.pool(), song_id).await;
 
         assert_eq!(new_song_tag.title, song_db_info.tag.title);
         assert_eq!(song_path, song_db_info.relative_path);
