@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::slice::SliceIndex;
 
 use axum::extract::State;
@@ -5,12 +6,17 @@ use fake::{Fake, Faker};
 use itertools::Itertools;
 use uuid::Uuid;
 
-use super::{TemporaryDatabase, TemporaryFs};
+use super::fs::SongFsInformation;
+use super::{random, TemporaryDatabase, TemporaryFs};
+use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_music_folders;
+use crate::open_subsonic::scan::{start_scan, ScanMode, ScanStatistic};
 use crate::open_subsonic::test::CommonParams;
 use crate::open_subsonic::user::set_music_folder_permissions;
+use crate::utils::song::file_type::to_extensions;
+use crate::utils::song::test::SongTag;
 use crate::{Database, DatabasePool};
 
 pub struct Infra {
@@ -18,13 +24,14 @@ pub struct Infra {
     pub fs: TemporaryFs,
     pub users: Vec<users::User>,
     pub music_folders: Vec<music_folders::MusicFolder>,
+    pub song_fs_infos_vec: Vec<Vec<SongFsInformation>>,
 }
 
 impl Infra {
     pub async fn new() -> Self {
         let db = TemporaryDatabase::new_from_env().await;
         let fs = TemporaryFs::new();
-        Self { db, fs, users: vec![], music_folders: vec![] }
+        Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
     }
 
     pub async fn add_user(mut self, admin_role: Option<bool>) -> Self {
@@ -45,6 +52,7 @@ impl Infra {
             let (upserted_folders, _) =
                 refresh_music_folders(self.pool(), &music_folder_paths, &[]).await;
             self.music_folders = upserted_folders;
+            self.song_fs_infos_vec = vec![vec![]; n_folder];
             self
         }
     }
@@ -62,6 +70,140 @@ impl Infra {
         )
         .await
         .unwrap();
+    }
+
+    pub async fn scan<S>(&self, slice: S, scan_mode: Option<ScanMode>) -> ScanStatistic
+    where
+        S: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
+    {
+        start_scan(
+            self.pool(),
+            scan_mode.unwrap_or(ScanMode::Full),
+            self.music_folders[slice].as_ref(),
+            &ArtistIndexConfig::default(),
+            &self.fs.parsing_config,
+            &ScanConfig::default(),
+            &ArtConfig::default(),
+        )
+        .await
+        .unwrap()
+    }
+
+    pub fn add_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
+        self.add_songs(index, fake::vec![SongTag; n_song])
+    }
+
+    pub fn add_songs(&mut self, index: usize, song_tags: Vec<SongTag>) -> &mut Self {
+        self.song_fs_infos_vec[index].extend(self.fs.create_random_paths_media_files(
+            &self.music_folders[index].path,
+            song_tags,
+            &to_extensions(),
+        ));
+        self
+    }
+
+    pub fn delete_songs(&mut self, index: usize, delete_mask: &[bool]) -> &mut Self {
+        self.song_fs_infos_vec[index] = delete_mask
+            .iter()
+            .copied()
+            .zip(std::mem::take(&mut self.song_fs_infos_vec[index]))
+            .filter_map(|(d, s)| {
+                if d {
+                    std::fs::remove_file(s.absolute_path()).unwrap();
+                    None
+                } else {
+                    Some(s)
+                }
+            })
+            .collect();
+        self
+    }
+
+    pub fn delete_song(&mut self, music_folder_index: usize, song_index: usize) -> &mut Self {
+        let mut delete_mask = vec![false; self.song_fs_infos_vec[music_folder_index].len()];
+        delete_mask[song_index] = true;
+        self.delete_songs(music_folder_index, &delete_mask)
+    }
+
+    pub fn delete_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
+        self.delete_songs(
+            index,
+            &random::gen_bool_mask(self.song_fs_infos_vec[index].len(), n_song),
+        )
+    }
+
+    pub fn update_songs(
+        &mut self,
+        index: usize,
+        update_mask: &[bool],
+        song_tags: Vec<SongTag>,
+    ) -> &mut Self {
+        let new_song_fs_infos = self.fs.create_media_files(
+            &self.music_folders[index].path,
+            update_mask
+                .iter()
+                .copied()
+                .zip(self.song_fs_infos_vec[index].iter())
+                .filter_map(|(u, s)| if u { Some(s.relative_path.clone()) } else { None })
+                .collect(),
+            song_tags,
+        );
+        update_mask
+            .iter()
+            .copied()
+            .enumerate()
+            .filter_map(|(i, u)| if u { Some(i) } else { None })
+            .zip(new_song_fs_infos.into_iter())
+            .for_each(|(i, s)| {
+                self.song_fs_infos_vec[index][i] = s;
+            });
+        self
+    }
+
+    pub fn update_song(
+        &mut self,
+        music_folder_index: usize,
+        song_index: usize,
+        song_tag: SongTag,
+    ) -> &mut Self {
+        let mut update_mask = vec![false; self.song_fs_infos_vec[music_folder_index].len()];
+        update_mask[song_index] = true;
+        self.update_songs(music_folder_index, &update_mask, vec![song_tag])
+    }
+
+    pub fn update_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
+        self.update_songs(
+            index,
+            &random::gen_bool_mask(self.song_fs_infos_vec[index].len(), n_song),
+            fake::vec![SongTag; n_song],
+        )
+    }
+
+    pub fn copy_song<P: AsRef<Path>>(
+        &mut self,
+        music_folder_index: usize,
+        src_index: usize,
+        dst_path: P,
+    ) -> &mut Self {
+        let music_folder_path = Path::new(&self.music_folders[music_folder_index].path);
+
+        let old_song_tag = self.song_fs_infos_vec[music_folder_index][src_index].clone();
+        let old_song_path = Path::new(&old_song_tag.relative_path);
+
+        let new_song_path = dst_path.as_ref().with_extension(old_song_path.extension().unwrap());
+        assert!(!new_song_path.is_absolute());
+
+        std::fs::copy(
+            music_folder_path.join(&old_song_path),
+            music_folder_path.join(&new_song_path),
+        )
+        .unwrap();
+
+        self.song_fs_infos_vec[music_folder_index].push(SongFsInformation {
+            relative_path: new_song_path.to_str().unwrap().to_owned(),
+            ..old_song_tag
+        });
+        self
     }
 
     pub fn database(&self) -> &Database {
@@ -104,5 +246,12 @@ impl Infra {
         S: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
         self.music_folders[slice].as_ref().iter().map(|f| f.id).sorted().collect_vec()
+    }
+
+    pub fn song_fs_infos<S>(&self, slice: S) -> Vec<SongFsInformation>
+    where
+        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
+    {
+        self.song_fs_infos_vec[slice].as_ref().iter().flat_map(|v| v.clone()).collect()
     }
 }

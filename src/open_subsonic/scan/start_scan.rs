@@ -81,7 +81,7 @@ pub async fn start_scan(
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
     art_config: &ArtConfig,
-) -> Result<()> {
+) -> Result<ScanStatistic> {
     let scan_started_at = initialize_scan(pool).await?;
     let scan_result = run_scan(
         pool,
@@ -95,7 +95,7 @@ pub async fn start_scan(
     .await;
     build_artist_indices(pool, artist_index_config).await?;
     finalize_scan(pool, scan_started_at, scan_result.as_ref()).await?;
-    Ok(())
+    scan_result
 }
 
 pub async fn start_scan_handler(

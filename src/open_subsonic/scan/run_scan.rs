@@ -306,138 +306,45 @@ pub async fn run_scan(
 
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
 
     use fake::{Fake, Faker};
-    use itertools::Itertools;
 
     use super::*;
-    use crate::open_subsonic::scan::start_scan::{finalize_scan, initialize_scan};
     use crate::utils::song::test::SongTag;
-    use crate::utils::test::fs::SongFsInformation;
     use crate::utils::test::media::{
         assert_album_artist_names, assert_album_names, assert_albums_artists_info,
         assert_albums_info, assert_artists_info, assert_song_artist_names, assert_songs_info,
     };
-    use crate::utils::test::setup::TestInfra;
-    use crate::utils::test::{random, TemporaryFs};
-
-    fn delete_and_update_songs<PM: AsRef<Path>>(
-        temp_fs: &TemporaryFs,
-        music_folder_path: PM,
-        song_fs_infos: Vec<SongFsInformation>,
-        n_delete: usize,
-        n_update: usize,
-    ) -> Vec<SongFsInformation> {
-        let song_fs_infos = random::gen_bool_mask(song_fs_infos.len(), n_delete)
-            .into_iter()
-            .zip(song_fs_infos)
-            .filter_map(|(d, s)| {
-                if d {
-                    std::fs::remove_file(s.absolute_path()).unwrap();
-                    None
-                } else {
-                    Some(s)
-                }
-            })
-            .collect_vec();
-
-        let update_bool_mask = random::gen_bool_mask(song_fs_infos.len(), n_update);
-        let new_song_fs_infos = temp_fs.create_media_files(
-            &music_folder_path,
-            update_bool_mask
-                .iter()
-                .copied()
-                .zip(song_fs_infos.iter())
-                .filter_map(|(u, s)| if u { Some(s.relative_path.clone()) } else { None })
-                .collect(),
-            fake::vec![SongTag; n_update],
-        );
-
-        [
-            update_bool_mask
-                .into_iter()
-                .zip(song_fs_infos)
-                .filter_map(|(u, s)| if u { None } else { Some(s) })
-                .collect_vec(),
-            new_song_fs_infos,
-        ]
-        .concat()
-    }
-
-    async fn wrap_run_scan(
-        pool: &DatabasePool,
-        scan_mode: ScanMode,
-        music_folders: &[music_folders::MusicFolder],
-        parsing_config: &ParsingConfig,
-    ) -> ScanStatistic {
-        let scan_started_at = initialize_scan(pool).await.unwrap();
-        let scan_statistic = run_scan(
-            pool,
-            scan_started_at,
-            scan_mode,
-            music_folders,
-            parsing_config,
-            &ScanConfig::default(),
-            &ArtConfig::default(),
-        )
-        .await
-        .unwrap();
-        finalize_scan(pool, scan_started_at, Ok(&scan_statistic)).await.unwrap();
-        scan_statistic
-    }
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_simple_scan() {
-        let n_song = 50_usize;
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let n_song = 50;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_n_song(0, n_song);
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_simple_scan_with_update_same_path() {
         let n_song = 50_usize;
         let n_update_song = 20_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.add_n_song(0, n_song).scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
-        let song_fs_infos = delete_and_update_songs(
-            &test_infra.fs,
-            &test_infra.music_folders[0].path,
-            song_fs_infos,
-            0,
-            n_update_song,
-        );
-
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.update_n_song(0, n_update_song).scan(.., None).await;
         assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
@@ -445,85 +352,59 @@ mod tests {
         let n_song = 50_usize;
         let n_delete_song = 10_usize;
         let n_update_song = 20_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.add_n_song(0, n_song).scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
-        let song_fs_infos = delete_and_update_songs(
-            &test_infra.fs,
-            &test_infra.music_folders[0].path,
-            song_fs_infos,
-            n_delete_song,
-            n_update_song,
-        );
-
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = infra
+            .delete_n_song(0, n_delete_song)
+            .update_n_song(0, n_update_song)
+            .scan(.., None)
+            .await;
         assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, n_delete_song);
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_simple_scan_with_multiple_folders() {
         let n_song = 25_usize;
+        let mut infra = Infra::new().await.n_folder(2).await;
 
-        let (test_infra, song_fs_infos) =
-            TestInfra::setup_songs_no_scan(&[n_song, n_song], None).await;
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.add_n_song(0, n_song).add_n_song(1, n_song).scan(.., None).await;
         assert_eq!(upserted_song_count, n_song + n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_scan_combine_album_artists() {
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(
-            &[2],
-            vec![
-                SongTag {
-                    album: "album".to_owned(),
-                    album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
-                    ..Faker.fake()
-                },
-                SongTag {
-                    album: "album".to_owned(),
-                    album_artists: vec!["artist1".to_owned(), "artist3".to_owned()],
-                    ..Faker.fake()
-                },
-            ],
-        )
-        .await;
-        wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra
+            .add_songs(
+                0,
+                vec![
+                    SongTag {
+                        album: "album".to_owned(),
+                        album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
+                        ..Faker.fake()
+                    },
+                    SongTag {
+                        album: "album".to_owned(),
+                        album_artists: vec!["artist1".to_owned(), "artist3".to_owned()],
+                        ..Faker.fake()
+                    },
+                ],
+            )
+            .scan(.., None)
+            .await;
 
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
-        assert_albums_artists_info(test_infra.pool(), &song_fs_infos).await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        assert_albums_artists_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
@@ -532,68 +413,42 @@ mod tests {
         let n_delete_song = 2;
         let n_update_song = 4;
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        let ScanStatistic { deleted_album_count, .. } =
+            infra.add_n_song(0, n_song).scan(.., None).await;
         assert_eq!(deleted_album_count, 0);
-        assert_albums_info(test_infra.pool(), &song_fs_infos).await;
+        assert_albums_info(infra.pool(), &infra.song_fs_infos(..)).await;
 
-        let song_fs_infos = delete_and_update_songs(
-            &test_infra.fs,
-            &test_infra.music_folders[0].path,
-            song_fs_infos,
-            n_delete_song,
-            n_update_song,
-        );
-
-        let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-
+        let ScanStatistic { deleted_album_count, .. } = infra
+            .delete_n_song(0, n_delete_song)
+            .update_n_song(0, n_update_song)
+            .scan(.., None)
+            .await;
         assert_eq!(deleted_album_count, n_delete_song + n_update_song);
-        assert_albums_info(test_infra.pool(), &song_fs_infos).await;
+        assert_albums_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_scan_delete_keep_album_with_songs() {
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(
-            &[2],
-            vec![
-                SongTag { album: "album".to_owned(), ..Faker.fake() },
-                SongTag { album: "album".to_owned(), ..Faker.fake() },
-            ],
-        )
-        .await;
-        let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-        assert_eq!(deleted_album_count, 0);
-        assert_album_names(test_infra.pool(), &["album"]).await;
+        let mut infra = Infra::new().await.n_folder(1).await;
 
-        std::fs::remove_file(song_fs_infos[0].absolute_path()).unwrap();
-
-        let ScanStatistic { deleted_album_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { deleted_album_count, .. } = infra
+            .add_songs(
+                0,
+                vec![
+                    SongTag { album: "album".to_owned(), ..Faker.fake() },
+                    SongTag { album: "album".to_owned(), ..Faker.fake() },
+                ],
+            )
+            .scan(.., None)
+            .await;
         assert_eq!(deleted_album_count, 0);
-        assert_album_names(test_infra.pool(), &["album"]).await;
+        assert_album_names(infra.pool(), &["album"]).await;
+
+        let ScanStatistic { deleted_album_count, .. } =
+            infra.delete_song(0, 0).scan(.., None).await;
+        assert_eq!(deleted_album_count, 0);
+        assert_album_names(infra.pool(), &["album"]).await;
     }
 
     #[tokio::test]
@@ -601,171 +456,122 @@ mod tests {
         let n_song = 10;
         let n_delete_song = 2;
         let n_update_song = 4;
+        let mut infra = Infra::new().await.n_folder(1).await;
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        infra.add_n_song(0, n_song).scan(.., None).await;
+        assert_artists_info(infra.pool(), &infra.song_fs_infos(..)).await;
 
-        assert_artists_info(test_infra.pool(), &song_fs_infos).await;
-
-        let song_fs_infos = delete_and_update_songs(
-            &test_infra.fs,
-            &test_infra.music_folders[0].path,
-            song_fs_infos,
-            n_delete_song,
-            n_update_song,
-        );
-
-        wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-
-        assert_artists_info(test_infra.pool(), &song_fs_infos).await;
+        infra.delete_n_song(0, n_delete_song).update_n_song(0, n_update_song).scan(.., None).await;
+        assert_artists_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_scan_delete_old_song_artists() {
-        let song_tags = vec![
-            // deleted
-            SongTag {
-                artists: vec!["artist1".to_owned()],
-                album_artists: vec!["artist1".to_owned()],
-                ..Faker.fake()
-            },
-            // not deleted but scanned (artist2)
-            SongTag { artists: vec!["artist2".to_owned()], ..Faker.fake() },
-            // not deleted nor scanned
-            SongTag { artists: vec!["artist3".to_owned()], ..Faker.fake() },
-        ];
-
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[3], song_tags).await;
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
+        let mut infra = Infra::new().await.n_folder(1).await;
+        let ScanStatistic { deleted_artist_count, .. } = infra
+            .add_songs(
+                0,
+                vec![
+                    // deleted
+                    SongTag {
+                        artists: vec!["artist1".to_owned()],
+                        album_artists: vec!["artist1".to_owned()],
+                        ..Faker.fake()
+                    },
+                    // not deleted but scanned (artist2)
+                    SongTag { artists: vec!["artist2".to_owned()], ..Faker.fake() },
+                    // not deleted nor scanned
+                    SongTag { artists: vec!["artist3".to_owned()], ..Faker.fake() },
+                ],
+            )
+            .scan(.., None)
+            .await;
         assert_eq!(deleted_artist_count, 0);
-        assert_song_artist_names(test_infra.pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_song_artist_names(infra.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        test_infra.fs.create_media_file(
-            &music_folder_path,
-            &song_fs_infos[0].relative_path,
-            SongTag { artists: vec!["artist2".to_owned()], ..Faker.fake() },
-        );
-
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { deleted_artist_count, .. } = infra
+            .update_song(0, 0, SongTag { artists: vec!["artist2".to_owned()], ..Faker.fake() })
+            .scan(.., None)
+            .await;
         assert_eq!(deleted_artist_count, 1);
-        assert_song_artist_names(test_infra.pool(), &["artist2", "artist3"]).await;
+        assert_song_artist_names(infra.pool(), &["artist2", "artist3"]).await;
     }
 
     #[tokio::test]
     async fn test_scan_delete_old_album_artists() {
-        let song_tags = vec![
-            SongTag {
-                album: "album1".to_owned(),
-                artists: vec!["artist2".to_owned()],
-                album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
-                ..Faker.fake()
-            },
-            SongTag {
-                album: "album2".to_owned(),
-                album_artists: vec!["artist2".to_owned(), "artist3".to_owned()],
-                ..Faker.fake()
-            },
-        ];
+        let mut infra = Infra::new().await.n_folder(1).await;
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[2], song_tags).await;
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { deleted_artist_count, .. } = infra
+            .add_songs(
+                0,
+                vec![
+                    SongTag {
+                        album: "album1".to_owned(),
+                        artists: vec!["artist2".to_owned()],
+                        album_artists: vec!["artist1".to_owned(), "artist2".to_owned()],
+                        ..Faker.fake()
+                    },
+                    SongTag {
+                        album: "album2".to_owned(),
+                        album_artists: vec!["artist2".to_owned(), "artist3".to_owned()],
+                        ..Faker.fake()
+                    },
+                ],
+            )
+            .scan(.., None)
+            .await;
         assert_eq!(deleted_artist_count, 0);
-        assert_album_artist_names(test_infra.pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_album_artist_names(infra.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        std::fs::remove_file(song_fs_infos[0].absolute_path()).unwrap();
-
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { deleted_artist_count, .. } =
+            infra.delete_song(0, 0).scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
-        assert_album_artist_names(test_infra.pool(), &["artist2", "artist3"]).await;
+        assert_album_artist_names(infra.pool(), &["artist2", "artist3"]).await;
     }
 
     #[tokio::test]
     async fn test_scan_delete_old_combined_album_artists_with_delete() {
-        let song_tags = vec![
-            // deleted
-            SongTag {
-                album: "album".to_owned(),
-                artists: vec!["artist1".to_owned(), "artist2".to_owned()],
-                album_artists: vec!["artist1".to_owned()],
-                ..Faker.fake()
-            },
-            // not deleted but scanned (artist2)
-            SongTag {
-                album: "album".to_owned(),
-                album_artists: vec!["artist2".to_owned()],
-                ..Faker.fake()
-            },
-            // not deleted nor scanned
-            SongTag {
-                album: "album".to_owned(),
-                album_artists: vec!["artist3".to_owned()],
-                ..Faker.fake()
-            },
-        ];
+        let mut infra = Infra::new().await.n_folder(1).await;
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[3], song_tags).await;
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { deleted_artist_count, .. } = infra
+            .add_songs(
+                0,
+                vec![
+                    // deleted
+                    SongTag {
+                        album: "album".to_owned(),
+                        artists: vec!["artist1".to_owned(), "artist2".to_owned()],
+                        album_artists: vec!["artist1".to_owned()],
+                        ..Faker.fake()
+                    },
+                    // not deleted but scanned (artist2)
+                    SongTag {
+                        album: "album".to_owned(),
+                        album_artists: vec!["artist2".to_owned()],
+                        ..Faker.fake()
+                    },
+                    // not deleted nor scanned
+                    SongTag {
+                        album: "album".to_owned(),
+                        album_artists: vec!["artist3".to_owned()],
+                        ..Faker.fake()
+                    },
+                ],
+            )
+            .scan(.., None)
+            .await;
         assert_eq!(deleted_artist_count, 0);
-        assert_album_artist_names(test_infra.pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_album_artist_names(infra.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        std::fs::remove_file(song_fs_infos[0].absolute_path()).unwrap();
-
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { deleted_artist_count, .. } =
+            infra.delete_song(0, 0).scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
-        assert_album_artist_names(test_infra.pool(), &["artist2", "artist3"]).await;
+        assert_album_artist_names(infra.pool(), &["artist2", "artist3"]).await;
     }
 
     #[tokio::test]
     async fn test_scan_delete_old_combined_album_artists_with_update() {
+        let mut infra = Infra::new().await.n_folder(1).await;
         let song_tags = vec![
             // deleted
             SongTag {
@@ -789,87 +595,46 @@ mod tests {
         ];
         let first_song_tag = song_tags[0].clone();
 
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[3], song_tags).await;
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
+        let ScanStatistic { deleted_artist_count, .. } =
+            infra.add_songs(0, song_tags).scan(.., None).await;
         assert_eq!(deleted_artist_count, 0);
-        assert_album_artist_names(test_infra.pool(), &["artist1", "artist2", "artist3"]).await;
+        assert_album_artist_names(infra.pool(), &["artist1", "artist2", "artist3"]).await;
 
-        test_infra.fs.create_media_file(
-            &music_folder_path,
-            &song_fs_infos[0].relative_path,
-            SongTag {
-                artists: vec!["artist2".to_owned()],
-                album_artists: vec!["artist2".to_owned()],
-                ..first_song_tag
-            },
-        );
-
-        let ScanStatistic { deleted_artist_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { deleted_artist_count, .. } = infra
+            .update_song(
+                0,
+                0,
+                SongTag {
+                    artists: vec!["artist2".to_owned()],
+                    album_artists: vec!["artist2".to_owned()],
+                    ..first_song_tag
+                },
+            )
+            .scan(.., None)
+            .await;
         assert_eq!(deleted_artist_count, 1);
-        assert_album_artist_names(test_infra.pool(), &["artist2", "artist3"]).await;
+        assert_album_artist_names(infra.pool(), &["artist2", "artist3"]).await;
     }
 
     #[tokio::test]
     async fn test_duplicate_song() {
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[1], None).await;
-        wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-
-        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
-        let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
-        let new_song_path = old_song_path
-            .with_file_name(Faker.fake::<String>())
-            .with_extension(old_song_path.extension().unwrap());
-        std::fs::copy(
-            music_folder_path.join(&old_song_path),
-            music_folder_path.join(&new_song_path),
-        )
-        .unwrap();
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_n_song(0, 1).scan(.., None).await;
 
         let ScanStatistic { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
-            wrap_run_scan(
-                test_infra.pool(),
-                ScanMode::Full,
-                &test_infra.music_folders,
-                &test_infra.fs.parsing_config,
-            )
-            .await;
+            infra.copy_song(0, 0, Faker.fake::<String>()).scan(.., None).await;
         assert_eq!(scanned_song_count, 2);
         assert_eq!(deleted_song_count, 0);
 
+        let song_fs_infos = infra.song_fs_infos(..);
         if upserted_song_count == 2 {
             // The new song is scanned before the old song.
             // The path is set to the new song and then back to the old song.
-            assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+            assert_songs_info(infra.pool(), &song_fs_infos[..1]).await;
         } else if upserted_song_count == 1 {
             // The old song is scanned after the old song.
             // The path is set to the new song.
-            assert_songs_info(
-                test_infra.pool(),
-                &[SongFsInformation {
-                    relative_path: new_song_path.to_str().unwrap().to_owned(),
-                    ..song_fs_infos[0].clone()
-                }],
-            )
-            .await;
+            assert_songs_info(infra.pool(), &song_fs_infos[1..]).await;
         } else {
             panic!("upserted song count value is invalid")
         }
@@ -877,133 +642,60 @@ mod tests {
 
     #[tokio::test]
     async fn test_move_song() {
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[1], None).await;
-        wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-
-        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
-        let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
-        let new_song_path = old_song_path
-            .with_file_name(Faker.fake::<String>())
-            .with_extension(old_song_path.extension().unwrap());
-        std::fs::rename(
-            music_folder_path.join(&old_song_path),
-            music_folder_path.join(&new_song_path),
-        )
-        .unwrap();
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_n_song(0, 1).scan(.., None).await;
 
         let ScanStatistic { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
-            wrap_run_scan(
-                test_infra.pool(),
-                ScanMode::Full,
-                &test_infra.music_folders,
-                &test_infra.fs.parsing_config,
-            )
-            .await;
+            infra.copy_song(0, 0, Faker.fake::<String>()).delete_song(0, 0).scan(.., None).await;
         assert_eq!(scanned_song_count, 1);
-        assert_eq!(deleted_song_count, 0);
         assert_eq!(upserted_song_count, 1);
-        assert_songs_info(
-            test_infra.pool(),
-            &[SongFsInformation {
-                relative_path: new_song_path.to_str().unwrap().to_owned(),
-                ..song_fs_infos[0].clone()
-            }],
-        )
-        .await;
+        assert_eq!(deleted_song_count, 0);
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_force_scan() {
         let n_song = 50_usize;
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Force,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let mut infra = Infra::new().await.n_folder(1).await;
+
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Force)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_full_and_force_scan() {
         let n_song = 50_usize;
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
-        assert_eq!(upserted_song_count, n_song);
-        assert_eq!(deleted_song_count, 0);
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        let mut infra = Infra::new().await.n_folder(1).await;
 
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Force,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Full)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(test_infra.pool(), &song_fs_infos).await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
+            infra.scan(.., Some(ScanMode::Force)).await;
+        assert_eq!(upserted_song_count, n_song);
+        assert_eq!(deleted_song_count, 0);
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
     #[tokio::test]
     async fn test_force_scan_move_song() {
         let n_song = 50_usize;
-        let (test_infra, song_fs_infos) = TestInfra::setup_songs_no_scan(&[n_song], None).await;
-        wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Full,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Full)).await;
 
-        let music_folder_path = PathBuf::from(&test_infra.music_folders[0].path);
-        let old_song_path = PathBuf::from(&song_fs_infos[0].relative_path);
-        let new_song_path = old_song_path
-            .with_file_name(Faker.fake::<String>())
-            .with_extension(old_song_path.extension().unwrap());
-        std::fs::rename(
-            music_folder_path.join(&old_song_path),
-            music_folder_path.join(&new_song_path),
-        )
-        .unwrap();
-
-        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = wrap_run_scan(
-            test_infra.pool(),
-            ScanMode::Force,
-            &test_infra.music_folders,
-            &test_infra.fs.parsing_config,
-        )
-        .await;
+        let ScanStatistic { upserted_song_count, deleted_song_count, .. } = infra
+            .copy_song(0, 0, Faker.fake::<String>())
+            .delete_song(0, 0)
+            .scan(.., Some(ScanMode::Force))
+            .await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(
-            test_infra.pool(),
-            &[
-                &[SongFsInformation {
-                    relative_path: new_song_path.to_str().unwrap().to_owned(),
-                    ..song_fs_infos[0].clone()
-                }],
-                &song_fs_infos[1..],
-            ]
-            .concat(),
-        )
-        .await;
+        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 }
