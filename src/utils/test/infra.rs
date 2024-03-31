@@ -60,7 +60,12 @@ impl Infra {
         }
     }
 
-    pub async fn permissions<SU, SM>(&self, user_slice: SU, music_folder_slice: SM, allow: bool)
+    pub async fn permissions<SU, SM>(
+        &self,
+        user_slice: SU,
+        music_folder_slice: SM,
+        allow: bool,
+    ) -> &Self
     where
         SU: SliceIndex<[users::User], Output = [users::User]>,
         SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
@@ -73,6 +78,23 @@ impl Infra {
         )
         .await
         .unwrap();
+        self
+    }
+
+    pub async fn only_permissions<SU, SM>(
+        &self,
+        user_slice: SU,
+        music_folder_slice: SM,
+        allow: bool,
+    ) -> &Self
+    where
+        SU: SliceIndex<[users::User], Output = [users::User]> + Clone,
+        SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
+    {
+        self.permissions(user_slice.clone(), .., !allow)
+            .await
+            .permissions(user_slice, music_folder_slice, allow)
+            .await
     }
 
     pub async fn scan<S>(&self, slice: S, scan_mode: Option<ScanMode>) -> ScanStatistic

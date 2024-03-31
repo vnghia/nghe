@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::open_subsonic::common::music_folder::with_music_folders;
 use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
@@ -38,7 +38,7 @@ pub struct GetArtistBody {
 
 async fn get_artist_and_album_ids(
     pool: &DatabasePool,
-    music_folder_ids: &[Uuid],
+    user_id: Uuid,
     artist_id: Uuid,
 ) -> Result<(ArtistId3Db, Vec<Uuid>)> {
     artists::table
@@ -47,7 +47,7 @@ async fn get_artist_and_album_ids(
         .inner_join(songs::table.on(
             songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
         ))
-        .filter(songs::music_folder_id.eq_any(music_folder_ids))
+        .filter(with_music_folders(user_id))
         .filter(artists::id.eq(artist_id))
         .group_by(artists::id)
         .having(count_distinct(songs::album_id).gt(0))
@@ -65,12 +65,12 @@ async fn get_artist_and_album_ids(
 
 async fn get_basic_albums(
     pool: &DatabasePool,
-    music_folder_ids: &[Uuid],
+    user_id: Uuid,
     album_ids: &[Uuid],
 ) -> Result<Vec<BasicAlbumId3Db>> {
     albums::table
         .inner_join(songs::table)
-        .filter(songs::music_folder_id.eq_any(music_folder_ids))
+        .filter(with_music_folders(user_id))
         .filter(albums::id.eq_any(album_ids))
         .group_by(albums::id)
         .select(BasicAlbumId3Db::as_select())
@@ -84,10 +84,8 @@ pub async fn get_artist(
     user_id: Uuid,
     artist_id: Uuid,
 ) -> Result<ArtistId3WithAlbums> {
-    let music_folder_ids = check_user_music_folder_ids(pool, &user_id, None).await?;
-
-    let (artist, album_ids) = get_artist_and_album_ids(pool, &music_folder_ids, artist_id).await?;
-    let basic_albums = get_basic_albums(pool, &music_folder_ids, &album_ids).await?;
+    let (artist, album_ids) = get_artist_and_album_ids(pool, user_id, artist_id).await?;
+    let basic_albums = get_basic_albums(pool, user_id, &album_ids).await?;
 
     Ok(ArtistId3WithAlbums {
         artist: artist.into_res(),
@@ -117,7 +115,7 @@ mod tests {
     async fn test_get_artist_own_albums() {
         let artist_name = "artist";
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(1).await;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra
             .add_songs(
                 0,
@@ -132,16 +130,13 @@ mod tests {
             .await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-        let music_folder_ids = infra.music_folder_ids(..);
-
-        let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
+        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
             .1
             .into_iter()
             .sorted()
             .collect_vec();
-
         assert_eq!(album_ids, infra.album_ids(..).await);
     }
 
@@ -149,7 +144,7 @@ mod tests {
     async fn test_get_artist_featured_in_albums() {
         let artist_name = "artist";
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(1).await;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra
             .add_songs(
                 0,
@@ -161,16 +156,13 @@ mod tests {
             .await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-        let music_folder_ids = infra.music_folder_ids(..);
-
-        let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
+        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
             .1
             .into_iter()
             .sorted()
             .collect_vec();
-
         assert_eq!(album_ids, infra.album_ids(..).await);
     }
 
@@ -179,7 +171,7 @@ mod tests {
         let artist_name = "artist";
         let album_names = ["album1", "album2"];
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(1).await;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra
             .add_songs(
                 0,
@@ -199,16 +191,13 @@ mod tests {
             .await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-        let music_folder_ids = infra.music_folder_ids(..);
-
-        let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
+        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
             .1
             .into_iter()
             .sorted()
             .collect_vec();
-
         assert_eq!(album_ids.len(), album_names.len());
         assert_eq!(album_ids, infra.album_ids(..).await);
     }
@@ -218,7 +207,7 @@ mod tests {
         let artist_name = "artist";
         let n_folder = 2_usize;
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(n_folder).await;
+        let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
         (0..n_folder).for_each(|i| {
             infra.add_songs(
                 i,
@@ -231,16 +220,15 @@ mod tests {
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
         let music_folder_idx = rand::thread_rng().gen_range(0..infra.music_folders.len());
-        let music_folder_ids = infra.music_folder_ids(music_folder_idx..=music_folder_idx);
+        infra.only_permissions(.., music_folder_idx..=music_folder_idx, true).await;
 
-        let album_ids = get_artist_and_album_ids(infra.pool(), &music_folder_ids, artist_id)
+        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
             .1
             .into_iter()
             .sorted()
             .collect_vec();
-
         assert_eq!(album_ids, infra.album_ids(music_folder_idx..=music_folder_idx).await);
     }
 
@@ -251,7 +239,7 @@ mod tests {
         let n_folder = 2_usize;
         let n_scan_folder = 1_usize;
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(n_folder).await;
+        let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
         infra
             .add_n_song(0, n_song)
             .add_songs(
@@ -262,20 +250,16 @@ mod tests {
             )
             .scan(.., None)
             .await;
+        infra.only_permissions(.., ..n_scan_folder, true).await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-
         assert!(matches!(
-            get_artist_and_album_ids(
-                infra.pool(),
-                &infra.music_folder_ids(..n_scan_folder),
-                artist_id,
-            )
-            .await
-            .unwrap_err()
-            .root_cause()
-            .downcast_ref::<OSError>()
-            .unwrap(),
+            get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
+                .await
+                .unwrap_err()
+                .root_cause()
+                .downcast_ref::<OSError>()
+                .unwrap(),
             OSError::NotFound(_)
         ));
     }
@@ -286,7 +270,7 @@ mod tests {
         let n_folder = 3_usize;
         let n_song = 10_usize;
         let n_diff = 3_usize;
-        let mut infra = Infra::new().await.n_folder(n_folder).await;
+        let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
         infra
             .add_songs(
                 0,
@@ -308,17 +292,15 @@ mod tests {
             )
             .scan(.., None)
             .await;
+        infra.only_permissions(.., ..2, true).await;
 
-        let basic_albums = get_basic_albums(
-            infra.pool(),
-            &infra.music_folder_ids(..2),
-            &infra.album_ids(..).await,
-        )
-        .await
-        .unwrap()
-        .into_iter()
-        .sorted_by(|a, b| a.name.cmp(&b.name))
-        .collect_vec();
+        let basic_albums =
+            get_basic_albums(infra.pool(), infra.user_id(0), &infra.album_ids(..).await)
+                .await
+                .unwrap()
+                .into_iter()
+                .sorted_by(|a, b| a.name.cmp(&b.name))
+                .collect_vec();
 
         assert_eq!(basic_albums[0].song_count as usize, n_song);
         assert_eq!(basic_albums[1].song_count as usize, n_song + n_diff);

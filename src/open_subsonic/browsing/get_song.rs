@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::open_subsonic::common::music_folder::with_music_folders;
 use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
@@ -22,14 +22,10 @@ pub struct GetSongBody {
     song: SongId3,
 }
 
-async fn get_song(
-    pool: &DatabasePool,
-    music_folder_ids: &[Uuid],
-    song_id: Uuid,
-) -> Result<SongId3Db> {
+async fn get_song(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<SongId3Db> {
     songs::table
         .inner_join(songs_artists::table)
-        .filter(songs::music_folder_id.eq_any(music_folder_ids))
+        .filter(with_music_folders(user_id))
         .filter(songs::id.eq(song_id))
         .group_by(songs::id)
         .select(SongId3Db::as_select())
@@ -43,10 +39,8 @@ pub async fn get_song_handler(
     State(database): State<Database>,
     req: GetSongRequest,
 ) -> GetSongJsonResponse {
-    let music_folder_ids = check_user_music_folder_ids(&database.pool, &req.user_id, None).await?;
-
     GetSongBody {
-        song: get_song(&database.pool, &music_folder_ids, req.params.id)
+        song: get_song(&database.pool, req.user_id, req.params.id)
             .await?
             .into_res(&database.pool)
             .await?,
@@ -63,14 +57,10 @@ mod tests {
     use crate::utils::song::test::SongTag;
     use crate::utils::test::Infra;
 
-    async fn get_artist_ids(
-        pool: &DatabasePool,
-        music_folder_ids: &[Uuid],
-        song_id: Uuid,
-    ) -> Vec<Uuid> {
+    async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Vec<Uuid> {
         songs::table
             .inner_join(songs_artists::table)
-            .filter(songs::music_folder_id.eq_any(music_folder_ids))
+            .filter(with_music_folders(user_id))
             .filter(songs::id.eq(song_id))
             .select(songs_artists::artist_id)
             .distinct()
@@ -85,14 +75,12 @@ mod tests {
     #[tokio::test]
     async fn test_get_song_id3() {
         let song_tag = Faker.fake::<SongTag>();
-        let mut infra = Infra::new().await.n_folder(1).await;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra.add_songs(0, vec![song_tag.clone()]).scan(.., None).await;
 
-        let music_folder_ids = infra.music_folder_ids(..);
         let song_id = infra.song_ids(..).await.remove(0);
-
-        let song_id3 = get_song(infra.pool(), &music_folder_ids, song_id).await.unwrap();
-        let artist_ids = get_artist_ids(infra.pool(), &music_folder_ids, song_id).await;
+        let song_id3 = get_song(infra.pool(), infra.user_id(0), song_id).await.unwrap();
+        let artist_ids = get_artist_ids(infra.pool(), infra.user_id(0), song_id).await;
 
         assert_eq!(song_id3.basic.title, song_tag.title);
         assert_eq!(song_id3.artist_ids.into_iter().sorted().collect_vec(), artist_ids);
@@ -100,14 +88,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_song_id3_deny_music_folders() {
-        let mut infra = Infra::new().await.n_folder(2).await;
+        let mut infra = Infra::new().await.n_folder(2).await.add_user(None).await;
         infra.add_n_song(0, 1).add_n_song(1, 1).scan(.., None).await;
+        infra.only_permissions(.., ..1, true).await;
 
-        let music_folder_ids = infra.music_folder_ids(0..=0);
         let song_id = infra.song_ids(1..).await.remove(0);
-
         assert!(matches!(
-            get_song(infra.pool(), &music_folder_ids, song_id)
+            get_song(infra.pool(), infra.user_id(0), song_id)
                 .await
                 .unwrap_err()
                 .root_cause()
