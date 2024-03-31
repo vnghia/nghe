@@ -1,12 +1,13 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::common::music_folder::with_music_folders;
 use crate::{Database, DatabasePool, OSError};
@@ -23,12 +24,9 @@ pub struct GetSongBody {
 }
 
 async fn get_song(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<SongId3Db> {
-    songs::table
-        .inner_join(songs_artists::table)
+    get_song_id3_db()
         .filter(with_music_folders(user_id))
         .filter(songs::id.eq(song_id))
-        .group_by(songs::id)
-        .select(SongId3Db::as_select())
         .first::<SongId3Db>(&mut pool.get().await?)
         .await
         .optional()?
@@ -58,16 +56,17 @@ mod tests {
     use crate::utils::test::Infra;
 
     async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Vec<Uuid> {
-        songs::table
-            .inner_join(songs_artists::table)
+        // inner join = left join + is not null
+        get_basic_artist_id3_db()
             .filter(with_music_folders(user_id))
             .filter(songs::id.eq(song_id))
-            .select(songs_artists::artist_id)
-            .distinct()
+            .filter(songs_artists::artist_id.is_not_null())
+            .select(artists::id)
             .get_results::<Uuid>(&mut pool.get().await.unwrap())
             .await
             .unwrap()
             .into_iter()
+            .unique()
             .sorted()
             .collect()
     }

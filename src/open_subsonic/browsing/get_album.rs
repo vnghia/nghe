@@ -1,6 +1,6 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::dsl::{count_distinct, sql};
+use diesel::dsl::sql;
 use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::models::*;
 use crate::open_subsonic::common::error::OSError;
 use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::common::music_folder::with_music_folders;
 use crate::{Database, DatabasePool};
@@ -39,13 +40,9 @@ async fn get_album_and_song_ids(
     user_id: Uuid,
     album_id: Uuid,
 ) -> Result<(AlbumId3Db, Vec<Uuid>)> {
-    songs::table
-        .inner_join(albums::table)
-        .inner_join(songs_album_artists::table)
+    get_album_id3_db()
         .filter(with_music_folders(user_id))
         .filter(albums::id.eq(album_id))
-        .group_by(albums::id)
-        .having(count_distinct(songs::id).gt(0))
         .select((
             AlbumId3Db::as_select(),
             sql::<sql_types::Array<sql_types::Uuid>>("array_agg(distinct(songs.id)) song_ids"),
@@ -61,10 +58,9 @@ async fn get_basic_songs(
     user_id: Uuid,
     song_ids: &[Uuid],
 ) -> Result<Vec<BasicSongId3Db>> {
-    songs::table
+    get_basic_song_id3_db()
         .filter(with_music_folders(user_id))
         .filter(songs::id.eq_any(song_ids))
-        .select(BasicSongId3Db::as_select())
         .get_results::<BasicSongId3Db>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)
@@ -93,7 +89,6 @@ pub async fn get_album_handler(
 
 #[cfg(test)]
 mod tests {
-    use diesel::JoinOnDsl;
     use fake::{Fake, Faker};
     use itertools::Itertools;
     use rand::Rng;
@@ -104,13 +99,13 @@ mod tests {
     use crate::utils::test::Infra;
 
     async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, album_id: Uuid) -> Vec<Uuid> {
-        songs::table
-            .inner_join(albums::table)
-            .inner_join(songs_album_artists::table)
-            .inner_join(artists::table.on(artists::id.eq(songs_album_artists::album_artist_id)))
+        // inner join = left join + is not null
+        get_basic_artist_id3_db()
             .filter(with_music_folders(user_id))
-            .filter(albums::id.eq(album_id))
+            .filter(songs::album_id.eq(album_id))
+            .filter(songs_album_artists::album_artist_id.is_not_null())
             .select(artists::id)
+            .distinct()
             .get_results::<Uuid>(&mut pool.get().await.unwrap())
             .await
             .unwrap()

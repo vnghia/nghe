@@ -1,7 +1,6 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::dsl::count_distinct;
-use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -11,6 +10,7 @@ use uuid::Uuid;
 use crate::config::ArtistIndexConfig;
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
 use crate::{Database, DatabasePool, OSError};
@@ -46,15 +46,8 @@ async fn get_indexed_artists(
     pool: &DatabasePool,
     music_folder_ids: &[Uuid],
 ) -> Result<Vec<(String, BasicArtistId3Db)>> {
-    artists::table
-        .left_join(songs_album_artists::table)
-        .left_join(songs_artists::table)
-        .inner_join(songs::table.on(
-            songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
-        ))
+    get_basic_artist_id3_db()
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .group_by(artists::id)
-        .having(count_distinct(songs::album_id).gt(0))
         .select((artists::index, BasicArtistId3Db::as_select()))
         .get_results::<(String, BasicArtistId3Db)>(&mut pool.get().await?)
         .await

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::dsl::count_distinct;
-use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
@@ -10,6 +9,7 @@ use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
 use crate::{Database, DatabasePool};
@@ -63,42 +63,27 @@ async fn syncing(
         song_offset,
     }: SearchOffsetCount,
 ) -> Result<Search3Result> {
-    let artists = artists::table
-        .left_join(songs_album_artists::table)
-        .left_join(songs_artists::table)
-        .inner_join(songs::table.on(
-            songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
-        ))
+    let artists = get_basic_artist_id3_db()
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .group_by(artists::id)
-        .having(count_distinct(songs::album_id).gt(0))
         .order(artists::name.asc())
         .limit(artist_count)
         .offset(artist_offset)
-        .select(BasicArtistId3Db::as_select())
         .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
         .await?;
 
-    let albums = songs::table
-        .inner_join(albums::table)
-        .inner_join(songs_album_artists::table)
+    let albums = get_album_id3_db()
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .group_by(albums::id)
         .order(albums::name.asc())
         .limit(album_count)
         .offset(album_offset)
-        .select(AlbumId3Db::as_select())
         .get_results::<AlbumId3Db>(&mut pool.get().await?)
         .await?;
 
-    let songs = songs::table
-        .inner_join(songs_artists::table)
+    let songs = get_song_id3_db()
         .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .group_by(songs::id)
         .order(songs::title.asc())
         .limit(song_count)
         .offset(song_offset)
-        .select(SongId3Db::as_select())
         .get_results::<SongId3Db>(&mut pool.get().await?)
         .await?;
 

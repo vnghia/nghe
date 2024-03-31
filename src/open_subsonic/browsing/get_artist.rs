@@ -1,10 +1,7 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::dsl::{count_distinct, sql};
-use diesel::{
-    sql_types, BoolExpressionMethods, ExpressionMethods, JoinOnDsl, OptionalExtension, QueryDsl,
-    SelectableHelper,
-};
+use diesel::dsl::sql;
+use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde::Serialize;
@@ -12,6 +9,7 @@ use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
+use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::common::music_folder::with_music_folders;
 use crate::{Database, DatabasePool, OSError};
@@ -41,16 +39,9 @@ async fn get_artist_and_album_ids(
     user_id: Uuid,
     artist_id: Uuid,
 ) -> Result<(ArtistId3Db, Vec<Uuid>)> {
-    artists::table
-        .left_join(songs_album_artists::table)
-        .left_join(songs_artists::table)
-        .inner_join(songs::table.on(
-            songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
-        ))
+    get_artist_id3_db()
         .filter(with_music_folders(user_id))
         .filter(artists::id.eq(artist_id))
-        .group_by(artists::id)
-        .having(count_distinct(songs::album_id).gt(0))
         .select((
             ArtistId3Db::as_select(),
             sql::<sql_types::Array<sql_types::Uuid>>(
@@ -68,12 +59,9 @@ async fn get_basic_albums(
     user_id: Uuid,
     album_ids: &[Uuid],
 ) -> Result<Vec<BasicAlbumId3Db>> {
-    albums::table
-        .inner_join(songs::table)
+    get_basic_album_id3_db()
         .filter(with_music_folders(user_id))
         .filter(albums::id.eq_any(album_ids))
-        .group_by(albums::id)
-        .select(BasicAlbumId3Db::as_select())
         .get_results::<BasicAlbumId3Db>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)
