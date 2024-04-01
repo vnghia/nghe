@@ -15,9 +15,9 @@ use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_music_folders;
+use crate::open_subsonic::permission::set_permission;
 use crate::open_subsonic::scan::{start_scan, ScanMode, ScanStatistic};
 use crate::open_subsonic::test::CommonParams;
-use crate::open_subsonic::user::set_music_folder_permissions;
 use crate::utils::song::file_type::to_extensions;
 use crate::utils::song::test::SongTag;
 use crate::{Database, DatabasePool};
@@ -70,7 +70,7 @@ impl Infra {
         SU: SliceIndex<[users::User], Output = [users::User]>,
         SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
-        set_music_folder_permissions(
+        set_permission(
             self.pool(),
             &self.user_ids(user_slice),
             &self.music_folder_ids(music_folder_slice),

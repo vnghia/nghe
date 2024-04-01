@@ -11,7 +11,7 @@ use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::check_user_permissions;
+use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool};
 
 #[add_validate]
@@ -120,7 +120,7 @@ pub async fn search3_handler(
         song_offset,
         music_folder_ids,
     } = req.params;
-    check_user_permissions(&database.pool, req.user_id, &music_folder_ids).await?;
+    check_permission(&database.pool, req.user_id, &music_folder_ids).await?;
 
     let search_offset_count = SearchOffsetCount {
         artist_count: artist_count.unwrap_or(20),

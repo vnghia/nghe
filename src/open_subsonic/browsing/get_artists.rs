@@ -12,7 +12,7 @@ use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::check_user_permissions;
+use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
@@ -62,7 +62,7 @@ pub async fn get_artists(
     user_id: Uuid,
     music_folder_ids: Option<Vec<Uuid>>,
 ) -> Result<Indexes> {
-    check_user_permissions(pool, user_id, &music_folder_ids).await?;
+    check_permission(pool, user_id, &music_folder_ids).await?;
 
     let ignored_articles = configs::table
         .select(configs::text)

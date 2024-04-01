@@ -11,7 +11,7 @@ use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::with_music_folders;
+use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
@@ -40,7 +40,7 @@ async fn get_artist_and_album_ids(
     artist_id: Uuid,
 ) -> Result<(ArtistId3Db, Vec<Uuid>)> {
     get_artist_id3_db()
-        .filter(with_music_folders(user_id))
+        .filter(with_permission(user_id))
         .filter(artists::id.eq(artist_id))
         .select((
             ArtistId3Db::as_select(),
@@ -60,7 +60,7 @@ async fn get_basic_albums(
     album_ids: &[Uuid],
 ) -> Result<Vec<BasicAlbumId3Db>> {
     get_basic_album_id3_db()
-        .filter(with_music_folders(user_id))
+        .filter(with_permission(user_id))
         .filter(albums::id.eq_any(album_ids))
         .get_results::<BasicAlbumId3Db>(&mut pool.get().await?)
         .await

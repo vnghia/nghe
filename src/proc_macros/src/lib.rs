@@ -239,7 +239,7 @@ pub fn add_permission_filter(_: TokenStream, input: TokenStream) -> TokenStream 
 
     let filters = vec![
         quote! {songs::music_folder_id.eq_any(music_folder_ids)},
-        quote! {crate::open_subsonic::common::music_folder::with_music_folders(user_id)},
+        quote! {crate::open_subsonic::permission::with_permission(user_id)},
     ];
     let mut filter_exprs = match filters
         .into_iter()

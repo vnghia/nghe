@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::models::*;
 use crate::DatabasePool;
 
-pub async fn set_music_folder_permissions(
+pub async fn set_permission(
     pool: &DatabasePool,
     user_ids: &[Uuid],
     music_folder_ids: &[Uuid],
@@ -48,14 +48,9 @@ mod tests {
     #[tokio::test]
     async fn test_set_all() {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await.n_folder(4).await;
-        set_music_folder_permissions(
-            infra.pool(),
-            &infra.user_ids(..),
-            &infra.music_folder_ids(..),
-            true,
-        )
-        .await
-        .unwrap();
+        set_permission(infra.pool(), &infra.user_ids(..), &infra.music_folder_ids(..), true)
+            .await
+            .unwrap();
 
         let count = user_music_folder_permissions::table
             .filter(user_music_folder_permissions::allow.eq(true))
@@ -69,22 +64,12 @@ mod tests {
     #[tokio::test]
     async fn test_set_overwrite() {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await.n_folder(4).await;
-        set_music_folder_permissions(
-            infra.pool(),
-            &infra.user_ids(..),
-            &infra.music_folder_ids(..),
-            true,
-        )
-        .await
-        .unwrap();
-        set_music_folder_permissions(
-            infra.pool(),
-            &infra.user_ids(..),
-            &infra.music_folder_ids(..1),
-            false,
-        )
-        .await
-        .unwrap();
+        set_permission(infra.pool(), &infra.user_ids(..), &infra.music_folder_ids(..), true)
+            .await
+            .unwrap();
+        set_permission(infra.pool(), &infra.user_ids(..), &infra.music_folder_ids(..1), false)
+            .await
+            .unwrap();
 
         let count = user_music_folder_permissions::table
             .filter(user_music_folder_permissions::allow.eq(false))

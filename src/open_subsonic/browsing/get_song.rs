@@ -9,7 +9,7 @@ use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::with_music_folders;
+use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
@@ -25,7 +25,7 @@ pub struct GetSongBody {
 
 async fn get_song(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<SongId3Db> {
     get_song_id3_db()
-        .filter(with_music_folders(user_id))
+        .filter(with_permission(user_id))
         .filter(songs::id.eq(song_id))
         .first::<SongId3Db>(&mut pool.get().await?)
         .await
@@ -58,7 +58,7 @@ mod tests {
     async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Vec<Uuid> {
         // inner join = left join + is not null
         get_basic_artist_id3_db()
-            .filter(with_music_folders(user_id))
+            .filter(with_permission(user_id))
             .filter(songs::id.eq(song_id))
             .filter(songs_artists::artist_id.is_not_null())
             .select(artists::id)

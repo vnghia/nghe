@@ -6,7 +6,8 @@ use axum::Router;
 use nghe::config::Config;
 use nghe::open_subsonic::browsing::refresh_music_folders;
 use nghe::open_subsonic::{
-    bookmarks, browsing, extension, media_list, media_retrieval, scan, searching, system, user,
+    bookmarks, browsing, extension, media_list, media_retrieval, permission, scan, searching,
+    system, user,
 };
 use nghe::Database;
 use tokio::signal;
@@ -43,10 +44,8 @@ async fn main() {
     )
     .await;
 
-    // build music folder permissions
-    user::build_music_folder_permissions(&database.pool)
-        .await
-        .expect("can not build music folder permissions");
+    // build permission
+    permission::build_permission(&database.pool).await.expect("can not build user permission");
 
     // scan song
     scan::start_scan(

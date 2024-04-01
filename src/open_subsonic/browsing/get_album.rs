@@ -12,7 +12,7 @@ use crate::open_subsonic::common::error::OSError;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::with_music_folders;
+use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 
 #[add_validate]
@@ -41,7 +41,7 @@ async fn get_album_and_song_ids(
     album_id: Uuid,
 ) -> Result<(AlbumId3Db, Vec<Uuid>)> {
     get_album_id3_db()
-        .filter(with_music_folders(user_id))
+        .filter(with_permission(user_id))
         .filter(albums::id.eq(album_id))
         .select((
             AlbumId3Db::as_select(),
@@ -59,7 +59,7 @@ async fn get_basic_songs(
     song_ids: &[Uuid],
 ) -> Result<Vec<BasicSongId3Db>> {
     get_basic_song_id3_db()
-        .filter(with_music_folders(user_id))
+        .filter(with_permission(user_id))
         .filter(songs::id.eq_any(song_ids))
         .get_results::<BasicSongId3Db>(&mut pool.get().await?)
         .await
@@ -101,7 +101,7 @@ mod tests {
     async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, album_id: Uuid) -> Vec<Uuid> {
         // inner join = left join + is not null
         get_basic_artist_id3_db()
-            .filter(with_music_folders(user_id))
+            .filter(with_permission(user_id))
             .filter(songs::album_id.eq(album_id))
             .filter(songs_album_artists::album_artist_id.is_not_null())
             .select(artists::id)

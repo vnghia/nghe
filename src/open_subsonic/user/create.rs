@@ -7,7 +7,7 @@ use nghe_proc_macros::{add_validate, wrap_subsonic_response};
 use serde_with::serde_as;
 use uuid::Uuid;
 
-use super::set_music_folder_permissions;
+use super::super::permission::set_permission;
 use crate::models::*;
 use crate::utils::password::encrypt_password;
 use crate::Database;
@@ -65,7 +65,7 @@ pub async fn create_user(
         .select(music_folders::id)
         .get_results::<Uuid>(&mut pool.get().await?)
         .await?;
-    set_music_folder_permissions(pool, &[user.id], &music_folder_ids, true).await?;
+    set_permission(pool, &[user.id], &music_folder_ids, true).await?;
 
     Ok(user)
 }
