@@ -23,7 +23,7 @@ pub enum ScanMode {
     Force,
 }
 
-#[add_validate(admin = true)]
+#[add_validate(admin)]
 #[derive(Debug)]
 pub struct StartScanParams {
     scan_mode: ScanMode,

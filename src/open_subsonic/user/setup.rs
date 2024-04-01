@@ -37,9 +37,12 @@ pub async fn setup_handler(
                 username: params.username,
                 password: params.password,
                 email: params.email,
-                admin_role: true,
-                download_role: true,
-                share_role: true,
+                role: users::Role {
+                    admin_role: true,
+                    stream_role: true,
+                    download_role: true,
+                    share_role: true,
+                },
             },
         )
         .await?;

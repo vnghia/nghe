@@ -37,8 +37,8 @@ impl Infra {
         Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
     }
 
-    pub async fn add_user(mut self, admin_role: Option<bool>) -> Self {
-        self.users.push(users::User::fake(admin_role).create(self.database()).await);
+    pub async fn add_user(mut self, role: Option<users::Role>) -> Self {
+        self.users.push(users::User::fake(role).create(self.database()).await);
         let user_index = self.users.len() - 1;
         if !self.music_folders.is_empty() {
             self.permissions(user_index..=user_index, .., true).await;

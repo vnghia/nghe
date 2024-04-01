@@ -1,6 +1,8 @@
 #![deny(clippy::all)]
+#![allow(incomplete_features)]
 // TODO: reuse type when diesel 2.2.0 is released
 #![allow(clippy::type_complexity)]
+#![feature(adt_const_params)]
 #![feature(ascii_char)]
 #![feature(const_option, const_option_ext)]
 #![feature(if_let_guard)]

@@ -1,14 +1,16 @@
 #![deny(clippy::all)]
+#![feature(let_chains)]
 #![feature(try_blocks)]
-
+use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
+use std::sync::OnceLock;
 
 use concat_string::concat_string;
-use proc_macro::TokenStream;
-use quote::quote;
+use proc_macro::{Span, TokenStream};
+use quote::{format_ident, quote};
 use syn::parse::Parser;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, parse_quote, Error, Expr, Ident, ItemStruct};
+use syn::{parse_macro_input, parse_quote, Error, Expr, Field, Fields, Ident, Item, ItemStruct};
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
 const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
@@ -103,10 +105,49 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     .into()
 }
 
-#[derive(deluxe::ParseMetaItem)]
+fn all_roles() -> &'static HashSet<String> {
+    static ALL_ROLES: OnceLock<HashSet<String>> = OnceLock::new();
+    ALL_ROLES.get_or_init(|| {
+        let file = syn::parse_file(
+            &std::fs::read_to_string(
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .parent()
+                    .unwrap()
+                    .join("models")
+                    .join("users.rs"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let role_struct = file
+            .items
+            .into_iter()
+            .find_map(|i| {
+                if let Item::Struct(item) = i
+                    && item.ident == "Role"
+                {
+                    Some(item)
+                } else {
+                    None
+                }
+            })
+            .unwrap();
+        if let Fields::Named(fields) = role_struct.fields {
+            fields
+                .named
+                .into_iter()
+                .map(|n| n.ident.unwrap().to_string().strip_suffix("_role").unwrap().to_string())
+                .collect::<HashSet<_>>()
+        } else {
+            unreachable!()
+        }
+    })
+}
+
+#[derive(Debug, deluxe::ParseMetaItem)]
+#[deluxe(transparent(flatten_unnamed, append))]
 struct AddValidateResponse {
-    #[deluxe(default = false)]
-    admin: bool,
+    roles: Vec<Expr>,
 }
 
 #[proc_macro_attribute]
@@ -120,11 +161,47 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         Ok(r) => r,
         Err(e) => return e.into_compile_error().into(),
     };
+    let roles = match args
+        .roles
+        .into_iter()
+        .map(|e| {
+            if let Expr::Path(p) = e {
+                Ok(p.path
+                    .segments
+                    .last()
+                    .ok_or(Error::new(p.span(), "last path segment is missing"))?
+                    .ident
+                    .to_string())
+            } else {
+                Err(Error::new(e.span(), "expression should be a path"))
+            }
+        })
+        .collect::<Result<HashSet<_>, Error>>()
+    {
+        Ok(r) => r,
+        Err(e) => return e.into_compile_error().into(),
+    };
+    if !all_roles().is_superset(&roles) {
+        return Error::new(Span::call_site().into(), "inputs contain invalid role")
+            .to_compile_error()
+            .into();
+    }
+    let role_stmts = all_roles()
+        .iter()
+        .map(|r| {
+            let role_name = format_ident!("{}_role", r);
+            let has_role = roles.contains(r);
+            quote! { #role_name: #has_role }
+        })
+        .collect::<Vec<_>>();
+    let role_struct_path: proc_macro2::TokenStream = "crate::models::users::Role".parse().unwrap();
+    let role_struct = quote! {
+        #role_struct_path {
+          #( #role_stmts ),*
+        }
+    };
 
-    let need_admin_token: proc_macro2::TokenStream =
-        (if args.admin { "true" } else { "false" }).parse().unwrap();
-
-    let params_fields = if let syn::Fields::Named(ref fields) = item_struct.fields {
+    let params_fields = if let Fields::Named(ref fields) = item_struct.fields {
         match fields
             .named
             .iter()
@@ -132,9 +209,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
                 f.ident
                     .as_ref()
                     .map(|ident| {
-                        quote! {
-                            #ident: self.#ident
-                        }
+                        quote! { #ident: self.#ident }
                     })
                     .ok_or(Error::new(f.span(), "struct field name is missing"))
             })
@@ -168,9 +243,9 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     validate_item_struct.ident =
         Ident::new(&concat_string!(validated_type, "Validate"), item_struct_ident.span());
     let validate_item_ident = &validate_item_struct.ident;
-    if let syn::Fields::Named(ref mut fields) = validate_item_struct.fields {
+    if let Fields::Named(ref mut fields) = validate_item_struct.fields {
         fields.named.push(
-            syn::Field::parse_named
+            Field::parse_named
                 .parse2(quote! {
                     #[serde(flatten)]
                     pub common: #common_type_token
@@ -203,7 +278,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         }
 
         pub type #validated_form_ident =
-            #validated_form_token<#validate_item_ident, #item_struct_ident, #need_admin_token>;
+            #validated_form_token<#validate_item_ident, #item_struct_ident,{ #role_struct }>;
 
         #[cfg(test)]
         impl #item_struct_ident {

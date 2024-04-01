@@ -6,6 +6,7 @@ users (
     password bytea not null,
     email text not null,
     admin_role boolean not null default false,
+    stream_role boolean not null default false,
     download_role boolean not null default false,
     share_role boolean not null default false,
     created_at timestamptz not null default now(),

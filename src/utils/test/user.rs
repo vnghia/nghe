@@ -1,5 +1,5 @@
 use fake::faker::internet::en::*;
-use fake::{Fake, Faker};
+use fake::Fake;
 
 use crate::database::EncryptionKey;
 use crate::models::*;
@@ -9,12 +9,12 @@ use crate::utils::password::{decrypt_password, to_password_token};
 use crate::Database;
 
 impl users::User {
-    pub fn fake(admin_role: Option<bool>) -> Self {
+    pub fn fake(role: Option<users::Role>) -> Self {
         Self {
             username: Username().fake(),
             password: Password(16..32).fake::<String>().into_bytes(),
             email: SafeEmail().fake(),
-            admin_role: admin_role.unwrap_or_default(),
+            role: role.unwrap_or_default(),
             ..Default::default()
         }
     }
@@ -24,8 +24,8 @@ impl users::User {
     }
 
     pub fn into_create_params(self) -> CreateUserParams {
-        let Self { username, password, email, admin_role, .. } = self;
-        CreateUserParams { username, password, email, admin_role, ..Faker.fake() }
+        let Self { username, password, email, role, .. } = self;
+        CreateUserParams { username, password, email, role }
     }
 
     pub fn to_common_params(&self, key: &EncryptionKey) -> CommonParams {

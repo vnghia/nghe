@@ -124,6 +124,7 @@ diesel::table! {
         password -> Bytea,
         email -> Text,
         admin_role -> Bool,
+        stream_role -> Bool,
         download_role -> Bool,
         share_role -> Bool,
         created_at -> Timestamptz,

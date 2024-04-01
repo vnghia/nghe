@@ -13,7 +13,7 @@ use crate::utils::password::encrypt_password;
 use crate::Database;
 
 #[serde_as]
-#[add_validate(admin = true)]
+#[add_validate(admin)]
 #[derive(Derivative)]
 #[derivative(Debug)]
 #[cfg_attr(test, derive(fake::Dummy))]
@@ -23,9 +23,8 @@ pub struct CreateUserParams {
     #[serde_as(as = "serde_with::Bytes")]
     pub password: Vec<u8>,
     pub email: String,
-    pub admin_role: bool,
-    pub download_role: bool,
-    pub share_role: bool,
+    #[cfg_attr(test, dummy(expr = "users::Role::default()"))]
+    pub role: users::Role,
 }
 
 #[wrap_subsonic_response]
@@ -43,9 +42,7 @@ pub async fn create_user(
     Database { pool, key }: &Database,
     params: CreateUserParams,
 ) -> Result<users::User> {
-    let CreateUserParams {
-        username, password, email, admin_role, download_role, share_role, ..
-    } = params;
+    let CreateUserParams { username, password, email, role } = params;
     let password = encrypt_password(key, &password);
 
     let user = diesel::insert_into(users::table)
@@ -53,9 +50,7 @@ pub async fn create_user(
             username: username.into(),
             password: password.into(),
             email: email.into(),
-            admin_role,
-            download_role,
-            share_role,
+            role,
         })
         .returning(users::User::as_returning())
         .get_result(&mut pool.get().await?)
