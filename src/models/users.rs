@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 pub use crate::schema::users;
 
-#[derive(Debug, Identifiable, Queryable, Selectable, Clone, PartialEq, Eq)]
+#[derive(Queryable, Selectable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[cfg_attr(test, derive(Derivative))]

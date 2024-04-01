@@ -54,7 +54,7 @@ pub struct SongFullInformationDB<'a> {
 pub mod test {
     use super::*;
 
-    #[derive(Debug, Identifiable, Queryable, Selectable, Clone, PartialEq)]
+    #[derive(Queryable, Selectable)]
     #[diesel(table_name = songs)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
     pub struct Song {
