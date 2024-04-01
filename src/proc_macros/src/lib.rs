@@ -4,8 +4,6 @@
 use std::ops::{Deref, DerefMut};
 
 use concat_string::concat_string;
-use darling::ast::NestedMeta;
-use darling::FromMeta;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
@@ -16,9 +14,9 @@ const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::res
 const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
 const COMMON_ERROR_IMPORT_PREFIX: &str = "crate::open_subsonic::common::error";
 
-#[derive(Debug, FromMeta)]
+#[derive(deluxe::ParseMetaItem)]
 struct WrapSubsonicResponse {
-    #[darling(default = "return_true")]
+    #[deluxe(default = true)]
     success: bool,
 }
 
@@ -27,12 +25,9 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     let item_struct = parse_macro_input!(input as ItemStruct);
     let item_struct_ident = &item_struct.ident;
 
-    let args = match try {
-        let attr_args = NestedMeta::parse_meta_list(args.into())?;
-        WrapSubsonicResponse::from_list(&attr_args)?
-    } {
+    let args = match deluxe::parse2::<WrapSubsonicResponse>(args.into()) {
         Ok(r) => r,
-        Err::<_, Error>(e) => return e.to_compile_error().into(),
+        Err(e) => return e.into_compile_error().into(),
     };
 
     let constant_type = if args.success {
@@ -108,9 +103,9 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     .into()
 }
 
-#[derive(Debug, FromMeta)]
+#[derive(deluxe::ParseMetaItem)]
 struct AddValidateResponse {
-    #[darling(default = "return_false")]
+    #[deluxe(default = false)]
     admin: bool,
 }
 
@@ -121,12 +116,9 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut validate_item_struct = item_struct.clone();
 
-    let args = match try {
-        let attr_args = NestedMeta::parse_meta_list(args.into())?;
-        AddValidateResponse::from_list(&attr_args)?
-    } {
+    let args = match deluxe::parse2::<AddValidateResponse>(args.into()) {
         Ok(r) => r,
-        Err::<_, Error>(e) => return e.to_compile_error().into(),
+        Err(e) => return e.into_compile_error().into(),
     };
 
     let need_admin_token: proc_macro2::TokenStream =
@@ -282,12 +274,4 @@ pub fn add_permission_filter(_: TokenStream, input: TokenStream) -> TokenStream 
         #filter_expr_with_user_id
     })
     .into()
-}
-
-fn return_true() -> bool {
-    true
-}
-
-fn return_false() -> bool {
-    false
 }
