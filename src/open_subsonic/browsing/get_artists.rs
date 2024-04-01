@@ -23,6 +23,7 @@ pub struct GetArtistsParams {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug))]
 #[serde(rename_all = "camelCase")]
 pub struct Index {
     pub name: String,
@@ -31,6 +32,7 @@ pub struct Index {
 }
 
 #[derive(Serialize)]
+#[cfg_attr(test, derive(Debug))]
 #[serde(rename_all = "camelCase")]
 pub struct Indexes {
     pub ignored_articles: String,
@@ -60,9 +62,9 @@ async fn get_indexed_artists(
 pub async fn get_artists(
     pool: &DatabasePool,
     user_id: Uuid,
-    music_folder_ids: Option<Vec<Uuid>>,
+    music_folder_ids: &Option<Vec<Uuid>>,
 ) -> Result<Indexes> {
-    check_permission(pool, user_id, &music_folder_ids).await?;
+    check_permission(pool, user_id, music_folder_ids).await?;
 
     let ignored_articles = configs::table
         .select(configs::text)
@@ -71,7 +73,7 @@ pub async fn get_artists(
         .await?
         .ok_or_else(|| OSError::NotFound("Ignored articles".into()))?;
 
-    let index = get_indexed_artists(pool, user_id, &music_folder_ids)
+    let index = get_indexed_artists(pool, user_id, music_folder_ids)
         .await?
         .into_iter()
         .into_group_map()
@@ -87,7 +89,7 @@ pub async fn get_artists_handler(
     req: GetArtistsRequest,
 ) -> GetArtistsJsonResponse {
     GetArtistsBody {
-        artists: get_artists(&database.pool, req.user_id, req.params.music_folder_ids).await?,
+        artists: get_artists(&database.pool, req.user_id, &req.params.music_folder_ids).await?,
     }
     .into()
 }
@@ -102,7 +104,7 @@ mod tests {
     use crate::utils::test::Infra;
 
     #[tokio::test]
-    async fn test_get_artists() {
+    async fn test_get_indexed_artists() {
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra.add_n_song(0, n_song).scan(.., None).await;
@@ -118,7 +120,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_song_artists() {
+    async fn test_get_indexed_song_artists() {
         let artist_name = "artist";
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
@@ -144,7 +146,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_album_artists() {
+    async fn test_get_indexed_album_artists() {
         let artist_name = "artist";
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
@@ -173,7 +175,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_artists_multiple_music_folders() {
+    async fn test_get_indexed_artists_multiple_music_folders() {
         let artist_name = "artist";
         let n_folder = 5_usize;
         let n_song = 10_usize;
@@ -200,7 +202,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_artists_deny_music_folders() {
+    async fn test_get_indexed_artists_deny_music_folders() {
         let artist_name = "artist";
         let n_folder = 5_usize;
         let n_song = 10_usize;
@@ -232,5 +234,28 @@ mod tests {
             .sorted()
             .collect_vec();
         assert!(!artist_ids.contains(&artist_id));
+    }
+
+    #[tokio::test]
+    async fn test_get_artists() {
+        let n_folder = 5_usize;
+        let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
+        (0..n_folder).for_each(|i| {
+            infra.add_n_song(i, n_song);
+        });
+        infra.scan(.., None).await;
+        infra.only_permissions(.., 0..2, true).await;
+
+        assert!(get_artists(infra.pool(), infra.user_id(0), &None).await.is_ok());
+        assert!(matches!(
+            get_artists(infra.pool(), infra.user_id(0), &Some(infra.music_folder_ids(..)))
+                .await
+                .unwrap_err()
+                .root_cause()
+                .downcast_ref::<OSError>()
+                .unwrap(),
+            OSError::Forbidden(_)
+        ));
     }
 }

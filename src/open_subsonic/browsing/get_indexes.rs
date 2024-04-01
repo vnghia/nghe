@@ -54,7 +54,7 @@ pub async fn get_indexed_handler(
     req: GetIndexesRequest,
 ) -> GetIndexesJsonResponse {
     let indexed_artists =
-        get_artists(&database.pool, req.user_id, req.params.music_folder_ids).await?;
+        get_artists(&database.pool, req.user_id, &req.params.music_folder_ids).await?;
     let index = indexed_artists
         .index
         .into_iter()
