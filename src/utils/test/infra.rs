@@ -178,7 +178,7 @@ impl Infra {
             .copied()
             .enumerate()
             .filter_map(|(i, u)| if u { Some(i) } else { None })
-            .zip(new_song_fs_infos.into_iter())
+            .zip(new_song_fs_infos)
             .for_each(|(i, s)| {
                 self.song_fs_infos_vec[index][i] = s;
             });
@@ -219,7 +219,7 @@ impl Infra {
         assert!(!new_song_path.is_absolute());
 
         std::fs::copy(
-            music_folder_path.join(&old_song_path),
+            music_folder_path.join(old_song_path),
             music_folder_path.join(&new_song_path),
         )
         .unwrap();
@@ -259,7 +259,7 @@ impl Infra {
     }
 
     pub fn to_common_params(&self, index: usize) -> CommonParams {
-        self.users[index].to_common_params(&self.key())
+        self.users[index].to_common_params(self.key())
     }
 
     pub fn music_folder_id(&self, index: usize) -> Uuid {
