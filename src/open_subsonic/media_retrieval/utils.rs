@@ -6,6 +6,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::models::*;
+use crate::open_subsonic::permission::with_permission;
 use crate::{DatabasePool, OSError};
 
 pub async fn get_song_download_info(
@@ -13,12 +14,10 @@ pub async fn get_song_download_info(
     user_id: Uuid,
     song_id: Uuid,
 ) -> Result<(PathBuf, u64, u64)> {
-    music_folders::table
-        .inner_join(songs::table)
-        .inner_join(user_music_folder_permissions::table)
+    songs::table
+        .inner_join(music_folders::table)
+        .filter(with_permission(user_id))
         .filter(songs::id.eq(song_id))
-        .filter(user_music_folder_permissions::user_id.eq(user_id))
-        .filter(user_music_folder_permissions::allow)
         .select((music_folders::path, songs::relative_path, songs::file_hash, songs::file_size))
         .first::<(String, String, i64, i64)>(&mut pool.get().await?)
         .await

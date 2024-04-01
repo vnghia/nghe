@@ -40,6 +40,7 @@ pub async fn set_permission(
 
 #[cfg(test)]
 mod tests {
+    use diesel::dsl::not;
     use diesel::QueryDsl;
 
     use super::*;
@@ -53,7 +54,7 @@ mod tests {
             .unwrap();
 
         let count = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::allow.eq(true))
+            .filter(user_music_folder_permissions::allow)
             .count()
             .get_result::<i64>(&mut infra.pool().get().await.unwrap())
             .await
@@ -72,7 +73,7 @@ mod tests {
             .unwrap();
 
         let count = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::allow.eq(false))
+            .filter(not(user_music_folder_permissions::allow))
             .count()
             .get_result::<i64>(&mut infra.pool().get().await.unwrap())
             .await

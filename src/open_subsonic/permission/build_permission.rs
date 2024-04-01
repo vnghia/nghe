@@ -24,6 +24,8 @@ pub async fn build_permission(pool: &DatabasePool) -> Result<Vec<Uuid>> {
 
 #[cfg(test)]
 mod tests {
+    use diesel::dsl::not;
+
     use super::*;
     use crate::utils::test::Infra;
 
@@ -36,7 +38,7 @@ mod tests {
         assert_eq!(missing_folder_ids.len(), 0);
 
         let count = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::allow.eq(true))
+            .filter(user_music_folder_permissions::allow)
             .count()
             .get_result::<i64>(&mut infra.pool().get().await.unwrap())
             .await
@@ -60,7 +62,7 @@ mod tests {
         assert_eq!(missing_folder_ids.len(), 1);
 
         let count_allow = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::allow.eq(true))
+            .filter(user_music_folder_permissions::allow)
             .count()
             .get_result::<i64>(&mut infra.pool().get().await.unwrap())
             .await
@@ -69,7 +71,7 @@ mod tests {
 
         // `build_permission` should not override exisiting permissions.
         let deny_ids = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::allow.eq(false))
+            .filter(not(user_music_folder_permissions::allow))
             .select(user_music_folder_permissions::music_folder_id)
             .get_results::<Uuid>(&mut infra.pool().get().await.unwrap())
             .await
