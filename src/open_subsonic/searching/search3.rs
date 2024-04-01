@@ -3,7 +3,7 @@ use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_permission_filter, add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -11,7 +11,7 @@ use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::open_subsonic::common::music_folder::check_user_permissions;
 use crate::{Database, DatabasePool};
 
 #[add_validate]
@@ -53,7 +53,8 @@ pub struct Search3Body {
 
 async fn syncing(
     pool: &DatabasePool,
-    music_folder_ids: &[Uuid],
+    user_id: Uuid,
+    music_folder_ids: &Option<Vec<Uuid>>,
     SearchOffsetCount {
         artist_count,
         artist_offset,
@@ -63,29 +64,35 @@ async fn syncing(
         song_offset,
     }: SearchOffsetCount,
 ) -> Result<Search3Result> {
-    let artists = get_basic_artist_id3_db()
-        .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .order(artists::name.asc())
-        .limit(artist_count)
-        .offset(artist_offset)
-        .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
-        .await?;
+    let artists = {
+        #[add_permission_filter]
+        get_basic_artist_id3_db()
+            .order(artists::name.asc())
+            .limit(artist_count)
+            .offset(artist_offset)
+            .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
+    }
+    .await?;
 
-    let albums = get_album_id3_db()
-        .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .order(albums::name.asc())
-        .limit(album_count)
-        .offset(album_offset)
-        .get_results::<AlbumId3Db>(&mut pool.get().await?)
-        .await?;
+    let albums = {
+        #[add_permission_filter]
+        get_album_id3_db()
+            .order(albums::name.asc())
+            .limit(album_count)
+            .offset(album_offset)
+            .get_results::<AlbumId3Db>(&mut pool.get().await?)
+    }
+    .await?;
 
-    let songs = get_song_id3_db()
-        .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .order(songs::title.asc())
-        .limit(song_count)
-        .offset(song_offset)
-        .get_results::<SongId3Db>(&mut pool.get().await?)
-        .await?;
+    let songs = {
+        #[add_permission_filter]
+        get_song_id3_db()
+            .order(songs::title.asc())
+            .limit(song_count)
+            .offset(song_offset)
+            .get_results::<SongId3Db>(&mut pool.get().await?)
+    }
+    .await?;
 
     Ok(Search3Result {
         artists: artists.into_iter().map(|v| v.into_res()).collect(),
@@ -113,6 +120,8 @@ pub async fn search3_handler(
         song_offset,
         music_folder_ids,
     } = req.params;
+    check_user_permissions(&database.pool, req.user_id, &music_folder_ids).await?;
+
     let search_offset_count = SearchOffsetCount {
         artist_count: artist_count.unwrap_or(20),
         artist_offset: artist_offset.unwrap_or(0),
@@ -122,14 +131,8 @@ pub async fn search3_handler(
         song_offset: song_offset.unwrap_or(0),
     };
 
-    let music_folder_ids = check_user_music_folder_ids(
-        &database.pool,
-        &req.user_id,
-        music_folder_ids.map(|v| v.into()),
-    )
-    .await?;
-
-    let search_result = syncing(&database.pool, &music_folder_ids, search_offset_count).await?;
+    let search_result =
+        syncing(&database.pool, req.user_id, &music_folder_ids, search_offset_count).await?;
 
     Search3Body { search_result_3: search_result }.into()
 }

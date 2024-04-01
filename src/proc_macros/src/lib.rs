@@ -1,13 +1,16 @@
 #![deny(clippy::all)]
 #![feature(try_blocks)]
 
+use std::ops::{Deref, DerefMut};
+
 use concat_string::concat_string;
 use darling::ast::NestedMeta;
-use darling::{Error, FromMeta};
+use darling::FromMeta;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
-use syn::{parse_macro_input, Ident, ItemStruct};
+use syn::spanned::Spanned;
+use syn::{parse_macro_input, parse_quote, Error, Expr, Ident, ItemStruct};
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
 const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
@@ -29,9 +32,7 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
         WrapSubsonicResponse::from_list(&attr_args)?
     } {
         Ok(r) => r,
-        Err::<_, Error>(e) => {
-            return TokenStream::from(e.write_errors());
-        }
+        Err::<_, Error>(e) => return e.to_compile_error().into(),
     };
 
     let constant_type = if args.success {
@@ -54,12 +55,9 @@ pub fn wrap_subsonic_response(args: TokenStream, input: TokenStream) -> TokenStr
     let base_type = match item_struct_ident.to_string().strip_suffix("Body") {
         Some(result) => result.to_owned(),
         _ => {
-            return syn::Error::new(
-                item_struct_ident.span(),
-                "struct's name should end with `Body`",
-            )
-            .to_compile_error()
-            .into();
+            return Error::new(item_struct_ident.span(), "struct's name should end with `Body`")
+                .to_compile_error()
+                .into();
         }
     };
 
@@ -128,9 +126,7 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
         AddValidateResponse::from_list(&attr_args)?
     } {
         Ok(r) => r,
-        Err::<_, Error>(err) => {
-            return TokenStream::from(err.write_errors());
-        }
+        Err::<_, Error>(e) => return e.to_compile_error().into(),
     };
 
     let need_admin_token: proc_macro2::TokenStream =
@@ -148,14 +144,12 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
                             #ident: self.#ident
                         }
                     })
-                    .ok_or(Error::missing_field("struct field name"))
+                    .ok_or(Error::new(f.span(), "struct field name is missing"))
             })
             .collect::<Result<_, Error>>()
         {
             Ok(r) => r,
-            Err(e) => {
-                return TokenStream::from(e.write_errors());
-            }
+            Err(e) => return e.to_compile_error().into(),
         }
     } else {
         vec![]
@@ -171,12 +165,9 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
     let validated_type = match item_struct_ident.to_string().strip_suffix("Params") {
         Some(some) => some.to_owned(),
         _ => {
-            return syn::Error::new(
-                item_struct_ident.span(),
-                "struct's name should end with `Params`",
-            )
-            .to_compile_error()
-            .into();
+            return Error::new(item_struct_ident.span(), "struct's name should end with `Params`")
+                .to_compile_error()
+                .into();
         }
     };
     let validated_form_ident =
@@ -239,6 +230,57 @@ pub fn add_validate(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
     )
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn add_permission_filter(_: TokenStream, input: TokenStream) -> TokenStream {
+    let expr = syn::parse::<Expr>(input).unwrap();
+
+    let filters = vec![
+        quote! {songs::music_folder_id.eq_any(music_folder_ids)},
+        quote! {crate::open_subsonic::common::music_folder::with_music_folders(user_id)},
+    ];
+    let mut filter_exprs = match filters
+        .into_iter()
+        .map(|f| {
+            let mut expr = expr.clone();
+            let mut current_expr = &mut expr;
+            loop {
+                match current_expr {
+                    Expr::MethodCall(ref mut expr) => {
+                        let receiver_expr = expr.receiver.deref();
+                        if let Expr::Call(head_expr) = receiver_expr {
+                            expr.receiver =
+                                Box::new(Expr::MethodCall(parse_quote! {#head_expr.filter(#f)}));
+                            break;
+                        } else {
+                            current_expr = expr.receiver.deref_mut();
+                        }
+                    }
+                    expr => {
+                        return Err(Error::new(
+                            expr.span(),
+                            "item in expression should be a function call",
+                        ));
+                    }
+                }
+            }
+            Ok(expr)
+        })
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(r) => r,
+        Err(e) => return e.to_compile_error().into(),
+    };
+
+    let filter_expr_with_user_id = filter_exprs.pop();
+    let filter_expr_with_music_folder_ids = filter_exprs.pop();
+    quote!(if let Some(music_folder_ids) = music_folder_ids.as_ref() {
+        #filter_expr_with_music_folder_ids
+    } else {
+        #filter_expr_with_user_id
+    })
     .into()
 }
 

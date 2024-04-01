@@ -3,7 +3,7 @@ use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_permission_filter, add_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -12,7 +12,7 @@ use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
-use crate::open_subsonic::common::music_folder::check_user_music_folder_ids;
+use crate::open_subsonic::common::music_folder::check_user_permissions;
 use crate::{Database, DatabasePool, OSError};
 
 #[add_validate]
@@ -44,14 +44,17 @@ pub struct GetArtistsBody {
 
 async fn get_indexed_artists(
     pool: &DatabasePool,
-    music_folder_ids: &[Uuid],
+    user_id: Uuid,
+    music_folder_ids: &Option<Vec<Uuid>>,
 ) -> Result<Vec<(String, BasicArtistId3Db)>> {
-    get_basic_artist_id3_db()
-        .filter(songs::music_folder_id.eq_any(music_folder_ids))
-        .select((artists::index, BasicArtistId3Db::as_select()))
-        .get_results::<(String, BasicArtistId3Db)>(&mut pool.get().await?)
-        .await
-        .map_err(anyhow::Error::from)
+    {
+        #[add_permission_filter]
+        get_basic_artist_id3_db()
+            .select((artists::index, BasicArtistId3Db::as_select()))
+            .get_results::<(String, BasicArtistId3Db)>(&mut pool.get().await?)
+    }
+    .await
+    .map_err(anyhow::Error::from)
 }
 
 pub async fn get_artists(
@@ -59,8 +62,7 @@ pub async fn get_artists(
     user_id: Uuid,
     music_folder_ids: Option<Vec<Uuid>>,
 ) -> Result<Indexes> {
-    let music_folder_ids =
-        check_user_music_folder_ids(pool, &user_id, music_folder_ids.map(|v| v.into())).await?;
+    check_user_permissions(pool, user_id, &music_folder_ids).await?;
 
     let ignored_articles = configs::table
         .select(configs::text)
@@ -69,7 +71,7 @@ pub async fn get_artists(
         .await?
         .ok_or_else(|| OSError::NotFound("Ignored articles".into()))?;
 
-    let index = get_indexed_artists(pool, &music_folder_ids)
+    let index = get_indexed_artists(pool, user_id, &music_folder_ids)
         .await?
         .into_iter()
         .into_group_map()
@@ -102,11 +104,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_artists() {
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(1).await;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra.add_n_song(0, n_song).scan(.., None).await;
-        let music_folder_ids = infra.music_folder_ids(..);
 
-        let artist_ids = get_indexed_artists(infra.pool(), &music_folder_ids)
+        let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
             .into_iter()
@@ -120,7 +121,7 @@ mod tests {
     async fn test_get_song_artists() {
         let artist_name = "artist";
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(1).await;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra
             .add_songs(
                 0,
@@ -132,15 +133,13 @@ mod tests {
             .await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-
-        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..=0))
+        let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
             .into_iter()
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-
         assert!(artist_ids.contains(&artist_id));
     }
 
@@ -148,7 +147,7 @@ mod tests {
     async fn test_get_album_artists() {
         let artist_name = "artist";
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(1).await;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra
             .add_songs(
                 0,
@@ -163,15 +162,13 @@ mod tests {
             .await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-
-        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..=0))
+        let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
             .into_iter()
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-
         assert!(artist_ids.contains(&artist_id));
     }
 
@@ -180,7 +177,7 @@ mod tests {
         let artist_name = "artist";
         let n_folder = 5_usize;
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(n_folder).await;
+        let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
         (0..n_folder).for_each(|i| {
             infra.add_songs(
                 i,
@@ -192,15 +189,13 @@ mod tests {
         infra.scan(.., None).await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-
-        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..=0))
+        let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
             .into_iter()
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-
         assert!(artist_ids.contains(&artist_id));
     }
 
@@ -209,7 +204,7 @@ mod tests {
         let artist_name = "artist";
         let n_folder = 5_usize;
         let n_song = 10_usize;
-        let mut infra = Infra::new().await.n_folder(n_folder).await;
+        let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
         (0..n_folder).for_each(|i| {
             infra.add_songs(
                 i,
@@ -226,17 +221,16 @@ mod tests {
             );
         });
         infra.scan(.., None).await;
+        infra.only_permissions(.., 0..2, true).await;
 
         let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
-
-        let artist_ids = get_indexed_artists(infra.pool(), &infra.music_folder_ids(0..2))
+        let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
             .into_iter()
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-
         assert!(!artist_ids.contains(&artist_id));
     }
 }

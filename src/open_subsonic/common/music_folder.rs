@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use anyhow::Result;
 use diesel::dsl::{exists, not, Eq, Filter};
 use diesel::{select, ExpressionMethods, QueryDsl};
@@ -31,35 +29,62 @@ pub fn with_music_folders(
     )
 }
 
-pub async fn check_user_music_folder_ids<'a>(
+pub async fn check_user_permissions(
     pool: &DatabasePool,
-    user_id: &Uuid,
-    music_folder_ids: Option<Cow<'a, [Uuid]>>,
-) -> Result<Cow<'a, [Uuid]>> {
-    if let Some(music_folder_ids) = music_folder_ids {
-        if select(not(exists(
+    user_id: Uuid,
+    music_folder_ids: &Option<Vec<Uuid>>,
+) -> Result<()> {
+    if let Some(music_folder_ids) = music_folder_ids.as_ref()
+        && !select(not(exists(
             user_music_folder_permissions::table
                 .filter(user_music_folder_permissions::user_id.eq(user_id))
-                .filter(
-                    user_music_folder_permissions::music_folder_id
-                        .eq_any(music_folder_ids.as_ref()),
-                )
+                .filter(user_music_folder_permissions::music_folder_id.eq_any(music_folder_ids))
                 .filter(not(user_music_folder_permissions::allow)),
         )))
-        .first::<bool>(&mut pool.get().await?)
+        .get_result::<bool>(&mut pool.get().await?)
         .await?
-        {
-            Ok(music_folder_ids)
-        } else {
-            anyhow::bail!(OSError::Forbidden("access to these music folders".into()))
-        }
+    {
+        anyhow::bail!(OSError::Forbidden("access to these music folders".into()))
     } else {
-        Ok(user_music_folder_permissions::table
-            .select(user_music_folder_permissions::music_folder_id)
-            .filter(user_music_folder_permissions::user_id.eq(user_id))
-            .filter(user_music_folder_permissions::allow)
-            .get_results::<Uuid>(&mut pool.get().await?)
-            .await?
-            .into())
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_check_user_permissions_none() {
+        let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
+        check_user_permissions(infra.pool(), infra.user_id(0), &None).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_check_user_permissions_all() {
+        let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
+        check_user_permissions(infra.pool(), infra.user_id(0), &Some(infra.music_folder_ids(..)))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_check_user_permissions_deny() {
+        let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
+        infra.only_permissions(.., 1.., true).await;
+        assert!(matches!(
+            check_user_permissions(
+                infra.pool(),
+                infra.user_id(0),
+                &Some(infra.music_folder_ids(..))
+            )
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
+            OSError::Forbidden(_)
+        ));
     }
 }
