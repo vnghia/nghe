@@ -2,7 +2,6 @@ use std::ffi::{CStr, CString};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
-use std::sync::atomic::{AtomicI64, Ordering};
 
 use anyhow::{Context, Result};
 use concat_string::concat_string;
@@ -181,16 +180,10 @@ fn init_filter<'a>(
 }
 
 fn encode_audio_frame(
-    mut frame: Option<AVFrame>,
+    frame: Option<AVFrame>,
     enc_ctx: &mut AVCodecContext,
     output_fmt_ctx: &mut AVFormatContextOutput,
 ) -> Result<()> {
-    static PTS: AtomicI64 = AtomicI64::new(0);
-
-    if let Some(frame) = frame.as_mut() {
-        frame.set_pts(PTS.fetch_add(frame.nb_samples as i64, Ordering::Relaxed));
-    }
-
     // Check for errors, but proceed with fetching encoded samples if the
     // encoder signals that it has nothing more to encode.
     match enc_ctx.send_frame(frame.as_ref()) {
