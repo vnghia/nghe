@@ -19,8 +19,9 @@ use crate::utils::song::transcode;
 use crate::{Database, DatabasePool, ServerError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AsRefStr, Deserialize)]
-#[cfg_attr(test, derive(strum::EnumIter))]
 #[strum(serialize_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+#[cfg_attr(test, derive(strum::EnumIter))]
 pub enum Format {
     Raw,
     Aac,
