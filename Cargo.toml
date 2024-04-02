@@ -41,6 +41,7 @@ rsmpeg = { git = "https://github.com/vnghia/rsmpeg.git", rev = "e34a83a", featur
 ] }
 serde = { version = "1.0", features = ["derive"] }
 serde_with = { version = "3.7.0", features = ["hex"] }
+strum = { version = "0.26.2", features = ["derive"] }
 thiserror = "1.0.58"
 time = { version = "0.3.34", features = ["serde-human-readable", "macros"] }
 tokio = { version = "1.37", features = ["full"] }

@@ -4,16 +4,19 @@ use ::uuid::Uuid;
 use anyhow::Result;
 use concat_string::concat_string;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-
-use crate::OSError;
+use strum::{AsRefStr, EnumString};
 
 const TYPED_ID_SEPARATOR: char = ':';
 const TYPED_ID_STR: &str = TYPED_ID_SEPARATOR.as_ascii().unwrap().as_str();
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, AsRefStr, EnumString)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum MediaType {
+    #[strum(serialize = "ar")]
     Aritst,
+    #[strum(serialize = "al")]
     Album,
+    #[strum(serialize = "so")]
     Song,
 }
 
@@ -25,31 +28,6 @@ pub struct TypedId<T> {
 }
 
 pub type MediaTypedId = TypedId<MediaType>;
-
-impl AsRef<str> for MediaType {
-    fn as_ref(&self) -> &'static str {
-        match self {
-            MediaType::Aritst => "ar",
-            MediaType::Album => "al",
-            MediaType::Song => "so",
-        }
-    }
-}
-
-impl FromStr for MediaType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            "ar" => Ok(MediaType::Aritst),
-            "al" => Ok(MediaType::Album),
-            "so" => Ok(MediaType::Song),
-            _ => anyhow::bail!(OSError::InvalidParameter(
-                concat_string::concat_string!("Value passed to enum DirectoryType {}", s).into()
-            )),
-        }
-    }
-}
 
 impl<T: AsRef<str>> Serialize for TypedId<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -96,7 +74,7 @@ mod tests {
 
     #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
     struct Test {
-        pub id: TypedId<String>,
+        pub id: MediaTypedId,
     }
 
     #[test]
@@ -104,10 +82,10 @@ mod tests {
         let id: Uuid = Faker.fake();
         let id_string = id.hyphenated().encode_lower(&mut Uuid::encode_buffer()).to_owned();
 
-        let test = Test { id: TypedId { t: Some("type".to_owned()), id } };
+        let test = Test { id: MediaTypedId { t: Some(MediaType::Aritst), id } };
         assert_eq!(
             to_value(test).unwrap(),
-            json!({"id": concat_string!("type", TYPED_ID_STR, &id_string)})
+            json!({"id": concat_string!("ar", TYPED_ID_STR, &id_string)})
         );
 
         let test = Test { id: TypedId { t: None, id } };
@@ -119,8 +97,8 @@ mod tests {
         let id: Uuid = Faker.fake();
         let id_string = id.hyphenated().encode_lower(&mut Uuid::encode_buffer()).to_owned();
 
-        let test = Test { id: TypedId { t: Some("type".to_owned()), id } };
-        let data = json!({"id": concat_string!("type", TYPED_ID_STR, &id_string)}).to_string();
+        let test = Test { id: MediaTypedId { t: Some(MediaType::Album), id } };
+        let data = json!({"id": concat_string!("al", TYPED_ID_STR, &id_string)}).to_string();
         assert_eq!(test, from_str(&data).unwrap());
 
         let test = Test { id: TypedId { t: None, id } };
