@@ -36,18 +36,23 @@ impl SongFsInformation {
     }
 }
 
-#[derive(derivative::Derivative)]
-#[derivative(Default)]
 pub struct TemporaryFs {
-    #[derivative(Default(
-        value = "Builder::new().prefix(built_info::PKG_NAME).tempdir().unwrap()"
-    ))]
     root: TempDir,
     pub parsing_config: ParsingConfig,
     pub transcoding_config: TranscodingConfig,
 }
 
 impl TemporaryFs {
+    fn new() -> Self {
+        let root = Builder::new().prefix(built_info::PKG_NAME).tempdir().unwrap();
+        let parsing_config = ParsingConfig::default();
+        let transcoding_config = TranscodingConfig {
+            cache_path: Some(root.path().canonicalize().unwrap().join("transcoding-cache")),
+            ..Default::default()
+        };
+        Self { root, parsing_config, transcoding_config }
+    }
+
     fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let root_path = self.root_path();
         let path = path.as_ref();
@@ -246,5 +251,11 @@ fn test_roundtrip_media_file_none_value() {
         .unwrap()
         .tag;
         assert_eq!(song_tag, read_song_tag, "{:?} tag does not match", file_type);
+    }
+}
+
+impl Default for TemporaryFs {
+    fn default() -> Self {
+        Self::new()
     }
 }

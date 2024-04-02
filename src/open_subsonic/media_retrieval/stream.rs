@@ -239,4 +239,38 @@ mod tests {
         .await;
         assert_eq!(stream_bytes, transcode_bytes);
     }
+
+    #[tokio::test]
+    async fn test_stream_no_cache() {
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra.add_n_song(0, 1).scan(.., None).await;
+
+        let stream_bytes = to_bytes(
+            stream(
+                infra.pool(),
+                infra.user_id(0),
+                StreamParams {
+                    id: infra.song_ids(..).await[0],
+                    max_bit_rate: Some(32),
+                    format: Some(Format::Opus),
+                    time_offset: None,
+                },
+                TranscodingConfig { cache_path: None, ..Default::default() },
+            )
+            .await
+            .unwrap()
+            .into_response(),
+        )
+        .await
+        .to_vec();
+        let transcode_bytes = transcode_to_memory(
+            infra.song_fs_infos(..)[0].absolute_path(),
+            Format::Opus,
+            32,
+            0,
+            infra.fs.transcoding_config.buffer_size,
+        )
+        .await;
+        assert_eq!(stream_bytes, transcode_bytes);
+    }
 }
