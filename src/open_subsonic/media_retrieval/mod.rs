@@ -22,3 +22,8 @@ pub fn router(
         .layer(Extension(transcoding_config))
         .layer(Extension(art_config))
 }
+
+#[cfg(test)]
+pub mod test {
+    pub use super::stream::Format;
+}

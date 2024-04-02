@@ -359,10 +359,11 @@ pub mod test {
     use std::path::PathBuf;
 
     use super::*;
+    use crate::open_subsonic::media_retrieval::test::Format;
 
     pub async fn transcode_to_memory(
         input_path: PathBuf,
-        output_path: PathBuf,
+        output_format: Format,
         output_bit_rate: u32,
         output_time_offset: u32,
         buffer_size: usize,
@@ -372,7 +373,7 @@ pub mod test {
         let transcode_thread = tokio::task::spawn_blocking(move || {
             transcode(
                 input_path,
-                output_path,
+                concat_string!("output.", output_format.as_ref()),
                 false,
                 output_bit_rate,
                 output_time_offset,
@@ -393,41 +394,46 @@ pub mod test {
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
+    use strum::IntoEnumIterator;
 
     use super::test::transcode_to_memory;
+    use crate::open_subsonic::media_retrieval::test::Format;
     use crate::utils::song::file_type::SONG_FILE_TYPES;
     use crate::utils::test::asset::get_media_asset_path;
-    use crate::utils::test::TemporaryFs;
 
-    const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
-    const OUTPUT_BITRATE: &[u32] = &[32, 64, 128, 192, 320];
+    const OUTPUT_BITRATE: &[u32] = &[32, 64, 192, 320];
     const OUTPUT_TIME_OFFSETS: &[u32] = &[0, 5, u32::MAX];
 
     #[tokio::test]
     async fn test_transcode() {
-        let fs = TemporaryFs::default();
+        let mut transcoding_set = tokio::task::JoinSet::new();
 
         for file_type in SONG_FILE_TYPES {
             let media_path = get_media_asset_path(&file_type);
-            for output_extension in OUTPUT_EXTENSIONS {
+            for output_format in Format::iter() {
+                if output_format == Format::Raw {
+                    continue;
+                }
                 for output_bitrate in OUTPUT_BITRATE {
                     for output_time_offset in OUTPUT_TIME_OFFSETS {
-                        let output_path = fs
-                            .root_path()
-                            .join(Faker.fake::<String>())
-                            .with_extension(output_extension);
-                        transcode_to_memory(
-                            media_path.clone(),
-                            output_path,
-                            *output_bitrate,
-                            *output_time_offset,
-                            32 * 1024,
-                        )
-                        .await;
+                        let input_path = media_path.clone();
+                        transcoding_set.spawn(async move {
+                            transcode_to_memory(
+                                input_path,
+                                output_format,
+                                *output_bitrate,
+                                *output_time_offset,
+                                32 * 1024,
+                            )
+                            .await;
+                        });
                     }
                 }
             }
+        }
+
+        while let Some(r) = transcoding_set.join_next().await {
+            r.unwrap();
         }
     }
 }

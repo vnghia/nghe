@@ -5,6 +5,8 @@ use axum::extract::State;
 use axum::Extension;
 use concat_string::concat_string;
 use nghe_proc_macros::add_validate;
+use serde::Deserialize;
+use strum::AsRefStr;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -16,12 +18,25 @@ use crate::utils::fs::path::hash_size_to_path;
 use crate::utils::song::transcode;
 use crate::{Database, DatabasePool, ServerError};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AsRefStr, Deserialize)]
+#[cfg_attr(test, derive(strum::EnumIter))]
+#[strum(serialize_all = "lowercase")]
+pub enum Format {
+    Raw,
+    Aac,
+    Flac,
+    Mp3,
+    Opus,
+    Wav,
+    Wma,
+}
+
 #[add_validate(stream)]
 #[derive(Debug)]
 pub struct StreamParams {
     id: Uuid,
     max_bit_rate: Option<u32>,
-    format: Option<String>,
+    format: Option<Format>,
     time_offset: Option<u32>,
 }
 
@@ -75,14 +90,15 @@ async fn stream(
     params: StreamParams,
     transcoding_config: TranscodingConfig,
 ) -> Result<StreamResponse> {
-    let format = params.format.unwrap_or("raw".to_owned());
-    if format == "raw" {
+    let format = params.format.unwrap_or(Format::Raw);
+    if format == Format::Raw {
         download(pool, user_id, params.id).await
     } else {
         // Lowest bitrate possible. Only works well with opus.
         let bit_rate = params.max_bit_rate.unwrap_or(32);
         let time_offset = params.time_offset.unwrap_or(0);
         let buffer_size = transcoding_config.buffer_size;
+        let format = format.as_ref();
 
         let (absolute_path, song_file_hash, song_file_size) =
             get_song_download_info(pool, user_id, params.id).await?;
@@ -90,12 +106,12 @@ async fn stream(
         if let Some(cache_path) = transcoding_config.cache_path {
             // Transcoding cache is enabled
             let cache_dir = hash_size_to_path(cache_path, song_file_hash, song_file_size)
-                .join(&format)
+                .join(format)
                 .join(bit_rate.to_string());
             tokio::fs::create_dir_all(&cache_dir).await?;
 
-            let done_path = cache_dir.join(concat_string!("done.", &format));
-            let transcoding_path = cache_dir.join(concat_string!("transcoding.", &format));
+            let done_path = cache_dir.join(concat_string!("done.", format));
+            let transcoding_path = cache_dir.join(concat_string!("transcoding.", format));
 
             if tokio::fs::metadata(&done_path).await.is_ok() {
                 if time_offset == 0 {
@@ -109,7 +125,7 @@ async fn stream(
                     Ok(spawn_transcoding(
                         done_path,
                         transcoding_path,
-                        &format,
+                        format,
                         None,
                         bit_rate,
                         time_offset,
@@ -124,7 +140,7 @@ async fn stream(
                 Ok(spawn_transcoding(
                     absolute_path,
                     transcoding_path,
-                    &format,
+                    format,
                     if is_transcoding && time_offset == 0 { Some(done_path) } else { None },
                     bit_rate,
                     time_offset,
@@ -134,8 +150,8 @@ async fn stream(
         } else {
             Ok(spawn_transcoding(
                 absolute_path,
-                concat_string!("format.", &format).into(),
-                &format,
+                concat_string!("format.", format).into(),
+                format,
                 None,
                 bit_rate,
                 time_offset,
@@ -174,7 +190,7 @@ mod tests {
                 StreamParams {
                     id: infra.song_ids(..).await[0],
                     max_bit_rate: None,
-                    format: Some("raw".to_string()),
+                    format: None,
                     time_offset: None,
                 },
                 infra.fs.transcoding_config.clone(),
@@ -201,7 +217,7 @@ mod tests {
                 StreamParams {
                     id: infra.song_ids(..).await[0],
                     max_bit_rate: Some(32),
-                    format: Some("opus".to_string()),
+                    format: Some(Format::Opus),
                     time_offset: None,
                 },
                 infra.fs.transcoding_config.clone(),
@@ -214,7 +230,7 @@ mod tests {
         .to_vec();
         let transcode_bytes = transcode_to_memory(
             infra.song_fs_infos(..)[0].absolute_path(),
-            "output.opus".into(),
+            Format::Opus,
             32,
             0,
             infra.fs.transcoding_config.buffer_size,
