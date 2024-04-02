@@ -107,7 +107,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_no_filter() {
-        let fs = TemporaryFs::new();
+        let fs = TemporaryFs::default();
 
         let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
@@ -136,7 +136,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_relative_path() {
-        let fs = TemporaryFs::new();
+        let fs = TemporaryFs::default();
 
         let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
@@ -158,7 +158,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_filter_extension() {
-        let fs = TemporaryFs::new();
+        let fs = TemporaryFs::default();
 
         let supported_extensions = to_extensions();
 
@@ -193,7 +193,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_filter_dir() {
-        let fs = TemporaryFs::new();
+        let fs = TemporaryFs::default();
 
         let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()

@@ -401,7 +401,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_transcode() {
-        let fs = TemporaryFs::new();
+        let fs = TemporaryFs::default();
 
         for file_type in SONG_FILE_TYPES {
             let media_path = get_media_asset_path(&file_type);

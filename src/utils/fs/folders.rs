@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_top_paths_is_file() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         let file = temp_fs.create_file("test.txt");
 
         let result = catch_unwind(|| build_music_folders(&[&file], &[0]));
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_top_paths_nested() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         let parent = temp_fs.create_dir("test1/");
         let child = temp_fs.create_dir("test1/test2/");
 
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_top_paths_depth_levels_empty() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         let dir_1 = temp_fs.create_dir("test1/");
         let dir_2 = temp_fs.create_dir("test2/");
 
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_top_paths_depth_levels_neq_len() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         let dir_1 = temp_fs.create_dir("test1/");
         let dir_2 = temp_fs.create_dir("test2/");
 
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_get_deepest_folder() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         temp_fs.create_dir("test1/test1.1/test1.1.1/");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
         temp_fs.create_dir("test1/test1.2/");
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_get_deepest_folder_max_depth() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         temp_fs.create_dir("test1/test1.1/test1.1.1/");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
         temp_fs.create_dir("test1/test1.2/");
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_get_deepest_folder_file() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         temp_fs.create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
         temp_fs.create_dir("test1/test1.2/");
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_build_music_folders() {
-        let temp_fs = TemporaryFs::new();
+        let temp_fs = TemporaryFs::default();
         temp_fs.create_file("test1/test1.1/test1.1.1/test1.1.1.1.txt");
         temp_fs.create_dir("test1/test1.1/test1.1.2/test1.1.2.1/test1.1.2.1.1/");
         temp_fs.create_dir("test1/test1.2/");

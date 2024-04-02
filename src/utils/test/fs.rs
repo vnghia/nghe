@@ -35,26 +35,17 @@ impl SongFsInformation {
     }
 }
 
+#[derive(derivative::Derivative)]
+#[derivative(Default)]
 pub struct TemporaryFs {
-    _root: TempDir,
-    root_path: PathBuf,
-    canonicalized_root_path: PathBuf,
+    #[derivative(Default(
+        value = "Builder::new().prefix(built_info::PKG_NAME).tempdir().unwrap()"
+    ))]
+    root: TempDir,
     pub parsing_config: ParsingConfig,
 }
 
-#[allow(clippy::new_without_default)]
 impl TemporaryFs {
-    pub fn new() -> Self {
-        let _root = Builder::new()
-            .prefix(built_info::PKG_NAME)
-            .tempdir()
-            .expect("can not create temporary directory");
-        let root_path = _root.path().to_owned();
-        let canonicalized_root_path = _root.path().canonicalize().unwrap();
-
-        Self { _root, root_path, canonicalized_root_path, parsing_config: Default::default() }
-    }
-
     fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
         let root_path = self.root_path();
         let path = path.as_ref();
@@ -76,11 +67,11 @@ impl TemporaryFs {
     }
 
     pub fn root_path(&self) -> &Path {
-        &self.root_path
+        self.root.path()
     }
 
-    pub fn canonicalized_root_path(&self) -> &Path {
-        &self.canonicalized_root_path
+    pub fn canonicalized_root_path(&self) -> PathBuf {
+        self.root.path().canonicalize().unwrap()
     }
 
     pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
@@ -207,7 +198,7 @@ impl TemporaryFs {
 
 #[test]
 fn test_roundtrip_media_file() {
-    let fs = TemporaryFs::new();
+    let fs = TemporaryFs::default();
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
@@ -229,7 +220,7 @@ fn test_roundtrip_media_file() {
 
 #[test]
 fn test_roundtrip_media_file_none_value() {
-    let fs = TemporaryFs::new();
+    let fs = TemporaryFs::default();
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = SongTag {

@@ -33,7 +33,7 @@ pub struct Infra {
 impl Infra {
     pub async fn new() -> Self {
         let db = TemporaryDatabase::new_from_env().await;
-        let fs = TemporaryFs::new();
+        let fs = TemporaryFs::default();
         Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
     }
 
