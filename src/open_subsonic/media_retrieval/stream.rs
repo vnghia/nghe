@@ -53,7 +53,7 @@ fn spawn_transcoding(
 ) -> StreamResponse {
     let span = tracing::Span::current();
 
-    let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(1);
+    let (tx, rx) = flume::bounded(0);
     rayon::spawn(move || {
         let _enter = span.enter();
         tracing::debug!("start transcoding");

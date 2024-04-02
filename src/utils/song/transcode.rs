@@ -5,8 +5,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use concat_string::concat_string;
-use crossfire::channel::MPSCShared;
-use crossfire::mpsc;
+use flume::Sender;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
 use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
 use rsmpeg::avformat::{
@@ -37,9 +36,9 @@ fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext,
     Ok((input_fmt_ctx, dec_ctx, audio_idx))
 }
 
-fn make_output_io_context<S: MPSCShared + 'static>(
+fn make_output_io_context(
     buffer_size: usize,
-    tx: mpsc::TxBlocking<Vec<u8>, S>,
+    tx: Sender<Vec<u8>>,
     mut output_file: Option<File>,
 ) -> AVIOContextContainer {
     AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
@@ -248,14 +247,14 @@ fn flush_encoder(
 }
 
 #[instrument(skip_all, err(Debug))]
-pub fn transcode<S: MPSCShared + 'static, PI: AsRef<Path>, PO: AsRef<Path>>(
+pub fn transcode<PI: AsRef<Path>, PO: AsRef<Path>>(
     input_path: PI,
     output_path: PO,
     write_to_file: bool,
     output_bit_rate: u32,
     output_time_offset: u32,
     buffer_size: usize,
-    tx: mpsc::TxBlocking<Vec<u8>, S>,
+    tx: Sender<Vec<u8>>,
 ) -> Result<()> {
     let input_path = input_path.as_ref();
     let output_path = output_path.as_ref();
@@ -368,7 +367,7 @@ pub mod test {
         output_time_offset: u32,
         buffer_size: usize,
     ) -> Vec<u8> {
-        let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(1);
+        let (tx, rx) = flume::bounded(0);
 
         let transcode_thread = tokio::task::spawn_blocking(move || {
             transcode(
@@ -383,7 +382,7 @@ pub mod test {
         });
 
         let mut result = vec![];
-        while let Ok(r) = rx.recv().await {
+        while let Ok(r) = rx.recv_async().await {
             result.extend_from_slice(&r);
         }
 

@@ -195,13 +195,13 @@ pub async fn run_scan(
         }
 
         let span = tracing::Span::current();
-        let (tx, rx) = crossfire::mpsc::bounded_tx_blocking_rx_future(scan_config.channel_size);
+        let (tx, rx) = flume::bounded(scan_config.channel_size);
         scan_media_files_tasks.push(tokio::task::spawn_blocking(move || {
             let _enter = span.enter();
             scan_media_files(music_folder_path, tx)
         }));
 
-        while let Ok(scanned_media_file) = rx.recv().await {
+        while let Ok(scanned_media_file) = rx.recv_async().await {
             while process_path_tasks.len() >= process_path_tasks.capacity()
                 && let Some(process_path_join_result) = process_path_tasks.next().await
             {

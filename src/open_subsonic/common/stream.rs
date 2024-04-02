@@ -5,15 +5,15 @@ use anyhow::{Ok, Result};
 use axum::body::Body;
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
-use crossfire::channel::{self, MPSCShared};
-use crossfire::mpsc;
+use flume::r#async::RecvStream;
+use flume::Receiver;
 use futures::StreamExt;
 use mime_guess::Mime;
 use tokio_util::io::ReaderStream;
 
-struct RxStream<S: MPSCShared>(channel::Stream<Vec<u8>, mpsc::RxFuture<Vec<u8>, S>>);
+struct RxStream(RecvStream<'static, Vec<u8>>);
 
-impl<S: MPSCShared> futures::Stream for RxStream<S> {
+impl futures::Stream for RxStream {
     type Item = Result<Vec<u8>, Infallible>;
 
     // TODO: remove this when axum::body does not require TryStream anymore.
@@ -27,7 +27,7 @@ impl<S: MPSCShared> futures::Stream for RxStream<S> {
 
 enum StreamType {
     File(ReaderStream<tokio::fs::File>),
-    Rx(RxStream<mpsc::SharedSenderBRecvF>),
+    Rx(RxStream),
 }
 
 pub struct StreamResponse {
@@ -42,7 +42,7 @@ impl StreamResponse {
         Ok(Self { mime, stream: StreamType::File(stream) })
     }
 
-    pub fn from_rx(ext: &str, rx: mpsc::RxFuture<Vec<u8>, mpsc::SharedSenderBRecvF>) -> Self {
+    pub fn from_rx(ext: &str, rx: Receiver<Vec<u8>>) -> Self {
         let mime = mime_guess::from_ext(ext).first_or_octet_stream();
         Self { mime, stream: StreamType::Rx(RxStream(rx.into_stream())) }
     }

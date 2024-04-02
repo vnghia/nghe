@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crossfire::channel::MPSCShared;
-use crossfire::mpsc;
+use flume::Sender;
 use ignore::types::TypesBuilder;
 use ignore::WalkBuilder;
 use tracing::instrument;
@@ -29,9 +28,9 @@ impl ScannedMediaFile {
 }
 
 #[instrument(skip(tx))]
-pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug, S: MPSCShared>(
+pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug>(
     root: P,
-    tx: mpsc::TxBlocking<ScannedMediaFile, S>,
+    tx: Sender<ScannedMediaFile>,
 ) {
     tracing::debug!("start scanning");
 
@@ -92,12 +91,12 @@ mod tests {
     use crate::utils::test::fs::TemporaryFs;
 
     async fn wrap_scan_media_file(fs: &TemporaryFs) -> Vec<ScannedMediaFile> {
-        let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(100);
+        let (tx, rx) = flume::bounded(100);
         let root_path = fs.root_path().to_path_buf();
 
         let scan_thread = tokio::task::spawn_blocking(move || scan_media_files(&root_path, tx));
         let mut result = vec![];
-        while let Ok(r) = rx.recv().await {
+        while let Ok(r) = rx.recv_async().await {
             result.push(r);
         }
 
