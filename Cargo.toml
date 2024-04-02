@@ -36,6 +36,7 @@ mime_guess = "2.0.4"
 nghe-proc_macros = { path = "src/proc_macros", version = "0.1.0" }
 paste = "1.0.14"
 rand = "0.8.5"
+rayon = "1.10.0"
 rsmpeg = { git = "https://github.com/vnghia/rsmpeg.git", rev = "e34a83a", features = [
   "link_system_ffmpeg",
 ] }
