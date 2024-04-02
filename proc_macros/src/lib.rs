@@ -112,6 +112,7 @@ fn all_roles() -> &'static HashSet<String> {
                 std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                     .parent()
                     .unwrap()
+                    .join("src")
                     .join("models")
                     .join("users.rs"),
             )

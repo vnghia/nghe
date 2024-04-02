@@ -1,9 +1,14 @@
-workspace = { members = ["src/proc_macros"] }
+[workspace]
+members = ["proc_macros"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
 
 [package]
 name = "nghe"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
 anyhow = { version = "1.0.81", features = ["backtrace"] }
@@ -33,7 +38,7 @@ lofty = "0.18.2"
 md5 = "0.7.0"
 mimalloc = "0.1.39"
 mime_guess = "2.0.4"
-nghe-proc_macros = { path = "src/proc_macros", version = "0.1.0" }
+nghe-proc_macros = { path = "proc_macros" }
 paste = "1.0.14"
 rand = "0.8.5"
 rayon = "1.10.0"
