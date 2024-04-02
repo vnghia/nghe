@@ -16,7 +16,7 @@ use crate::utils::fs::path::hash_size_to_path;
 use crate::utils::song::transcode;
 use crate::{Database, DatabasePool, ServerError};
 
-#[add_validate]
+#[add_validate(stream)]
 #[derive(Debug)]
 pub struct StreamParams {
     id: Uuid,
@@ -151,4 +151,75 @@ pub async fn stream_handler(
     req: StreamRequest,
 ) -> Result<StreamResponse, ServerError> {
     stream(&database.pool, req.user_id, req.params, transcoding_config).await.map_err(ServerError)
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::response::IntoResponse;
+
+    use super::*;
+    use crate::utils::song::transcode_to_memory;
+    use crate::utils::test::http::to_bytes;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_stream_raw() {
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra.add_n_song(0, 1).scan(.., None).await;
+
+        let stream_bytes = to_bytes(
+            stream(
+                infra.pool(),
+                infra.user_id(0),
+                StreamParams {
+                    id: infra.song_ids(..).await[0],
+                    max_bit_rate: None,
+                    format: Some("raw".to_string()),
+                    time_offset: None,
+                },
+                infra.fs.transcoding_config.clone(),
+            )
+            .await
+            .unwrap()
+            .into_response(),
+        )
+        .await
+        .to_vec();
+        let local_bytes = std::fs::read(infra.song_fs_infos(..)[0].absolute_path()).unwrap();
+        assert_eq!(stream_bytes, local_bytes);
+    }
+
+    #[tokio::test]
+    async fn test_stream_simple() {
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra.add_n_song(0, 1).scan(.., None).await;
+
+        let stream_bytes = to_bytes(
+            stream(
+                infra.pool(),
+                infra.user_id(0),
+                StreamParams {
+                    id: infra.song_ids(..).await[0],
+                    max_bit_rate: Some(32),
+                    format: Some("opus".to_string()),
+                    time_offset: None,
+                },
+                infra.fs.transcoding_config.clone(),
+            )
+            .await
+            .unwrap()
+            .into_response(),
+        )
+        .await
+        .to_vec();
+        let transcode_bytes = transcode_to_memory(
+            infra.song_fs_infos(..)[0].absolute_path(),
+            "output.opus".into(),
+            32,
+            0,
+            infra.fs.transcoding_config.buffer_size,
+        )
+        .await;
+        assert_eq!(stream_bytes, transcode_bytes);
+    }
 }

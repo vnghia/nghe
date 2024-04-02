@@ -31,3 +31,25 @@ pub async fn get_song_download_info(
             )
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_get_song_download_info_deny() {
+        let mut infra = Infra::new().await.n_folder(2).await.add_user(None).await;
+        infra.add_n_song(0, 1).add_n_song(1, 1).scan(.., None).await;
+        infra.only_permissions(.., 1.., true).await;
+        assert!(matches!(
+            get_song_download_info(infra.pool(), infra.user_id(0), infra.song_ids(..1).await[0])
+                .await
+                .unwrap_err()
+                .root_cause()
+                .downcast_ref::<OSError>()
+                .unwrap(),
+            OSError::NotFound(_)
+        ));
+    }
+}

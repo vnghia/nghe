@@ -7,7 +7,7 @@ use super::utils::get_song_download_info;
 use crate::open_subsonic::StreamResponse;
 use crate::{Database, DatabasePool, ServerError};
 
-#[add_validate]
+#[add_validate(download)]
 #[derive(Debug)]
 pub struct DownloadParams {
     id: Uuid,
@@ -23,4 +23,30 @@ pub async fn download_handler(
     req: DownloadRequest,
 ) -> Result<StreamResponse, ServerError> {
     download(&database.pool, req.user_id, req.params.id).await.map_err(ServerError)
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::response::IntoResponse;
+
+    use super::*;
+    use crate::utils::test::http::to_bytes;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_download() {
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra.add_n_song(0, 1).scan(.., None).await;
+
+        let download_bytes = to_bytes(
+            download(infra.pool(), infra.user_id(0), infra.song_ids(..).await[0])
+                .await
+                .unwrap()
+                .into_response(),
+        )
+        .await
+        .to_vec();
+        let local_bytes = std::fs::read(infra.song_fs_infos(..)[0].absolute_path()).unwrap();
+        assert_eq!(download_bytes, local_bytes);
+    }
 }

@@ -14,7 +14,7 @@ use rsmpeg::avformat::{
 };
 use rsmpeg::avutil::{get_sample_fmt_name, ra, AVFrame, AVMem};
 use rsmpeg::error::RsmpegError;
-use rsmpeg::ffi;
+use rsmpeg::{ffi, UnsafeDerefMut};
 use tracing::instrument;
 
 fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext, usize)> {
@@ -86,6 +86,12 @@ fn open_output_file(
 ) -> Result<(AVFormatContextOutput, AVCodecContext)> {
     let mut output_fmt_ctx =
         AVFormatContextOutput::create(path, Some(io_ctx)).context("could not open output file")?;
+    unsafe {
+        // Set bitexact for deterministic transcoding output.
+        if cfg!(test) {
+            output_fmt_ctx.deref_mut().flags |= ffi::AVFMT_FLAG_BITEXACT as i32;
+        }
+    }
 
     let enc_codec = AVCodec::find_encoder(output_fmt_ctx.oformat().audio_codec)
         .context("could not find output codec")?;
@@ -349,25 +355,17 @@ pub fn transcode<S: MPSCShared + 'static, PI: AsRef<Path>, PO: AsRef<Path>>(
 }
 
 #[cfg(test)]
-mod tests {
+pub mod test {
     use std::path::PathBuf;
 
-    use fake::{Fake, Faker};
-
     use super::*;
-    use crate::utils::song::file_type::SONG_FILE_TYPES;
-    use crate::utils::test::asset::get_media_asset_path;
-    use crate::utils::test::TemporaryFs;
 
-    const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
-    const OUTPUT_BITRATE: &[u32] = &[32, 64, 128, 192, 320];
-    const OUTPUT_TIME_OFFSETS: &[u32] = &[0, 5, u32::MAX];
-
-    async fn wrap_transcode(
+    pub async fn transcode_to_memory(
         input_path: PathBuf,
         output_path: PathBuf,
         output_bit_rate: u32,
         output_time_offset: u32,
+        buffer_size: usize,
     ) -> Vec<u8> {
         let (tx, rx) = mpsc::bounded_tx_blocking_rx_future(1);
 
@@ -378,7 +376,7 @@ mod tests {
                 false,
                 output_bit_rate,
                 output_time_offset,
-                32 * 1024,
+                buffer_size,
                 tx,
             )
         });
@@ -391,6 +389,20 @@ mod tests {
         transcode_thread.await.unwrap().unwrap();
         result
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::test::transcode_to_memory;
+    use crate::utils::song::file_type::SONG_FILE_TYPES;
+    use crate::utils::test::asset::get_media_asset_path;
+    use crate::utils::test::TemporaryFs;
+
+    const OUTPUT_EXTENSIONS: &[&str] = &["mp3", "aac", "opus"];
+    const OUTPUT_BITRATE: &[u32] = &[32, 64, 128, 192, 320];
+    const OUTPUT_TIME_OFFSETS: &[u32] = &[0, 5, u32::MAX];
 
     #[tokio::test]
     async fn test_transcode() {
@@ -405,11 +417,12 @@ mod tests {
                             .root_path()
                             .join(Faker.fake::<String>())
                             .with_extension(output_extension);
-                        wrap_transcode(
+                        transcode_to_memory(
                             media_path.clone(),
                             output_path,
                             *output_bitrate,
                             *output_time_offset,
+                            32 * 1024,
                         )
                         .await;
                     }
