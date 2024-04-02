@@ -10,7 +10,7 @@ use itertools::Itertools;
 use uuid::Uuid;
 
 use super::fs::SongFsInformation;
-use super::{random, TemporaryDatabase, TemporaryFs};
+use super::{random, TemporaryDb, TemporaryFs};
 use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
@@ -23,7 +23,7 @@ use crate::utils::song::test::SongTag;
 use crate::{Database, DatabasePool};
 
 pub struct Infra {
-    pub db: TemporaryDatabase,
+    pub db: TemporaryDb,
     pub fs: TemporaryFs,
     pub users: Vec<users::User>,
     pub music_folders: Vec<music_folders::MusicFolder>,
@@ -32,7 +32,7 @@ pub struct Infra {
 
 impl Infra {
     pub async fn new() -> Self {
-        let db = TemporaryDatabase::new_from_env().await;
+        let db = TemporaryDb::new_from_env().await;
         let fs = TemporaryFs::default();
         Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
     }

@@ -128,11 +128,11 @@ pub async fn start_scan_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::TemporaryDatabase;
+    use crate::utils::test::TemporaryDb;
 
     #[tokio::test]
     async fn test_initialize_scan_twice() {
-        let temp_db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDb::new_from_env().await;
         initialize_scan(temp_db.pool()).await.unwrap();
         assert!(initialize_scan(temp_db.pool()).await.is_err());
     }

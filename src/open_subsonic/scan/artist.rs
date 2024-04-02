@@ -109,7 +109,7 @@ mod tests {
     use rand::seq::SliceRandom;
 
     use super::*;
-    use crate::utils::test::TemporaryDatabase;
+    use crate::utils::test::TemporaryDb;
 
     async fn assert_artist_indices<SN: AsRef<str>, SP: AsRef<str>>(
         pool: &DatabasePool,
@@ -170,7 +170,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_artist_indices() {
-        let temp_db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDb::new_from_env().await;
         let artist_names = fake::vec![String; 10];
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
@@ -183,7 +183,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_artist_indices_full_rebuild() {
-        let temp_db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDb::new_from_env().await;
         let artist_names = fake::vec![String; 10];
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
@@ -200,7 +200,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_artist_indices_partial_rebuild() {
-        let temp_db = TemporaryDatabase::new_from_env().await;
+        let temp_db = TemporaryDb::new_from_env().await;
         let artist_names = fake::vec![String; 10];
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 

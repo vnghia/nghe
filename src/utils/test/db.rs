@@ -7,13 +7,13 @@ use uuid::Uuid;
 use crate::database::EncryptionKey;
 use crate::{Database, DatabasePool};
 
-pub struct TemporaryDatabase {
+pub struct TemporaryDb {
     name: String,
     root_url: String,
     database: Database,
 }
 
-impl TemporaryDatabase {
+impl TemporaryDb {
     async fn new(url: String) -> Self {
         let name = Uuid::new_v4().to_string();
         let mut new_url = Url::parse(&url).expect("can not parse database url");
@@ -60,7 +60,7 @@ impl TemporaryDatabase {
 }
 
 #[cfg(not(target_env = "musl"))]
-impl Drop for TemporaryDatabase {
+impl Drop for TemporaryDb {
     fn drop(&mut self) {
         use diesel::pg::PgConnection;
         use diesel::Connection;
