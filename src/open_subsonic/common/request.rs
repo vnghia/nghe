@@ -19,7 +19,7 @@ use crate::{Database, OSError};
 #[serde_as]
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug)]
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(test, derive(Default, fake::Dummy))]
 pub struct CommonParams {
     #[serde(rename = "u")]
     pub username: String,

@@ -16,6 +16,7 @@ use crate::{Database, DatabasePool};
 
 #[add_validate]
 #[derive(Debug)]
+#[cfg_attr(test, derive(Default))]
 pub struct Search3Params {
     artist_count: Option<i64>,
     artist_offset: Option<i64>,
@@ -111,28 +112,51 @@ pub async fn search3_handler(
     State(database): State<Database>,
     req: Search3Request,
 ) -> Search3JsonResponse {
-    let Search3Params {
-        artist_count,
-        artist_offset,
-        album_count,
-        album_offset,
-        song_count,
-        song_offset,
-        music_folder_ids,
-    } = req.params;
-    check_permission(&database.pool, req.user_id, &music_folder_ids).await?;
+    check_permission(&database.pool, req.user_id, &req.params.music_folder_ids).await?;
 
-    let search_offset_count = SearchOffsetCount {
-        artist_count: artist_count.unwrap_or(20),
-        artist_offset: artist_offset.unwrap_or(0),
-        album_count: album_count.unwrap_or(20),
-        album_offset: album_offset.unwrap_or(0),
-        song_count: song_count.unwrap_or(20),
-        song_offset: song_offset.unwrap_or(0),
-    };
+    let search_offset_count = req.params.to_offset_count();
 
     let search_result =
-        syncing(&database.pool, req.user_id, &music_folder_ids, search_offset_count).await?;
+        syncing(&database.pool, req.user_id, &req.params.music_folder_ids, search_offset_count)
+            .await?;
 
     Search3Body { search_result_3: search_result }.into()
+}
+
+impl Search3Params {
+    fn to_offset_count(&self) -> SearchOffsetCount {
+        let Self {
+            artist_count,
+            artist_offset,
+            album_count,
+            album_offset,
+            song_count,
+            song_offset,
+            ..
+        } = self;
+        SearchOffsetCount {
+            artist_count: artist_count.unwrap_or(20),
+            artist_offset: artist_offset.unwrap_or(0),
+            album_count: album_count.unwrap_or(20),
+            album_offset: album_offset.unwrap_or(0),
+            song_count: song_count.unwrap_or(20),
+            song_offset: song_offset.unwrap_or(0),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_syncing() {
+        let n_song = 10;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra.add_n_song(0, n_song).scan(.., None).await;
+        syncing(infra.pool(), infra.user_id(0), &None, Search3Params::default().to_offset_count())
+            .await
+            .unwrap();
+    }
 }
