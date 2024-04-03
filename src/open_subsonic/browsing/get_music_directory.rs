@@ -47,6 +47,7 @@ async fn get_artist_directory(
             is_dir: Some(true),
             name: None,
             title: Some(a.name),
+            cover_art: Some(a.cover_art),
         })
         .collect();
 
@@ -69,6 +70,7 @@ async fn get_album_directory(
             is_dir: Some(false),
             name: None,
             title: Some(s.title),
+            cover_art: s.cover_art,
         })
         .collect();
 

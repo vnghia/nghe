@@ -27,6 +27,8 @@ pub struct ChildItem {
     pub title: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cover_art: Option<MediaTypedId>,
 }
 
 #[derive(Serialize)]
@@ -71,6 +73,7 @@ pub async fn get_indexed_handler(
                     is_dir: None,
                     name: Some(c.name),
                     title: None,
+                    cover_art: None,
                 })
                 .collect(),
         })

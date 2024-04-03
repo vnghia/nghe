@@ -152,6 +152,7 @@ impl BasicAlbumId3Db {
             song_count: self.song_count as _,
             duration: self.duration as _,
             created: self.created_at,
+            cover_art: MediaTypedId { t: Some(MediaType::Album), id: self.id },
             ..Default::default()
         }
     }
@@ -174,6 +175,7 @@ impl AlbumId3Db {
             song_count: self.basic.song_count as _,
             duration: self.basic.duration as _,
             created: self.basic.created_at,
+            cover_art: MediaTypedId { t: Some(MediaType::Album), id: self.basic.id },
             year: self.year.map(|v| v as _),
             artists,
             release_date: self.release_date.into_res(),

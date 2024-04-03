@@ -9,10 +9,11 @@ use strum::{AsRefStr, EnumString};
 const TYPED_ID_SEPARATOR: char = ':';
 const TYPED_ID_STR: &str = TYPED_ID_SEPARATOR.as_ascii().unwrap().as_str();
 
-#[derive(Debug, Clone, Copy, AsRefStr, EnumString)]
+#[derive(Debug, Default, Clone, Copy, AsRefStr, EnumString)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum MediaType {
     #[strum(serialize = "ar")]
+    #[default]
     Aritst,
     #[strum(serialize = "al")]
     Album,
@@ -20,7 +21,7 @@ pub enum MediaType {
     Song,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct TypedId<T> {
     pub t: Option<T>,

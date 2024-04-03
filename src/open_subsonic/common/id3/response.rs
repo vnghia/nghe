@@ -42,6 +42,9 @@ pub struct AlbumId3 {
     #[serde(with = "crate::utils::time::iso8601_datetime")]
     #[derivative(Default(value = "OffsetDateTime::UNIX_EPOCH"))]
     pub created: OffsetDateTime,
+    // Album cover art is dynamically computed based on allowed song cover arts.
+    // So album covert art id is default to album id.
+    pub cover_art: MediaTypedId,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<u16>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
