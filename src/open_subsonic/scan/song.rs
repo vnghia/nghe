@@ -71,7 +71,7 @@ pub async fn upsert_song_cover_art<P: AsRef<Path>>(
     let file_name = concat_string!("cover.", &file_format);
     let data = picture.data();
     let file_hash = xxh3_64(data);
-    let file_size = data.len() as u64;
+    let file_size = data.len() as _;
 
     let art_dir = hash_size_to_path(song_art_dir, file_hash, file_size);
     tokio::fs::create_dir_all(&art_dir).await?;

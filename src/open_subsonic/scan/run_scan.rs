@@ -39,8 +39,8 @@ pub async fn process_path(
     let song_data = tokio::fs::read(&song_absolute_path).await?;
     let song_file_hash = xxh3_64(&song_data);
 
-    let song_file_hash = song_file_hash as i64;
-    let song_file_size = song_file_size as i64;
+    let song_file_hash = song_file_hash as _;
+    let song_file_size = song_file_size as _;
 
     let song_id =
         if let Some((song_id_db, song_file_hash_db, song_file_size_db, song_relative_path_db)) =

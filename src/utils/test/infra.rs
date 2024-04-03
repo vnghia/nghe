@@ -320,7 +320,7 @@ impl Infra {
                 let file_format = picture_to_extension(picture.mime_type().unwrap());
                 let data = picture.data();
                 let file_hash = xxh3_64(data);
-                let file_size = data.len() as u64;
+                let file_size = data.len();
 
                 song_cover_arts::table
                     .select(song_cover_arts::id)
@@ -458,8 +458,8 @@ impl Infra {
             album_artist_ids,
             music_folder: song.music_folder,
             relative_path: song.relative_path,
-            file_hash: song.file_hash as u64,
-            file_size: song.file_size as u64,
+            file_hash: song.file_hash as _,
+            file_size: song.file_size as _,
         }
     }
 

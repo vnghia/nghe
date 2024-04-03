@@ -75,8 +75,8 @@ impl SongDate {
                 parsed
                     .parse_items(input[..10].as_bytes(), YMD_FORMAT)
                     .with_context(|| concat_string!("date value: ", input))?;
-                let year = parsed.year().expect("error in time parsing") as u16;
-                let month = parsed.month().expect("error in time parsing") as u8;
+                let year = parsed.year().expect("error in time parsing") as _;
+                let month = parsed.month().expect("error in time parsing") as _;
                 let day = u8::from(parsed.day().expect("error in time parsing"));
                 Ok(Self(Some((year, Some((month, Some(day)))))))
             } else if input.len() >= 7 {
@@ -84,15 +84,15 @@ impl SongDate {
                 parsed
                     .parse_items(input[..7].as_bytes(), YM_FORMAT)
                     .with_context(|| concat_string!("date value: ", input))?;
-                let year = parsed.year().expect("error in time parsing") as u16;
-                let month = parsed.month().expect("error in time parsing") as u8;
+                let year = parsed.year().expect("error in time parsing") as _;
+                let month = parsed.month().expect("error in time parsing") as _;
                 Ok(Self(Some((year, Some((month, None))))))
             } else {
                 // yyyy
                 parsed
                     .parse_items(input[..4].as_bytes(), Y_FORMAT)
                     .with_context(|| concat_string!("date value: ", input))?;
-                let year = parsed.year().expect("error in time parsing") as u16;
+                let year = parsed.year().expect("error in time parsing") as _;
                 Ok(Self(Some((year, None))))
             }
         } else {
@@ -106,11 +106,11 @@ impl SongDate {
 
     pub fn to_ymd(self) -> (Option<i16>, Option<i16>, Option<i16>) {
         if let Some((year, remainder)) = self.0 {
-            let year = year as i16;
+            let year = year as _;
             if let Some((month, remainder)) = remainder {
-                let month = month as i16;
+                let month = month as _;
                 if let Some(day) = remainder {
-                    let day = day as i16;
+                    let day = day as _;
                     (Some(year), Some(month), Some(day))
                 } else {
                     (Some(year), Some(month), None)
@@ -145,11 +145,11 @@ pub mod test {
 
         pub fn from_ymd(year: Option<i16>, month: Option<i16>, day: Option<i16>) -> Self {
             if let Some(year) = year {
-                let year = year as u16;
+                let year = year as _;
                 if let Some(month) = month {
-                    let month = month as u8;
+                    let month = month as _;
                     if let Some(day) = day {
-                        let day = day as u8;
+                        let day = day as _;
                         Self(Some((year, Some((month, Some(day))))))
                     } else {
                         Self(Some((year, Some((month, None)))))
@@ -182,13 +182,13 @@ pub mod test {
         fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &Faker, rng: &mut R) -> Self {
             let date: time::Date = Fake::fake_with_rng(&Faker, rng);
             let year = if Fake::fake_with_rng(&Faker, rng) {
-                Some(date.year().min(9999).max(0) as i16)
+                Some(date.year().min(9999).max(0) as _)
             } else {
                 None
             };
             let month =
-                if Fake::fake_with_rng(&Faker, rng) { Some(date.month() as i16) } else { None };
-            let day = if Fake::fake_with_rng(&Faker, rng) { Some(date.day() as i16) } else { None };
+                if Fake::fake_with_rng(&Faker, rng) { Some(date.month() as _) } else { None };
+            let day = if Fake::fake_with_rng(&Faker, rng) { Some(date.day() as _) } else { None };
             Self::from_ymd(year, month, day)
         }
     }

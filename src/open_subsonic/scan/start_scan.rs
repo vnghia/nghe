@@ -65,7 +65,7 @@ pub async fn finalize_scan(
         .set(&scans::FinishScan {
             is_scanning: false,
             finished_at: OffsetDateTime::now_utc(),
-            scanned_count: scanned_count as i64,
+            scanned_count: scanned_count as _,
             error_message,
         })
         .execute(&mut pool.get().await?)

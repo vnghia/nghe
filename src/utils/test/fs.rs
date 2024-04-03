@@ -137,7 +137,7 @@ impl TemporaryFs {
 
         let file_data = std::fs::read(&path).unwrap();
         let file_hash = xxh3_64(&file_data);
-        let file_size = file_data.len() as u64;
+        let file_size = file_data.len() as _;
 
         SongFsInformation {
             tag,

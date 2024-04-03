@@ -60,7 +60,7 @@ fn make_output_io_context(
                     tracing::error!(writing_transcoded = ?write_err, sending_transcoded = ?send_err);
                     ffi::AVERROR_EXTERNAL
                 } else {
-                    data.len() as i32
+                    data.len() as _
                 }
             } else if let Err(send_err) = send_ret {
                 // If we do not write the output to a file, abort as soon as
@@ -70,7 +70,7 @@ fn make_output_io_context(
                 tracing::error!(sending_transcoded = ?send_err);
                 ffi::AVERROR_EXTERNAL
             } else {
-                data.len() as i32
+                data.len() as _
             }
         })),
         None,
@@ -108,7 +108,7 @@ fn open_output_file(
             .ok_or_else(|| anyhow::anyhow!("can not get encoder sample formats"))?[0],
     );
     enc_ctx.set_sample_rate(output_sample_rate);
-    enc_ctx.set_bit_rate(output_bitrate as i64);
+    enc_ctx.set_bit_rate(output_bitrate as _);
     enc_ctx.set_time_base(ra(1, output_sample_rate));
     // Some container formats (like MP4) require global headers to be present.
     // Mark the encoder so that it behaves accordingly.

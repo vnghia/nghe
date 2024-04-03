@@ -62,7 +62,7 @@ fn parse_track_and_disc_number_letter_prefix(track_number_value: &str) -> Result
         && disc_letter.is_ascii_alphabetic()
     {
         // 'A' = 65 ASCII
-        let disc_number = (disc_letter.to_ascii_uppercase() as u8 - 64) as u32;
+        let disc_number = (disc_letter.to_ascii_uppercase() as u8 - 64) as _;
         let track_number = track_number_value[1..]
             .parse()
             .with_context(|| concat_string!("track number value: ", track_number_value))?;

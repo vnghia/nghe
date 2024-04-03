@@ -97,10 +97,10 @@ impl SongInformation {
             // Song tag
             title: (&self.tag.title).into(),
             album_id,
-            track_number: self.tag.track_number.map(|i| i as i32),
-            track_total: self.tag.track_total.map(|i| i as i32),
-            disc_number: self.tag.disc_number.map(|i| i as i32),
-            disc_total: self.tag.disc_total.map(|i| i as i32),
+            track_number: self.tag.track_number.map(|i| i as _),
+            track_total: self.tag.track_total.map(|i| i as _),
+            disc_number: self.tag.disc_number.map(|i| i as _),
+            disc_total: self.tag.disc_total.map(|i| i as _),
             year,
             month,
             day,
@@ -114,9 +114,9 @@ impl SongInformation {
             // Song property
             format: to_extension(&self.property.format).into(),
             duration: self.property.duration,
-            bitrate: self.property.bitrate as i32,
-            sample_rate: self.property.sample_rate as i32,
-            channel_count: self.property.channel_count as i16,
+            bitrate: self.property.bitrate as _,
+            sample_rate: self.property.sample_rate as _,
+            channel_count: self.property.channel_count as _,
             // Filesystem property
             file_hash,
             file_size,
