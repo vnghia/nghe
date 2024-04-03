@@ -23,7 +23,15 @@ use crate::utils::song::SongInformation;
 use crate::DatabasePool;
 
 #[instrument(
-    skip(pool, song_absolute_path, song_file_size, parsing_config),
+    skip(
+        pool,
+        scan_started_at,
+        scan_mode,
+        song_absolute_path,
+        song_file_size,
+        parsing_config,
+        art_config
+    ),
     ret(level = "trace"),
     err
 )]
@@ -167,7 +175,7 @@ pub async fn process_path(
     Ok(true)
 }
 
-#[instrument(skip(pool, music_folders, parsing_config, scan_config), ret, err)]
+#[instrument(skip(pool, music_folders, parsing_config, scan_config, art_config), ret, err)]
 pub async fn run_scan(
     pool: &DatabasePool,
     scan_started_at: time::OffsetDateTime,

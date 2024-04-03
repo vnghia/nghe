@@ -1,5 +1,4 @@
-use anyhow::{Context, Result};
-use concat_string::concat_string;
+use anyhow::Result;
 #[cfg(test)]
 pub use fake::{Dummy, Fake};
 use isolang::Language;
@@ -7,7 +6,9 @@ use isolang::Language;
 pub use itertools::Itertools;
 use lofty::Picture;
 use time::macros::format_description;
+use tracing::instrument;
 
+use crate::OSError;
 type SongDateInner = Option<(u16, Option<(u8, Option<u8>)>)>;
 
 #[derive(Debug, Clone, Copy)]
@@ -67,32 +68,27 @@ impl SongTag {
 }
 
 impl SongDate {
+    #[instrument(err(Debug))]
     pub fn parse(input: Option<&str>) -> Result<Self> {
         if let Some(input) = input {
             let mut parsed = time::parsing::Parsed::new();
             if input.len() >= 10 {
                 // yyyy-mm-dd
-                parsed
-                    .parse_items(input[..10].as_bytes(), YMD_FORMAT)
-                    .with_context(|| concat_string!("date value: ", input))?;
-                let year = parsed.year().expect("error in time parsing") as _;
-                let month = parsed.month().expect("error in time parsing") as _;
-                let day = u8::from(parsed.day().expect("error in time parsing"));
+                parsed.parse_items(input[..10].as_bytes(), YMD_FORMAT)?;
+                let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
+                let month = parsed.month().ok_or_else(|| OSError::NotFound("month".into()))? as _;
+                let day = parsed.day().ok_or_else(|| OSError::NotFound("day".into()))?.get();
                 Ok(Self(Some((year, Some((month, Some(day)))))))
             } else if input.len() >= 7 {
                 // yyyy-mm
-                parsed
-                    .parse_items(input[..7].as_bytes(), YM_FORMAT)
-                    .with_context(|| concat_string!("date value: ", input))?;
-                let year = parsed.year().expect("error in time parsing") as _;
-                let month = parsed.month().expect("error in time parsing") as _;
+                parsed.parse_items(input[..7].as_bytes(), YM_FORMAT)?;
+                let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
+                let month = parsed.month().ok_or_else(|| OSError::NotFound("month".into()))? as _;
                 Ok(Self(Some((year, Some((month, None))))))
             } else {
                 // yyyy
-                parsed
-                    .parse_items(input[..4].as_bytes(), Y_FORMAT)
-                    .with_context(|| concat_string!("date value: ", input))?;
-                let year = parsed.year().expect("error in time parsing") as _;
+                parsed.parse_items(input[..4].as_bytes(), Y_FORMAT)?;
+                let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
                 Ok(Self(Some((year, None))))
             }
         } else {

@@ -1,6 +1,7 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use concat_string::concat_string;
 use lofty::Accessor;
+use tracing::instrument;
 
 use crate::OSError;
 
@@ -20,40 +21,14 @@ fn parse_number_and_total(
             // therefore if total value is present and number value is not,
             // a negative value will be written to number value.
             Ok((
-                if !cfg!(test) {
-                    Some(
-                        number_value
-                            .parse()
-                            .with_context(|| concat_string!("number value: ", number_value))?,
-                    )
-                } else {
-                    number_value.parse().ok()
-                },
-                Some(
-                    total_value
-                        .parse()
-                        .with_context(|| concat_string!("total value: ", total_value))?,
-                ),
+                if !cfg!(test) { Some(number_value.parse()?) } else { number_value.parse().ok() },
+                Some(total_value.parse()?),
             ))
         } else {
-            Ok((
-                Some(
-                    number_value
-                        .parse()
-                        .with_context(|| concat_string!("number value: ", number_value))?,
-                ),
-                total_value
-                    .map(|v| v.parse().with_context(|| concat_string!("total value: ", v)))
-                    .transpose()?,
-            ))
+            Ok((Some(number_value.parse()?), total_value.map(|v| v.parse()).transpose()?))
         }
     } else {
-        Ok((
-            None,
-            total_value
-                .map(|v| v.parse().with_context(|| concat_string!("total value: ", v)))
-                .transpose()?,
-        ))
+        Ok((None, total_value.map(|v| v.parse()).transpose()?))
     }
 }
 
@@ -63,9 +38,7 @@ fn parse_track_and_disc_number_letter_prefix(track_number_value: &str) -> Result
     {
         // 'A' = 65 ASCII
         let disc_number = (disc_letter.to_ascii_uppercase() as u8 - 64) as _;
-        let track_number = track_number_value[1..]
-            .parse()
-            .with_context(|| concat_string!("track number value: ", track_number_value))?;
+        let track_number = track_number_value[1..].parse()?;
         Ok((track_number, disc_number))
     } else {
         anyhow::bail!(OSError::InvalidParameter(
@@ -75,6 +48,7 @@ fn parse_track_and_disc_number_letter_prefix(track_number_value: &str) -> Result
 }
 
 pub type NumberTotal = (Option<u32>, Option<u32>);
+#[instrument(err(Debug))]
 pub fn parse_track_and_disc(
     track_number: Option<&str>,
     track_total: Option<&str>,
