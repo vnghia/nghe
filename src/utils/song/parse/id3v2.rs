@@ -53,6 +53,8 @@ impl SongTag {
             extract_and_split_str(tag, &parsing_config.language, parsing_config.separator)
                 .map_or_else(|| Ok(Vec::default()), |v| v.map(Language::from_str).try_collect())?;
 
+        let picture = Self::extract_id3v2_picture(tag)?;
+
         Ok(Self {
             title,
             album,
@@ -66,6 +68,7 @@ impl SongTag {
             release_date,
             original_release_date,
             languages,
+            picture,
         })
     }
 
@@ -175,6 +178,10 @@ mod test {
                     parsing_config.language,
                     self.languages.iter().map(Language::to_639_3).join(&multi_value_separator),
                 );
+            }
+
+            if let Some(picture) = self.picture {
+                tag.insert_picture(picture);
             }
 
             tag

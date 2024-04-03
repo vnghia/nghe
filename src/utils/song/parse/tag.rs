@@ -5,6 +5,7 @@ pub use fake::{Dummy, Fake};
 use isolang::Language;
 #[cfg(test)]
 pub use itertools::Itertools;
+use lofty::Picture;
 use time::macros::format_description;
 
 type SongDateInner = Option<(u16, Option<(u8, Option<u8>)>)>;
@@ -48,6 +49,8 @@ pub struct SongTag {
                       Language::from_usize(i).unwrap()).sorted().collect()")
     )]
     pub languages: Vec<Language>,
+    #[cfg_attr(test, dummy(expr = "crate::utils::test::picture::fake(false)"))]
+    pub picture: Option<Picture>,
 }
 
 impl SongTag {
@@ -132,7 +135,7 @@ pub mod test {
 
     impl SongTag {
         pub fn to_information(&self) -> SongInformation {
-            SongInformation { tag: self.clone(), property: Default::default(), picture: None }
+            SongInformation { tag: self.clone(), property: Default::default() }
         }
     }
 

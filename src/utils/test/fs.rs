@@ -16,7 +16,7 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use super::asset::get_media_asset_path;
 use crate::config::parsing::ParsingConfig;
-use crate::config::TranscodingConfig;
+use crate::config::{ArtConfig, TranscodingConfig};
 use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::SongInformation;
@@ -40,6 +40,7 @@ pub struct TemporaryFs {
     root: TempDir,
     pub parsing_config: ParsingConfig,
     pub transcoding_config: TranscodingConfig,
+    pub art_config: ArtConfig,
 }
 
 impl TemporaryFs {
@@ -50,7 +51,10 @@ impl TemporaryFs {
             cache_path: Some(root.path().canonicalize().unwrap().join("transcoding-cache")),
             ..Default::default()
         };
-        Self { root, parsing_config, transcoding_config }
+        let art_config = ArtConfig {
+            song_path: Some(root.path().canonicalize().unwrap().join("art-song-path")),
+        };
+        Self { root, parsing_config, transcoding_config, art_config }
     }
 
     fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {

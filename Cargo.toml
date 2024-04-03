@@ -73,6 +73,7 @@ fake = { version = "2.9.2", features = [
   "time",
 ] }
 http-body-util = "0.1.1"
+image = { version = "0.25.1", default-features = false, features = ["jpeg", "png"] }
 serde_json = "1.0.115"
 tempfile = "3.10.1"
 url = "2.5.0"

@@ -4,8 +4,7 @@ use anyhow::Result;
 use itertools::Itertools;
 use lofty::flac::FlacFile;
 use lofty::mpeg::MpegFile;
-use lofty::ogg::OggPictureStorage;
-use lofty::{AudioFile, FileProperties, FileType, ParseOptions, ParsingMode, Picture};
+use lofty::{AudioFile, FileProperties, FileType, ParseOptions, ParsingMode};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -19,7 +18,6 @@ use crate::OSError;
 pub struct SongInformation {
     pub tag: SongTag,
     pub property: SongProperty,
-    pub picture: Option<Picture>,
 }
 
 impl SongInformation {
@@ -31,7 +29,7 @@ impl SongInformation {
     ) -> Result<Self> {
         let parse_options = ParseOptions::new().parsing_mode(ParsingMode::Strict);
 
-        let (song_tag, file_property, picture): (_, FileProperties, _) = match file_type {
+        let (song_tag, file_property): (_, FileProperties) = match file_type {
             FileType::Flac => {
                 let mut flac_file = FlacFile::read_from(reader, parse_options)?;
                 let song_tag = SongTag::from_vorbis_comments(
@@ -41,12 +39,14 @@ impl SongInformation {
                     &parsing_config.vorbis,
                 )?;
                 // Pictures in flac file are stored directly in that file and not its tag.
-                let picture = if !flac_file.pictures().is_empty() {
-                    Some(flac_file.remove_picture(0).0)
+                let song_tag = if song_tag.picture.is_none()
+                    && let Some(picture) = SongTag::extract_ogg_picture(&mut flac_file)
+                {
+                    SongTag { picture: Some(picture), ..song_tag }
                 } else {
-                    None
+                    song_tag
                 };
-                (song_tag, (*flac_file.properties()).into(), picture)
+                (song_tag, (*flac_file.properties()).into())
             }
             FileType::Mpeg => {
                 let mut mp3_file = MpegFile::read_from(reader, parse_options)?;
@@ -54,8 +54,7 @@ impl SongInformation {
                     .id3v2_mut()
                     .ok_or_else(|| OSError::NotFound("Id3v2 inside mp3 file".into()))?;
                 let song_tag = SongTag::from_id3v2(id3v2_tag, &parsing_config.id3v2)?;
-                let picture = SongTag::extract_id3v2_picture(id3v2_tag)?;
-                (song_tag, (*mp3_file.properties()).into(), picture)
+                (song_tag, (*mp3_file.properties()).into())
             }
             _ => unreachable!("not supported file type: {:?}", file_type),
         };
@@ -78,7 +77,7 @@ impl SongInformation {
                 .ok_or_else(|| OSError::NotFound("Channel count".into()))?,
         };
 
-        Ok(Self { tag: song_tag, property: song_property, picture })
+        Ok(Self { tag: song_tag, property: song_property })
     }
 
     pub fn to_update_information_db(
@@ -158,12 +157,13 @@ mod tests {
     fn test_parse_media_file() {
         for file_type in SONG_FILE_TYPES {
             let path = get_media_asset_path(&file_type);
-            let SongInformation { tag, picture, .. } = SongInformation::read_from(
+            let tag = SongInformation::read_from(
                 &mut std::fs::File::open(&path).unwrap(),
                 file_type,
                 &ParsingConfig::default(),
             )
-            .unwrap();
+            .unwrap()
+            .tag;
 
             assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
             assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
@@ -206,7 +206,7 @@ mod tests {
             let picture_data =
                 std::fs::read(get_asset_dir().join("test").join("sample.jpg")).unwrap();
             assert_eq!(
-                picture.unwrap().into_data(),
+                tag.picture.unwrap().into_data(),
                 picture_data,
                 "{:?} picture does not match",
                 file_type

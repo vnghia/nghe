@@ -100,7 +100,7 @@ pub async fn process_path(
     let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
     let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
 
-    let cover_art_id = if let Some(ref picture) = song_information.picture
+    let cover_art_id = if let Some(ref picture) = song_tag.picture
         && let Some(ref song_path) = art_config.song_path
     {
         Some(upsert_song_cover_art(pool, picture, song_path).await?)

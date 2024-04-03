@@ -11,18 +11,19 @@ use futures::stream::{self, StreamExt};
 use isolang::Language;
 use itertools::Itertools;
 use uuid::Uuid;
+use xxhash_rust::xxh3::xxh3_64;
 
 use super::db::SongDbInformation;
 use super::fs::SongFsInformation;
-use super::{random, TemporaryDb, TemporaryFs};
-use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
+use super::{picture, random, TemporaryDb, TemporaryFs};
+use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_music_folders;
 use crate::open_subsonic::permission::set_permission;
 use crate::open_subsonic::scan::{start_scan, ScanMode, ScanStatistic};
 use crate::open_subsonic::test::CommonParams;
-use crate::utils::song::file_type::to_extensions;
+use crate::utils::song::file_type::{picture_to_extension, to_extensions};
 use crate::utils::song::test::{SongDate, SongTag};
 use crate::{Database, DatabasePool};
 
@@ -112,7 +113,7 @@ impl Infra {
             &ArtistIndexConfig::default(),
             &self.fs.parsing_config,
             &ScanConfig::default(),
-            &ArtConfig::default(),
+            &self.fs.art_config,
         )
         .await
         .unwrap()
@@ -309,6 +310,34 @@ impl Infra {
             .collect()
     }
 
+    pub async fn song_cover_art_ids<S>(&self, slice: S) -> Vec<Uuid>
+    where
+        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
+    {
+        stream::iter(self.song_fs_infos(slice))
+            .then(|song_fs_info| async move {
+                let picture = song_fs_info.tag.picture.unwrap();
+                let file_format = picture_to_extension(picture.mime_type().unwrap());
+                let data = picture.data();
+                let file_hash = xxh3_64(data);
+                let file_size = data.len() as u64;
+
+                song_cover_arts::table
+                    .select(song_cover_arts::id)
+                    .filter(song_cover_arts::format.eq(file_format))
+                    .filter(song_cover_arts::file_hash.eq(file_hash as i64))
+                    .filter(song_cover_arts::file_size.eq(file_size as i64))
+                    .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
+                    .await
+                    .unwrap()
+            })
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .sorted()
+            .collect()
+    }
+
     pub async fn artist_ids<S>(&self, slice: S) -> Vec<Uuid>
     where
         S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
@@ -399,6 +428,8 @@ impl Infra {
         let album_artist_ids = album_artist_ids.into_iter().sorted().collect_vec();
         let album_artist_names = album_artist_names.into_iter().sorted().collect_vec();
 
+        let picture = picture::from_id(self.pool(), song.cover_art_id, &self.fs.art_config).await;
+
         let tag = SongTag {
             title: song.title,
             album: album_name,
@@ -416,6 +447,7 @@ impl Infra {
                 .into_iter()
                 .map(|language| Language::from_str(&language.unwrap()).unwrap())
                 .collect_vec(),
+            picture,
         };
 
         SongDbInformation {
@@ -484,6 +516,8 @@ impl Infra {
             assert_eq!(song_fs_tag.original_release_date, song_db_tag.original_release_date);
 
             assert_eq!(song_fs_tag.languages, song_db_tag.languages);
+
+            assert_eq!(song_fs_tag.picture, song_db_tag.picture);
 
             assert_eq!(song_fs_info.file_hash, song_db_info.file_hash);
             assert_eq!(song_fs_info.file_size, song_db_info.file_size);

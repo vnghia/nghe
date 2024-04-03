@@ -3,7 +3,8 @@ use std::str::FromStr;
 use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
-use lofty::ogg::VorbisComments;
+use lofty::ogg::{OggPictureStorage, VorbisComments};
+use lofty::Picture;
 
 use super::common::{extract_common_tags, parse_track_and_disc};
 use super::tag::{SongDate, SongTag};
@@ -34,6 +35,8 @@ impl SongTag {
         let languages =
             tag.remove(&parsing_config.language).map(|s| Language::from_str(&s)).try_collect()?;
 
+        let picture = Self::extract_ogg_picture(tag);
+
         Ok(Self {
             title,
             album,
@@ -47,7 +50,12 @@ impl SongTag {
             release_date,
             original_release_date,
             languages,
+            picture,
         })
+    }
+
+    pub fn extract_ogg_picture<O: OggPictureStorage>(o: &mut O) -> Option<Picture> {
+        if !o.pictures().is_empty() { Some(o.remove_picture(0).0) } else { None }
     }
 }
 
@@ -102,6 +110,10 @@ mod test {
             self.languages.into_iter().for_each(|language| {
                 tag.push(parsing_config.language.to_owned(), language.to_639_3().to_owned())
             });
+
+            if let Some(picture) = self.picture {
+                tag.insert_picture(picture, None).unwrap();
+            }
 
             tag
         }

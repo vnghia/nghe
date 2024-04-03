@@ -102,13 +102,13 @@ pub mod test {
         ))]
         pub original_release_date: DateId3Db,
         pub languages: Vec<Option<String>>,
-        // Song property
-        pub duration: f32,
         // Filesystem property
         #[diesel(embed)]
         pub music_folder: music_folders::MusicFolder,
         pub relative_path: String,
         pub file_hash: i64,
         pub file_size: i64,
+        // Cover art
+        pub cover_art_id: Option<Uuid>,
     }
 }
