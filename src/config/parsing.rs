@@ -2,19 +2,11 @@ use derivative::Derivative;
 use lofty::id3::v2::FrameId;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-fn serialize_frame_id<S>(f: &FrameId<'static>, s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_str(f.as_str())
-}
-
-fn deserialize_frame_id<'de, D>(deserializer: D) -> Result<FrameId<'static>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = <String>::deserialize(deserializer)?;
-    FrameId::new(s).map(|f| f.into_owned()).map_err(de::Error::custom)
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
+pub enum FrameIdOrUserText {
+    FrameId(FrameId<'static>),
+    UserText(String),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
@@ -22,38 +14,22 @@ where
 pub struct Id3v2ParsingConfig {
     #[derivative(Default(value = "'/'"))]
     pub separator: char,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TPE1\".into())"))]
-    pub artist: FrameId<'static>,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TPE2\".into())"))]
-    pub album_artist: FrameId<'static>,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TRCK\".into())"))]
-    pub track_number: FrameId<'static>,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TPOS\".into())"))]
-    pub disc_number: FrameId<'static>,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TDRC\".into())"))]
-    pub date: FrameId<'static>,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TDRL\".into())"))]
-    pub release_date: FrameId<'static>,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TDOR\".into())"))]
-    pub original_release_date: FrameId<'static>,
-    #[serde(serialize_with = "serialize_frame_id")]
-    #[serde(deserialize_with = "deserialize_frame_id")]
-    #[derivative(Default(value = "FrameId::Valid(\"TLAN\".into())"))]
-    pub language: FrameId<'static>,
+    #[derivative(Default(value = "\"TPE1\".try_into().unwrap()"))]
+    pub artist: FrameIdOrUserText,
+    #[derivative(Default(value = "\"TPE2\".try_into().unwrap()"))]
+    pub album_artist: FrameIdOrUserText,
+    #[derivative(Default(value = "\"TRCK\".try_into().unwrap()"))]
+    pub track_number: FrameIdOrUserText,
+    #[derivative(Default(value = "\"TPOS\".try_into().unwrap()"))]
+    pub disc_number: FrameIdOrUserText,
+    #[derivative(Default(value = "\"TDRC\".try_into().unwrap()"))]
+    pub date: FrameIdOrUserText,
+    #[derivative(Default(value = "\"TDRL\".try_into().unwrap()"))]
+    pub release_date: FrameIdOrUserText,
+    #[derivative(Default(value = "\"TDOR\".try_into().unwrap()"))]
+    pub original_release_date: FrameIdOrUserText,
+    #[derivative(Default(value = "\"TLAN\".try_into().unwrap()"))]
+    pub language: FrameIdOrUserText,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
@@ -86,4 +62,69 @@ pub struct VorbisCommentsParsingConfig {
 pub struct ParsingConfig {
     pub id3v2: Id3v2ParsingConfig,
     pub vorbis: VorbisCommentsParsingConfig,
+}
+
+impl AsRef<str> for FrameIdOrUserText {
+    fn as_ref(&self) -> &str {
+        match self {
+            FrameIdOrUserText::FrameId(frame_id) => frame_id.as_str(),
+            FrameIdOrUserText::UserText(user_text) => user_text.as_str(),
+        }
+    }
+}
+
+impl TryFrom<String> for FrameIdOrUserText {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.len() == 4 || value.len() == 3 {
+            FrameId::new(value).map(|f| Self::FrameId(f.into_owned())).map_err(Self::Error::from)
+        } else {
+            Ok(Self::UserText(value))
+        }
+    }
+}
+
+impl TryFrom<&str> for FrameIdOrUserText {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        value.to_string().try_into()
+    }
+}
+
+impl Serialize for FrameIdOrUserText {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.as_ref())
+    }
+}
+
+impl<'de> Deserialize<'de> for FrameIdOrUserText {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        <String>::deserialize(deserializer)?.try_into().map_err(de::Error::custom)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_try_from() {
+        assert_eq!(
+            <FrameIdOrUserText as TryFrom<_>>::try_from("ABCD").unwrap(),
+            FrameIdOrUserText::FrameId(FrameId::new("ABCD").unwrap().into_owned())
+        );
+
+        assert_eq!(
+            <FrameIdOrUserText as TryFrom<_>>::try_from("ABCDEF").unwrap(),
+            FrameIdOrUserText::UserText("ABCDEF".to_string())
+        );
+    }
 }

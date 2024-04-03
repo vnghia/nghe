@@ -9,18 +9,25 @@ use lofty::Picture;
 
 use super::common::{extract_common_tags, parse_track_and_disc};
 use super::tag::{SongDate, SongTag};
-use crate::config::parsing::Id3v2ParsingConfig;
+use crate::config::parsing::{FrameIdOrUserText, Id3v2ParsingConfig};
 use crate::OSError;
 
 const V4_MULTI_VALUE_SEPARATOR: char = '\0';
-const PICTIRE_FRAME_ID: FrameId<'_> = FrameId::Valid(Cow::Borrowed("APIC"));
+const PICTURE_FRAME_ID: FrameId<'_> = FrameId::Valid(Cow::Borrowed("APIC"));
+
+fn get_text<'a>(tag: &'a Id3v2Tag, key: &FrameIdOrUserText) -> Option<&'a str> {
+    match key {
+        FrameIdOrUserText::FrameId(frame_id) => tag.get_text(frame_id),
+        FrameIdOrUserText::UserText(user_text) => tag.get_user_text(user_text),
+    }
+}
 
 fn extract_and_split_str<'a>(
-    tag: &'a mut Id3v2Tag,
-    frame_id: &FrameId<'_>,
+    tag: &'a Id3v2Tag,
+    key: &FrameIdOrUserText,
     multi_value_separator: char,
 ) -> Option<Split<'a, char>> {
-    tag.get_text(frame_id).map(|text| match tag.original_version() {
+    get_text(tag, key).map(|text| match tag.original_version() {
         Id3v2Version::V4 => text.split(V4_MULTI_VALUE_SEPARATOR),
         _ => text.split(multi_value_separator),
     })
@@ -38,16 +45,16 @@ impl SongTag {
                 .map_or_else(Vec::default, |v| v.map(String::from).collect_vec());
 
         let ((track_number, track_total), (disc_number, disc_total)) = parse_track_and_disc(
-            tag.get_text(&parsing_config.track_number),
+            get_text(tag, &parsing_config.track_number),
             None,
-            tag.get_text(&parsing_config.disc_number),
+            get_text(tag, &parsing_config.disc_number),
             None,
         )?;
 
-        let date = SongDate::parse(tag.get_text(&parsing_config.date))?;
-        let release_date = SongDate::parse(tag.get_text(&parsing_config.release_date))?;
+        let date = SongDate::parse(get_text(tag, &parsing_config.date))?;
+        let release_date = SongDate::parse(get_text(tag, &parsing_config.release_date))?;
         let original_release_date =
-            SongDate::parse(tag.get_text(&parsing_config.original_release_date))?;
+            SongDate::parse(get_text(tag, &parsing_config.original_release_date))?;
 
         let languages =
             extract_and_split_str(tag, &parsing_config.language, parsing_config.separator)
@@ -73,7 +80,7 @@ impl SongTag {
     }
 
     pub fn extract_id3v2_picture(tag: &mut Id3v2Tag) -> Result<Option<Picture>> {
-        tag.remove(&PICTIRE_FRAME_ID)
+        tag.remove(&PICTURE_FRAME_ID)
             .next()
             .map(|f| {
                 if let FrameValue::Picture(p) = f.content() {
@@ -96,27 +103,30 @@ mod test {
 
     use super::*;
 
-    fn write_id3v2_text_tag(tag: &mut Id3v2Tag, frame_id: FrameId<'static>, value: String) {
-        tag.insert(
-            Frame::new(
-                frame_id,
-                TextInformationFrame { encoding: lofty::TextEncoding::UTF8, value },
-                FrameFlags::default(),
-            )
-            .unwrap(),
-        );
+    fn write_id3v2_text_tag(tag: &mut Id3v2Tag, key: FrameIdOrUserText, value: String) {
+        match key {
+            FrameIdOrUserText::FrameId(frame_id) => tag.insert(
+                Frame::new(
+                    frame_id,
+                    TextInformationFrame { encoding: lofty::TextEncoding::UTF8, value },
+                    FrameFlags::default(),
+                )
+                .unwrap(),
+            ),
+            FrameIdOrUserText::UserText(user_text) => tag.insert_user_text(user_text, value),
+        };
     }
 
     fn write_number_and_total_tag(
         tag: &mut Id3v2Tag,
-        frame_id: FrameId<'static>,
+        key: FrameIdOrUserText,
         number: Option<u32>,
         total: Option<u32>,
     ) {
         if number.is_some() || total.is_some() {
             write_id3v2_text_tag(
                 tag,
-                frame_id,
+                key,
                 concat_string!(
                     number.map_or("-1".to_owned(), |i| i.to_string()),
                     total.map_or_else(String::default, |i| concat_string!("/", i.to_string()))
