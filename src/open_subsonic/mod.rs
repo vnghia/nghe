@@ -15,5 +15,6 @@ pub use common::stream::StreamResponse;
 
 #[cfg(test)]
 pub mod test {
+    pub use super::common::id3;
     pub use super::common::request::CommonParams;
 }

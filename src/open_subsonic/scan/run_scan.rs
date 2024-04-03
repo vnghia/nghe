@@ -313,7 +313,7 @@ mod tests {
     use crate::utils::song::test::SongTag;
     use crate::utils::test::media::{
         assert_album_artist_names, assert_album_names, assert_albums_artists_info,
-        assert_albums_info, assert_artists_info, assert_song_artist_names, assert_songs_info,
+        assert_albums_info, assert_artists_info, assert_song_artist_names,
     };
     use crate::utils::test::Infra;
 
@@ -326,7 +326,7 @@ mod tests {
             infra.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -344,7 +344,7 @@ mod tests {
             infra.update_n_song(0, n_update_song).scan(.., None).await;
         assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -366,7 +366,7 @@ mod tests {
             .await;
         assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, n_delete_song);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -378,7 +378,7 @@ mod tests {
             infra.add_n_song(0, n_song).add_n_song(1, n_song).scan(.., None).await;
         assert_eq!(upserted_song_count, n_song + n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -403,7 +403,7 @@ mod tests {
             .scan(.., None)
             .await;
 
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
         assert_albums_artists_info(infra.pool(), &infra.song_fs_infos(..)).await;
     }
 
@@ -621,23 +621,12 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
         infra.add_n_song(0, 1).scan(.., None).await;
 
-        let ScanStatistic { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
+        let ScanStatistic { scanned_song_count, deleted_song_count, .. } =
             infra.copy_song(0, 0, Faker.fake::<String>()).scan(.., None).await;
         assert_eq!(scanned_song_count, 2);
         assert_eq!(deleted_song_count, 0);
 
-        let song_fs_infos = infra.song_fs_infos(..);
-        if upserted_song_count == 2 {
-            // The new song is scanned before the old song.
-            // The path is set to the new song and then back to the old song.
-            assert_songs_info(infra.pool(), &song_fs_infos[..1]).await;
-        } else if upserted_song_count == 1 {
-            // The old song is scanned after the old song.
-            // The path is set to the new song.
-            assert_songs_info(infra.pool(), &song_fs_infos[1..]).await;
-        } else {
-            panic!("upserted song count value is invalid")
-        }
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -650,7 +639,7 @@ mod tests {
         assert_eq!(scanned_song_count, 1);
         assert_eq!(upserted_song_count, 1);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -662,7 +651,7 @@ mod tests {
             infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Force)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -674,13 +663,13 @@ mod tests {
             infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Full)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
 
         let ScanStatistic { upserted_song_count, deleted_song_count, .. } =
             infra.scan(.., Some(ScanMode::Force)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 
     #[tokio::test]
@@ -696,6 +685,6 @@ mod tests {
             .await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
-        assert_songs_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_song_infos().await;
     }
 }

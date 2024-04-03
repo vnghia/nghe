@@ -53,6 +53,8 @@ pub struct SongFullInformationDB<'a> {
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use crate::models::music_folders;
+    use crate::open_subsonic::test::id3::db::*;
 
     #[derive(Queryable, Selectable)]
     #[diesel(table_name = songs)]
@@ -66,20 +68,45 @@ pub mod test {
         pub track_total: Option<i32>,
         pub disc_number: Option<i32>,
         pub disc_total: Option<i32>,
-        pub year: Option<i16>,
-        pub month: Option<i16>,
-        pub day: Option<i16>,
-        pub release_year: Option<i16>,
-        pub release_month: Option<i16>,
-        pub release_day: Option<i16>,
-        pub original_release_year: Option<i16>,
-        pub original_release_month: Option<i16>,
-        pub original_release_day: Option<i16>,
+        #[diesel(select_expression = (
+            songs::year,
+            songs::month,
+            songs::day,
+        ))]
+        #[diesel(select_expression_type = (
+            songs::year,
+            songs::month,
+            songs::day,
+        ))]
+        pub date: DateId3Db,
+        #[diesel(select_expression = (
+            songs::release_year,
+            songs::release_month,
+            songs::release_day,
+        ))]
+        #[diesel(select_expression_type = (
+            songs::release_year,
+            songs::release_month,
+            songs::release_day,
+        ))]
+        pub release_date: DateId3Db,
+        #[diesel(select_expression = (
+            songs::original_release_year,
+            songs::original_release_month,
+            songs::original_release_day,
+        ))]
+        #[diesel(select_expression_type = (
+            songs::original_release_year,
+            songs::original_release_month,
+            songs::original_release_day,
+        ))]
+        pub original_release_date: DateId3Db,
         pub languages: Vec<Option<String>>,
         // Song property
         pub duration: f32,
         // Filesystem property
-        pub music_folder_id: Uuid,
+        #[diesel(embed)]
+        pub music_folder: music_folders::MusicFolder,
         pub relative_path: String,
         pub file_hash: i64,
         pub file_size: i64,

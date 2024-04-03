@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use axum::extract::State;
 use concat_string::concat_string;
 use diesel_async::{AsyncConnection, AsyncPgConnection};
@@ -5,7 +7,29 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::database::EncryptionKey;
+use crate::models::*;
+use crate::utils::song::test::SongTag;
 use crate::{Database, DatabasePool};
+
+#[derive(Debug)]
+pub struct SongDbInformation {
+    pub tag: SongTag,
+    pub song_id: Uuid,
+    pub album_id: Uuid,
+    pub artist_ids: Vec<Uuid>,
+    pub album_artist_ids: Vec<Uuid>,
+    // Filesystem property
+    pub music_folder: music_folders::MusicFolder,
+    pub relative_path: String,
+    pub file_hash: u64,
+    pub file_size: u64,
+}
+
+impl SongDbInformation {
+    pub fn absolute_path(&self) -> PathBuf {
+        Path::new(&self.music_folder.path).join(&self.relative_path)
+    }
+}
 
 pub struct TemporaryDb {
     name: String,

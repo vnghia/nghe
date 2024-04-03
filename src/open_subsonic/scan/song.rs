@@ -103,7 +103,6 @@ mod tests {
     use super::super::album::upsert_album;
     use super::*;
     use crate::utils::song::test::SongTag;
-    use crate::utils::test::media::query_all_song_information;
     use crate::utils::test::Infra;
 
     #[tokio::test]
@@ -131,7 +130,7 @@ mod tests {
         .await
         .unwrap();
 
-        let song_db_info = query_all_song_information(infra.pool(), song_id).await;
+        let song_db_info = infra.song_db_info(song_id).await;
 
         assert_eq!(song_tag.title, song_db_info.tag.title);
         assert_eq!(song_path, song_db_info.relative_path);
@@ -183,7 +182,7 @@ mod tests {
         .await
         .unwrap();
 
-        let song_db_info = query_all_song_information(infra.pool(), song_id).await;
+        let song_db_info = infra.song_db_info(song_id).await;
 
         assert_eq!(new_song_tag.title, song_db_info.tag.title);
         assert_eq!(song_path, song_db_info.relative_path);

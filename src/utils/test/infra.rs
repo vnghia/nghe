@@ -1,14 +1,18 @@
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::slice::SliceIndex;
+use std::str::FromStr;
 
 use axum::extract::State;
-use diesel::{ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
+use isolang::Language;
 use itertools::Itertools;
 use uuid::Uuid;
 
+use super::db::SongDbInformation;
 use super::fs::SongFsInformation;
 use super::{random, TemporaryDb, TemporaryFs};
 use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
@@ -19,7 +23,7 @@ use crate::open_subsonic::permission::set_permission;
 use crate::open_subsonic::scan::{start_scan, ScanMode, ScanStatistic};
 use crate::open_subsonic::test::CommonParams;
 use crate::utils::song::file_type::to_extensions;
-use crate::utils::song::test::SongTag;
+use crate::utils::song::test::{SongDate, SongTag};
 use crate::{Database, DatabasePool};
 
 pub struct Infra {
@@ -350,5 +354,145 @@ impl Infra {
             .unique()
             .sorted()
             .collect_vec()
+    }
+
+    pub async fn song_db_info(&self, song_id: Uuid) -> SongDbInformation {
+        let song = songs::table
+            .inner_join(music_folders::table)
+            .filter(songs::id.eq(song_id))
+            .select(songs::test::Song::as_select())
+            .first(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap();
+
+        let album_id = song.album_id;
+        let album_name = albums::table
+            .filter(albums::id.eq(song.album_id))
+            .select(albums::name)
+            .first::<String>(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap();
+
+        let (artist_ids, artist_names): (Vec<Uuid>, Vec<String>) = artists::table
+            .inner_join(songs_artists::table)
+            .filter(songs_artists::song_id.eq(song_id))
+            .select((artists::id, artists::name))
+            .get_results::<(Uuid, String)>(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .unzip();
+        let artist_ids = artist_ids.into_iter().sorted().collect_vec();
+        let artist_names = artist_names.into_iter().sorted().collect_vec();
+
+        let (album_artist_ids, album_artist_names): (Vec<Uuid>, Vec<String>) =
+            songs_album_artists::table
+                .inner_join(artists::table)
+                .inner_join(songs::table)
+                .filter(songs::id.eq(song_id))
+                .select((artists::id, artists::name))
+                .get_results::<(Uuid, String)>(&mut self.pool().get().await.unwrap())
+                .await
+                .unwrap()
+                .into_iter()
+                .unzip();
+        let album_artist_ids = album_artist_ids.into_iter().sorted().collect_vec();
+        let album_artist_names = album_artist_names.into_iter().sorted().collect_vec();
+
+        let tag = SongTag {
+            title: song.title,
+            album: album_name,
+            artists: artist_names,
+            album_artists: album_artist_names,
+            track_number: song.track_number.map(|i| i as _),
+            track_total: song.track_total.map(|i| i as _),
+            disc_number: song.disc_number.map(|i| i as _),
+            disc_total: song.disc_total.map(|i| i as _),
+            date: SongDate::from_id3_db(song.date),
+            release_date: SongDate::from_id3_db(song.release_date),
+            original_release_date: SongDate::from_id3_db(song.original_release_date),
+            languages: song
+                .languages
+                .into_iter()
+                .map(|language| Language::from_str(&language.unwrap()).unwrap())
+                .collect_vec(),
+        };
+
+        SongDbInformation {
+            tag,
+            song_id,
+            album_id,
+            artist_ids,
+            album_artist_ids,
+            music_folder: song.music_folder,
+            relative_path: song.relative_path,
+            file_hash: song.file_hash as u64,
+            file_size: song.file_size as u64,
+        }
+    }
+
+    pub async fn song_db_infos(&self) -> HashMap<(Uuid, u64, u64), SongDbInformation> {
+        let song_ids = songs::table
+            .select(songs::id)
+            .get_results(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        stream::iter(song_ids)
+            .then(|song_id| async move {
+                let result = self.song_db_info(song_id).await;
+                ((result.music_folder.id, result.file_hash, result.file_size), result)
+            })
+            .collect::<HashMap<_, _>>()
+            .await
+    }
+
+    pub async fn assert_song_infos(&self) {
+        let music_folders =
+            self.music_folders.iter().map(|f| (f.path.as_str(), f.id)).collect::<HashMap<_, _>>();
+        let song_fs_infos_map =
+            self.song_fs_infos(..).into_iter().into_group_map_by(|song_fs_info| {
+                (
+                    music_folders[song_fs_info
+                        .music_folder_path
+                        .to_str()
+                        .expect("non utf-8 path encountered")],
+                    song_fs_info.file_hash,
+                    song_fs_info.file_size,
+                )
+            });
+        let mut song_db_infos = self.song_db_infos().await;
+        assert_eq!(song_fs_infos_map.len(), song_db_infos.len());
+
+        for (song_key_info, song_fs_infos) in song_fs_infos_map {
+            let song_db_info = song_db_infos.remove(&song_key_info).unwrap();
+            let song_fs_info = &song_fs_infos[0];
+            let song_fs_tag = &song_fs_info.tag;
+            let song_db_tag = &song_db_info.tag;
+
+            assert_eq!(song_fs_tag.title, song_db_tag.title);
+            assert_eq!(song_fs_tag.album, song_db_tag.album);
+            assert_eq!(song_fs_tag.artists, song_db_tag.artists);
+            assert_eq!(song_fs_tag.album_artists_or_default(), &song_db_tag.album_artists,);
+
+            assert_eq!(song_fs_tag.track_number, song_db_tag.track_number);
+            assert_eq!(song_fs_tag.track_total, song_db_tag.track_total);
+            assert_eq!(song_fs_tag.disc_number, song_db_tag.disc_number);
+            assert_eq!(song_fs_tag.disc_total, song_db_tag.disc_total);
+
+            assert_eq!(song_fs_tag.date_or_default(), song_db_tag.date);
+            assert_eq!(song_fs_tag.release_date_or_default(), song_db_tag.release_date);
+            assert_eq!(song_fs_tag.original_release_date, song_db_tag.original_release_date);
+
+            assert_eq!(song_fs_tag.languages, song_db_tag.languages);
+
+            assert_eq!(song_fs_info.file_hash, song_db_info.file_hash);
+            assert_eq!(song_fs_info.file_size, song_db_info.file_size);
+
+            let song_fs_paths = song_fs_infos
+                .iter()
+                .map(|song_fs_info| song_fs_info.relative_path.as_str())
+                .collect::<HashSet<_>>();
+            assert!(song_fs_paths.contains(song_db_info.relative_path.as_str()));
+        }
     }
 }
