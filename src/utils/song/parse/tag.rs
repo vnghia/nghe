@@ -40,7 +40,6 @@ pub struct SongTag {
     pub disc_number: Option<u32>,
     pub disc_total: Option<u32>,
     pub date: SongDate,
-    #[cfg_attr(test, dummy(expr = "SongDate(None)"))]
     pub release_date: SongDate,
     pub original_release_date: SongDate,
     #[cfg_attr(
