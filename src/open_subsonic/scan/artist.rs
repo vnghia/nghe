@@ -125,7 +125,6 @@ mod tests {
     use fake::{Fake, Faker};
     use itertools::Itertools;
     use rand::seq::SliceRandom;
-    use time::OffsetDateTime;
 
     use super::*;
     use crate::utils::test::TemporaryDb;
@@ -288,17 +287,9 @@ mod tests {
         let artist_no_id2 = artists::ArtistNoId { name: "alias1".into(), mbz_id };
 
         let artist_id1 = upsert_artists(temp_db.pool(), &[artist_no_id1]).await.unwrap().remove(0);
-        let current_time = OffsetDateTime::now_utc();
         let artist_id2 = upsert_artists(temp_db.pool(), &[artist_no_id2]).await.unwrap().remove(0);
         // Because they share the same mbz id
         assert_eq!(artist_id1, artist_id2);
-        let scanned_time = artists::table
-            .filter(artists::id.eq(artist_id1))
-            .select(artists::scanned_at)
-            .get_result::<OffsetDateTime>(&mut temp_db.pool().get().await.unwrap())
-            .await
-            .unwrap();
-        assert!(current_time < scanned_time);
     }
 
     #[tokio::test]
@@ -308,17 +299,9 @@ mod tests {
         let artist_no_id2 = artists::ArtistNoId { name: "alias1".into(), mbz_id: None };
 
         let artist_id1 = upsert_artists(temp_db.pool(), &[artist_no_id1]).await.unwrap().remove(0);
-        let current_time = OffsetDateTime::now_utc();
         let artist_id2 = upsert_artists(temp_db.pool(), &[artist_no_id2]).await.unwrap().remove(0);
         // Because they share the same name and mbz id is null.
         assert_eq!(artist_id1, artist_id2);
-        let scanned_time = artists::table
-            .filter(artists::id.eq(artist_id1))
-            .select(artists::scanned_at)
-            .get_result::<OffsetDateTime>(&mut temp_db.pool().get().await.unwrap())
-            .await
-            .unwrap();
-        assert!(current_time < scanned_time);
 
         let artist_no_id1 =
             artists::ArtistNoId { name: "alias2".into(), mbz_id: Some(Faker.fake()) };

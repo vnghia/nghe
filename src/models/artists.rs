@@ -7,7 +7,7 @@ use uuid::Uuid;
 pub use crate::schema::artists;
 
 #[derive(Debug, Insertable, Queryable, Selectable)]
-#[cfg_attr(test, derive(Clone, Hash, PartialEq, Eq))]
+#[cfg_attr(test, derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord))]
 #[diesel(table_name = artists)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewArtist<'a> {
@@ -31,7 +31,6 @@ impl From<(&str, Option<Uuid>)> for ArtistNoId {
 
 #[cfg(test)]
 mod test {
-    use std::cmp::Ordering;
     use std::ops::RangeBounds;
 
     use fake::{Dummy, Fake, Faker};
@@ -68,19 +67,6 @@ mod test {
                 String::default()
             };
             (artist_name, artist_mbz_id)
-        }
-    }
-
-    impl PartialOrd for ArtistNoId {
-        fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-            Some(self.cmp(other))
-        }
-    }
-
-    // Sort all non null id to first since flac file can not have empty id in the middle.
-    impl Ord for ArtistNoId {
-        fn cmp(&self, other: &Self) -> Ordering {
-            (other.mbz_id, &self.name).cmp(&(self.mbz_id, &other.name))
         }
     }
 
