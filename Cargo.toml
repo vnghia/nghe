@@ -18,6 +18,7 @@ axum-extra = { version = "0.9.3", features = ["form"] }
 concat-string = "1.0.1"
 constcat = "0.5.0"
 derivative = "2.2.0"
+derive-new = "0.6.0"
 diesel = { version = "2.1.5", features = ["uuid", "time"] }
 diesel-async = { version = "0.4.1", features = [
   "postgres",

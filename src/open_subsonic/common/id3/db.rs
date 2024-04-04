@@ -131,7 +131,7 @@ impl DateId3Db {
 
 impl BasicArtistId3Db {
     pub fn into_res(self) -> ArtistId3 {
-        ArtistId3 { id: self.id, name: self.no_id.name.into_owned(), ..Default::default() }
+        ArtistId3::new(self.id, self.no_id.name.into_owned())
     }
 }
 
@@ -147,15 +147,14 @@ impl ArtistId3Db {
 
 impl BasicAlbumId3Db {
     pub fn into_res(self) -> AlbumId3 {
-        AlbumId3 {
-            id: self.id,
-            name: self.name,
-            song_count: self.song_count as _,
-            duration: self.duration as _,
-            created: self.created_at,
-            cover_art: MediaTypedId { t: Some(MediaType::Album), id: self.id },
-            ..Default::default()
-        }
+        AlbumId3::new(
+            self.id,
+            self.name,
+            self.song_count as _,
+            self.duration as _,
+            self.created_at,
+            MediaTypedId { t: Some(MediaType::Album), id: self.id },
+        )
     }
 }
 
@@ -187,21 +186,20 @@ impl AlbumId3Db {
 
 impl BasicSongId3Db {
     pub fn into_res(self) -> SongId3 {
-        SongId3 {
-            id: self.id,
-            title: self.title,
-            duration: self.duration as _,
-            created: self.created_at,
-            size: self.file_size as _,
-            suffix: self.format,
-            bit_rate: self.bitrate as _,
-            album_id: self.album_id,
-            year: self.year.map(|v| v as _),
-            track: self.track_number.map(|v| v as _),
-            disc_number: self.disc_number.map(|v| v as _),
-            cover_art: self.cover_art_id.map(|v| MediaTypedId { t: Some(MediaType::Song), id: v }),
-            ..Default::default()
-        }
+        SongId3::new(
+            self.id,
+            self.title,
+            self.duration as _,
+            self.created_at,
+            self.file_size as _,
+            self.format,
+            self.bitrate as _,
+            self.album_id,
+            self.year.map(|v| v as _),
+            self.track_number.map(|v| v as _),
+            self.disc_number.map(|v| v as _),
+            self.cover_art_id.map(|v| MediaTypedId { t: Some(MediaType::Song), id: v }),
+        )
     }
 }
 
