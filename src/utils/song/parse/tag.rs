@@ -37,7 +37,7 @@ pub struct SongTag {
     #[cfg_attr(
         test,
         dummy(
-            expr = "artists::ArtistNoId::fake_vec(1..=5).into_iter().unique().sorted().collect()"
+            expr = "artists::ArtistNoId::fake_vec(0..=5).into_iter().unique().sorted().collect()"
         )
     )]
     pub album_artists: Vec<artists::ArtistNoId>,

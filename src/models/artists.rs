@@ -93,11 +93,11 @@ mod test {
             // Flac does not keep the order of these tags. So we only generate one mbz id per file
             // to simplify testing.
             let size = range.fake();
-            (0..size)
-                .map(|i| {
-                    if i == 0 { Faker.fake() } else { ArtistNoId { mbz_id: None, ..Faker.fake() } }
-                })
-                .collect()
+            if size == 1 {
+                fake::vec![ArtistNoId; 1]
+            } else {
+                (0..size).map(|_| ArtistNoId { mbz_id: None, ..Faker.fake() }).collect()
+            }
         }
     }
 }
