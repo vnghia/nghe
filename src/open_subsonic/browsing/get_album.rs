@@ -99,11 +99,9 @@ mod tests {
     use crate::utils::test::Infra;
 
     async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, album_id: Uuid) -> Vec<Uuid> {
-        // inner join = left join + is not null
-        get_basic_artist_id3_db()
+        Infra::get_album_artist_db()
             .filter(with_permission(user_id))
             .filter(songs::album_id.eq(album_id))
-            .filter(songs_album_artists::album_artist_id.is_not_null())
             .select(artists::id)
             .distinct()
             .get_results::<Uuid>(&mut pool.get().await.unwrap())
@@ -154,9 +152,9 @@ mod tests {
                     .map(|i| SongTag {
                         album: album_name.to_owned(),
                         album_artists: if i < 5 {
-                            vec![artist_names[0].to_owned()]
+                            vec![artist_names[0].into()]
                         } else {
-                            vec![artist_names[1].to_owned()]
+                            vec![artist_names[1].into()]
                         },
                         ..Faker.fake()
                     })

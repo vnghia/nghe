@@ -39,6 +39,8 @@ pub struct TemporaryDb {
 
 impl TemporaryDb {
     async fn new(url: String) -> Self {
+        let _ = tracing_subscriber::fmt().with_test_writer().try_init();
+
         let name = Uuid::new_v4().to_string();
         let mut new_url = Url::parse(&url).expect("can not parse database url");
         new_url.set_path(&name);

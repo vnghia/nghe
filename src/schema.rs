@@ -18,6 +18,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
+        mbz_id -> Nullable<Uuid>,
     }
 }
 

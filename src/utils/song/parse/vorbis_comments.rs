@@ -6,7 +6,7 @@ use itertools::Itertools;
 use lofty::ogg::{OggPictureStorage, VorbisComments};
 use lofty::Picture;
 
-use super::common::{extract_common_tags, parse_track_and_disc};
+use super::common::{extract_common_tags, parse_track_and_disc, to_artist_no_ids};
 use super::tag::{SongDate, SongTag};
 use crate::config::parsing::VorbisCommentsParsingConfig;
 
@@ -17,8 +17,13 @@ impl SongTag {
     ) -> Result<Self> {
         let (title, album) = extract_common_tags(tag)?;
 
-        let artists = tag.remove(&parsing_config.artist).collect_vec();
-        let album_artists = tag.remove(&parsing_config.album_artist).collect_vec();
+        let artist_names = tag.remove(&parsing_config.artist).collect_vec();
+        let artist_mbz_ids = tag.get_all(&parsing_config.artist_mbz_id).collect_vec();
+        let artists = to_artist_no_ids(artist_names, Some(artist_mbz_ids))?;
+
+        let album_artist_names = tag.remove(&parsing_config.album_artist).collect_vec();
+        let album_artist_mbz_ids = tag.get_all(&parsing_config.album_artist_mbz_id).collect_vec();
+        let album_artists = to_artist_no_ids(album_artist_names, Some(album_artist_mbz_ids))?;
 
         let ((track_number, track_total), (disc_number, disc_total)) = parse_track_and_disc(
             tag.get(&parsing_config.track_number),
@@ -77,12 +82,16 @@ mod test {
             tag.set_title(self.title);
             tag.set_album(self.album);
 
-            self.artists
-                .into_iter()
-                .for_each(|artist| tag.push(parsing_config.artist.to_owned(), artist));
-            self.album_artists
-                .into_iter()
-                .for_each(|artist| tag.push(parsing_config.album_artist.to_owned(), artist));
+            self.artists.into_iter().for_each(|v| {
+                let (name, mbz_id) = v.into();
+                tag.push(parsing_config.artist.to_owned(), name);
+                tag.push(parsing_config.artist_mbz_id.to_owned(), mbz_id);
+            });
+            self.album_artists.into_iter().for_each(|v| {
+                let (name, mbz_id) = v.into();
+                tag.push(parsing_config.album_artist.to_owned(), name);
+                tag.push(parsing_config.album_artist_mbz_id.to_owned(), mbz_id);
+            });
 
             if let Some(track_number) = self.track_number {
                 tag.push(parsing_config.track_number, track_number.to_string());

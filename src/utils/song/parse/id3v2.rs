@@ -7,7 +7,7 @@ use itertools::Itertools;
 use lofty::id3::v2::{FrameId, FrameValue, Id3v2Tag, Id3v2Version};
 use lofty::Picture;
 
-use super::common::{extract_common_tags, parse_track_and_disc};
+use super::common::{extract_common_tags, parse_track_and_disc, to_artist_no_ids};
 use super::tag::{SongDate, SongTag};
 use crate::config::parsing::{FrameIdOrUserText, Id3v2ParsingConfig};
 use crate::OSError;
@@ -37,12 +37,25 @@ impl SongTag {
     pub fn from_id3v2(tag: &mut Id3v2Tag, parsing_config: &Id3v2ParsingConfig) -> Result<Self> {
         let (title, album) = extract_common_tags(tag)?;
 
-        let artists = extract_and_split_str(tag, &parsing_config.artist, parsing_config.separator)
-            .map(|v| v.map(String::from).collect_vec())
-            .ok_or_else(|| OSError::NotFound("Artist".into()))?;
-        let album_artists =
+        let artist_names =
+            extract_and_split_str(tag, &parsing_config.artist, parsing_config.separator)
+                .map(|v| v.map(String::from).collect_vec())
+                .ok_or_else(|| OSError::NotFound("Artist".into()))?;
+        let artist_mbz_ids =
+            extract_and_split_str(tag, &parsing_config.artist_mbz_id, parsing_config.separator)
+                .map(|v| v.collect_vec());
+        let artists = to_artist_no_ids(artist_names, artist_mbz_ids)?;
+
+        let album_artist_names =
             extract_and_split_str(tag, &parsing_config.album_artist, parsing_config.separator)
                 .map_or_else(Vec::default, |v| v.map(String::from).collect_vec());
+        let album_artist_mbz_ids = extract_and_split_str(
+            tag,
+            &parsing_config.album_artist_mbz_id,
+            parsing_config.separator,
+        )
+        .map(|v| v.collect_vec());
+        let album_artists = to_artist_no_ids(album_artist_names, album_artist_mbz_ids)?;
 
         let ((track_number, track_total), (disc_number, disc_total)) = parse_track_and_disc(
             get_text(tag, &parsing_config.track_number),
@@ -145,17 +158,31 @@ mod test {
             tag.set_album(self.album);
 
             if !self.artists.is_empty() {
+                let (artist_names, artist_mbz_ids): (Vec<String>, Vec<String>) =
+                    self.artists.into_iter().map(|v| v.into()).unzip();
                 write_id3v2_text_tag(
                     &mut tag,
                     parsing_config.artist.clone(),
-                    self.artists.join(&multi_value_separator),
+                    artist_names.join(&multi_value_separator),
+                );
+                write_id3v2_text_tag(
+                    &mut tag,
+                    parsing_config.artist_mbz_id.clone(),
+                    artist_mbz_ids.join(&multi_value_separator),
                 );
             }
             if !self.album_artists.is_empty() {
+                let (album_artist_names, album_artist_mbz_ids): (Vec<String>, Vec<String>) =
+                    self.album_artists.into_iter().map(|v| v.into()).unzip();
                 write_id3v2_text_tag(
                     &mut tag,
-                    parsing_config.album_artist,
-                    self.album_artists.join(&multi_value_separator),
+                    parsing_config.album_artist.clone(),
+                    album_artist_names.join(&multi_value_separator),
+                );
+                write_id3v2_text_tag(
+                    &mut tag,
+                    parsing_config.album_artist_mbz_id.clone(),
+                    album_artist_mbz_ids.join(&multi_value_separator),
                 );
             }
 

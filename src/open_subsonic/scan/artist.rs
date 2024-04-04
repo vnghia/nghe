@@ -1,32 +1,48 @@
 use std::borrow::Cow;
 
 use anyhow::Result;
-use diesel::{ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl};
+use diesel::{
+    DecoratableTarget, ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use futures::stream::{self, StreamExt};
 use futures::TryStreamExt;
-use itertools::Itertools;
 use uuid::Uuid;
 
 use crate::config::ArtistIndexConfig;
 use crate::models::*;
 use crate::DatabasePool;
 
-pub async fn upsert_artists<S: AsRef<str>>(pool: &DatabasePool, names: &[S]) -> Result<Vec<Uuid>> {
-    diesel::insert_into(artists::table)
-        .values(
-            names
-                .iter()
-                .map(|name| artists::NewArtist { name: name.as_ref().into() })
-                .collect_vec(),
-        )
-        .on_conflict(artists::name)
-        .do_update()
-        .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
-        .returning(artists::id)
-        .get_results(&mut pool.get().await?)
+pub async fn upsert_artists(
+    pool: &DatabasePool,
+    artist_no_ids: &[artists::ArtistNoId],
+) -> Result<Vec<Uuid>> {
+    stream::iter(artist_no_ids)
+        .then(|artist_no_id| async move {
+            if artist_no_id.mbz_id.is_some() {
+                diesel::insert_into(artists::table)
+                    .values(artist_no_id)
+                    .on_conflict(artists::mbz_id)
+                    .do_update()
+                    .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
+                    .returning(artists::id)
+                    .get_result::<Uuid>(&mut pool.get().await.map_err(anyhow::Error::from)?)
+                    .await
+            } else {
+                diesel::insert_into(artists::table)
+                    .values(artist_no_id)
+                    .on_conflict(artists::name)
+                    .filter_target(artists::mbz_id.is_null())
+                    .do_update()
+                    .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
+                    .returning(artists::id)
+                    .get_result::<Uuid>(&mut pool.get().await.map_err(anyhow::Error::from)?)
+                    .await
+            }
+            .map_err(anyhow::Error::from)
+        })
+        .try_collect()
         .await
-        .map_err(anyhow::Error::from)
 }
 
 // TODO: better index building mechanism
@@ -106,20 +122,26 @@ fn index_char_to_string(index_char: char) -> Cow<'static, str> {
 
 #[cfg(test)]
 mod tests {
+    use fake::{Fake, Faker};
+    use itertools::Itertools;
     use rand::seq::SliceRandom;
+    use time::OffsetDateTime;
 
     use super::*;
     use crate::utils::test::TemporaryDb;
 
-    async fn assert_artist_indices<SN: AsRef<str>, SP: AsRef<str>>(
+    async fn assert_artist_indices<S: AsRef<str>>(
         pool: &DatabasePool,
-        artist_names: &[SN],
-        ignored_prefixes: &[SP],
+        artist_no_ids: &[artists::ArtistNoId],
+        ignored_prefixes: &[S],
     ) {
         assert_eq!(
-            artist_names
+            artist_no_ids
                 .iter()
-                .map(|name| build_artist_index(ignored_prefixes, name.as_ref()))
+                .map(|artist_no_id| build_artist_index(
+                    ignored_prefixes,
+                    artist_no_id.name.as_ref()
+                ))
                 .sorted()
                 .collect_vec(),
             artists::table
@@ -171,43 +193,59 @@ mod tests {
     #[tokio::test]
     async fn test_build_artist_indices() {
         let temp_db = TemporaryDb::new_from_env().await;
-        let artist_names = fake::vec![String; 10];
+        let artist_no_ids = artists::ArtistNoId::fake_vec(10..=10);
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
-        upsert_artists(temp_db.pool(), &artist_names).await.unwrap();
+        upsert_artists(temp_db.pool(), &artist_no_ids).await.unwrap();
         build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
 
-        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
-            .await;
+        assert_artist_indices(
+            temp_db.pool(),
+            &artist_no_ids,
+            &artist_index_config.ignored_prefixes,
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn test_build_artist_indices_full_rebuild() {
         let temp_db = TemporaryDb::new_from_env().await;
-        let artist_names = fake::vec![String; 10];
+        let artist_no_ids = artists::ArtistNoId::fake_vec(10..=10);
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
-        upsert_artists(temp_db.pool(), &artist_names).await.unwrap();
+        upsert_artists(temp_db.pool(), &artist_no_ids).await.unwrap();
         build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
-            .await;
+        assert_artist_indices(
+            temp_db.pool(),
+            &artist_no_ids,
+            &artist_index_config.ignored_prefixes,
+        )
+        .await;
 
         let artist_index_config = ArtistIndexConfig::new("Le La".to_owned());
         build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
-            .await;
+        assert_artist_indices(
+            temp_db.pool(),
+            &artist_no_ids,
+            &artist_index_config.ignored_prefixes,
+        )
+        .await;
     }
 
     #[tokio::test]
     async fn test_build_artist_indices_partial_rebuild() {
         let temp_db = TemporaryDb::new_from_env().await;
-        let artist_names = fake::vec![String; 10];
+        let artist_no_ids = artists::ArtistNoId::fake_vec(10..=10);
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
-        let artist_ids = upsert_artists(temp_db.pool(), &artist_names).await.unwrap();
+        let artist_ids = upsert_artists(temp_db.pool(), &artist_no_ids).await.unwrap();
         build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
-            .await;
+        assert_artist_indices(
+            temp_db.pool(),
+            &artist_no_ids,
+            &artist_index_config.ignored_prefixes,
+        )
+        .await;
 
         let artist_update_index_ids =
             artist_ids.choose_multiple(&mut rand::thread_rng(), 5).cloned().sorted().collect_vec();
@@ -221,8 +259,12 @@ mod tests {
 
         let current_time = time::OffsetDateTime::now_utc();
         build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(temp_db.pool(), &artist_names, &artist_index_config.ignored_prefixes)
-            .await;
+        assert_artist_indices(
+            temp_db.pool(),
+            &artist_no_ids,
+            &artist_index_config.ignored_prefixes,
+        )
+        .await;
 
         assert_eq!(
             artist_update_index_ids,
@@ -236,5 +278,55 @@ mod tests {
                 .sorted()
                 .collect_vec()
         );
+    }
+
+    #[tokio::test]
+    async fn test_upsert_artist_mbz_id() {
+        let temp_db = TemporaryDb::new_from_env().await;
+        let mbz_id = Some(Faker.fake());
+        let artist_no_id1 = artists::ArtistNoId { name: "alias1".into(), mbz_id };
+        let artist_no_id2 = artists::ArtistNoId { name: "alias1".into(), mbz_id };
+
+        let artist_id1 = upsert_artists(temp_db.pool(), &[artist_no_id1]).await.unwrap().remove(0);
+        let current_time = OffsetDateTime::now_utc();
+        let artist_id2 = upsert_artists(temp_db.pool(), &[artist_no_id2]).await.unwrap().remove(0);
+        // Because they share the same mbz id
+        assert_eq!(artist_id1, artist_id2);
+        let scanned_time = artists::table
+            .filter(artists::id.eq(artist_id1))
+            .select(artists::scanned_at)
+            .get_result::<OffsetDateTime>(&mut temp_db.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert!(current_time < scanned_time);
+    }
+
+    #[tokio::test]
+    async fn test_upsert_artist_name() {
+        let temp_db = TemporaryDb::new_from_env().await;
+        let artist_no_id1 = artists::ArtistNoId { name: "alias1".into(), mbz_id: None };
+        let artist_no_id2 = artists::ArtistNoId { name: "alias1".into(), mbz_id: None };
+
+        let artist_id1 = upsert_artists(temp_db.pool(), &[artist_no_id1]).await.unwrap().remove(0);
+        let current_time = OffsetDateTime::now_utc();
+        let artist_id2 = upsert_artists(temp_db.pool(), &[artist_no_id2]).await.unwrap().remove(0);
+        // Because they share the same name and mbz id is null.
+        assert_eq!(artist_id1, artist_id2);
+        let scanned_time = artists::table
+            .filter(artists::id.eq(artist_id1))
+            .select(artists::scanned_at)
+            .get_result::<OffsetDateTime>(&mut temp_db.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert!(current_time < scanned_time);
+
+        let artist_no_id1 =
+            artists::ArtistNoId { name: "alias2".into(), mbz_id: Some(Faker.fake()) };
+        let artist_no_id2 =
+            artists::ArtistNoId { name: "alias2".into(), mbz_id: Some(Faker.fake()) };
+        let artist_id1 = upsert_artists(temp_db.pool(), &[artist_no_id1]).await.unwrap().remove(0);
+        let artist_id2 = upsert_artists(temp_db.pool(), &[artist_no_id2]).await.unwrap().remove(0);
+        // Because they share the same name but their mbz ids are different.
+        assert_ne!(artist_id1, artist_id2);
     }
 }

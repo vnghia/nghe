@@ -3,7 +3,7 @@ use diesel::dsl::{count_distinct, max, sql, sum, AssumeNotNull};
 use diesel::expression::SqlLiteral;
 use diesel::{
     helper_types, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable,
-    Selectable,
+    Selectable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use time::OffsetDateTime;
@@ -26,7 +26,8 @@ pub struct DateId3Db {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct BasicArtistId3Db {
     pub id: Uuid,
-    pub name: String,
+    #[diesel(embed)]
+    pub no_id: artists::ArtistNoId,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -130,7 +131,7 @@ impl DateId3Db {
 
 impl BasicArtistId3Db {
     pub fn into_res(self) -> ArtistId3 {
-        ArtistId3 { id: self.id, name: self.name, ..Default::default() }
+        ArtistId3 { id: self.id, name: self.no_id.name.into_owned(), ..Default::default() }
     }
 }
 
@@ -138,7 +139,7 @@ impl ArtistId3Db {
     pub fn into_res(self) -> ArtistId3 {
         ArtistId3 {
             id: self.basic.id,
-            name: self.basic.name,
+            name: self.basic.no_id.name.into_owned(),
             album_count: Some(self.album_count as _),
         }
     }
@@ -161,8 +162,8 @@ impl BasicAlbumId3Db {
 impl AlbumId3Db {
     pub async fn into_res(self, pool: &DatabasePool) -> Result<AlbumId3> {
         let artists = artists::table
-            .select((artists::id, artists::name))
             .filter(artists::id.eq_any(self.artist_ids))
+            .select(BasicArtistId3Db::as_select())
             .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
             .await?
             .into_iter()
@@ -207,8 +208,8 @@ impl BasicSongId3Db {
 impl SongId3Db {
     pub async fn into_res(self, pool: &DatabasePool) -> Result<SongId3> {
         let artists = artists::table
-            .select((artists::id, artists::name))
             .filter(artists::id.eq_any(self.artist_ids))
+            .select(BasicArtistId3Db::as_select())
             .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
             .await?
             .into_iter()

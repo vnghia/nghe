@@ -116,7 +116,7 @@ mod tests {
             .map(|(_, artist)| artist.id)
             .sorted()
             .collect_vec();
-        assert_eq!(artist_ids, infra.artist_ids(..).await);
+        assert_eq!(artist_ids, infra.artist_ids(&infra.artist_no_ids(..)).await);
     }
 
     #[tokio::test]
@@ -128,13 +128,14 @@ mod tests {
             .add_songs(
                 0,
                 (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
+                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
             .scan(.., None)
             .await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
@@ -154,16 +155,14 @@ mod tests {
             .add_songs(
                 0,
                 (0..n_song)
-                    .map(|_| SongTag {
-                        album_artists: vec![artist_name.to_owned()],
-                        ..Faker.fake()
-                    })
+                    .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
             .scan(.., None)
             .await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
@@ -184,13 +183,14 @@ mod tests {
             infra.add_songs(
                 i,
                 (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
+                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             );
         });
         infra.scan(.., None).await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
@@ -213,9 +213,9 @@ mod tests {
                 (0..n_song)
                     .map(|_| SongTag {
                         artists: if i >= 2 {
-                            vec![artist_name.to_owned()]
+                            vec![artist_name.into()]
                         } else {
-                            fake::vec![String; 1..2]
+                            artists::ArtistNoId::fake_vec(1..2)
                         },
                         ..Faker.fake()
                     })
@@ -225,7 +225,8 @@ mod tests {
         infra.scan(.., None).await;
         infra.only_permissions(.., 0..2, true).await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()

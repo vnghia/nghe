@@ -56,11 +56,9 @@ mod tests {
     use crate::utils::test::Infra;
 
     async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Vec<Uuid> {
-        // inner join = left join + is not null
-        get_basic_artist_id3_db()
+        Infra::get_song_artist_db()
             .filter(with_permission(user_id))
             .filter(songs::id.eq(song_id))
-            .filter(songs_artists::artist_id.is_not_null())
             .select(artists::id)
             .get_results::<Uuid>(&mut pool.get().await.unwrap())
             .await

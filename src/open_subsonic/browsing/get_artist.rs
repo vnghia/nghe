@@ -108,16 +108,14 @@ mod tests {
             .add_songs(
                 0,
                 (0..n_song)
-                    .map(|_| SongTag {
-                        album_artists: vec![artist_name.to_owned()],
-                        ..Faker.fake()
-                    })
+                    .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
             .scan(.., None)
             .await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
@@ -137,13 +135,14 @@ mod tests {
             .add_songs(
                 0,
                 (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
+                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
             .scan(.., None)
             .await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
@@ -165,7 +164,7 @@ mod tests {
                 0,
                 (0..n_song)
                     .map(|i| SongTag {
-                        artists: vec![artist_name.to_owned()],
+                        artists: vec![artist_name.into()],
                         album: if i < 5 {
                             album_names[0].to_owned()
                         } else {
@@ -178,7 +177,8 @@ mod tests {
             .scan(.., None)
             .await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
@@ -200,13 +200,14 @@ mod tests {
             infra.add_songs(
                 i,
                 (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
+                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             );
         });
         infra.scan(.., None).await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let music_folder_idx = rand::thread_rng().gen_range(0..infra.music_folders.len());
         infra.only_permissions(.., music_folder_idx..=music_folder_idx, true).await;
 
@@ -233,14 +234,15 @@ mod tests {
             .add_songs(
                 1,
                 (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.to_owned()], ..Faker.fake() })
+                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
             .scan(.., None)
             .await;
         infra.only_permissions(.., ..n_scan_folder, true).await;
 
-        let artist_id = upsert_artists(infra.pool(), &[artist_name]).await.unwrap().remove(0);
+        let artist_id =
+            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         assert!(matches!(
             get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
                 .await

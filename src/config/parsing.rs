@@ -30,6 +30,10 @@ pub struct Id3v2ParsingConfig {
     pub original_release_date: FrameIdOrUserText,
     #[derivative(Default(value = "\"TLAN\".try_into().unwrap()"))]
     pub language: FrameIdOrUserText,
+    #[derivative(Default(value = "\"MusicBrainz Artist Id\".try_into().unwrap()"))]
+    pub artist_mbz_id: FrameIdOrUserText,
+    #[derivative(Default(value = "\"MusicBrainz Album Artist Id\".try_into().unwrap()"))]
+    pub album_artist_mbz_id: FrameIdOrUserText,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
@@ -55,6 +59,10 @@ pub struct VorbisCommentsParsingConfig {
     pub original_release_date: String,
     #[derivative(Default(value = "\"LANGUAGE\".into()"))]
     pub language: String,
+    #[derivative(Default(value = "\"MUSICBRAINZ_ARTISTID\".into()"))]
+    pub artist_mbz_id: String,
+    #[derivative(Default(value = "\"MUSICBRAINZ_ALBUMARTISTID\".into()"))]
+    pub album_artist_mbz_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

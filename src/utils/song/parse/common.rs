@@ -1,8 +1,11 @@
 use anyhow::Result;
 use concat_string::concat_string;
+use itertools::Itertools;
 use lofty::Accessor;
 use tracing::instrument;
+use uuid::Uuid;
 
+use crate::models::*;
 use crate::OSError;
 
 pub fn extract_common_tags<T: Accessor>(tag: &mut T) -> Result<(String, String)> {
@@ -70,6 +73,31 @@ pub fn parse_track_and_disc(
         }
         r => r,
     }
+}
+
+pub fn to_artist_no_ids(
+    artist_names: Vec<String>,
+    artist_mbz_ids: Option<Vec<&str>>,
+) -> Result<Vec<artists::ArtistNoId>> {
+    let artist_mbz_ids = if let Some(artist_mbz_ids) = artist_mbz_ids {
+        if artist_names.len() < artist_mbz_ids.len() {
+            anyhow::bail!(OSError::InvalidParameter(
+                "mbz ids must have small or equal size to names".into()
+            ));
+        } else {
+            artist_mbz_ids
+                .into_iter()
+                .map(|v| if v.is_empty() { Ok(None) } else { Uuid::parse_str(v).map(Some) })
+                .try_collect()?
+        }
+    } else {
+        vec![]
+    };
+    Ok(artist_names
+        .into_iter()
+        .zip(artist_mbz_ids.into_iter().chain(std::iter::repeat(None)))
+        .map(|v| v.into())
+        .collect_vec())
 }
 
 #[cfg(test)]

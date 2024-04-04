@@ -150,6 +150,7 @@ mod tests {
     use isolang::Language;
 
     use super::*;
+    use crate::models::*;
     use crate::utils::song::file_type::SONG_FILE_TYPES;
     use crate::utils::test::asset::{get_asset_dir, get_media_asset_path};
 
@@ -168,14 +169,20 @@ mod tests {
             assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
             assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
             assert_eq!(
-                tag.artists.iter().sorted().collect_vec(),
-                ["Artist1", "Artist2"],
+                tag.artists,
+                Vec::<artists::ArtistNoId>::from([
+                    ("Artist1", Some(uuid::uuid!("1ffedd2d-f63d-4dc2-9332-d3132e5134ac"))).into(),
+                    ("Artist2", None).into()
+                ]),
                 "{:?} artists does not match",
                 file_type
             );
             assert_eq!(
-                tag.album_artists.iter().sorted().collect_vec(),
-                ["Artist1", "Artist3"],
+                tag.album_artists,
+                Vec::<artists::ArtistNoId>::from([
+                    ("Artist1", None).into(),
+                    ("Artist3", None).into()
+                ]),
                 "{:?} album artists does not match",
                 file_type
             );

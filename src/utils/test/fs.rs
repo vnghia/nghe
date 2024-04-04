@@ -45,6 +45,8 @@ pub struct TemporaryFs {
 
 impl TemporaryFs {
     fn new() -> Self {
+        let _ = tracing_subscriber::fmt().with_test_writer().try_init();
+
         let root = Builder::new().prefix(built_info::PKG_NAME).tempdir().unwrap();
         let parsing_config = ParsingConfig::default();
         let transcoding_config = TranscodingConfig {

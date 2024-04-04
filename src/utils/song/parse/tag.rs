@@ -8,6 +8,7 @@ use lofty::Picture;
 use time::macros::format_description;
 use tracing::instrument;
 
+use crate::models::*;
 use crate::OSError;
 type SongDateInner = Option<(u16, Option<(u8, Option<u8>)>)>;
 
@@ -28,14 +29,18 @@ pub struct SongTag {
     pub album: String,
     #[cfg_attr(
         test,
-        dummy(expr = "fake::vec![String; 1..=5].into_iter().unique().sorted().collect()")
+        dummy(
+            expr = "artists::ArtistNoId::fake_vec(1..=5).into_iter().unique().sorted().collect()"
+        )
     )]
-    pub artists: Vec<String>,
+    pub artists: Vec<artists::ArtistNoId>,
     #[cfg_attr(
         test,
-        dummy(expr = "fake::vec![String; 0..=5].into_iter().unique().sorted().collect()")
+        dummy(
+            expr = "artists::ArtistNoId::fake_vec(1..=5).into_iter().unique().sorted().collect()"
+        )
     )]
-    pub album_artists: Vec<String>,
+    pub album_artists: Vec<artists::ArtistNoId>,
     pub track_number: Option<u32>,
     pub track_total: Option<u32>,
     pub disc_number: Option<u32>,
@@ -54,7 +59,7 @@ pub struct SongTag {
 }
 
 impl SongTag {
-    pub fn album_artists_or_default(&self) -> &Vec<String> {
+    pub fn album_artists_or_default(&self) -> &Vec<artists::ArtistNoId> {
         if !self.album_artists.is_empty() { &self.album_artists } else { &self.artists }
     }
 
