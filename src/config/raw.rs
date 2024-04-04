@@ -9,7 +9,7 @@ use derivative::Derivative;
 use figment::providers::{Env, Serialized};
 use figment::Figment;
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
+use serde_with::{serde_as, DefaultOnNull};
 
 use super::parsing::ParsingConfig;
 use crate::database::EncryptionKey;
@@ -59,6 +59,7 @@ pub struct ScanConfig {
     pub process_path_task_size: usize,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct TranscodingConfig {
@@ -67,15 +68,18 @@ pub struct TranscodingConfig {
     #[derivative(Default(
         value = "Some(std::env::temp_dir().join(\"nghe\").join(\"cache\").join(\"transcoding\"))"
     ))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
     pub cache_path: Option<PathBuf>,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct ArtConfig {
     #[derivative(Default(
         value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"song\"))"
     ))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
     pub song_path: Option<PathBuf>,
 }
 
