@@ -49,14 +49,12 @@ async fn get_indexed_artists(
     user_id: Uuid,
     music_folder_ids: &Option<Vec<Uuid>>,
 ) -> Result<Vec<(String, BasicArtistId3Db)>> {
-    {
-        #[add_permission_filter]
-        get_basic_artist_id3_db()
-            .select((artists::index, BasicArtistId3Db::as_select()))
-            .get_results::<(String, BasicArtistId3Db)>(&mut pool.get().await?)
-    }
-    .await
-    .map_err(anyhow::Error::from)
+    #[add_permission_filter]
+    get_basic_artist_id3_db()
+        .select((artists::index, BasicArtistId3Db::as_select()))
+        .get_results::<(String, BasicArtistId3Db)>(&mut pool.get().await?)
+        .await
+        .map_err(anyhow::Error::from)
 }
 
 pub async fn get_artists(

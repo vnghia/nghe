@@ -65,35 +65,29 @@ async fn syncing(
         song_offset,
     }: SearchOffsetCount,
 ) -> Result<Search3Result> {
-    let artists = {
-        #[add_permission_filter]
-        get_basic_artist_id3_db()
-            .order(artists::name.asc())
-            .limit(artist_count)
-            .offset(artist_offset)
-            .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
-    }
-    .await?;
+    let artists = #[add_permission_filter]
+    get_basic_artist_id3_db()
+        .order(artists::name.asc())
+        .limit(artist_count)
+        .offset(artist_offset)
+        .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
+        .await?;
 
-    let albums = {
-        #[add_permission_filter]
-        get_album_id3_db()
-            .order(albums::name.asc())
-            .limit(album_count)
-            .offset(album_offset)
-            .get_results::<AlbumId3Db>(&mut pool.get().await?)
-    }
-    .await?;
+    let albums = #[add_permission_filter]
+    get_album_id3_db()
+        .order(albums::name.asc())
+        .limit(album_count)
+        .offset(album_offset)
+        .get_results::<AlbumId3Db>(&mut pool.get().await?)
+        .await?;
 
-    let songs = {
-        #[add_permission_filter]
-        get_song_id3_db()
-            .order(songs::title.asc())
-            .limit(song_count)
-            .offset(song_offset)
-            .get_results::<SongId3Db>(&mut pool.get().await?)
-    }
-    .await?;
+    let songs = #[add_permission_filter]
+    get_song_id3_db()
+        .order(songs::title.asc())
+        .limit(song_count)
+        .offset(song_offset)
+        .get_results::<SongId3Db>(&mut pool.get().await?)
+        .await?;
 
     Ok(Search3Result {
         artists: artists.into_iter().map(|v| v.into_res()).collect(),

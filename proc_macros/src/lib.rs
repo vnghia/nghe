@@ -320,10 +320,32 @@ pub fn add_permission_filter(
                                 current_expr = expr.receiver.deref_mut();
                             }
                         }
+                        Expr::Await(ref mut expr) => {
+                            let base_expr = expr.base.deref();
+                            if let Expr::Call(head_expr) = base_expr {
+                                expr.base = Box::new(Expr::MethodCall(
+                                    parse_quote! {#head_expr.filter(#f)},
+                                ));
+                                break;
+                            } else {
+                                current_expr = expr.base.deref_mut();
+                            }
+                        }
+                        Expr::Try(ref mut expr) => {
+                            let expr_expr = expr.expr.deref();
+                            if let Expr::Call(head_expr) = expr_expr {
+                                expr.expr = Box::new(Expr::MethodCall(
+                                    parse_quote! {#head_expr.filter(#f)},
+                                ));
+                                break;
+                            } else {
+                                current_expr = expr.expr.deref_mut();
+                            }
+                        }
                         expr => {
                             return Err(Error::new(
                                 expr.span(),
-                                "item in expression should be a function call",
+                                "item in expression should be a function call, await or try",
                             ));
                         }
                     }
