@@ -130,7 +130,6 @@ pub mod test {
     use fake::Faker;
 
     use super::*;
-    use crate::open_subsonic::test::id3::db::*;
     use crate::utils::song::SongInformation;
 
     impl SongTag {
@@ -140,10 +139,6 @@ pub mod test {
     }
 
     impl SongDate {
-        pub fn from_id3_db(db: DateId3Db) -> Self {
-            Self::from_ymd(db.year, db.month, db.day)
-        }
-
         pub fn from_ymd(year: Option<i16>, month: Option<i16>, day: Option<i16>) -> Self {
             if let Some(year) = year {
                 let year = year as _;

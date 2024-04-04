@@ -27,7 +27,7 @@ use crate::open_subsonic::test::id3::db::*;
 use crate::open_subsonic::test::id3::query::*;
 use crate::open_subsonic::test::CommonParams;
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
-use crate::utils::song::test::{SongDate, SongTag};
+use crate::utils::song::test::SongTag;
 use crate::{Database, DatabasePool};
 
 pub struct Infra {
@@ -484,9 +484,9 @@ impl Infra {
             track_total: song.track_total.map(|i| i as _),
             disc_number: song.disc_number.map(|i| i as _),
             disc_total: song.disc_total.map(|i| i as _),
-            date: SongDate::from_id3_db(song.date),
-            release_date: SongDate::from_id3_db(song.release_date),
-            original_release_date: SongDate::from_id3_db(song.original_release_date),
+            date: song.date.into(),
+            release_date: song.release_date.into(),
+            original_release_date: song.original_release_date.into(),
             languages: song
                 .languages
                 .into_iter()

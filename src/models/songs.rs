@@ -1,10 +1,13 @@
 use std::borrow::Cow;
 
 use diesel::prelude::*;
+use nghe_proc_macros::generate_date_db;
 pub use songs::*;
 use uuid::Uuid;
 
 pub use crate::schema::songs;
+
+generate_date_db!(songs);
 
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = songs)]
@@ -54,7 +57,6 @@ pub struct SongFullInformationDB<'a> {
 pub mod test {
     use super::*;
     use crate::models::music_folders;
-    use crate::open_subsonic::test::id3::db::*;
 
     #[derive(Queryable, Selectable)]
     #[diesel(table_name = songs)]
@@ -68,39 +70,12 @@ pub mod test {
         pub track_total: Option<i32>,
         pub disc_number: Option<i32>,
         pub disc_total: Option<i32>,
-        #[diesel(select_expression = (
-            songs::year,
-            songs::month,
-            songs::day,
-        ))]
-        #[diesel(select_expression_type = (
-            songs::year,
-            songs::month,
-            songs::day,
-        ))]
-        pub date: DateId3Db,
-        #[diesel(select_expression = (
-            songs::release_year,
-            songs::release_month,
-            songs::release_day,
-        ))]
-        #[diesel(select_expression_type = (
-            songs::release_year,
-            songs::release_month,
-            songs::release_day,
-        ))]
-        pub release_date: DateId3Db,
-        #[diesel(select_expression = (
-            songs::original_release_year,
-            songs::original_release_month,
-            songs::original_release_day,
-        ))]
-        #[diesel(select_expression_type = (
-            songs::original_release_year,
-            songs::original_release_month,
-            songs::original_release_day,
-        ))]
-        pub original_release_date: DateId3Db,
+        #[diesel(embed)]
+        pub date: SongDateDb,
+        #[diesel(embed)]
+        pub release_date: SongReleaseDateDb,
+        #[diesel(embed)]
+        pub original_release_date: SongOriginalReleaseDateDb,
         pub languages: Vec<Option<String>>,
         // Filesystem property
         #[diesel(embed)]

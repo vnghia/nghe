@@ -6,6 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::OnceLock;
 
 use concat_string::concat_string;
+use convert_case::{Case, Casing};
 use proc_macro2::Span;
 use quote::{format_ident, quote};
 use syn::parse::Parser;
@@ -18,6 +19,8 @@ use syn::{
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
 const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
 const COMMON_ERROR_IMPORT_PREFIX: &str = "crate::open_subsonic::common::error";
+
+const DATE_TYPE_PREFIXES: &[&str] = &["", "release_", "original_release_"];
 
 #[derive(deluxe::ParseMetaItem)]
 struct WrapSubsonicResponse {
@@ -356,13 +359,72 @@ pub fn add_permission_filter(
 
         let filter_expr_with_user_id = filter_exprs.pop();
         let filter_expr_with_music_folder_ids = filter_exprs.pop();
-        quote!(
+        quote! {
             if let Some(music_folder_ids) = music_folder_ids.as_ref() {
                 #filter_expr_with_music_folder_ids
             } else {
                 #filter_expr_with_user_id
             }
-        )
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[proc_macro]
+pub fn generate_date_db(table_name: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    match try {
+        let table_name = table_name.to_string();
+        let table_prefix = table_name
+            .strip_suffix('s')
+            .ok_or_else(|| Error::new(Span::call_site(), "table name should end with `s`"))?;
+        let date_structs = DATE_TYPE_PREFIXES
+            .iter()
+            .map(|prefix| {
+                let date_type = format_ident!(
+                    "{}",
+                    concat_string!(&table_prefix, "_", prefix, "date_db").to_case(Case::Pascal)
+                );
+                let table_name = format_ident!("{}", &table_name);
+
+                let year_column = format_ident!("{}year", prefix);
+                let month_column = format_ident!("{}month", prefix);
+                let day_column = format_ident!("{}day", prefix);
+
+                quote! {
+                    #[derive(Debug, diesel::Queryable, diesel::Selectable, diesel::Insertable)]
+                    #[diesel(table_name = #table_name)]
+                    #[diesel(check_for_backend(diesel::pg::Pg))]
+                    pub struct #date_type {
+                        #[diesel(column_name = #year_column)]
+                        pub year: Option<i16>,
+                        #[diesel(column_name = #month_column)]
+                        pub month: Option<i16>,
+                        #[diesel(column_name = #day_column)]
+                        pub day: Option<i16>,
+                    }
+
+                    impl From<crate::utils::song::SongDate> for #date_type {
+                        fn from(value: crate::utils::song::SongDate) -> Self {
+                            let (y, m, d) = value.to_ymd();
+                            Self { year: y, month: m, day: d }
+                        }
+                    }
+
+                    #[cfg(test)]
+                    impl From<#date_type> for crate::utils::song::SongDate {
+                        fn from(value: #date_type) -> Self {
+                            Self::from_ymd(value.year, value.month, value.day)
+                        }
+                    }
+                }
+            })
+            .collect::<Vec<_>>();
+        quote! {
+            #( #date_structs ) *
+        }
         .into()
     } {
         Ok(r) => r,
