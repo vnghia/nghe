@@ -12,6 +12,7 @@ use nghe::open_subsonic::{
 use nghe::Database;
 use tokio::signal;
 use tower::ServiceBuilder;
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -80,7 +81,9 @@ fn app(database: Database, config: Config) -> Router {
         .merge(bookmarks::router())
         .merge(searching::router())
         .merge(scan::router(config.artist_index, config.parsing, config.scan, config.art))
-        .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
+        .layer(
+            ServiceBuilder::new().layer(TraceLayer::new_for_http()).layer(CorsLayer::permissive()),
+        )
         .with_state(database)
 }
 
