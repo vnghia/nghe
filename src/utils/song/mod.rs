@@ -4,7 +4,7 @@ mod transcode;
 
 #[cfg(test)]
 pub use parse::test;
-pub use parse::{SongDate, SongInformation};
+pub use parse::{MediaDateMbz, SongDate, SongInformation};
 #[cfg(test)]
 pub use transcode::test::transcode_to_memory;
 pub use transcode::transcode;

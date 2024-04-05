@@ -1,5 +1,5 @@
 use anyhow::Result;
-use diesel::dsl::{count_distinct, max, sql, sum, AssumeNotNull};
+use diesel::dsl::{count_distinct, sql, sum, AssumeNotNull};
 use diesel::expression::SqlLiteral;
 use diesel::{
     helper_types, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable,
@@ -13,13 +13,6 @@ use super::super::id::{MediaType, MediaTypedId};
 use super::response::*;
 use crate::models::*;
 use crate::DatabasePool;
-
-#[derive(Debug, Queryable)]
-pub struct DateId3Db {
-    pub year: Option<i16>,
-    pub month: Option<i16>,
-    pub day: Option<i16>,
-}
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists)]
@@ -44,7 +37,8 @@ pub struct ArtistId3Db {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct BasicAlbumId3Db {
     pub id: Uuid,
-    pub name: String,
+    #[diesel(embed)]
+    pub no_id: albums::AlbumNoId,
     #[diesel(select_expression = count_distinct(songs::id))]
     #[diesel(select_expression_type = count_distinct<songs::id>)]
     pub song_count: i64,
@@ -63,31 +57,6 @@ pub struct AlbumId3Db {
     ))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
-    #[diesel(select_expression = max(songs::year))]
-    #[diesel(select_expression_type = helper_types::max<songs::year>)]
-    pub year: Option<i16>,
-    #[diesel(select_expression = (
-        max(songs::release_year),
-        max(songs::release_month),
-        max(songs::release_day),
-    ))]
-    #[diesel(select_expression_type = (
-        helper_types::max<songs::release_year>,
-        helper_types::max<songs::release_month>,
-        helper_types::max<songs::release_day>,
-    ))]
-    pub release_date: DateId3Db,
-    #[diesel(select_expression = (
-        max(songs::original_release_year),
-        max(songs::original_release_month),
-        max(songs::original_release_day),
-    ))]
-    #[diesel(select_expression_type = (
-        helper_types::max<songs::original_release_year>,
-        helper_types::max<songs::original_release_month>,
-        helper_types::max<songs::original_release_day>,
-    ))]
-    pub original_release_date: DateId3Db,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -119,16 +88,6 @@ pub struct SongId3Db {
     pub artist_ids: Vec<Uuid>,
 }
 
-impl DateId3Db {
-    pub fn into_res(self) -> DateId3 {
-        DateId3 {
-            year: self.year.map(|v| v as _),
-            month: self.month.map(|v| v as _),
-            day: self.day.map(|v| v as _),
-        }
-    }
-}
-
 impl BasicArtistId3Db {
     pub fn into_res(self) -> ArtistId3 {
         ArtistId3::new(self.id, self.no_id.name.into_owned())
@@ -149,7 +108,10 @@ impl BasicAlbumId3Db {
     pub fn into_res(self) -> AlbumId3 {
         AlbumId3::new(
             self.id,
-            self.name,
+            self.no_id.name.into_owned(),
+            self.no_id.date.year.map(|v| v as _),
+            self.no_id.release_date.into(),
+            self.no_id.original_release_date.into(),
             self.song_count as _,
             self.duration as _,
             self.created_at,
@@ -171,15 +133,15 @@ impl AlbumId3Db {
 
         Ok(AlbumId3 {
             id: self.basic.id,
-            name: self.basic.name,
+            name: self.basic.no_id.name.into_owned(),
+            year: self.basic.no_id.date.year.map(|v| v as _),
+            release_date: self.basic.no_id.release_date.into(),
+            original_release_date: self.basic.no_id.original_release_date.into(),
             song_count: self.basic.song_count as _,
             duration: self.basic.duration as _,
             created: self.basic.created_at,
             cover_art: MediaTypedId { t: Some(MediaType::Album), id: self.basic.id },
-            year: self.year.map(|v| v as _),
             artists,
-            release_date: self.release_date.into_res(),
-            original_release_date: self.original_release_date.into_res(),
         })
     }
 }

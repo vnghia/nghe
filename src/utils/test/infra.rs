@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use axum::extract::State;
 use diesel::dsl::{Filter, IsNotNull};
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, PgExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
@@ -28,6 +28,7 @@ use crate::open_subsonic::test::id3::query::*;
 use crate::open_subsonic::test::CommonParams;
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
 use crate::utils::song::test::SongTag;
+use crate::utils::song::MediaDateMbz;
 use crate::{Database, DatabasePool};
 
 pub struct Infra {
@@ -396,23 +397,51 @@ impl Infra {
             .collect_vec()
     }
 
-    pub async fn album_ids<S>(&self, slice: S) -> Vec<Uuid>
-    where
-        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
-    {
-        stream::iter(self.song_fs_infos(slice))
-            .then(|song_fs_info| async move {
-                songs::table
-                    .select(songs::album_id)
-                    .inner_join(music_folders::table)
-                    .filter(
-                        music_folders::path.eq(&song_fs_info.music_folder_path.to_str().unwrap()),
-                    )
-                    .filter(songs::file_hash.eq(song_fs_info.file_hash as i64))
-                    .filter(songs::file_size.eq(song_fs_info.file_size as i64))
-                    .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
-                    .await
-                    .unwrap()
+    pub async fn album_ids(&self, album_no_ids: &[albums::AlbumNoId]) -> Vec<Uuid> {
+        stream::iter(album_no_ids)
+            .then(|album_no_id| async move {
+                if let Some(album_mbz_id) = album_no_id.mbz_id {
+                    albums::table
+                        .select(albums::id)
+                        .filter(albums::mbz_id.eq(album_mbz_id))
+                        .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
+                        .await
+                        .unwrap()
+                } else {
+                    albums::table
+                        .select(albums::id)
+                        .filter(albums::name.eq(album_no_id.name.as_ref()))
+                        .filter(albums::year.is_not_distinct_from(album_no_id.date.year))
+                        .filter(albums::month.is_not_distinct_from(album_no_id.date.month))
+                        .filter(albums::day.is_not_distinct_from(album_no_id.date.day))
+                        .filter(
+                            albums::release_year
+                                .is_not_distinct_from(album_no_id.release_date.year),
+                        )
+                        .filter(
+                            albums::release_month
+                                .is_not_distinct_from(album_no_id.release_date.month),
+                        )
+                        .filter(
+                            albums::release_day.is_not_distinct_from(album_no_id.release_date.day),
+                        )
+                        .filter(
+                            albums::original_release_year
+                                .is_not_distinct_from(album_no_id.original_release_date.year),
+                        )
+                        .filter(
+                            albums::original_release_month
+                                .is_not_distinct_from(album_no_id.original_release_date.month),
+                        )
+                        .filter(
+                            albums::original_release_day
+                                .is_not_distinct_from(album_no_id.original_release_date.day),
+                        )
+                        .filter(albums::mbz_id.is_null())
+                        .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
+                        .await
+                        .unwrap()
+                }
             })
             .collect::<Vec<_>>()
             .await
@@ -420,6 +449,13 @@ impl Infra {
             .unique()
             .sorted()
             .collect_vec()
+    }
+
+    pub fn album_no_ids<S>(&self, slice: S) -> Vec<albums::AlbumNoId>
+    where
+        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
+    {
+        self.song_fs_infos(slice).iter().map(|s| s.tag.album.clone().into()).unique().collect_vec()
     }
 
     pub fn get_song_artist_db() -> Filter<GetBasicArtistId3Db, IsNotNull<songs_artists::artist_id>>
@@ -442,14 +478,26 @@ impl Infra {
             .first(&mut self.pool().get().await.unwrap())
             .await
             .unwrap();
+        let song_media = MediaDateMbz {
+            name: song.title,
+            date: song.date.into(),
+            release_date: song.release_date.into(),
+            original_release_date: song.original_release_date.into(),
+            mbz_id: None,
+        };
 
-        let album_id = song.album_id;
-        let album_name = albums::table
+        let album = get_basic_album_id3_db()
             .filter(albums::id.eq(song.album_id))
-            .select(albums::name)
-            .first::<String>(&mut self.pool().get().await.unwrap())
+            .get_result::<BasicAlbumId3Db>(&mut self.pool().get().await.unwrap())
             .await
             .unwrap();
+        let album_media = MediaDateMbz {
+            name: album.no_id.name.into_owned(),
+            date: album.no_id.date.into(),
+            release_date: album.no_id.release_date.into(),
+            original_release_date: album.no_id.original_release_date.into(),
+            mbz_id: album.no_id.mbz_id,
+        };
 
         let (artist_ids, artist_no_ids): (Vec<_>, Vec<_>) = Self::get_song_artist_db()
             .filter(songs::id.eq(song_id))
@@ -476,17 +524,14 @@ impl Infra {
         let picture = picture::from_id(self.pool(), song.cover_art_id, &self.fs.art_config).await;
 
         let tag = SongTag {
-            title: song.title,
-            album: album_name,
+            song: song_media,
+            album: album_media,
             artists: artist_no_ids,
             album_artists: album_artist_no_ids,
             track_number: song.track_number.map(|i| i as _),
             track_total: song.track_total.map(|i| i as _),
             disc_number: song.disc_number.map(|i| i as _),
             disc_total: song.disc_total.map(|i| i as _),
-            date: song.date.into(),
-            release_date: song.release_date.into(),
-            original_release_date: song.original_release_date.into(),
             languages: song
                 .languages
                 .into_iter()
@@ -498,7 +543,7 @@ impl Infra {
         SongDbInformation {
             tag,
             song_id,
-            album_id,
+            album_id: album.id,
             artist_ids,
             album_artist_ids,
             music_folder: song.music_folder,
@@ -546,8 +591,21 @@ impl Infra {
             let song_fs_tag = &song_fs_info.tag;
             let song_db_tag = &song_db_info.tag;
 
-            assert_eq!(song_fs_tag.title, song_db_tag.title);
-            assert_eq!(song_fs_tag.album, song_db_tag.album);
+            let song_fs = &song_fs_tag.song;
+            let song_db = &song_db_tag.song;
+            assert_eq!(song_fs.name, song_db.name);
+            assert_eq!(song_fs.date_or_default(), song_db.date);
+            assert_eq!(song_fs.release_date_or_default(), song_db.release_date);
+            assert_eq!(song_fs.original_release_date, song_db.original_release_date);
+
+            let album_fs = &song_fs_tag.album;
+            let album_db = &song_db_tag.album;
+            assert_eq!(album_fs.name, album_db.name);
+            assert_eq!(album_fs.date_or_default(), album_db.date);
+            assert_eq!(album_fs.release_date_or_default(), album_db.release_date);
+            assert_eq!(album_fs.original_release_date, album_db.original_release_date);
+            assert_eq!(album_fs.mbz_id, album_db.mbz_id);
+
             assert_eq!(song_fs_tag.artists, song_db_tag.artists);
             assert_eq!(song_fs_tag.album_artists_or_default(), &song_db_tag.album_artists);
 
@@ -555,10 +613,6 @@ impl Infra {
             assert_eq!(song_fs_tag.track_total, song_db_tag.track_total);
             assert_eq!(song_fs_tag.disc_number, song_db_tag.disc_number);
             assert_eq!(song_fs_tag.disc_total, song_db_tag.disc_total);
-
-            assert_eq!(song_fs_tag.date_or_default(), song_db_tag.date);
-            assert_eq!(song_fs_tag.release_date_or_default(), song_db_tag.release_date);
-            assert_eq!(song_fs_tag.original_release_date, song_db_tag.original_release_date);
 
             assert_eq!(song_fs_tag.languages, song_db_tag.languages);
 
@@ -630,6 +684,20 @@ impl Infra {
             Self::get_album_artist_db()
                 .select(artists::id)
                 .get_results::<Uuid>(&mut self.pool().get().await.unwrap())
+                .await
+                .unwrap()
+                .into_iter()
+                .sorted()
+                .collect_vec(),
+        );
+    }
+
+    pub async fn assert_album_infos(&self, album_no_ids: &[albums::AlbumNoId]) {
+        assert_eq!(
+            self.album_ids(album_no_ids).await,
+            albums::table
+                .select(albums::id)
+                .load::<Uuid>(&mut self.pool().get().await.unwrap())
                 .await
                 .unwrap()
                 .into_iter()

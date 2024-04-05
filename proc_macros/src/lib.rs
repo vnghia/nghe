@@ -394,9 +394,10 @@ pub fn generate_date_db(table_name: proc_macro::TokenStream) -> proc_macro::Toke
                 let day_column = format_ident!("{}day", prefix);
 
                 quote! {
-                    #[derive(Debug, diesel::Queryable, diesel::Selectable, diesel::Insertable)]
+                    #[derive(Debug, Clone, Copy, diesel::Queryable, diesel::Selectable, diesel::Insertable)]
                     #[diesel(table_name = #table_name)]
                     #[diesel(check_for_backend(diesel::pg::Pg))]
+                    #[cfg_attr(test, derive(Default, Hash, PartialEq, Eq, PartialOrd, Ord))]
                     pub struct #date_type {
                         #[diesel(column_name = #year_column)]
                         pub year: Option<i16>,
@@ -410,6 +411,16 @@ pub fn generate_date_db(table_name: proc_macro::TokenStream) -> proc_macro::Toke
                         fn from(value: crate::utils::song::SongDate) -> Self {
                             let (y, m, d) = value.to_ymd();
                             Self { year: y, month: m, day: d }
+                        }
+                    }
+
+                    impl From<#date_type> for crate::open_subsonic::DateId3 {
+                        fn from(value: #date_type) -> Self {
+                            Self {
+                                year: value.year.map(|v| v as _),
+                                month: value.month.map(|v| v as _),
+                                day: value.day.map(|v| v as _),
+                            }
                         }
                     }
 

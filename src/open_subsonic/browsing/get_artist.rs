@@ -123,7 +123,7 @@ mod tests {
             .into_iter()
             .sorted()
             .collect_vec();
-        assert_eq!(album_ids, infra.album_ids(..).await);
+        assert_eq!(album_ids, infra.album_ids(&infra.album_no_ids(..)).await);
     }
 
     #[tokio::test]
@@ -150,7 +150,7 @@ mod tests {
             .into_iter()
             .sorted()
             .collect_vec();
-        assert_eq!(album_ids, infra.album_ids(..).await);
+        assert_eq!(album_ids, infra.album_ids(&infra.album_no_ids(..)).await);
     }
 
     #[tokio::test]
@@ -165,11 +165,7 @@ mod tests {
                 (0..n_song)
                     .map(|i| SongTag {
                         artists: vec![artist_name.into()],
-                        album: if i < 5 {
-                            album_names[0].to_owned()
-                        } else {
-                            album_names[1].to_owned()
-                        },
+                        album: if i < 5 { album_names[0].into() } else { album_names[1].into() },
                         ..Faker.fake()
                     })
                     .collect(),
@@ -187,7 +183,7 @@ mod tests {
             .sorted()
             .collect_vec();
         assert_eq!(album_ids.len(), album_names.len());
-        assert_eq!(album_ids, infra.album_ids(..).await);
+        assert_eq!(album_ids, infra.album_ids(&infra.album_no_ids(..)).await);
     }
 
     #[tokio::test]
@@ -218,7 +214,10 @@ mod tests {
             .into_iter()
             .sorted()
             .collect_vec();
-        assert_eq!(album_ids, infra.album_ids(music_folder_idx..=music_folder_idx).await);
+        assert_eq!(
+            album_ids,
+            infra.album_ids(&infra.album_no_ids(music_folder_idx..=music_folder_idx)).await
+        );
     }
 
     #[tokio::test]
@@ -265,32 +264,35 @@ mod tests {
             .add_songs(
                 0,
                 (0..n_song)
-                    .map(|_| SongTag { album: album_names[0].to_owned(), ..Faker.fake() })
+                    .map(|_| SongTag { album: album_names[0].into(), ..Faker.fake() })
                     .collect(),
             )
             .add_songs(
                 1,
                 (0..n_song + n_diff)
-                    .map(|_| SongTag { album: album_names[1].to_owned(), ..Faker.fake() })
+                    .map(|_| SongTag { album: album_names[1].into(), ..Faker.fake() })
                     .collect(),
             )
             .add_songs(
                 2,
                 (0..n_song - n_diff)
-                    .map(|_| SongTag { album: album_names[1].to_owned(), ..Faker.fake() })
+                    .map(|_| SongTag { album: album_names[1].into(), ..Faker.fake() })
                     .collect(),
             )
             .scan(.., None)
             .await;
         infra.only_permissions(.., ..2, true).await;
 
-        let basic_albums =
-            get_basic_albums(infra.pool(), infra.user_id(0), &infra.album_ids(..).await)
-                .await
-                .unwrap()
-                .into_iter()
-                .sorted_by(|a, b| a.name.cmp(&b.name))
-                .collect_vec();
+        let basic_albums = get_basic_albums(
+            infra.pool(),
+            infra.user_id(0),
+            &infra.album_ids(&infra.album_no_ids(..)).await,
+        )
+        .await
+        .unwrap()
+        .into_iter()
+        .sorted_by(|a, b| a.no_id.name.cmp(&b.no_id.name))
+        .collect_vec();
 
         assert_eq!(basic_albums[0].song_count as usize, n_song);
         assert_eq!(basic_albums[1].song_count as usize, n_song + n_diff);

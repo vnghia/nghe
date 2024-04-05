@@ -135,7 +135,7 @@ mod tests {
                 0,
                 (0..n_song)
                     .map(|_| SongTag {
-                        album: album_name.to_owned(),
+                        album: album_name.into(),
                         picture: picture.clone(),
                         ..Faker.fake()
                     })
@@ -171,11 +171,7 @@ mod tests {
             .add_songs(
                 0,
                 (0..n_song)
-                    .map(|_| SongTag {
-                        album: album_name.to_owned(),
-                        picture: None,
-                        ..Faker.fake()
-                    })
+                    .map(|_| SongTag { album: album_name.into(), picture: None, ..Faker.fake() })
                     .collect(),
             )
             .scan(.., None)
@@ -205,7 +201,7 @@ mod tests {
                 1,
                 (0..n_song)
                     .map(|_| SongTag {
-                        album: album_name.to_owned(),
+                        album: album_name.into(),
                         picture: fake(true),
                         ..Faker.fake()
                     })
@@ -240,7 +236,7 @@ mod tests {
                 0,
                 (0..n_song)
                     .map(|_| SongTag {
-                        album: album_name.to_owned(),
+                        album: album_name.into(),
                         picture: picture1.clone(),
                         ..Faker.fake()
                     })
@@ -250,7 +246,7 @@ mod tests {
                 1,
                 (0..n_song)
                     .map(|_| SongTag {
-                        album: album_name.to_owned(),
+                        album: album_name.into(),
                         picture: picture2.clone(),
                         ..Faker.fake()
                     })

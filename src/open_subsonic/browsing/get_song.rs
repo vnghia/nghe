@@ -79,7 +79,7 @@ mod tests {
         let song_id3 = get_song(infra.pool(), infra.user_id(0), song_id).await.unwrap();
         let artist_ids = get_artist_ids(infra.pool(), infra.user_id(0), song_id).await;
 
-        assert_eq!(song_id3.basic.title, song_tag.title);
+        assert_eq!(song_id3.basic.title, song_tag.song.name);
         assert_eq!(song_id3.artist_ids.into_iter().sorted().collect_vec(), artist_ids);
     }
 

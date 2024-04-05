@@ -121,9 +121,7 @@ mod tests {
         infra
             .add_songs(
                 0,
-                (0..n_song)
-                    .map(|_| SongTag { album: album_name.to_owned(), ..Faker.fake() })
-                    .collect(),
+                (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
             )
             .scan(.., None)
             .await;
@@ -134,7 +132,7 @@ mod tests {
         let artist_ids = get_artist_ids(infra.pool(), infra.user_id(0), album_id).await;
 
         assert_eq!(album_id3.basic.id, album_id);
-        assert_eq!(album_id3.basic.name, album_name);
+        assert_eq!(album_id3.basic.no_id.name, album_name);
         assert_eq!(album_id3.basic.song_count as usize, n_song);
         assert_eq!(album_id3.artist_ids.into_iter().sorted().collect_vec(), artist_ids);
     }
@@ -150,7 +148,7 @@ mod tests {
                 0,
                 (0..n_song)
                     .map(|i| SongTag {
-                        album: album_name.to_owned(),
+                        album: album_name.into(),
                         album_artists: if i < 5 {
                             vec![artist_names[0].into()]
                         } else {
@@ -164,6 +162,8 @@ mod tests {
             .await;
 
         let album_id = upsert_album(infra.pool(), album_name.into()).await.unwrap();
+        let album_media: crate::utils::song::MediaDateMbz = album_name.into();
+        println!("{:?}", album_media);
         let album_id3 =
             get_album_and_song_ids(infra.pool(), infra.user_id(0), album_id).await.unwrap().0;
         let artist_ids = get_artist_ids(infra.pool(), infra.user_id(0), album_id).await;
@@ -191,9 +191,7 @@ mod tests {
         infra
             .add_songs(
                 0,
-                (0..n_song)
-                    .map(|_| SongTag { album: album_name.to_owned(), ..Faker.fake() })
-                    .collect(),
+                (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
             )
             .scan(.., None)
             .await;
@@ -218,9 +216,7 @@ mod tests {
         (0..n_folder).for_each(|i| {
             infra.add_songs(
                 i,
-                (0..n_song)
-                    .map(|_| SongTag { album: album_name.to_owned(), ..Faker.fake() })
-                    .collect(),
+                (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
             );
         });
         infra.scan(.., None).await;
@@ -251,9 +247,7 @@ mod tests {
             .add_songs(0, (0..n_song).map(|_| Faker.fake()).collect())
             .add_songs(
                 1,
-                (0..n_song)
-                    .map(|_| SongTag { album: album_name.to_owned(), ..Faker.fake() })
-                    .collect(),
+                (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
             )
             .scan(.., None)
             .await;

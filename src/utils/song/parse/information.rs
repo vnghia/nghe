@@ -11,7 +11,7 @@ use uuid::Uuid;
 use super::property::SongProperty;
 use super::tag::SongTag;
 use crate::config::parsing::ParsingConfig;
-use crate::models::songs;
+use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::OSError;
 
@@ -87,15 +87,15 @@ impl SongInformation {
         file_size: i64,
         cover_art_id: Option<Uuid>,
     ) -> songs::SongUpdateInformationDB<'_> {
-        let (year, month, day) = self.tag.date_or_default().to_ymd();
+        let (year, month, day) = self.tag.song.date_or_default().to_ymd();
         let (release_year, release_month, release_day) =
-            self.tag.release_date_or_default().to_ymd();
+            self.tag.song.release_date_or_default().to_ymd();
         let (original_release_year, original_release_month, original_release_day) =
-            self.tag.original_release_date.to_ymd();
+            self.tag.song.original_release_date.to_ymd();
 
         songs::SongUpdateInformationDB {
             // Song tag
-            title: (&self.tag.title).into(),
+            title: (&self.tag.song.name).into(),
             album_id,
             track_number: self.tag.track_number.map(|i| i as _),
             track_total: self.tag.track_total.map(|i| i as _),
@@ -150,7 +150,6 @@ mod tests {
     use isolang::Language;
 
     use super::*;
-    use crate::models::*;
     use crate::utils::song::file_type::SONG_FILE_TYPES;
     use crate::utils::test::asset::{get_asset_dir, get_media_asset_path};
 
@@ -166,8 +165,42 @@ mod tests {
             .unwrap()
             .tag;
 
-            assert_eq!(tag.title, "Sample", "{:?} title does not match", file_type);
-            assert_eq!(tag.album, "Album", "{:?} album does not match", file_type);
+            let song = tag.song;
+            assert_eq!(song.name, "Sample", "{:?} song name does not match", file_type);
+            assert_eq!(song.date.0, None, "{:?} song date does not match", file_type);
+            assert_eq!(
+                song.release_date.0, None,
+                "{:?} song release date does not match",
+                file_type
+            );
+            assert_eq!(
+                song.original_release_date.0, None,
+                "{:?} song original release date does not match",
+                file_type
+            );
+            assert_eq!(song.mbz_id, None, "{:?} song mbz id does not match", file_type);
+
+            let album = tag.album;
+            assert_eq!(album.name, "Album", "{:?} album name does not match", file_type);
+            assert_eq!(
+                album.date.0,
+                Some((2000, Some((12, Some(31))))),
+                "{:?} album date does not match",
+                file_type
+            );
+            assert_eq!(
+                album.release_date.0, None,
+                "{:?} album release date does not match",
+                file_type
+            );
+            assert_eq!(
+                album.original_release_date.0,
+                Some((3000, Some((1, None)))),
+                "{:?} album original release date does not match",
+                file_type
+            );
+            assert_eq!(album.mbz_id, None, "{:?} album mbz id does not match", file_type);
+
             assert_eq!(
                 tag.artists,
                 Vec::<artists::ArtistNoId>::from([
@@ -186,23 +219,12 @@ mod tests {
                 "{:?} album artists does not match",
                 file_type
             );
+
             assert_eq!(tag.track_number, Some(10), "{:?} track number does not match", file_type);
             assert_eq!(tag.track_total, None, "{:?} track total does not match", file_type);
             assert_eq!(tag.disc_number, Some(5), "{:?} disc number does not match", file_type);
             assert_eq!(tag.disc_total, Some(10), "{:?} disc total does not match", file_type);
-            assert_eq!(
-                tag.date.0,
-                Some((2000, Some((12, Some(31))))),
-                "{:?} date does not match",
-                file_type
-            );
-            assert_eq!(tag.release_date.0, None, "{:?} release date does not match", file_type);
-            assert_eq!(
-                tag.original_release_date.0,
-                Some((3000, Some((1, None)))),
-                "{:?} original release date does not match",
-                file_type
-            );
+
             assert_eq!(
                 tag.languages.into_iter().sorted().collect_vec(),
                 [Language::Eng, Language::Vie],

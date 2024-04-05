@@ -132,7 +132,7 @@ mod tests {
 
         let song_db_info = infra.song_db_info(song_id).await;
 
-        assert_eq!(song_tag.title, song_db_info.tag.title);
+        assert_eq!(song_tag.song.name, song_db_info.tag.song.name);
         assert_eq!(song_path, song_db_info.relative_path);
         assert_eq!(song_hash as u64, song_db_info.file_hash);
         assert_eq!(song_size as u64, song_db_info.file_size);
@@ -184,7 +184,7 @@ mod tests {
 
         let song_db_info = infra.song_db_info(song_id).await;
 
-        assert_eq!(new_song_tag.title, song_db_info.tag.title);
+        assert_eq!(new_song_tag.song.name, song_db_info.tag.song.name);
         assert_eq!(song_path, song_db_info.relative_path);
         assert_eq!(new_song_hash as u64, song_db_info.file_hash);
         assert_eq!(new_song_size as u64, song_db_info.file_size);

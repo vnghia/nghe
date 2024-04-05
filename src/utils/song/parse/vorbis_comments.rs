@@ -5,17 +5,38 @@ use isolang::Language;
 use itertools::Itertools;
 use lofty::ogg::{OggPictureStorage, VorbisComments};
 use lofty::Picture;
+use uuid::Uuid;
 
 use super::common::{extract_common_tags, parse_track_and_disc, to_artist_no_ids};
-use super::tag::{SongDate, SongTag};
+use super::tag::{MediaDateMbz, SongDate, SongTag};
 use crate::config::parsing::VorbisCommentsParsingConfig;
+
+fn extract_date(tag: &VorbisComments, key: &Option<String>) -> Result<SongDate> {
+    if let Some(ref key) = key { SongDate::parse(tag.get(key)) } else { Ok(SongDate(None)) }
+}
 
 impl SongTag {
     pub fn from_vorbis_comments(
         tag: &mut VorbisComments,
         parsing_config: &VorbisCommentsParsingConfig,
     ) -> Result<Self> {
-        let (title, album) = extract_common_tags(tag)?;
+        let (song_name, album_name) = extract_common_tags(tag)?;
+
+        let song = MediaDateMbz {
+            name: song_name,
+            date: extract_date(tag, &parsing_config.date)?,
+            release_date: extract_date(tag, &parsing_config.release_date)?,
+            original_release_date: extract_date(tag, &parsing_config.original_release_date)?,
+            mbz_id: tag.get(&parsing_config.mbz_id).map(Uuid::parse_str).transpose()?,
+        };
+
+        let album = MediaDateMbz {
+            name: album_name,
+            date: extract_date(tag, &parsing_config.album_date)?,
+            release_date: extract_date(tag, &parsing_config.album_release_date)?,
+            original_release_date: extract_date(tag, &parsing_config.album_original_release_date)?,
+            mbz_id: tag.get(&parsing_config.album_mbz_id).map(Uuid::parse_str).transpose()?,
+        };
 
         let artist_names = tag.remove(&parsing_config.artist).collect_vec();
         let artist_mbz_ids = tag.get_all(&parsing_config.artist_mbz_id).collect_vec();
@@ -32,18 +53,13 @@ impl SongTag {
             tag.get(&parsing_config.disc_total),
         )?;
 
-        let date = SongDate::parse(tag.get(&parsing_config.date))?;
-        let release_date = SongDate::parse(tag.get(&parsing_config.release_date))?;
-        let original_release_date =
-            SongDate::parse(tag.get(&parsing_config.original_release_date))?;
-
         let languages =
             tag.remove(&parsing_config.language).map(|s| Language::from_str(&s)).try_collect()?;
 
         let picture = Self::extract_ogg_picture(tag);
 
         Ok(Self {
-            title,
+            song,
             album,
             artists,
             album_artists,
@@ -51,9 +67,6 @@ impl SongTag {
             track_total,
             disc_number,
             disc_total,
-            date,
-            release_date,
-            original_release_date,
             languages,
             picture,
         })
@@ -79,8 +92,36 @@ mod test {
             let parsing_config = parsing_config.clone();
 
             let mut tag = VorbisComments::new();
-            tag.set_title(self.title);
-            tag.set_album(self.album);
+
+            let song = self.song;
+            tag.set_title(song.name);
+            if let Some(date) = song.date.to_string() {
+                tag.push(parsing_config.date.unwrap(), date)
+            }
+            if let Some(date) = song.release_date.to_string() {
+                tag.push(parsing_config.release_date.unwrap(), date)
+            }
+            if let Some(date) = song.original_release_date.to_string() {
+                tag.push(parsing_config.original_release_date.unwrap(), date)
+            }
+            if let Some(mbz_id) = song.mbz_id {
+                tag.push(parsing_config.mbz_id.to_owned(), mbz_id.to_string());
+            }
+
+            let album = self.album;
+            tag.set_album(album.name);
+            if let Some(date) = album.date.to_string() {
+                tag.push(parsing_config.album_date.unwrap(), date)
+            }
+            if let Some(date) = album.release_date.to_string() {
+                tag.push(parsing_config.album_release_date.unwrap(), date)
+            }
+            if let Some(date) = album.original_release_date.to_string() {
+                tag.push(parsing_config.album_original_release_date.unwrap(), date)
+            }
+            if let Some(mbz_id) = album.mbz_id {
+                tag.push(parsing_config.album_mbz_id.to_owned(), mbz_id.to_string());
+            }
 
             self.artists.into_iter().for_each(|v| {
                 let (name, mbz_id) = v.into();
@@ -104,16 +145,6 @@ mod test {
             }
             if let Some(disc_total) = self.disc_total {
                 tag.push(parsing_config.disc_total, disc_total.to_string());
-            }
-
-            if let Some(date) = self.date.to_string() {
-                tag.push(parsing_config.date, date)
-            }
-            if let Some(date) = self.release_date.to_string() {
-                tag.push(parsing_config.release_date, date)
-            }
-            if let Some(date) = self.original_release_date.to_string() {
-                tag.push(parsing_config.original_release_date, date)
             }
 
             self.languages.into_iter().for_each(|language| {

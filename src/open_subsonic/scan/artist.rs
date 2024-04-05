@@ -283,8 +283,8 @@ mod tests {
     async fn test_upsert_artist_mbz_id() {
         let temp_db = TemporaryDb::new_from_env().await;
         let mbz_id = Some(Faker.fake());
-        let artist_no_id1 = artists::ArtistNoId { name: "alias1".into(), mbz_id };
-        let artist_no_id2 = artists::ArtistNoId { name: "alias1".into(), mbz_id };
+        let artist_no_id1 = artists::ArtistNoId { mbz_id, ..Faker.fake() };
+        let artist_no_id2 = artists::ArtistNoId { mbz_id, ..Faker.fake() };
 
         let artist_id1 = upsert_artists(temp_db.pool(), &[artist_no_id1]).await.unwrap().remove(0);
         let artist_id2 = upsert_artists(temp_db.pool(), &[artist_no_id2]).await.unwrap().remove(0);

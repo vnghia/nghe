@@ -7,6 +7,16 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
+        year -> Nullable<Int2>,
+        month -> Nullable<Int2>,
+        day -> Nullable<Int2>,
+        release_year -> Nullable<Int2>,
+        release_month -> Nullable<Int2>,
+        release_day -> Nullable<Int2>,
+        original_release_year -> Nullable<Int2>,
+        original_release_month -> Nullable<Int2>,
+        original_release_day -> Nullable<Int2>,
+        mbz_id -> Nullable<Uuid>,
     }
 }
 

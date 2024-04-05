@@ -6,7 +6,7 @@ mod tag;
 mod vorbis_comments;
 
 pub use information::SongInformation;
-pub use tag::SongDate;
+pub use tag::{MediaDateMbz, SongDate};
 
 #[cfg(test)]
 pub mod test {

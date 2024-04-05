@@ -39,6 +39,12 @@ pub struct ArtistId3 {
 pub struct AlbumId3 {
     pub id: Uuid,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub year: Option<u16>,
+    #[serde(skip_serializing_if = "DateId3::skip_serializing")]
+    pub release_date: DateId3,
+    #[serde(skip_serializing_if = "DateId3::skip_serializing")]
+    pub original_release_date: DateId3,
     pub song_count: u16,
     pub duration: u32,
     #[serde(with = "crate::utils::time::iso8601_datetime")]
@@ -47,17 +53,8 @@ pub struct AlbumId3 {
     // So album covert art id is default to album id.
     pub cover_art: MediaTypedId,
     #[new(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub year: Option<u16>,
-    #[new(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub artists: Vec<ArtistId3>,
-    #[new(default)]
-    #[serde(skip_serializing_if = "DateId3::skip_serializing")]
-    pub release_date: DateId3,
-    #[new(default)]
-    #[serde(skip_serializing_if = "DateId3::skip_serializing")]
-    pub original_release_date: DateId3,
 }
 
 #[derive(new, Debug, Serialize)]

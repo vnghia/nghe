@@ -1,6 +1,7 @@
 use derivative::Derivative;
 use lofty::id3::v2::FrameId;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde_with::{serde_as, DefaultOnNull};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
@@ -9,11 +10,37 @@ pub enum FrameIdOrUserText {
     UserText(String),
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct Id3v2ParsingConfig {
     #[derivative(Default(value = "'/'"))]
     pub separator: char,
+
+    #[derivative(Default(value = "Some(\"TSRC\".try_into().unwrap())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub date: Option<FrameIdOrUserText>,
+    #[derivative(Default(value = "Some(\"TSRL\".try_into().unwrap())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub release_date: Option<FrameIdOrUserText>,
+    #[derivative(Default(value = "Some(\"TSOR\".try_into().unwrap())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub original_release_date: Option<FrameIdOrUserText>,
+    #[derivative(Default(value = "\"MusicBrainz Release Track Id\".try_into().unwrap()"))]
+    pub mbz_id: FrameIdOrUserText,
+
+    #[derivative(Default(value = "Some(\"TDRC\".try_into().unwrap())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub album_date: Option<FrameIdOrUserText>,
+    #[derivative(Default(value = "Some(\"TDRL\".try_into().unwrap())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub album_release_date: Option<FrameIdOrUserText>,
+    #[derivative(Default(value = "Some(\"TDOR\".try_into().unwrap())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub album_original_release_date: Option<FrameIdOrUserText>,
+    #[derivative(Default(value = "\"MusicBrainz Album Id\".try_into().unwrap()"))]
+    pub album_mbz_id: FrameIdOrUserText,
+
     #[derivative(Default(value = "\"TPE1\".try_into().unwrap()"))]
     pub artist: FrameIdOrUserText,
     #[derivative(Default(value = "\"TPE2\".try_into().unwrap()"))]
@@ -22,12 +49,7 @@ pub struct Id3v2ParsingConfig {
     pub track_number: FrameIdOrUserText,
     #[derivative(Default(value = "\"TPOS\".try_into().unwrap()"))]
     pub disc_number: FrameIdOrUserText,
-    #[derivative(Default(value = "\"TDRC\".try_into().unwrap()"))]
-    pub date: FrameIdOrUserText,
-    #[derivative(Default(value = "\"TDRL\".try_into().unwrap()"))]
-    pub release_date: FrameIdOrUserText,
-    #[derivative(Default(value = "\"TDOR\".try_into().unwrap()"))]
-    pub original_release_date: FrameIdOrUserText,
+
     #[derivative(Default(value = "\"TLAN\".try_into().unwrap()"))]
     pub language: FrameIdOrUserText,
     #[derivative(Default(value = "\"MusicBrainz Artist Id\".try_into().unwrap()"))]
@@ -36,13 +58,39 @@ pub struct Id3v2ParsingConfig {
     pub album_artist_mbz_id: FrameIdOrUserText,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct VorbisCommentsParsingConfig {
+    #[derivative(Default(value = "Some(\"SDATE\".into())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub date: Option<String>,
+    #[derivative(Default(value = "Some(\"SRELEASEDATE\".into())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub release_date: Option<String>,
+    #[derivative(Default(value = "Some(\"SORIGYEAR\".into())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub original_release_date: Option<String>,
+    #[derivative(Default(value = "\"MUSICBRAINZ_RELEASETRACKID\".into()"))]
+    pub mbz_id: String,
+
+    #[derivative(Default(value = "Some(\"DATE\".into())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub album_date: Option<String>,
+    #[derivative(Default(value = "Some(\"RELEASEDATE\".into())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub album_release_date: Option<String>,
+    #[derivative(Default(value = "Some(\"ORIGYEAR\".into())"))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub album_original_release_date: Option<String>,
+    #[derivative(Default(value = "\"MUSICBRAINZ_ALBUMID\".into()"))]
+    pub album_mbz_id: String,
+
     #[derivative(Default(value = "\"ARTIST\".into()"))]
     pub artist: String,
     #[derivative(Default(value = "\"ALBUMARTIST\".into()"))]
     pub album_artist: String,
+
     #[derivative(Default(value = "\"TRACKNUMBER\".into()"))]
     pub track_number: String,
     #[derivative(Default(value = "\"TRACKTOTAL\".into()"))]
@@ -51,12 +99,7 @@ pub struct VorbisCommentsParsingConfig {
     pub disc_number: String,
     #[derivative(Default(value = "\"DISCTOTAL\".into()"))]
     pub disc_total: String,
-    #[derivative(Default(value = "\"DATE\".into()"))]
-    pub date: String,
-    #[derivative(Default(value = "\"RELEASEDATE\".into()"))]
-    pub release_date: String,
-    #[derivative(Default(value = "\"ORIGYEAR\".into()"))]
-    pub original_release_date: String,
+
     #[derivative(Default(value = "\"LANGUAGE\".into()"))]
     pub language: String,
     #[derivative(Default(value = "\"MUSICBRAINZ_ARTISTID\".into()"))]

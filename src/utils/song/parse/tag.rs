@@ -7,14 +7,10 @@ pub use itertools::Itertools;
 use lofty::Picture;
 use time::macros::format_description;
 use tracing::instrument;
+use uuid::Uuid;
 
 use crate::models::*;
 use crate::OSError;
-type SongDateInner = Option<(u16, Option<(u8, Option<u8>)>)>;
-
-#[derive(Debug, Clone, Copy)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-pub struct SongDate(pub SongDateInner);
 
 type FormatDescription<'a> = &'a [time::format_description::FormatItem<'a>];
 
@@ -22,11 +18,26 @@ const YMD_FORMAT: FormatDescription = format_description!("[year]-[month]-[day]"
 const YM_FORMAT: FormatDescription = format_description!("[year]-[month]");
 const Y_FORMAT: FormatDescription = format_description!("[year]");
 
+type SongDateInner = Option<(u16, Option<(u8, Option<u8>)>)>;
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(test, derive(Default, Hash, PartialEq, Eq, PartialOrd, Ord))]
+pub struct SongDate(pub SongDateInner);
+
+#[derive(Debug)]
+#[cfg_attr(test, derive(Dummy, Default, Clone, Hash, PartialEq, Eq, PartialOrd, Ord))]
+pub struct MediaDateMbz {
+    pub name: String,
+    pub date: SongDate,
+    pub release_date: SongDate,
+    pub original_release_date: SongDate,
+    pub mbz_id: Option<Uuid>,
+}
+
 #[derive(Debug)]
 #[cfg_attr(test, derive(Dummy, Clone, PartialEq, Eq))]
 pub struct SongTag {
-    pub title: String,
-    pub album: String,
+    pub song: MediaDateMbz,
+    pub album: MediaDateMbz,
     #[cfg_attr(
         test,
         dummy(
@@ -45,9 +56,6 @@ pub struct SongTag {
     pub track_total: Option<u32>,
     pub disc_number: Option<u32>,
     pub disc_total: Option<u32>,
-    pub date: SongDate,
-    pub release_date: SongDate,
-    pub original_release_date: SongDate,
     #[cfg_attr(
         test,
         dummy(expr = "((0..=7915), 0..=2).fake::<Vec<usize>>().into_iter().unique().map(|i| \
@@ -58,17 +66,31 @@ pub struct SongTag {
     pub picture: Option<Picture>,
 }
 
-impl SongTag {
-    pub fn album_artists_or_default(&self) -> &Vec<artists::ArtistNoId> {
-        if !self.album_artists.is_empty() { &self.album_artists } else { &self.artists }
-    }
-
+impl MediaDateMbz {
     pub fn date_or_default(&self) -> SongDate {
         self.date.or(self.original_release_date).or(self.release_date)
     }
 
     pub fn release_date_or_default(&self) -> SongDate {
         self.release_date.or(self.date)
+    }
+}
+
+impl SongTag {
+    pub fn album_artists_or_default(&self) -> &Vec<artists::ArtistNoId> {
+        if !self.album_artists.is_empty() { &self.album_artists } else { &self.artists }
+    }
+}
+
+impl<'a> From<&'a MediaDateMbz> for albums::NewAlbum<'a> {
+    fn from(value: &'a MediaDateMbz) -> Self {
+        Self {
+            name: (&value.name).into(),
+            date: value.date_or_default().into(),
+            release_date: value.release_date_or_default().into(),
+            original_release_date: value.original_release_date.into(),
+            mbz_id: value.mbz_id,
+        }
     }
 }
 
@@ -131,6 +153,30 @@ pub mod test {
 
     use super::*;
     use crate::utils::song::SongInformation;
+
+    impl From<String> for MediaDateMbz {
+        fn from(value: String) -> Self {
+            Self { name: value, ..Default::default() }
+        }
+    }
+
+    impl From<&str> for MediaDateMbz {
+        fn from(value: &str) -> Self {
+            value.to_string().into()
+        }
+    }
+
+    impl From<MediaDateMbz> for albums::NewAlbum<'static> {
+        fn from(value: MediaDateMbz) -> Self {
+            Self {
+                date: value.date_or_default().into(),
+                release_date: value.release_date_or_default().into(),
+                original_release_date: value.original_release_date.into(),
+                mbz_id: value.mbz_id,
+                name: value.name.into(),
+            }
+        }
+    }
 
     impl SongTag {
         pub fn to_information(&self) -> SongInformation {

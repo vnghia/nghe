@@ -6,9 +6,10 @@ use isolang::Language;
 use itertools::Itertools;
 use lofty::id3::v2::{FrameId, FrameValue, Id3v2Tag, Id3v2Version};
 use lofty::Picture;
+use uuid::Uuid;
 
 use super::common::{extract_common_tags, parse_track_and_disc, to_artist_no_ids};
-use super::tag::{SongDate, SongTag};
+use super::tag::{MediaDateMbz, SongDate, SongTag};
 use crate::config::parsing::{FrameIdOrUserText, Id3v2ParsingConfig};
 use crate::OSError;
 
@@ -33,9 +34,29 @@ fn extract_and_split_str<'a>(
     })
 }
 
+fn extract_date(tag: &Id3v2Tag, key: &Option<FrameIdOrUserText>) -> Result<SongDate> {
+    if let Some(ref key) = key { SongDate::parse(get_text(tag, key)) } else { Ok(SongDate(None)) }
+}
+
 impl SongTag {
     pub fn from_id3v2(tag: &mut Id3v2Tag, parsing_config: &Id3v2ParsingConfig) -> Result<Self> {
-        let (title, album) = extract_common_tags(tag)?;
+        let (song_name, album_name) = extract_common_tags(tag)?;
+
+        let song = MediaDateMbz {
+            name: song_name,
+            date: extract_date(tag, &parsing_config.date)?,
+            release_date: extract_date(tag, &parsing_config.release_date)?,
+            original_release_date: extract_date(tag, &parsing_config.original_release_date)?,
+            mbz_id: get_text(tag, &parsing_config.mbz_id).map(Uuid::parse_str).transpose()?,
+        };
+
+        let album = MediaDateMbz {
+            name: album_name,
+            date: extract_date(tag, &parsing_config.album_date)?,
+            release_date: extract_date(tag, &parsing_config.album_release_date)?,
+            original_release_date: extract_date(tag, &parsing_config.album_original_release_date)?,
+            mbz_id: get_text(tag, &parsing_config.album_mbz_id).map(Uuid::parse_str).transpose()?,
+        };
 
         let artist_names =
             extract_and_split_str(tag, &parsing_config.artist, parsing_config.separator)
@@ -64,11 +85,6 @@ impl SongTag {
             None,
         )?;
 
-        let date = SongDate::parse(get_text(tag, &parsing_config.date))?;
-        let release_date = SongDate::parse(get_text(tag, &parsing_config.release_date))?;
-        let original_release_date =
-            SongDate::parse(get_text(tag, &parsing_config.original_release_date))?;
-
         let languages =
             extract_and_split_str(tag, &parsing_config.language, parsing_config.separator)
                 .map_or_else(|| Ok(Vec::default()), |v| v.map(Language::from_str).try_collect())?;
@@ -76,7 +92,7 @@ impl SongTag {
         let picture = Self::extract_id3v2_picture(tag)?;
 
         Ok(Self {
-            title,
+            song,
             album,
             artists,
             album_artists,
@@ -84,9 +100,6 @@ impl SongTag {
             track_total,
             disc_number,
             disc_total,
-            date,
-            release_date,
-            original_release_date,
             languages,
             picture,
         })
@@ -154,8 +167,44 @@ mod test {
             let multi_value_separator = V4_MULTI_VALUE_SEPARATOR.to_string();
 
             let mut tag = Id3v2Tag::new();
-            tag.set_title(self.title);
-            tag.set_album(self.album);
+
+            let song = self.song;
+            tag.set_title(song.name);
+            if let Some(date) = song.date.to_string() {
+                write_id3v2_text_tag(&mut tag, parsing_config.date.unwrap(), date);
+            }
+            if let Some(date) = song.release_date.to_string() {
+                write_id3v2_text_tag(&mut tag, parsing_config.release_date.unwrap(), date);
+            }
+            if let Some(date) = song.original_release_date.to_string() {
+                write_id3v2_text_tag(&mut tag, parsing_config.original_release_date.unwrap(), date);
+            }
+            if let Some(mbz_id) = song.mbz_id {
+                write_id3v2_text_tag(&mut tag, parsing_config.mbz_id.clone(), mbz_id.to_string());
+            }
+
+            let album = self.album;
+            tag.set_album(album.name);
+            if let Some(date) = album.date.to_string() {
+                write_id3v2_text_tag(&mut tag, parsing_config.album_date.unwrap(), date);
+            }
+            if let Some(date) = album.release_date.to_string() {
+                write_id3v2_text_tag(&mut tag, parsing_config.album_release_date.unwrap(), date);
+            }
+            if let Some(date) = album.original_release_date.to_string() {
+                write_id3v2_text_tag(
+                    &mut tag,
+                    parsing_config.album_original_release_date.unwrap(),
+                    date,
+                );
+            }
+            if let Some(mbz_id) = album.mbz_id {
+                write_id3v2_text_tag(
+                    &mut tag,
+                    parsing_config.album_mbz_id.clone(),
+                    mbz_id.to_string(),
+                );
+            }
 
             if !self.artists.is_empty() {
                 let (artist_names, artist_mbz_ids): (Vec<String>, Vec<String>) =
@@ -198,16 +247,6 @@ mod test {
                 self.disc_number,
                 self.disc_total,
             );
-
-            if let Some(date) = self.date.to_string() {
-                write_id3v2_text_tag(&mut tag, parsing_config.date, date);
-            }
-            if let Some(date) = self.release_date.to_string() {
-                write_id3v2_text_tag(&mut tag, parsing_config.release_date, date);
-            }
-            if let Some(date) = self.original_release_date.to_string() {
-                write_id3v2_text_tag(&mut tag, parsing_config.original_release_date, date);
-            }
 
             if !self.languages.is_empty() {
                 write_id3v2_text_tag(

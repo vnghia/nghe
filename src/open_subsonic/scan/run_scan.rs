@@ -319,7 +319,6 @@ mod tests {
 
     use super::*;
     use crate::utils::song::test::SongTag;
-    use crate::utils::test::media::{assert_album_names, assert_albums_info};
     use crate::utils::test::Infra;
 
     #[tokio::test]
@@ -394,12 +393,12 @@ mod tests {
                 0,
                 vec![
                     SongTag {
-                        album: "album".to_owned(),
+                        album: "album".into(),
                         album_artists: vec!["artist1".into(), "artist2".into()],
                         ..Faker.fake()
                     },
                     SongTag {
-                        album: "album".to_owned(),
+                        album: "album".into(),
                         album_artists: vec!["artist1".into(), "artist3".into()],
                         ..Faker.fake()
                     },
@@ -422,7 +421,7 @@ mod tests {
         let ScanStatistic { deleted_album_count, .. } =
             infra.add_n_song(0, n_song).scan(.., None).await;
         assert_eq!(deleted_album_count, 0);
-        assert_albums_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_album_infos(&infra.album_no_ids(..)).await;
 
         let ScanStatistic { deleted_album_count, .. } = infra
             .delete_n_song(0, n_delete_song)
@@ -430,7 +429,7 @@ mod tests {
             .scan(.., None)
             .await;
         assert_eq!(deleted_album_count, n_delete_song + n_update_song);
-        assert_albums_info(infra.pool(), &infra.song_fs_infos(..)).await;
+        infra.assert_album_infos(&infra.album_no_ids(..)).await;
     }
 
     #[tokio::test]
@@ -441,19 +440,19 @@ mod tests {
             .add_songs(
                 0,
                 vec![
-                    SongTag { album: "album".to_owned(), ..Faker.fake() },
-                    SongTag { album: "album".to_owned(), ..Faker.fake() },
+                    SongTag { album: "album".into(), ..Faker.fake() },
+                    SongTag { album: "album".into(), ..Faker.fake() },
                 ],
             )
             .scan(.., None)
             .await;
         assert_eq!(deleted_album_count, 0);
-        assert_album_names(infra.pool(), &["album"]).await;
+        infra.assert_album_infos(&["album".into()]).await;
 
         let ScanStatistic { deleted_album_count, .. } =
             infra.delete_song(0, 0).scan(.., None).await;
         assert_eq!(deleted_album_count, 0);
-        assert_album_names(infra.pool(), &["album"]).await;
+        infra.assert_album_infos(&["album".into()]).await;
     }
 
     #[tokio::test]
@@ -513,13 +512,13 @@ mod tests {
                 0,
                 vec![
                     SongTag {
-                        album: "album1".to_owned(),
+                        album: "album1".into(),
                         artists: vec!["artist2".into()],
                         album_artists: vec!["artist1".into(), "artist2".into()],
                         ..Faker.fake()
                     },
                     SongTag {
-                        album: "album2".to_owned(),
+                        album: "album2".into(),
                         album_artists: vec!["artist2".into(), "artist3".into()],
                         ..Faker.fake()
                     },
@@ -548,20 +547,20 @@ mod tests {
                 vec![
                     // deleted
                     SongTag {
-                        album: "album".to_owned(),
+                        album: "album".into(),
                         artists: vec!["artist1".into(), "artist2".into()],
                         album_artists: vec!["artist1".into()],
                         ..Faker.fake()
                     },
                     // not deleted but scanned (artist2)
                     SongTag {
-                        album: "album".to_owned(),
+                        album: "album".into(),
                         album_artists: vec!["artist2".into()],
                         ..Faker.fake()
                     },
                     // not deleted nor scanned
                     SongTag {
-                        album: "album".to_owned(),
+                        album: "album".into(),
                         album_artists: vec!["artist3".into()],
                         ..Faker.fake()
                     },
@@ -586,20 +585,20 @@ mod tests {
         let song_tags = vec![
             // deleted
             SongTag {
-                album: "album".to_owned(),
+                album: "album".into(),
                 artists: vec!["artist1".into(), "artist2".into()],
                 album_artists: vec!["artist1".into()],
                 ..Faker.fake()
             },
             // not deleted but scanned (artist2)
             SongTag {
-                album: "album".to_owned(),
+                album: "album".into(),
                 album_artists: vec!["artist2".into()],
                 ..Faker.fake()
             },
             // not deleted nor scanned
             SongTag {
-                album: "album".to_owned(),
+                album: "album".into(),
                 album_artists: vec!["artist3".into()],
                 ..Faker.fake()
             },
