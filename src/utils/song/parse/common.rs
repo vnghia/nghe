@@ -1,18 +1,11 @@
 use anyhow::Result;
 use concat_string::concat_string;
 use itertools::Itertools;
-use lofty::Accessor;
 use tracing::instrument;
 use uuid::Uuid;
 
 use crate::models::*;
 use crate::OSError;
-
-pub fn extract_common_tags<T: Accessor>(tag: &mut T) -> Result<(String, String)> {
-    let title = tag.title().ok_or_else(|| OSError::NotFound("Title tag".into()))?.into_owned();
-    let album = tag.album().ok_or_else(|| OSError::NotFound("Album tag".into()))?.into_owned();
-    Ok((title, album))
-}
 
 fn parse_number_and_total(
     number_value: Option<&str>,

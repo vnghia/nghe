@@ -7,9 +7,12 @@ use lofty::ogg::{OggPictureStorage, VorbisComments};
 use lofty::Picture;
 use uuid::Uuid;
 
-use super::common::{extract_common_tags, parse_track_and_disc, to_artist_no_ids};
+use super::common::{parse_track_and_disc, to_artist_no_ids};
 use super::tag::{MediaDateMbz, SongDate, SongTag};
-use crate::config::parsing::VorbisCommentsParsingConfig;
+use crate::config::parsing::{
+    MediaDateMbzVorbisCommentsParsingConfig, VorbisCommentsParsingConfig,
+};
+use crate::OSError;
 
 fn extract_date(tag: &VorbisComments, key: &Option<String>) -> Result<SongDate> {
     if let Some(ref key) = key { SongDate::parse(tag.get(key)) } else { Ok(SongDate(None)) }
@@ -20,23 +23,8 @@ impl SongTag {
         tag: &mut VorbisComments,
         parsing_config: &VorbisCommentsParsingConfig,
     ) -> Result<Self> {
-        let (song_name, album_name) = extract_common_tags(tag)?;
-
-        let song = MediaDateMbz {
-            name: song_name,
-            date: extract_date(tag, &parsing_config.date)?,
-            release_date: extract_date(tag, &parsing_config.release_date)?,
-            original_release_date: extract_date(tag, &parsing_config.original_release_date)?,
-            mbz_id: tag.get(&parsing_config.mbz_id).map(Uuid::parse_str).transpose()?,
-        };
-
-        let album = MediaDateMbz {
-            name: album_name,
-            date: extract_date(tag, &parsing_config.album_date)?,
-            release_date: extract_date(tag, &parsing_config.album_release_date)?,
-            original_release_date: extract_date(tag, &parsing_config.album_original_release_date)?,
-            mbz_id: tag.get(&parsing_config.album_mbz_id).map(Uuid::parse_str).transpose()?,
-        };
+        let song = MediaDateMbz::from_vorbis_comments(tag, &parsing_config.song)?;
+        let album = MediaDateMbz::from_vorbis_comments(tag, &parsing_config.album)?;
 
         let artist_names = tag.remove(&parsing_config.artist).collect_vec();
         let artist_mbz_ids = tag.get_all(&parsing_config.artist_mbz_id).collect_vec();
@@ -77,10 +65,26 @@ impl SongTag {
     }
 }
 
+impl MediaDateMbz {
+    fn from_vorbis_comments(
+        tag: &VorbisComments,
+        parsing_config: &MediaDateMbzVorbisCommentsParsingConfig,
+    ) -> Result<Self> {
+        Ok(Self {
+            name: tag
+                .get(&parsing_config.name)
+                .ok_or_else(|| OSError::NotFound(parsing_config.name.to_owned().into()))?
+                .to_owned(),
+            date: extract_date(tag, &parsing_config.date)?,
+            release_date: extract_date(tag, &parsing_config.release_date)?,
+            original_release_date: extract_date(tag, &parsing_config.original_release_date)?,
+            mbz_id: tag.get(&parsing_config.mbz_id).map(Uuid::parse_str).transpose()?,
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
-    use fake::{Fake, Faker};
-    use lofty::Accessor;
 
     use super::*;
 
@@ -93,35 +97,8 @@ mod test {
 
             let mut tag = VorbisComments::new();
 
-            let song = self.song;
-            tag.set_title(song.name);
-            if let Some(date) = song.date.to_string() {
-                tag.push(parsing_config.date.unwrap(), date)
-            }
-            if let Some(date) = song.release_date.to_string() {
-                tag.push(parsing_config.release_date.unwrap(), date)
-            }
-            if let Some(date) = song.original_release_date.to_string() {
-                tag.push(parsing_config.original_release_date.unwrap(), date)
-            }
-            if let Some(mbz_id) = song.mbz_id {
-                tag.push(parsing_config.mbz_id.to_owned(), mbz_id.to_string());
-            }
-
-            let album = self.album;
-            tag.set_album(album.name);
-            if let Some(date) = album.date.to_string() {
-                tag.push(parsing_config.album_date.unwrap(), date)
-            }
-            if let Some(date) = album.release_date.to_string() {
-                tag.push(parsing_config.album_release_date.unwrap(), date)
-            }
-            if let Some(date) = album.original_release_date.to_string() {
-                tag.push(parsing_config.album_original_release_date.unwrap(), date)
-            }
-            if let Some(mbz_id) = album.mbz_id {
-                tag.push(parsing_config.album_mbz_id.to_owned(), mbz_id.to_string());
-            }
+            self.song.into_vorbis_comments(&mut tag, parsing_config.song.clone());
+            self.album.into_vorbis_comments(&mut tag, parsing_config.album.clone());
 
             self.artists.into_iter().for_each(|v| {
                 let (name, mbz_id) = v.into();
@@ -158,6 +135,35 @@ mod test {
             tag
         }
     }
+
+    impl MediaDateMbz {
+        fn into_vorbis_comments(
+            self,
+            tag: &mut VorbisComments,
+            parsing_config: MediaDateMbzVorbisCommentsParsingConfig,
+        ) {
+            tag.push(parsing_config.name, self.name);
+            if let Some(date) = self.date.to_string() {
+                tag.push(parsing_config.date.unwrap(), date)
+            }
+            if let Some(date) = self.release_date.to_string() {
+                tag.push(parsing_config.release_date.unwrap(), date)
+            }
+            if let Some(date) = self.original_release_date.to_string() {
+                tag.push(parsing_config.original_release_date.unwrap(), date)
+            }
+            if let Some(mbz_id) = self.mbz_id {
+                tag.push(parsing_config.mbz_id.to_owned(), mbz_id.to_string());
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::*;
 
     #[test]
     fn test_round_trip() {
