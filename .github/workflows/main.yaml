@@ -14,6 +14,7 @@ env:
   CARGO_TERM_COLOR: always
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   RUST_TOOLCHAIN: nightly-2024-03-22
+  DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
 
 jobs:
   build-linux:
@@ -33,7 +34,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
       CROSS_CONTAINER_OPTS: "--network=host"
 
     services:
@@ -63,7 +63,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: cargo-bins/cargo-binstall@main
       - name: Extract target information
         id: target
         env:
@@ -112,17 +111,23 @@ jobs:
           aarch64-linux-gnu-pkg-config --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
 
-      - name: Install ffmpeg build deps
+      - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cargo-vcpkg
       - name: Build vcpkg dependencies
         run: |
           cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
       - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross --rev 085092c
         if: ${{ matrix.platform.command == 'cross' }}
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cross
+          git: https://github.com/cross-rs/cross
+          rev: 085092c
 
       - name: Build and test
         run: |
@@ -215,26 +220,35 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: cargo-bins/cargo-binstall@main
 
-      - uses: ikalnytskyi/action-setup-postgres@v5
-        id: postgres
-      - name: Install libpq
+      - name: Install and setup postgres
         run: |
-          vcpkg install libpq[core]:x64-windows-release
-          cp "C:/vcpkg/installed/x64-windows-release/lib/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/lib/"
-          cp "C:/vcpkg/installed/x64-windows-release/bin/*" "C:/Users/runneradmin/.rustup/toolchains/stable-x86_64-pc-windows-msvc/lib/rustlib/x86_64-pc-windows-msvc/bin/"
+          choco install postgresql16 --params "/AllowRemote /Password:postgres"
+          Import-Module "$env:ChocolateyInstall/helpers/chocolateyInstaller.psm1"
+          refreshenv
+          $env:PGDATA = "C:/Program Files/PostgreSQL/16/data"
+          $env:PGPASSWORD = "postgres"
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = 1000"
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2GB'"
+          pg_ctl restart
+      - name: Add postgres env
+        shell: bash
+        run: |
+          echo "C:\Program Files\PostgreSQL\16\bin" >> $GITHUB_PATH
+          echo "C:\Program Files\PostgreSQL\16\lib" >> $GITHUB_PATH
+          echo "PQ_LIB_DIR=C:\Program Files\PostgreSQL\16\lib" >> $GITHUB_ENV
 
       - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cargo-vcpkg
       - name: Build vcpkg dependencies
         run: |
           cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
 
       - name: Build and test
-        run: cargo test --locked --target x86_64-pc-windows-msvc -- --test-threads=1
-        env:
-          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
+        run: |
+          cargo test --locked --target x86_64-pc-windows-msvc
 
   build-macos:
     strategy:
@@ -265,29 +279,29 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: cargo-bins/cargo-binstall@main
 
-      - name: Install postgres
-        run: brew install postgresql@14
-      - uses: ikalnytskyi/action-setup-postgres@v5
-        id: postgres
-      - name: Increase postgres max connection
+      - name: Install and setup postgres
         run: |
-          psql -c "ALTER SYSTEM SET max_connections = 1000"
-          psql -c "ALTER SYSTEM SET shared_buffers = '2GB'"
-          brew services restart postgresql
-        env:
-          PGSERVICE: ${{ steps.postgres.outputs.service-name }}
+          brew uninstall --force postgresql
+          brew uninstall --force postgresql@14
+          brew install postgresql@16
+          brew link postgresql@16
+          export PGDATA="$RUNNER_TEMP/pgdata"
+          initdb --username=postgres --pwfile=<(echo postgres)
+          pg_ctl start
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = 1000"
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2GB'"
+          pg_ctl restart
 
-      - name: Install ffmpeg build deps
+      - name: Install vcpkg build deps
         run: brew install nasm
       - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cargo-vcpkg
       - name: Build vcpkg dependencies
         run: |
           cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
       - name: Build and test
         run: cargo test --locked --target ${{ matrix.platform.target }}
-        env:
-          DATABASE_URL: ${{ steps.postgres.outputs.connection-uri }}
