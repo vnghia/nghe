@@ -15,8 +15,7 @@ use tempfile::{Builder, TempDir};
 use xxhash_rust::xxh3::xxh3_64;
 
 use super::asset::get_media_asset_path;
-use crate::config::parsing::ParsingConfig;
-use crate::config::{ArtConfig, TranscodingConfig};
+use crate::config::{ArtConfig, ParsingConfig, TranscodingConfig};
 use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::SongInformation;

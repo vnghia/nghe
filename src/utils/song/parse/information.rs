@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use super::property::SongProperty;
 use super::tag::SongTag;
-use crate::config::parsing::ParsingConfig;
+use crate::config::ParsingConfig;
 use crate::models::*;
 use crate::utils::song::file_type::to_extension;
 use crate::OSError;

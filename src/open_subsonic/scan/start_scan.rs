@@ -11,8 +11,7 @@ use time::OffsetDateTime;
 
 use super::artist::build_artist_indices;
 use super::run_scan::run_scan;
-use crate::config::parsing::ParsingConfig;
-use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
+use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
 use crate::{Database, DatabasePool};
 

@@ -8,8 +8,7 @@ use axum::routing::get;
 use axum::{Extension, Router};
 pub use start_scan::{start_scan, ScanMode, ScanStatistic};
 
-use crate::config::parsing::ParsingConfig;
-use crate::config::{ArtConfig, ArtistIndexConfig, ScanConfig};
+use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 
 pub fn router(
     artist_index_config: ArtistIndexConfig,

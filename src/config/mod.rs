@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use derivative::Derivative;
 use itertools::Itertools;
-use parsing::ParsingConfig;
+pub use parsing::ParsingConfig;
 
 #[derive(Debug)]
 pub struct ServerConfig {
