@@ -223,20 +223,19 @@ jobs:
 
       - name: Install and setup postgres
         run: |
-          choco install postgresql16 --params "/AllowRemote /Password:postgres"
-          Import-Module "$env:ChocolateyInstall/helpers/chocolateyInstaller.psm1"
-          refreshenv
-          $env:PGDATA = "C:/Program Files/PostgreSQL/16/data"
+          curl https://get.enterprisedb.com/postgresql/postgresql-16.2-1-windows-x64-binaries.zip --output postgresql.zip
+          7z x postgresql.zip
+          $env:PGDATA = "$PWD\pgsql\data"
           $env:PGPASSWORD = "postgres"
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = 1000"
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2GB'"
-          pg_ctl restart
-      - name: Add postgres env
-        shell: bash
-        run: |
-          echo "C:\Program Files\PostgreSQL\16\bin" >> $GITHUB_PATH
-          echo "C:\Program Files\PostgreSQL\16\lib" >> $GITHUB_PATH
-          echo "PQ_LIB_DIR=C:\Program Files\PostgreSQL\16\lib" >> $GITHUB_ENV
+          echo $env:PGPASSWORD > pwfile
+          pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
+          pgsql\bin\pg_ctl start
+          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = 1000"
+          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2GB'"
+          pgsql\bin\pg_ctl restart
+          echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
+          echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
+          echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
 
       - name: Install cargo-vcpkg
         uses: taiki-e/cache-cargo-install-action@v1
@@ -287,7 +286,7 @@ jobs:
           brew install postgresql@16
           brew link postgresql@16
           export PGDATA="$RUNNER_TEMP/pgdata"
-          initdb --username=postgres --pwfile=<(echo postgres)
+          initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
           pg_ctl start
           psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = 1000"
           psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2GB'"
