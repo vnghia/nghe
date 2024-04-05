@@ -87,7 +87,8 @@ impl SongInformation {
         file_size: i64,
         cover_art_id: Option<Uuid>,
     ) -> songs::SongUpdateInformationDB<'_> {
-        let (year, month, day) = self.tag.song.date_or_default().to_ymd();
+        let (year, month, day) =
+            self.tag.song.date_or_default().or(self.tag.album.date_or_default()).to_ymd();
         let (release_year, release_month, release_day) =
             self.tag.song.release_date_or_default().to_ymd();
         let (original_release_year, original_release_month, original_release_day) =

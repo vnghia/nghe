@@ -594,7 +594,10 @@ impl Infra {
             let song_fs = &song_fs_tag.song;
             let song_db = &song_db_tag.song;
             assert_eq!(song_fs.name, song_db.name);
-            assert_eq!(song_fs.date_or_default(), song_db.date);
+            assert_eq!(
+                song_fs.date_or_default().or(song_fs_tag.album.date_or_default()),
+                song_db.date
+            );
             assert_eq!(song_fs.release_date_or_default(), song_db.release_date);
             assert_eq!(song_fs.original_release_date, song_db.original_release_date);
 
