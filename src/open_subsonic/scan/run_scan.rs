@@ -13,6 +13,7 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use super::album::{upsert_album, upsert_song_album_artists};
 use super::artist::upsert_artists;
+use super::genre::{upsert_genres, upsert_song_genres};
 use super::song::{insert_song, update_song, upsert_song_artists, upsert_song_cover_art};
 use super::{ScanMode, ScanStatistic};
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
@@ -171,6 +172,13 @@ pub async fn process_path(
         .execute(&mut pool.get().await?)
         .await?;
 
+    upsert_song_genres(pool, song_id, &upsert_genres(pool, &song_tag.genres).await?).await?;
+    diesel::delete(songs_genres::table)
+        .filter(songs_genres::song_id.eq(song_id))
+        .filter(songs_genres::upserted_at.lt(scan_started_at))
+        .execute(&mut pool.get().await?)
+        .await?;
+
     Ok(true)
 }
 
@@ -301,12 +309,18 @@ pub async fn run_scan(
         .execute(&mut pool.get().await?)
         .await?;
 
+    let deleted_genre_count = diesel::delete(genres::table)
+        .filter(genres::upserted_at.lt(scan_started_at))
+        .execute(&mut pool.get().await?)
+        .await?;
+
     Ok(ScanStatistic {
         scanned_song_count,
         upserted_song_count,
         deleted_song_count,
         deleted_album_count,
         deleted_artist_count,
+        deleted_genre_count,
         scan_error_count,
     })
 }

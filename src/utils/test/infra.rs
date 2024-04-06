@@ -521,6 +521,12 @@ impl Infra {
         let album_artist_ids = album_artist_ids.into_iter().sorted().collect_vec();
         let album_artist_no_ids = album_artist_no_ids.into_iter().sorted().collect_vec();
 
+        let genres = get_basic_genre_id3_db()
+            .filter(songs::id.eq(song_id))
+            .get_results::<BasicGenreId3Db>(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap();
+
         let picture = picture::from_id(self.pool(), song.cover_art_id, &self.fs.art_config).await;
 
         let tag = SongTag {
@@ -537,6 +543,7 @@ impl Infra {
                 .into_iter()
                 .map(|language| Language::from_str(&language.unwrap()).unwrap())
                 .collect_vec(),
+            genres,
             picture,
         };
 

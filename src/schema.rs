@@ -42,6 +42,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    genres (id) {
+        id -> Uuid,
+        value -> Text,
+        upserted_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     music_folders (id) {
         id -> Uuid,
         path -> Text,
@@ -121,6 +129,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    songs_genres (song_id, genre_id) {
+        song_id -> Uuid,
+        genre_id -> Uuid,
+        upserted_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     user_music_folder_permissions (user_id, music_folder_id) {
         user_id -> Uuid,
         music_folder_id -> Uuid,
@@ -150,6 +166,8 @@ diesel::joinable!(songs_album_artists -> artists (album_artist_id));
 diesel::joinable!(songs_album_artists -> songs (song_id));
 diesel::joinable!(songs_artists -> artists (artist_id));
 diesel::joinable!(songs_artists -> songs (song_id));
+diesel::joinable!(songs_genres -> genres (genre_id));
+diesel::joinable!(songs_genres -> songs (song_id));
 diesel::joinable!(user_music_folder_permissions -> music_folders (music_folder_id));
 diesel::joinable!(user_music_folder_permissions -> users (user_id));
 
@@ -157,12 +175,14 @@ diesel::allow_tables_to_appear_in_same_query!(
     albums,
     artists,
     configs,
+    genres,
     music_folders,
     scans,
     song_cover_arts,
     songs,
     songs_album_artists,
     songs_artists,
+    songs_genres,
     user_music_folder_permissions,
     users,
 );

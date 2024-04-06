@@ -13,6 +13,7 @@ use super::tag::{MediaDateMbz, SongDate, SongTag};
 use crate::config::parsing::{
     FrameIdOrUserText, Id3v2ParsingConfig, MediaDateMbzId3v2ParsingConfig,
 };
+use crate::models::*;
 use crate::OSError;
 
 const V4_MULTI_VALUE_SEPARATOR: char = '\0';
@@ -75,6 +76,8 @@ impl SongTag {
         let languages =
             extract_and_split_str(tag, &parsing_config.language, parsing_config.separator)
                 .map_or_else(|| Ok(Vec::default()), |v| v.map(Language::from_str).try_collect())?;
+        let genres = extract_and_split_str(tag, &parsing_config.genre, parsing_config.separator)
+            .map_or_else(Vec::default, |v| v.map(genres::Genre::from).collect());
 
         let picture = Self::extract_id3v2_picture(tag)?;
 
@@ -88,6 +91,7 @@ impl SongTag {
             disc_number,
             disc_total,
             languages,
+            genres,
             picture,
         })
     }
@@ -217,6 +221,13 @@ mod test {
                     &mut tag,
                     parsing_config.language,
                     self.languages.iter().map(Language::to_639_3).join(&multi_value_separator),
+                );
+            }
+            if !self.genres.is_empty() {
+                write_id3v2_text_tag(
+                    &mut tag,
+                    parsing_config.genre,
+                    self.genres.iter().map(|g| g.value.as_ref()).join(&multi_value_separator),
                 );
             }
 

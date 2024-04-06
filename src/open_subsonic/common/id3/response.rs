@@ -84,3 +84,11 @@ pub struct SongId3 {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub artists: Vec<ArtistId3>,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenreId3 {
+    pub value: String,
+    pub song_count: u32,
+    pub album_count: u32,
+}

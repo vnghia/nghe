@@ -62,6 +62,11 @@ pub struct SongTag {
                       Language::from_usize(i).unwrap()).sorted().collect()")
     )]
     pub languages: Vec<Language>,
+    #[cfg_attr(
+        test,
+        dummy(expr = "fake::vec![String; 0..=2].into_iter().map(genres::Genre::from).collect()")
+    )]
+    pub genres: Vec<genres::Genre>,
     #[cfg_attr(test, dummy(expr = "crate::utils::test::picture::fake(false)"))]
     pub picture: Option<Picture>,
 }

@@ -39,6 +39,7 @@ pub struct ScanStatistic {
     pub deleted_song_count: usize,
     pub deleted_album_count: usize,
     pub deleted_artist_count: usize,
+    pub deleted_genre_count: usize,
     pub scan_error_count: usize,
 }
 

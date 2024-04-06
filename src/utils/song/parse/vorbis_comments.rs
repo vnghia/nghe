@@ -12,6 +12,7 @@ use super::tag::{MediaDateMbz, SongDate, SongTag};
 use crate::config::parsing::{
     MediaDateMbzVorbisCommentsParsingConfig, VorbisCommentsParsingConfig,
 };
+use crate::models::*;
 use crate::OSError;
 
 fn extract_date(tag: &VorbisComments, key: &Option<String>) -> Result<SongDate> {
@@ -43,6 +44,7 @@ impl SongTag {
 
         let languages =
             tag.remove(&parsing_config.language).map(|s| Language::from_str(&s)).try_collect()?;
+        let genres = tag.remove(&parsing_config.genre).map(genres::Genre::from).collect();
 
         let picture = Self::extract_ogg_picture(tag);
 
@@ -56,6 +58,7 @@ impl SongTag {
             disc_number,
             disc_total,
             languages,
+            genres,
             picture,
         })
     }
@@ -126,6 +129,9 @@ mod test {
 
             self.languages.into_iter().for_each(|language| {
                 tag.push(parsing_config.language.to_owned(), language.to_639_3().to_owned())
+            });
+            self.genres.into_iter().for_each(|genre| {
+                tag.push(parsing_config.genre.to_owned(), genre.value.into_owned())
             });
 
             if let Some(picture) = self.picture {

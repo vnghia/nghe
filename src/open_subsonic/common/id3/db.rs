@@ -24,6 +24,8 @@ pub struct BasicArtistId3Db {
 }
 
 #[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = artists)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct ArtistId3Db {
     #[diesel(embed)]
     pub basic: BasicArtistId3Db,
@@ -49,6 +51,8 @@ pub struct BasicAlbumId3Db {
 }
 
 #[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = albums)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct AlbumId3Db {
     #[diesel(embed)]
     pub basic: BasicAlbumId3Db,
@@ -86,6 +90,22 @@ pub struct SongId3Db {
     #[diesel(select_expression = sql("array_agg(songs_artists.artist_id) artist_ids"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
+}
+
+pub type BasicGenreId3Db = genres::Genre;
+
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = genres)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct GenreId3Db {
+    #[diesel(embed)]
+    pub value: BasicGenreId3Db,
+    #[diesel(select_expression = count_distinct(songs::album_id))]
+    #[diesel(select_expression_type = count_distinct<songs::album_id>)]
+    pub album_count: i64,
+    #[diesel(select_expression = count_distinct(songs::id))]
+    #[diesel(select_expression_type = count_distinct<songs::id>)]
+    pub song_count: i64,
 }
 
 impl BasicArtistId3Db {
@@ -200,5 +220,15 @@ impl SongId3Db {
             suffix: self.basic.format,
             artists,
         })
+    }
+}
+
+impl GenreId3Db {
+    pub fn into_res(self) -> GenreId3 {
+        GenreId3 {
+            value: self.value.value.into_owned(),
+            song_count: self.song_count as _,
+            album_count: self.album_count as _,
+        }
     }
 }
