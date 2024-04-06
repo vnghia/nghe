@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use super::property::SongProperty;
 use super::tag::SongTag;
+use super::SongLyric;
 use crate::config::ParsingConfig;
 use crate::models::*;
 use crate::utils::song::file_type::to_extension;
@@ -18,6 +19,7 @@ use crate::OSError;
 pub struct SongInformation {
     pub tag: SongTag,
     pub property: SongProperty,
+    pub lrc: Option<SongLyric>,
 }
 
 impl SongInformation {
@@ -25,6 +27,7 @@ impl SongInformation {
     pub fn read_from<R: Read + Seek>(
         reader: &mut R,
         file_type: FileType,
+        lrc_content: Option<&str>,
         parsing_config: &ParsingConfig,
     ) -> Result<Self> {
         let parse_options = ParseOptions::new().parsing_mode(ParsingMode::Strict);
@@ -77,7 +80,11 @@ impl SongInformation {
                 .ok_or_else(|| OSError::NotFound("Channel count".into()))?,
         };
 
-        Ok(Self { tag: song_tag, property: song_property })
+        Ok(Self {
+            tag: song_tag,
+            property: song_property,
+            lrc: lrc_content.map(|s| SongLyric::from_str(s, "lrc".into(), false)).transpose()?,
+        })
     }
 
     pub fn to_update_information_db(
@@ -161,6 +168,7 @@ mod tests {
             let tag = SongInformation::read_from(
                 &mut std::fs::File::open(&path).unwrap(),
                 file_type,
+                None,
                 &ParsingConfig::default(),
             )
             .unwrap()

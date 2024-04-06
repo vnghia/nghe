@@ -50,6 +50,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    lyrics (song_id, description, language, lyric_source) {
+        song_id -> Uuid,
+        description -> Text,
+        language -> Text,
+        line_values -> Array<Nullable<Text>>,
+        line_starts -> Nullable<Array<Nullable<Int4>>>,
+        lyric_hash -> Int8,
+        lyric_size -> Int8,
+        lyric_source -> Text,
+        updated_at -> Timestamptz,
+        scanned_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     music_folders (id) {
         id -> Uuid,
         path -> Text,
@@ -159,6 +174,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(lyrics -> songs (song_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
 diesel::joinable!(songs -> song_cover_arts (cover_art_id));
@@ -176,6 +192,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     artists,
     configs,
     genres,
+    lyrics,
     music_folders,
     scans,
     song_cover_arts,

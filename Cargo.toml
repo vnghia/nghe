@@ -36,6 +36,7 @@ isolang = { version = "2.4.0", default-features = false }
 itertools = "0.12.1"
 libaes = "0.7.0"
 lofty = "0.18.2"
+lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }
 md5 = "0.7.0"
 mimalloc = "0.1.39"
 mime_guess = "2.0.4"

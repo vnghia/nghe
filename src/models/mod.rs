@@ -2,6 +2,7 @@ pub mod albums;
 pub mod artists;
 pub mod configs;
 pub mod genres;
+pub mod lyrics;
 pub mod music_folders;
 pub mod scans;
 pub mod song_cover_arts;

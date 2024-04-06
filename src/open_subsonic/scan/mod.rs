@@ -1,6 +1,7 @@
 mod album;
 mod artist;
 mod genre;
+mod lyric;
 mod run_scan;
 mod song;
 mod start_scan;

@@ -98,6 +98,7 @@ pub async fn process_path(
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
         FileType::from_path(&song_absolute_path).expect("this should not happen"),
+        tokio::fs::read_to_string(song_absolute_path.with_extension("lrc")).await.ok().as_deref(),
         parsing_config,
     ) else {
         return Ok(false);
