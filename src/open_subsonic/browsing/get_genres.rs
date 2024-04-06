@@ -17,13 +17,8 @@ use crate::{Database, DatabasePool};
 pub struct GetGenresParams {}
 
 #[derive(Serialize)]
-pub struct Genre {
-    genre: Vec<GenreId3>,
-}
-
-#[derive(Serialize)]
 pub struct Genres {
-    genres: Genre,
+    genre: Vec<GenreId3>,
 }
 
 #[wrap_subsonic_response]
@@ -45,10 +40,7 @@ pub async fn get_genres_handler(
     State(database): State<Database>,
     req: GetGenresRequest,
 ) -> GenresJsonResponse {
-    GenresBody {
-        genres: Genres { genres: Genre { genre: get_genres(&database.pool, req.user_id).await? } },
-    }
-    .into()
+    GenresBody { genres: Genres { genre: get_genres(&database.pool, req.user_id).await? } }.into()
 }
 
 #[cfg(test)]
