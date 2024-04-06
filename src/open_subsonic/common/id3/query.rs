@@ -1,6 +1,4 @@
-use diesel::dsl::{
-    count_distinct, AsSelect, Eq, GroupBy, Gt, Having, InnerJoin, InnerJoinOn, LeftJoin, Or, Select,
-};
+use diesel::dsl::{AsSelect, Eq, GroupBy, InnerJoin, InnerJoinOn, LeftJoin, Or, Select};
 use diesel::{BoolExpressionMethods, ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 
 use super::db::*;
@@ -8,22 +6,13 @@ use crate::models::*;
 use crate::DatabaseType;
 
 pub type GetBasicArtistId3Db = Select<
-    Having<
-        GroupBy<
-            InnerJoinOn<
-                LeftJoin<
-                    LeftJoin<artists::table, songs_album_artists::table>,
-                    songs_artists::table,
-                >,
-                songs::table,
-                Or<
-                    Eq<songs::id, songs_album_artists::song_id>,
-                    Eq<songs::id, songs_artists::song_id>,
-                >,
-            >,
-            artists::id,
+    GroupBy<
+        InnerJoinOn<
+            LeftJoin<LeftJoin<artists::table, songs_album_artists::table>, songs_artists::table>,
+            songs::table,
+            Or<Eq<songs::id, songs_album_artists::song_id>, Eq<songs::id, songs_artists::song_id>>,
         >,
-        Gt<count_distinct<songs::album_id>, i64>,
+        artists::id,
     >,
     AsSelect<BasicArtistId3Db, DatabaseType>,
 >;
@@ -36,10 +25,7 @@ pub type GetBasicAlbumId3Db = Select<
 >;
 
 pub type GetAlbumId3Db = Select<
-    Having<
-        LeftJoin<InnerJoin<GetBasicAlbumId3Db, songs_album_artists::table>, GetBasicGenreId3Db>,
-        Gt<count_distinct<songs::id>, i64>,
-    >,
+    LeftJoin<InnerJoin<GetBasicAlbumId3Db, songs_album_artists::table>, GetBasicGenreId3Db>,
     AsSelect<AlbumId3Db, DatabaseType>,
 >;
 
@@ -68,7 +54,6 @@ pub fn get_basic_artist_id3_db() -> GetBasicArtistId3Db {
             songs::id.eq(songs_album_artists::song_id).or(songs::id.eq(songs_artists::song_id)),
         ))
         .group_by(artists::id)
-        .having(count_distinct(songs::album_id).gt(0))
         .select(BasicArtistId3Db::as_select())
 }
 
@@ -84,7 +69,6 @@ pub fn get_album_id3_db() -> GetAlbumId3Db {
     get_basic_album_id3_db()
         .inner_join(songs_album_artists::table)
         .left_join(get_basic_genre_id3_db())
-        .having(count_distinct(songs::id).gt(0))
         .select(AlbumId3Db::as_select())
 }
 
