@@ -12,6 +12,7 @@ generate_date_db!(songs);
 #[derive(Insertable, AsChangeset)]
 #[diesel(table_name = songs)]
 #[diesel(treat_none_as_null = true)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SongUpdateInformationDB<'a> {
     // Song tag
     pub title: Cow<'a, str>,
@@ -45,6 +46,7 @@ pub struct SongUpdateInformationDB<'a> {
 
 #[derive(Insertable)]
 #[diesel(table_name = songs)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct SongFullInformationDB<'a> {
     #[diesel(embed)]
     pub update_information: SongUpdateInformationDB<'a>,
