@@ -128,9 +128,7 @@ pub struct GenresId3Db {
 #[diesel(table_name = lyrics)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct LyricId3Db {
-  pub description: String,
   pub language: String,
-  pub external: bool,
   pub line_values: Vec<Option<String>>,
   pub line_starts: Option<Vec<Option<i32>>>,
 }

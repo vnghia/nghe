@@ -1,5 +1,6 @@
 mod download;
 mod get_cover_art;
+mod get_lyrics_by_song_id;
 mod stream;
 mod utils;
 
@@ -19,6 +20,11 @@ pub fn router(
         .route("/rest/stream.view", get(stream::stream_handler))
         .route("/rest/getCoverArt", get(get_cover_art::get_cover_art_handler))
         .route("/rest/getCoverArt.view", get(get_cover_art::get_cover_art_handler))
+        .route("/rest/getLyricsBySongId", get(get_lyrics_by_song_id::get_lyrics_by_song_id_handler))
+        .route(
+            "/rest/getLyricsBySongId.view",
+            get(get_lyrics_by_song_id::get_lyrics_by_song_id_handler),
+        )
         .layer(Extension(transcoding_config))
         .layer(Extension(art_config))
 }
