@@ -19,7 +19,7 @@ use super::{ScanMode, ScanStatistic};
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
 use crate::utils::fs::files::{scan_media_files, ScannedMediaFile};
-use crate::utils::song::SongInformation;
+use crate::utils::song::{SongInformation, SongLyric};
 use crate::DatabasePool;
 
 #[instrument(
@@ -78,6 +78,14 @@ pub async fn process_path(
                     if scan_mode > ScanMode::Full {
                         Some(song_id_db)
                     } else {
+                        if let Ok(lrc_content) =
+                            tokio::fs::read_to_string(song_absolute_path.with_extension("lrc"))
+                                .await
+                        {
+                            SongLyric::from_str(&lrc_content, true)?
+                                .upsert_lyric(pool, song_id_db)
+                                .await?;
+                        }
                         return Ok(true);
                     }
                 } else if scan_mode > ScanMode::Full {
@@ -177,6 +185,16 @@ pub async fn process_path(
     diesel::delete(songs_genres::table)
         .filter(songs_genres::song_id.eq(song_id))
         .filter(songs_genres::upserted_at.lt(scan_started_at))
+        .execute(&mut pool.get().await?)
+        .await?;
+
+    if let Some(ref lrc) = song_information.lrc {
+        lrc.upsert_lyric(pool, song_id).await?;
+    }
+
+    diesel::delete(lyrics::table)
+        .filter(lyrics::song_id.eq(song_id))
+        .filter(lyrics::scanned_at.lt(scan_started_at))
         .execute(&mut pool.get().await?)
         .await?;
 

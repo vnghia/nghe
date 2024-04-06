@@ -4,7 +4,11 @@ use std::ops::Deref;
 use std::str::FromStr;
 
 use anyhow::Result;
+#[cfg(test)]
+use fake::{Dummy, Fake, Faker};
 use isolang::Language;
+#[cfg(test)]
+use itertools::Itertools;
 use lofty::id3::v2::{Id3v2Version, SynchronizedText, UnsynchronizedTextFrame};
 use lrc::Lyrics;
 use uuid::Uuid;
@@ -14,19 +18,30 @@ use crate::models::*;
 use crate::OSError;
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(test, derive(Clone, Dummy, PartialEq, Eq))]
 pub enum LyricLines {
-    Unsynced(Vec<String>),
-    Synced(Vec<(u32, String)>),
+    Unsynced(#[cfg_attr(test, dummy(faker = "(Faker, 1..=5)"))] Vec<String>),
+    Synced(
+        #[cfg_attr(
+            test,
+            dummy(expr = "fake::vec![(u16, String); 1..=5].into_iter().map(|(s, v)| (s as u32 * \
+                          10, v)).sorted().collect()")
+        )]
+        Vec<(u32, String)>,
+    ),
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(Clone, Dummy))]
 pub struct SongLyric {
     pub description: String,
+    #[cfg_attr(test, dummy(expr = "Language::from_usize((0..=7915).fake()).unwrap()"))]
     pub language: Language,
     pub lines: LyricLines,
     pub external: bool,
+    #[cfg_attr(test, dummy(expr = "0"))]
     pub lyric_hash: u64,
+    #[cfg_attr(test, dummy(expr = "0"))]
     pub lyric_size: u64,
 }
 
@@ -76,12 +91,14 @@ impl SongLyric {
             .next()
     }
 
-    pub fn from_str(data: &str, external: bool, force_unsynced: bool) -> Result<Self> {
+    pub fn from_str(data: &str, external: bool) -> Result<Self> {
         let lyric_hash = xxh3_64(data.as_bytes());
         let lyric_size = data.len() as _;
 
-        if !force_unsynced && let Ok(parsed) = Lyrics::from_str(data) {
-            let description = Self::extract_synced_metadata(&parsed, "des")
+        if let Ok(parsed) = Lyrics::from_str(data)
+            && !parsed.get_timed_lines().is_empty()
+        {
+            let description = Self::extract_synced_metadata(&parsed, "desc")
                 .map_or(String::default(), String::from);
             let language = Self::extract_synced_metadata(&parsed, "lang")
                 .map_or(Ok(Language::Und), Language::from_str)?;
@@ -129,7 +146,7 @@ where
 
 impl FromIterator<String> for LyricLines {
     fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
-        Self::Unsynced(iter.into_iter().collect())
+        Self::Unsynced(iter.into_iter().filter(|s| !s.is_empty()).collect())
     }
 }
 
@@ -176,6 +193,66 @@ impl SongLyric {
 }
 
 #[cfg(test)]
+mod test {
+    use lrc::{IDTag, TimeTag};
+
+    use super::*;
+    use crate::open_subsonic::test::id3::response::LyricId3;
+
+    impl std::fmt::Display for SongLyric {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let result = match &self.lines {
+                LyricLines::Unsynced(lines) => lines.join("\n"),
+                LyricLines::Synced(lines) => {
+                    let mut lyric = Lyrics::new();
+                    lines.iter().for_each(|(s, v)| {
+                        lyric.add_timed_line(TimeTag::new(*s), v).unwrap();
+                    });
+                    lyric
+                        .metadata
+                        .insert(IDTag::from_string("lang", self.language.to_639_3()).unwrap());
+                    lyric.metadata.insert(IDTag::from_string("desc", &self.description).unwrap());
+                    lyric.to_string()
+                }
+            };
+            write!(f, "{}", result)
+        }
+    }
+
+    impl From<(LyricId3, String, bool)> for SongLyric {
+        fn from((lyric, description, external): (LyricId3, String, bool)) -> Self {
+            let lines = if lyric.synced {
+                lyric.line.into_iter().map(|l| (l.start.unwrap(), l.value)).collect()
+            } else {
+                lyric.line.into_iter().map(|l| l.value).collect()
+            };
+            Self {
+                description,
+                language: lyric.lang,
+                lines,
+                external,
+                lyric_hash: 0,
+                lyric_size: 0,
+            }
+        }
+    }
+
+    impl PartialEq for SongLyric {
+        fn eq(&self, other: &Self) -> bool {
+            match self.lines {
+                LyricLines::Unsynced(_) => self.lines == other.lines,
+                LyricLines::Synced(_) => {
+                    self.description == other.description
+                        && self.language == other.language
+                        && self.lines == other.lines
+                        && self.external == other.external
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::utils::test::asset::get_asset_dir;
@@ -187,7 +264,6 @@ mod tests {
         let lyric = SongLyric::from_str(
             &std::fs::read_to_string(sample_dir.join("synced.lrc")).unwrap(),
             true,
-            false,
         )
         .unwrap();
         assert_eq!(lyric.description, "Lyric");
@@ -205,7 +281,6 @@ mod tests {
 
         let lyric = SongLyric::from_str(
             &std::fs::read_to_string(sample_dir.join("unsynced.lrc")).unwrap(),
-            true,
             true,
         )
         .unwrap();

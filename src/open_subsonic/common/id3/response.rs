@@ -1,6 +1,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use derive_new::new;
+use isolang::Language;
 use serde::Serialize;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -103,6 +104,21 @@ pub struct GenreId3 {
     pub value: String,
     pub song_count: u32,
     pub album_count: u32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LyricLineId3 {
+    pub start: Option<u32>,
+    pub value: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LyricId3 {
+    pub lang: Language,
+    pub synced: bool,
+    pub line: Vec<LyricLineId3>,
 }
 
 impl From<String> for NameId3 {

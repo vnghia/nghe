@@ -5,7 +5,9 @@ use std::str::FromStr;
 
 use axum::extract::State;
 use diesel::dsl::{Filter, IsNotNull};
-use diesel::{ExpressionMethods, PgExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{
+    ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl, SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
@@ -144,6 +146,9 @@ impl Infra {
             .filter_map(|(d, s)| {
                 if d {
                     std::fs::remove_file(s.absolute_path()).unwrap();
+                    if s.lrc.is_some() {
+                        std::fs::remove_file(s.absolute_path().with_extension("lrc")).unwrap();
+                    }
                     None
                 } else {
                     Some(s)
@@ -181,6 +186,7 @@ impl Infra {
                 .filter_map(|(u, s)| if u { Some(s.relative_path.clone()) } else { None })
                 .collect(),
             song_tags,
+            false,
         );
         update_mask
             .iter()
@@ -227,11 +233,17 @@ impl Infra {
         let new_song_path = dst_path.as_ref().with_extension(old_song_path.extension().unwrap());
         assert!(!new_song_path.is_absolute());
 
-        std::fs::copy(
-            music_folder_path.join(old_song_path),
-            music_folder_path.join(&new_song_path),
-        )
-        .unwrap();
+        let old_abs_song_path = music_folder_path.join(old_song_path);
+        let new_abs_song_path = music_folder_path.join(&new_song_path);
+
+        std::fs::copy(&old_abs_song_path, &new_abs_song_path).unwrap();
+        if old_song_tag.lrc.is_some() {
+            std::fs::copy(
+                old_abs_song_path.with_extension("lrc"),
+                new_abs_song_path.with_extension("lrc"),
+            )
+            .unwrap();
+        }
 
         self.song_fs_infos_vec[music_folder_index].push(SongFsInformation {
             relative_path: new_song_path.to_str().unwrap().to_owned(),
@@ -549,8 +561,19 @@ impl Infra {
             picture,
         };
 
+        let lrc = get_lyric_id3_db()
+            .filter(songs::id.eq(song_id))
+            .filter(lyrics::external)
+            .select((LyricId3Db::as_select(), lyrics::description, lyrics::external))
+            .get_result::<(LyricId3Db, String, bool)>(&mut self.pool().get().await.unwrap())
+            .await
+            .optional()
+            .unwrap()
+            .map(|(l, d, e)| (l.into_res().unwrap(), d, e).into());
+
         SongDbInformation {
             tag,
+            lrc,
             song_id,
             album_id: album.id,
             artist_ids,
@@ -632,6 +655,8 @@ impl Infra {
 
             assert_eq!(song_fs_info.file_hash, song_db_info.file_hash);
             assert_eq!(song_fs_info.file_size, song_db_info.file_size);
+
+            assert_eq!(song_fs_info.lrc, song_db_info.lrc);
 
             let song_fs_paths = song_fs_infos
                 .iter()

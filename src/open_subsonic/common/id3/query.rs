@@ -46,6 +46,9 @@ pub type GetGenreId3Db = Select<
     AsSelect<GenreId3Db, DatabaseType>,
 >;
 
+pub type GetLyricId3Db =
+    Select<InnerJoin<lyrics::table, songs::table>, AsSelect<LyricId3Db, DatabaseType>>;
+
 pub fn get_basic_artist_id3_db() -> GetBasicArtistId3Db {
     artists::table
         .left_join(songs_album_artists::table)
@@ -93,4 +96,8 @@ pub fn get_genre_id3_db() -> GetGenreId3Db {
         .inner_join(songs::table)
         .group_by(genres::id)
         .select(GenreId3Db::as_select())
+}
+
+pub fn get_lyric_id3_db() -> GetLyricId3Db {
+    lyrics::table.inner_join(songs::table).select(LyricId3Db::as_select())
 }

@@ -9,11 +9,13 @@ use uuid::Uuid;
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::utils::song::test::SongTag;
+use crate::utils::song::SongLyric;
 use crate::{Database, DatabasePool};
 
 #[derive(Debug)]
 pub struct SongDbInformation {
     pub tag: SongTag,
+    pub lrc: Option<SongLyric>,
     pub song_id: Uuid,
     pub album_id: Uuid,
     pub artist_ids: Vec<Uuid>,

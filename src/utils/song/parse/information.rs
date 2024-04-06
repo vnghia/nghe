@@ -83,7 +83,7 @@ impl SongInformation {
         Ok(Self {
             tag: song_tag,
             property: song_property,
-            lrc: lrc_content.map(|s| SongLyric::from_str(s, true, false)).transpose()?,
+            lrc: lrc_content.map(|s| SongLyric::from_str(s, true)).transpose()?,
         })
     }
 

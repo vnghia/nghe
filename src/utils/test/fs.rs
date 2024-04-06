@@ -18,11 +18,12 @@ use super::asset::get_media_asset_path;
 use crate::config::{ArtConfig, ParsingConfig, TranscodingConfig};
 use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
 use crate::utils::song::test::SongTag;
-use crate::utils::song::SongInformation;
+use crate::utils::song::{SongInformation, SongLyric};
 
 #[derive(Debug, Clone)]
 pub struct SongFsInformation {
     pub tag: SongTag,
+    pub lrc: Option<SongLyric>,
     pub music_folder_path: PathBuf,
     pub relative_path: String,
     pub file_hash: u64,
@@ -107,6 +108,7 @@ impl TemporaryFs {
         music_folder_path: PM,
         relative_path: S,
         song_tag: SongTag,
+        generate_lrc: bool,
     ) -> SongFsInformation {
         let tag = song_tag.clone();
         let music_folder_path = self.get_absolute_path(music_folder_path);
@@ -140,8 +142,26 @@ impl TemporaryFs {
         let file_hash = xxh3_64(&file_data);
         let file_size = file_data.len() as _;
 
+        let lrc_path = path.with_extension("lrc");
+        let lrc = if !generate_lrc {
+            if lrc_path.exists() {
+                Some(
+                    SongLyric::from_str(&std::fs::read_to_string(lrc_path).unwrap(), true).unwrap(),
+                )
+            } else {
+                None
+            }
+        } else if Faker.fake() {
+            let lrc = SongLyric { external: true, ..Faker.fake() };
+            std::fs::write(lrc_path, lrc.to_string().as_bytes()).unwrap();
+            Some(lrc)
+        } else {
+            None
+        };
+
         SongFsInformation {
             tag,
+            lrc,
             music_folder_path,
             relative_path: relative_path.to_string(),
             file_hash,
@@ -154,11 +174,14 @@ impl TemporaryFs {
         music_folder_path: PM,
         paths: Vec<String>,
         song_tags: Vec<SongTag>,
+        generate_lrc: bool,
     ) -> Vec<SongFsInformation> {
         paths
             .into_iter()
             .zip(song_tags)
-            .map(|(path, song_tag)| self.create_media_file(&music_folder_path, path, song_tag))
+            .map(|(path, song_tag)| {
+                self.create_media_file(&music_folder_path, path, song_tag, generate_lrc)
+            })
             .collect()
     }
 
@@ -192,6 +215,7 @@ impl TemporaryFs {
             music_folder_path,
             Self::create_random_relative_paths(n_song, 3, extensions),
             song_tags,
+            true,
         )
     }
 
@@ -218,6 +242,7 @@ fn test_roundtrip_media_file() {
             fs.root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
+            false,
         );
         let read_song_tag = SongInformation::read_from(
             &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
@@ -248,6 +273,7 @@ fn test_roundtrip_media_file_none_value() {
             fs.root_path(),
             concat_string!("test.", to_extension(&file_type)),
             song_tag.clone(),
+            false,
         );
         let read_song_tag = SongInformation::read_from(
             &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
