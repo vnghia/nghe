@@ -12,8 +12,7 @@ lyrics (
     ),
     lyric_hash bigint not null,
     lyric_size bigint not null,
-    -- Lyric from path will have "lrc" lyric source
-    lyric_source text not null,
+    external bool not null,
     updated_at timestamptz not null default now(),
     scanned_at timestamptz not null default now(),
     check (line_starts is null or array_length(line_values, 1) = array_length(line_starts, 1)),
@@ -21,7 +20,7 @@ lyrics (
         id
     ) on delete cascade,
     constraint lyrics_pkey primary key (
-        song_id, description, language, lyric_source
+        song_id, description, language, external
     )
 );
 

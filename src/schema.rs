@@ -50,7 +50,7 @@ diesel::table! {
 }
 
 diesel::table! {
-    lyrics (song_id, description, language, lyric_source) {
+    lyrics (song_id, description, language, external) {
         song_id -> Uuid,
         description -> Text,
         language -> Text,
@@ -58,7 +58,7 @@ diesel::table! {
         line_starts -> Nullable<Array<Nullable<Int4>>>,
         lyric_hash -> Int8,
         lyric_size -> Int8,
-        lyric_source -> Text,
+        external -> Bool,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
     }

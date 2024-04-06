@@ -7,7 +7,7 @@ mod tag;
 mod vorbis_comments;
 
 pub use information::SongInformation;
-pub use lyric::{LyricLine, SongLyric};
+pub use lyric::{LyricLines, SongLyric};
 pub use tag::{MediaDateMbz, SongDate};
 
 #[cfg(test)]

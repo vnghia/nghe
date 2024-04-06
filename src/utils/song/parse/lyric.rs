@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::io::BufReader;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -14,17 +15,17 @@ use crate::OSError;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-pub struct LyricLine {
-    pub start: Option<u32>,
-    pub value: String,
+pub enum LyricLines {
+    Unsynced(Vec<String>),
+    Synced(Vec<(u32, String)>),
 }
 
 #[derive(Debug)]
 pub struct SongLyric {
     pub description: String,
     pub language: Language,
-    pub lines: Vec<LyricLine>,
-    pub lyric_source: String,
+    pub lines: LyricLines,
+    pub external: bool,
     pub lyric_hash: u64,
     pub lyric_size: u64,
 }
@@ -35,14 +36,14 @@ impl SongLyric {
         let lyric_size = data.len() as _;
 
         let parsed = SynchronizedText::parse(data)?;
-        let lines = parsed.content.into_iter().map(LyricLine::from).collect();
+        let lines = parsed.content.into();
         Ok(Self {
             description: parsed.description.unwrap_or_default(),
             language: Language::from_str(
                 &parsed.language.into_iter().map(|u| u as char).collect::<String>(),
             )?,
             lines,
-            lyric_source: "SYLT".into(),
+            external: false,
             lyric_hash,
             lyric_size,
         })
@@ -54,14 +55,14 @@ impl SongLyric {
 
         let parsed = UnsynchronizedTextFrame::parse(&mut BufReader::new(data), version)?
             .ok_or_else(|| OSError::NotFound("USLT".into()))?;
-        let lines = parsed.content.lines().map(LyricLine::from).collect();
+        let lines = parsed.content.lines().collect();
         Ok(Self {
             description: parsed.description,
             language: Language::from_str(
                 &parsed.language.into_iter().map(|u| u as char).collect::<String>(),
             )?,
             lines,
-            lyric_source: "USLT".into(),
+            external: false,
             lyric_hash,
             lyric_size,
         })
@@ -75,7 +76,7 @@ impl SongLyric {
             .next()
     }
 
-    pub fn from_str(data: &str, lyric_source: String, force_unsynced: bool) -> Result<Self> {
+    pub fn from_str(data: &str, external: bool, force_unsynced: bool) -> Result<Self> {
         let lyric_hash = xxh3_64(data.as_bytes());
         let lyric_size = data.len() as _;
 
@@ -88,22 +89,16 @@ impl SongLyric {
             let lines = parsed
                 .get_timed_lines()
                 .iter()
-                .map(|(t, l)| LyricLine {
-                    start: Some(t.get_timestamp() as _),
-                    value: l.to_string(),
-                })
+                .map(|(t, l)| (t.get_timestamp() as u32, l))
                 .collect();
 
-            Ok(Self { description, language, lines, lyric_source, lyric_hash, lyric_size })
+            Ok(Self { description, language, lines, external, lyric_hash, lyric_size })
         } else {
             Ok(Self {
                 description: String::default(),
                 language: Language::Und,
-                lines: data
-                    .lines()
-                    .filter_map(|l| if l.is_empty() { None } else { Some(l.into()) })
-                    .collect(),
-                lyric_source,
+                lines: data.lines().collect(),
+                external,
                 lyric_hash,
                 lyric_size,
             })
@@ -111,19 +106,51 @@ impl SongLyric {
     }
 }
 
-impl<S, V> From<(S, V)> for LyricLine
+impl<T, S, V> From<T> for LyricLines
 where
-    S: Into<Option<u32>>,
+    S: Into<u32>,
     V: ToString,
+    T: IntoIterator<Item = (S, V)>,
 {
-    fn from(value: (S, V)) -> Self {
-        Self { start: value.0.into(), value: value.1.to_string() }
+    fn from(values: T) -> Self {
+        Self::Synced(values.into_iter().map(|(s, v)| (s.into(), v.to_string())).collect())
     }
 }
 
-impl From<&str> for LyricLine {
-    fn from(value: &str) -> Self {
-        Self { start: None, value: value.to_owned() }
+impl<S, V> FromIterator<(S, V)> for LyricLines
+where
+    S: Into<u32>,
+    V: ToString,
+{
+    fn from_iter<T: IntoIterator<Item = (S, V)>>(iter: T) -> Self {
+        Self::Synced(iter.into_iter().map(|(s, v)| (s.into(), v.to_string())).collect())
+    }
+}
+
+impl FromIterator<String> for LyricLines {
+    fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
+        Self::Unsynced(iter.into_iter().collect())
+    }
+}
+
+impl<'a> FromIterator<&'a str> for LyricLines {
+    fn from_iter<T: IntoIterator<Item = &'a str>>(iter: T) -> Self {
+        iter.into_iter().map(String::from).collect()
+    }
+}
+
+impl LyricLines {
+    fn unzip(&self) -> (Option<Vec<Option<i32>>>, Vec<Option<Cow<'_, str>>>) {
+        match self {
+            LyricLines::Unsynced(ref lines) => {
+                (None, lines.iter().map(|v| Some(v.as_str().into())).collect())
+            }
+            LyricLines::Synced(ref lines) => {
+                let (line_starts, line_values): (Vec<_>, Vec<_>) =
+                    lines.iter().map(|(s, v)| (Some(*s as _), Some(v.as_str().into()))).unzip();
+                (Some(line_starts), line_values)
+            }
+        }
     }
 }
 
@@ -133,19 +160,15 @@ impl SongLyric {
             song_id,
             description: self.description.as_str().into(),
             language: self.language.to_639_3().into(),
-            lyric_source: self.lyric_source.as_str().into(),
+            external: self.external,
         }
     }
 
     pub fn as_update(&self) -> lyrics::UpdateLyric<'_> {
-        let (line_starts, line_values): (Vec<_>, Vec<_>) = self
-            .lines
-            .iter()
-            .map(|l| (l.start.map(|i| Some(i as _)), Some(l.value.as_str())))
-            .unzip();
+        let (line_starts, line_values) = self.lines.unzip();
         lyrics::UpdateLyric {
-            line_starts: line_starts.into_iter().collect::<Option<Vec<_>>>().map(|v| v.into()),
-            line_values: line_values.into(),
+            line_starts,
+            line_values,
             lyric_hash: self.lyric_hash as _,
             lyric_size: self.lyric_size as _,
         }
@@ -163,7 +186,7 @@ mod tests {
 
         let lyric = SongLyric::from_str(
             &std::fs::read_to_string(sample_dir.join("synced.lrc")).unwrap(),
-            "lrc".into(),
+            true,
             false,
         )
         .unwrap();
@@ -172,25 +195,23 @@ mod tests {
         assert_eq!(
             lyric.lines,
             vec![
-                (1020, "Hello hi").into(),
-                (3040, "Bonjour salut").into(),
-                (5060, "おはよう こんにちは").into()
+                (1020_u32, "Hello hi"),
+                (3040_u32, "Bonjour salut"),
+                (5060_u32, "おはよう こんにちは")
             ]
+            .into_iter()
+            .collect()
         );
 
         let lyric = SongLyric::from_str(
             &std::fs::read_to_string(sample_dir.join("unsynced.lrc")).unwrap(),
-            "lrc".into(),
+            true,
             true,
         )
         .unwrap();
         assert_eq!(
             lyric.lines,
-            vec![
-                (None, "Hello hi").into(),
-                (None, "Bonjour salut").into(),
-                (None, "おはよう こんにちは").into()
-            ]
+            vec!["Hello hi", "Bonjour salut", "おはよう こんにちは"].into_iter().collect()
         );
     }
 }

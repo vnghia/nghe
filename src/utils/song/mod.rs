@@ -4,7 +4,7 @@ mod transcode;
 
 #[cfg(test)]
 pub use parse::test;
-pub use parse::{LyricLine, MediaDateMbz, SongDate, SongInformation, SongLyric};
+pub use parse::{LyricLines, MediaDateMbz, SongDate, SongInformation, SongLyric};
 #[cfg(test)]
 pub use transcode::test::transcode_to_memory;
 pub use transcode::transcode;
