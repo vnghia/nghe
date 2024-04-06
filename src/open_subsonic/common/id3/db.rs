@@ -61,6 +61,8 @@ pub struct AlbumId3Db {
     ))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
+    #[diesel(embed)]
+    pub genres: GenresId3Db,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -87,9 +89,11 @@ pub struct BasicSongId3Db {
 pub struct SongId3Db {
     #[diesel(embed)]
     pub basic: BasicSongId3Db,
-    #[diesel(select_expression = sql("array_agg(songs_artists.artist_id) artist_ids"))]
+    #[diesel(select_expression = sql("array_agg(distinct(songs_artists.artist_id)) artist_ids"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
+    #[diesel(embed)]
+    pub genres: GenresId3Db,
 }
 
 pub type BasicGenreId3Db = genres::Genre;
@@ -106,6 +110,13 @@ pub struct GenreId3Db {
     #[diesel(select_expression = count_distinct(songs::id))]
     #[diesel(select_expression_type = count_distinct<songs::id>)]
     pub song_count: i64,
+}
+
+#[derive(Debug, Queryable, Selectable)]
+pub struct GenresId3Db {
+  #[diesel(select_expression = sql("array_agg(genres.value) genre_values"))]
+  #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Nullable<sql_types::Text>>>)]
+  pub genres: Vec<Option<String>>,
 }
 
 impl BasicArtistId3Db {
@@ -162,6 +173,7 @@ impl AlbumId3Db {
             created: self.basic.created_at,
             cover_art: MediaTypedId { t: Some(MediaType::Album), id: self.basic.id },
             artists,
+            genres: self.genres.into_res(),
         })
     }
 }
@@ -219,6 +231,7 @@ impl SongId3Db {
             ),
             suffix: self.basic.format,
             artists,
+            genres: self.genres.into_res(),
         })
     }
 }
@@ -231,4 +244,10 @@ impl GenreId3Db {
             album_count: self.album_count as _,
         }
     }
+}
+
+impl GenresId3Db {
+  pub fn into_res(self) -> Vec<NameId3> {
+    self.genres.into_iter().filter_map(|g| g.map(|g| NameId3 {name: g})).collect()
+  }
 }

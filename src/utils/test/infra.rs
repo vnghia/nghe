@@ -522,7 +522,9 @@ impl Infra {
         let album_artist_no_ids = album_artist_no_ids.into_iter().sorted().collect_vec();
 
         let genres = get_basic_genre_id3_db()
+            .inner_join(songs::table)
             .filter(songs::id.eq(song_id))
+            .select(BasicGenreId3Db::as_select())
             .get_results::<BasicGenreId3Db>(&mut self.pool().get().await.unwrap())
             .await
             .unwrap();

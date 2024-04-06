@@ -55,6 +55,9 @@ pub struct AlbumId3 {
     #[new(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub artists: Vec<ArtistId3>,
+    #[new(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<NameId3>,
 }
 
 #[derive(new, Debug, Serialize)]
@@ -83,6 +86,15 @@ pub struct SongId3 {
     #[new(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub artists: Vec<ArtistId3>,
+    #[new(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub genres: Vec<NameId3>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NameId3 {
+    pub name: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -91,4 +103,10 @@ pub struct GenreId3 {
     pub value: String,
     pub song_count: u32,
     pub album_count: u32,
+}
+
+impl From<String> for NameId3 {
+    fn from(name: String) -> Self {
+        Self { name }
+    }
 }

@@ -37,7 +37,7 @@ pub type GetBasicAlbumId3Db = Select<
 
 pub type GetAlbumId3Db = Select<
     Having<
-        InnerJoin<GetBasicAlbumId3Db, songs_album_artists::table>,
+        LeftJoin<InnerJoin<GetBasicAlbumId3Db, songs_album_artists::table>, GetBasicGenreId3Db>,
         Gt<count_distinct<songs::id>, i64>,
     >,
     AsSelect<AlbumId3Db, DatabaseType>,
@@ -46,17 +46,19 @@ pub type GetAlbumId3Db = Select<
 pub type GetBasicSongId3Db = Select<songs::table, AsSelect<BasicSongId3Db, DatabaseType>>;
 
 pub type GetSongId3Db = Select<
-    GroupBy<InnerJoin<GetBasicSongId3Db, songs_artists::table>, songs::id>,
+    GroupBy<
+        LeftJoin<InnerJoin<GetBasicSongId3Db, songs_artists::table>, GetBasicGenreId3Db>,
+        songs::id,
+    >,
     AsSelect<SongId3Db, DatabaseType>,
 >;
 
-pub type GetBasicGenreId3Db = Select<
-    InnerJoin<InnerJoin<songs_genres::table, songs::table>, genres::table>,
-    AsSelect<BasicGenreId3Db, DatabaseType>,
->;
+pub type GetBasicGenreId3Db = InnerJoin<songs_genres::table, genres::table>;
 
-pub type GetGenreId3Db =
-    Select<GroupBy<GetBasicGenreId3Db, genres::id>, AsSelect<GenreId3Db, DatabaseType>>;
+pub type GetGenreId3Db = Select<
+    GroupBy<InnerJoin<GetBasicGenreId3Db, songs::table>, genres::id>,
+    AsSelect<GenreId3Db, DatabaseType>,
+>;
 
 pub fn get_basic_artist_id3_db() -> GetBasicArtistId3Db {
     artists::table
@@ -81,6 +83,7 @@ pub fn get_basic_album_id3_db() -> GetBasicAlbumId3Db {
 pub fn get_album_id3_db() -> GetAlbumId3Db {
     get_basic_album_id3_db()
         .inner_join(songs_album_artists::table)
+        .left_join(get_basic_genre_id3_db())
         .having(count_distinct(songs::id).gt(0))
         .select(AlbumId3Db::as_select())
 }
@@ -92,17 +95,18 @@ pub fn get_basic_song_id3_db() -> GetBasicSongId3Db {
 pub fn get_song_id3_db() -> GetSongId3Db {
     get_basic_song_id3_db()
         .inner_join(songs_artists::table)
+        .left_join(get_basic_genre_id3_db())
         .group_by(songs::id)
         .select(SongId3Db::as_select())
 }
 
 pub fn get_basic_genre_id3_db() -> GetBasicGenreId3Db {
-    songs_genres::table
-        .inner_join(songs::table)
-        .inner_join(genres::table)
-        .select(BasicGenreId3Db::as_select())
+    songs_genres::table.inner_join(genres::table)
 }
 
 pub fn get_genre_id3_db() -> GetGenreId3Db {
-    get_basic_genre_id3_db().group_by(genres::id).select(GenreId3Db::as_select())
+    get_basic_genre_id3_db()
+        .inner_join(songs::table)
+        .group_by(genres::id)
+        .select(GenreId3Db::as_select())
 }
