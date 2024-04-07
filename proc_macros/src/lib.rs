@@ -394,7 +394,14 @@ pub fn generate_date_db(table_name: proc_macro::TokenStream) -> proc_macro::Toke
                 let day_column = format_ident!("{}day", prefix);
 
                 quote! {
-                    #[derive(Debug, Clone, Copy, diesel::Queryable, diesel::Selectable, diesel::Insertable)]
+                    #[derive(
+                        Debug,
+                        Clone,
+                        Copy,
+                        diesel::Queryable,
+                        diesel::Selectable,
+                        diesel::Insertable
+                    )]
                     #[diesel(table_name = #table_name)]
                     #[diesel(check_for_backend(diesel::pg::Pg))]
                     #[cfg_attr(test, derive(Default, Hash, PartialEq, Eq, PartialOrd, Ord))]

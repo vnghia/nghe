@@ -119,18 +119,20 @@ pub struct GenreId3Db {
 #[diesel(table_name = genres)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct GenresId3Db {
-  #[diesel(select_expression = sql("array_agg(genres.value) genre_values"))]
-  #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Nullable<sql_types::Text>>>)]
-  pub genres: Vec<Option<String>>,
+    #[diesel(select_expression = sql("array_agg(genres.value) genre_values"))]
+    #[diesel(
+      select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Nullable<sql_types::Text>>>
+    )]
+    pub genres: Vec<Option<String>>,
 }
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = lyrics)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct LyricId3Db {
-  pub language: String,
-  pub line_values: Vec<Option<String>>,
-  pub line_starts: Option<Vec<Option<i32>>>,
+    pub language: String,
+    pub line_values: Vec<Option<String>>,
+    pub line_starts: Option<Vec<Option<i32>>>,
 }
 
 impl BasicArtistId3Db {
@@ -261,23 +263,28 @@ impl GenreId3Db {
 }
 
 impl GenresId3Db {
-  pub fn into_res(self) -> Vec<NameId3> {
-    self.genres.into_iter().filter_map(|g| g.map(|g| NameId3 {name: g})).collect()
-  }
+    pub fn into_res(self) -> Vec<NameId3> {
+        self.genres.into_iter().filter_map(|g| g.map(|g| NameId3 { name: g })).collect()
+    }
 }
 
 impl LyricId3Db {
-  pub fn into_res(self) -> Result<LyricId3> {
-      let synced = self.line_starts.is_some();
+    pub fn into_res(self) -> Result<LyricId3> {
+        let synced = self.line_starts.is_some();
 
-      let line = if let Some(line_starts) = self.line_starts {
-        line_starts.into_iter().zip(self.line_values).map(|(s, v)| {
-          LyricLineId3 {start: s.map(|s| s as _), value: v.unwrap()}
-        }).collect()
-      } else {
-        self.line_values.into_iter().map(|v| LyricLineId3 {start: None, value: v.unwrap()}).collect()
-      };
+        let line = if let Some(line_starts) = self.line_starts {
+            line_starts
+                .into_iter()
+                .zip(self.line_values)
+                .map(|(s, v)| LyricLineId3 { start: s.map(|s| s as _), value: v.unwrap() })
+                .collect()
+        } else {
+            self.line_values
+                .into_iter()
+                .map(|v| LyricLineId3 { start: None, value: v.unwrap() })
+                .collect()
+        };
 
-      Ok(LyricId3 { lang: Language::from_str(&self.language)?, synced, line })
-  }
+        Ok(LyricId3 { lang: Language::from_str(&self.language)?, synced, line })
+    }
 }
