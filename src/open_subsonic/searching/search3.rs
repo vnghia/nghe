@@ -53,7 +53,7 @@ pub struct Search3Result {
 
 #[wrap_subsonic_response]
 pub struct Search3Body {
-    search3_result: Search3Result,
+    search_result3: Search3Result,
 }
 
 async fn syncing(
@@ -117,7 +117,7 @@ pub async fn search3_handler(
     )
     .await?;
 
-    Search3Body { search3_result: search_result }.into()
+    Search3Body { search_result3: search_result }.into()
 }
 
 impl Search3Params {
