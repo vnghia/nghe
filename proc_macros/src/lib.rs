@@ -12,8 +12,8 @@ use quote::{format_ident, quote};
 use syn::parse::Parser;
 use syn::spanned::Spanned;
 use syn::{
-    parse_macro_input, parse_quote, parse_str, Error, Expr, ExprPath, Field, Fields, Item,
-    ItemStruct,
+    parse_macro_input, parse_quote, parse_str, Error, Expr, ExprCall, ExprPath, Field, Fields,
+    Item, ItemStruct,
 };
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
@@ -292,6 +292,52 @@ pub fn add_validate(
     }
 }
 
+fn modify_head_call_expr<F>(expr: &mut Expr, new_head_call: F) -> Result<(), Error>
+where
+    F: Fn(&ExprCall) -> Expr,
+{
+    let mut current_expr = expr;
+    loop {
+        match current_expr {
+            Expr::MethodCall(ref mut expr) => {
+                let receiver_expr = expr.receiver.deref();
+                if let Expr::Call(head_expr) = receiver_expr {
+                    expr.receiver = Box::new(new_head_call(head_expr));
+                    break;
+                } else {
+                    current_expr = expr.receiver.deref_mut();
+                }
+            }
+            Expr::Await(ref mut expr) => {
+                let base_expr = expr.base.deref();
+                if let Expr::Call(head_expr) = base_expr {
+                    expr.base = Box::new(new_head_call(head_expr));
+                    break;
+                } else {
+                    current_expr = expr.base.deref_mut();
+                }
+            }
+            Expr::Try(ref mut expr) => {
+                let expr_expr = expr.expr.deref();
+                if let Expr::Call(head_expr) = expr_expr {
+                    expr.expr = Box::new(new_head_call(head_expr));
+                    break;
+                } else {
+                    current_expr = expr.expr.deref_mut();
+                }
+            }
+            expr => {
+                do yeet Error::new(
+                    expr.span(),
+                    "item in expression should be a function call, await or try",
+                )
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[proc_macro_attribute]
 pub fn add_permission_filter(
     _: proc_macro::TokenStream,
@@ -309,51 +355,10 @@ pub fn add_permission_filter(
             .into_iter()
             .map(|f| {
                 let mut expr = expr.clone();
-                let mut current_expr = &mut expr;
-                loop {
-                    match current_expr {
-                        Expr::MethodCall(ref mut expr) => {
-                            let receiver_expr = expr.receiver.deref();
-                            if let Expr::Call(head_expr) = receiver_expr {
-                                expr.receiver = Box::new(Expr::MethodCall(
-                                    parse_quote! {#head_expr.filter(#f)},
-                                ));
-                                break;
-                            } else {
-                                current_expr = expr.receiver.deref_mut();
-                            }
-                        }
-                        Expr::Await(ref mut expr) => {
-                            let base_expr = expr.base.deref();
-                            if let Expr::Call(head_expr) = base_expr {
-                                expr.base = Box::new(Expr::MethodCall(
-                                    parse_quote! {#head_expr.filter(#f)},
-                                ));
-                                break;
-                            } else {
-                                current_expr = expr.base.deref_mut();
-                            }
-                        }
-                        Expr::Try(ref mut expr) => {
-                            let expr_expr = expr.expr.deref();
-                            if let Expr::Call(head_expr) = expr_expr {
-                                expr.expr = Box::new(Expr::MethodCall(
-                                    parse_quote! {#head_expr.filter(#f)},
-                                ));
-                                break;
-                            } else {
-                                current_expr = expr.expr.deref_mut();
-                            }
-                        }
-                        expr => {
-                            return Err(Error::new(
-                                expr.span(),
-                                "item in expression should be a function call, await or try",
-                            ));
-                        }
-                    }
-                }
-                Ok(expr)
+                modify_head_call_expr(&mut expr, |head_expr| {
+                    Expr::MethodCall(parse_quote! {#head_expr.filter(#f)})
+                })?;
+                Ok::<_, Error>(expr)
             })
             .collect::<Result<Vec<_>, _>>()?;
 
