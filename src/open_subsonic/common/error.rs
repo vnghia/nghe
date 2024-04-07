@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use nghe_proc_macros::wrap_subsonic_response;
@@ -55,16 +56,18 @@ fn to_error_response(code: u8, err: &anyhow::Error) -> ErrorJsonResponse {
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
-        let code = match self.0.root_cause().downcast_ref::<OSError>() {
+        let (status_code, error_code) = match self.0.root_cause().downcast_ref::<OSError>() {
             Some(err) => match err {
-                OSError::NotFound(_) | OSError::IOError(_) => 70,
-                OSError::BadRequest(_) | OSError::InvalidParameter(_) => 10,
-                OSError::Unauthorized => 40,
-                OSError::Forbidden(_) => 50,
+                OSError::NotFound(_) | OSError::IOError(_) => (StatusCode::NOT_FOUND, 70),
+                OSError::BadRequest(_) | OSError::InvalidParameter(_) => {
+                    (StatusCode::BAD_REQUEST, 10)
+                }
+                OSError::Unauthorized => (StatusCode::UNAUTHORIZED, 40),
+                OSError::Forbidden(_) => (StatusCode::FORBIDDEN, 50),
             },
-            None => 0,
+            None => (StatusCode::INTERNAL_SERVER_ERROR, 0),
         };
-        to_error_response(code, &self.0).into_response()
+        (status_code, to_error_response(error_code, &self.0)).into_response()
     }
 }
 
