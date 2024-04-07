@@ -1,5 +1,5 @@
 [workspace]
-members = ["proc_macros"]
+members = ["frontend", "proc_macros"]
 
 [workspace.package]
 version = "0.1.0"
