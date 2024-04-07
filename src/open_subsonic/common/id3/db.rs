@@ -119,7 +119,7 @@ pub struct GenreId3Db {
 #[diesel(table_name = genres)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct GenresId3Db {
-    #[diesel(select_expression = sql("array_agg(genres.value) genre_values"))]
+    #[diesel(select_expression = sql("array_agg(distinct(genres.value)) genre_values"))]
     #[diesel(
       select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Nullable<sql_types::Text>>>
     )]
