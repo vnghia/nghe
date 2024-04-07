@@ -8,7 +8,7 @@ use std::sync::OnceLock;
 use concat_string::concat_string;
 use convert_case::{Case, Casing};
 use proc_macro2::Span;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use syn::parse::Parser;
 use syn::spanned::Spanned;
 use syn::{
@@ -372,6 +372,30 @@ pub fn add_permission_filter(
             }
         }
         .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn add_count_offset(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match try {
+        let prefix =
+            if args.is_empty() { args.to_string() } else { concat_string!(args.to_string(), "_") };
+        let count = format_ident!("{}count", &prefix);
+        let offset = format_ident!("{}offset", &prefix);
+
+        let mut expr = syn::parse::<Expr>(input).unwrap();
+        modify_head_call_expr(&mut expr, |head_expr| {
+            Expr::MethodCall(
+                parse_quote! {#head_expr.limit(#count.unwrap_or(20)).offset(#offset.unwrap_or(0))},
+            )
+        })?;
+        expr.into_token_stream().into()
     } {
         Ok(r) => r,
         Err::<_, Error>(e) => e.into_compile_error().into(),

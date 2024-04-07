@@ -3,7 +3,9 @@ use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
-use nghe_proc_macros::{add_permission_filter, add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_count_offset, add_permission_filter, add_validate, wrap_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -28,13 +30,15 @@ pub struct Search3Params {
     music_folder_ids: Option<Vec<Uuid>>,
 }
 
+#[derive(Debug)]
+#[cfg_attr(test, derive(Default))]
 struct SearchOffsetCount {
-    artist_count: i64,
-    artist_offset: i64,
-    album_count: i64,
-    album_offset: i64,
-    song_count: i64,
-    song_offset: i64,
+    artist_count: Option<i64>,
+    artist_offset: Option<i64>,
+    album_count: Option<i64>,
+    album_offset: Option<i64>,
+    song_count: Option<i64>,
+    song_offset: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -66,26 +70,23 @@ async fn syncing(
     }: SearchOffsetCount,
 ) -> Result<Search3Result> {
     let artists = #[add_permission_filter]
+    #[add_count_offset(artist)]
     get_basic_artist_id3_db()
         .order(artists::name.asc())
-        .limit(artist_count)
-        .offset(artist_offset)
         .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
         .await?;
 
     let albums = #[add_permission_filter]
+    #[add_count_offset(album)]
     get_album_id3_db()
         .order(albums::name.asc())
-        .limit(album_count)
-        .offset(album_offset)
         .get_results::<AlbumId3Db>(&mut pool.get().await?)
         .await?;
 
     let songs = #[add_permission_filter]
+    #[add_count_offset(song)]
     get_song_id3_db()
         .order(songs::title.asc())
-        .limit(song_count)
-        .offset(song_offset)
         .get_results::<SongId3Db>(&mut pool.get().await?)
         .await?;
 
@@ -108,33 +109,26 @@ pub async fn search3_handler(
 ) -> Search3JsonResponse {
     check_permission(&database.pool, req.user_id, &req.params.music_folder_ids).await?;
 
-    let search_offset_count = req.params.to_offset_count();
-
-    let search_result =
-        syncing(&database.pool, req.user_id, &req.params.music_folder_ids, search_offset_count)
-            .await?;
+    let search_result = syncing(
+        &database.pool,
+        req.user_id,
+        &req.params.music_folder_ids,
+        req.params.as_offset_count(),
+    )
+    .await?;
 
     Search3Body { search_result_3: search_result }.into()
 }
 
 impl Search3Params {
-    fn to_offset_count(&self) -> SearchOffsetCount {
-        let Self {
-            artist_count,
-            artist_offset,
-            album_count,
-            album_offset,
-            song_count,
-            song_offset,
-            ..
-        } = self;
+    fn as_offset_count(&self) -> SearchOffsetCount {
         SearchOffsetCount {
-            artist_count: artist_count.unwrap_or(20),
-            artist_offset: artist_offset.unwrap_or(0),
-            album_count: album_count.unwrap_or(20),
-            album_offset: album_offset.unwrap_or(0),
-            song_count: song_count.unwrap_or(20),
-            song_offset: song_offset.unwrap_or(0),
+            artist_count: self.artist_count,
+            artist_offset: self.artist_offset,
+            album_count: self.album_count,
+            album_offset: self.album_offset,
+            song_count: self.song_count,
+            song_offset: self.song_offset,
         }
     }
 }
@@ -149,8 +143,6 @@ mod tests {
         let n_song = 10;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra.add_n_song(0, n_song).scan(.., None).await;
-        syncing(infra.pool(), infra.user_id(0), &None, Search3Params::default().to_offset_count())
-            .await
-            .unwrap();
+        syncing(infra.pool(), infra.user_id(0), &None, Default::default()).await.unwrap();
     }
 }
