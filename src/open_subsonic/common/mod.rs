@@ -4,4 +4,5 @@ pub mod id;
 pub mod id3;
 pub mod request;
 pub mod response;
+pub mod sql;
 pub mod stream;
