@@ -328,8 +328,18 @@ pub async fn run_scan(
         .execute(&mut pool.get().await?)
         .await?;
 
+    let genres_no_song = diesel::alias!(genres as genres_no_song);
     let deleted_genre_count = diesel::delete(genres::table)
-        .filter(genres::upserted_at.lt(scan_started_at))
+        .filter(
+            genres::id.eq_any(
+                genres_no_song
+                    .filter(not(exists(
+                        songs_genres::table
+                            .filter(songs_genres::genre_id.eq(genres_no_song.field(genres::id))),
+                    )))
+                    .select(genres_no_song.field(genres::id)),
+            ),
+        )
         .execute(&mut pool.get().await?)
         .await?;
 
@@ -730,5 +740,43 @@ mod tests {
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
+    }
+
+    #[tokio::test]
+    async fn test_keep_genre() {
+        let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag { genres: vec!["genre".into()], ..Faker.fake() })
+                    .collect(),
+            )
+            .scan(.., None)
+            .await;
+
+        let ScanStatistic { deleted_genre_count, .. } =
+            infra.delete_n_song(0, 5).scan(.., None).await;
+        assert_eq!(deleted_genre_count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_delete_genre() {
+        let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag { genres: vec!["genre".into()], ..Faker.fake() })
+                    .collect(),
+            )
+            .scan(.., None)
+            .await;
+
+        let ScanStatistic { deleted_genre_count, .. } =
+            infra.delete_n_song(0, n_song).scan(.., None).await;
+        assert_eq!(deleted_genre_count, 1);
     }
 }
