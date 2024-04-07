@@ -14,6 +14,7 @@ use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
 use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::common::sql;
+use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool, OSError};
 
 #[derive(Debug, Deserialize)]
@@ -148,6 +149,8 @@ pub async fn get_album_list2_handler(
     State(database): State<Database>,
     req: GetAlbumList2Request,
 ) -> GetAlbumList2JsonResponse {
+    check_permission(&database.pool, req.user_id, &req.params.music_folder_ids).await?;
+
     GetAlbumList2Body {
         album_list2: AlbumList2 {
             album: get_album_list2(&database.pool, req.user_id, req.params).await?,
