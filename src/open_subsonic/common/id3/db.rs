@@ -194,25 +194,6 @@ impl AlbumId3Db {
     }
 }
 
-impl BasicSongId3Db {
-    pub fn into_res(self) -> SongId3 {
-        SongId3::new(
-            self.id,
-            self.title,
-            self.duration as _,
-            self.created_at,
-            self.file_size as _,
-            self.format,
-            self.bitrate as _,
-            self.album_id,
-            self.year.map(|v| v as _),
-            self.track_number.map(|v| v as _),
-            self.disc_number.map(|v| v as _),
-            self.cover_art_id.map(|v| MediaTypedId { t: Some(MediaType::Song), id: v }),
-        )
-    }
-}
-
 impl SongId3Db {
     pub async fn into_res(self, pool: &DatabasePool) -> Result<SongId3> {
         let artists = artists::table
