@@ -10,6 +10,7 @@ use nghe::open_subsonic::{
     system, user,
 };
 use nghe::Database;
+use nghe_types::open_subsonic::scan::start_scan::ScanMode;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
@@ -51,7 +52,7 @@ async fn main() {
     // scan song
     scan::start_scan(
         &database.pool,
-        scan::ScanMode::Full,
+        ScanMode::Full,
         &upserted_music_folders,
         &config.artist_index,
         &config.parsing,

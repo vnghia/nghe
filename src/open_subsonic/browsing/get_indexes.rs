@@ -1,58 +1,12 @@
 use axum::extract::State;
 use itertools::Itertools;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde::Serialize;
-use uuid::Uuid;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
+use nghe_types::open_subsonic::common::id::{MediaType, MediaTypedId};
 
-use super::super::common::id::{MediaType, MediaTypedId};
 use super::get_artists::get_artists;
 use crate::Database;
 
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetIndexesParams {
-    #[serde(rename = "musicFolderId")]
-    music_folder_ids: Option<Vec<Uuid>>,
-}
 add_common_validate!(GetIndexesParams);
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChildItem {
-    pub id: MediaTypedId,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent: Option<MediaTypedId>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_dir: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cover_art: Option<MediaTypedId>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Index {
-    pub name: String,
-    #[serde(rename = "artist")]
-    pub children: Vec<ChildItem>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Indexes {
-    ignored_articles: String,
-    index: Vec<Index>,
-}
-
-#[add_subsonic_response]
-pub struct GetIndexesBody {
-    indexes: Indexes,
-}
 add_axum_response!(GetIndexesBody);
 
 pub async fn get_indexed_handler(
@@ -82,8 +36,10 @@ pub async fn get_indexed_handler(
                 .collect(),
         })
         .collect();
-    GetIndexesBody {
-        indexes: Indexes { ignored_articles: indexed_artists.ignored_articles, index },
-    }
-    .into()
+    Ok(axum::Json(
+        GetIndexesBody {
+            indexes: Indexes { ignored_articles: indexed_artists.ignored_articles, index },
+        }
+        .into(),
+    ))
 }

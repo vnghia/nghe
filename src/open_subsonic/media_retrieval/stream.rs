@@ -4,9 +4,7 @@ use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
 use concat_string::concat_string;
-use nghe_proc_macros::{add_common_convert, add_common_validate};
-use serde::Deserialize;
-use strum::AsRefStr;
+use nghe_proc_macros::add_common_validate;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -18,28 +16,6 @@ use crate::utils::fs::path::hash_size_to_path;
 use crate::utils::song::transcode;
 use crate::{Database, DatabasePool, ServerError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AsRefStr, Deserialize)]
-#[strum(serialize_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
-#[cfg_attr(test, derive(strum::EnumIter))]
-pub enum Format {
-    Raw,
-    Aac,
-    Flac,
-    Mp3,
-    Opus,
-    Wav,
-    Wma,
-}
-
-#[add_common_convert]
-#[derive(Debug)]
-pub struct StreamParams {
-    id: Uuid,
-    max_bit_rate: Option<u32>,
-    format: Option<Format>,
-    time_offset: Option<u32>,
-}
 add_common_validate!(StreamParams, stream);
 
 #[instrument(skip(output_path, buffer_size))]

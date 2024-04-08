@@ -8,7 +8,7 @@ mod start_scan;
 
 use axum::routing::get;
 use axum::{Extension, Router};
-pub use start_scan::{start_scan, ScanMode, ScanStatistic};
+pub use start_scan::{start_scan, ScanStatistic};
 
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 

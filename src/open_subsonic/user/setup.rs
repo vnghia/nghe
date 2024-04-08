@@ -2,27 +2,14 @@ use axum::extract::State;
 use axum::Form;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_axum_response, add_subsonic_response};
-use serde::Deserialize;
-use serde_with::serde_as;
+use nghe_proc_macros::add_axum_response;
+use nghe_types::open_subsonic::user::create::CreateUserParams;
+use nghe_types::open_subsonic::user::Role;
 
-use super::create::{create_user, CreateUserParams};
+use super::create::create_user;
 use crate::models::*;
 use crate::{Database, OSError};
 
-#[serde_as]
-#[derive(Debug, Deserialize)]
-#[cfg_attr(test, derive(fake::Dummy))]
-pub struct SetupParams {
-    pub username: String,
-    #[serde_as(as = "serde_with::Bytes")]
-    pub password: Vec<u8>,
-    pub email: String,
-}
-
-#[add_subsonic_response]
-#[derive(Debug)]
-pub struct SetupBody {}
 add_axum_response!(SetupBody);
 
 pub async fn setup_handler(
@@ -38,7 +25,7 @@ pub async fn setup_handler(
                 username: params.username,
                 password: params.password,
                 email: params.email,
-                role: users::Role {
+                role: Role {
                     admin_role: true,
                     stream_role: true,
                     download_role: true,
@@ -47,7 +34,7 @@ pub async fn setup_handler(
             },
         )
         .await?;
-        SetupBody {}.into()
+        Ok(axum::Json(SetupBody {}.into()))
     }
 }
 

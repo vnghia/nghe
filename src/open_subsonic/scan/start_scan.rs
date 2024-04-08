@@ -5,10 +5,7 @@ use axum::extract::State;
 use axum::Extension;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde::Deserialize;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
 use time::OffsetDateTime;
 
 use super::artist::build_artist_indices;
@@ -17,22 +14,7 @@ use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
 use crate::{Database, DatabasePool};
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-#[serde(rename_all = "camelCase")]
-pub enum ScanMode {
-    Full,
-    Force,
-}
-
-#[add_common_convert]
-#[derive(Debug)]
-pub struct StartScanParams {
-    scan_mode: ScanMode,
-}
 add_common_validate!(StartScanParams, admin);
-
-#[add_subsonic_response]
-pub struct StartScanBody {}
 add_axum_response!(StartScanBody);
 
 #[derive(Debug)]
@@ -126,7 +108,7 @@ pub async fn start_scan_handler(
         )
         .await
     });
-    StartScanBody {}.into()
+    Ok(axum::Json(StartScanBody {}.into()))
 }
 
 #[cfg(test)]

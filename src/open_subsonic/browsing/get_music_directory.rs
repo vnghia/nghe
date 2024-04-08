@@ -1,38 +1,16 @@
 use anyhow::Result;
 use axum::extract::State;
 use itertools::Itertools;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde::Serialize;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
+use nghe_types::open_subsonic::browsing::get_indexes::ChildItem;
+use nghe_types::open_subsonic::common::id::{MediaType, MediaTypedId};
 use uuid::Uuid;
 
-use super::super::common::id::{MediaType, MediaTypedId};
-use super::get_indexes::ChildItem;
 use crate::open_subsonic::browsing::get_album::get_album;
 use crate::open_subsonic::browsing::get_artist::get_artist;
 use crate::{Database, DatabasePool, OSError};
 
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetMusicDirectoryParams {
-    id: MediaTypedId,
-}
 add_common_validate!(GetMusicDirectoryParams);
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MusicDirectory {
-    id: MediaTypedId,
-    name: String,
-    #[serde(rename = "child")]
-    children: Vec<ChildItem>,
-}
-
-#[add_subsonic_response]
-pub struct GetMusicDirectoryBody {
-    directory: MusicDirectory,
-}
 add_axum_response!(GetMusicDirectoryBody);
 
 async fn get_artist_directory(
@@ -85,16 +63,18 @@ pub async fn get_music_directory_handler(
     State(database): State<Database>,
     req: GetMusicDirectoryRequest,
 ) -> GetMusicDirectoryJsonResponse {
-    GetMusicDirectoryBody {
-        directory: match req.params.id.t {
-            Some(MediaType::Aritst) => {
-                get_artist_directory(&database.pool, req.user_id, req.params.id).await?
-            }
-            Some(MediaType::Album) => {
-                get_album_directory(&database.pool, req.user_id, req.params.id).await?
-            }
-            _ => Err(anyhow::anyhow!(OSError::NotFound("Music directory".into())))?,
-        },
-    }
-    .into()
+    Ok(axum::Json(
+        GetMusicDirectoryBody {
+            directory: match req.params.id.t {
+                Some(MediaType::Aritst) => {
+                    get_artist_directory(&database.pool, req.user_id, req.params.id).await?
+                }
+                Some(MediaType::Album) => {
+                    get_album_directory(&database.pool, req.user_id, req.params.id).await?
+                }
+                _ => Err(anyhow::anyhow!(OSError::NotFound("Music directory".into())))?,
+            },
+        }
+        .into(),
+    ))
 }

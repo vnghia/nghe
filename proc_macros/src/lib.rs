@@ -1,6 +1,8 @@
 #![deny(clippy::all)]
 #![feature(let_chains)]
 #![feature(try_blocks, yeet_expr)]
+#![feature(proc_macro_span)]
+
 use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
 use std::sync::OnceLock;
@@ -31,6 +33,30 @@ fn get_base_name(ident: &Ident, suffix: &str) -> Result<String, Error> {
         })
         .map(String::from)
 }
+fn get_caller_types_module() -> ExprPath {
+    parse_str::<ExprPath>(
+        &std::path::Path::new("nghe_types")
+            .join(
+                proc_macro::Span::call_site()
+                    .source_file()
+                    .path()
+                    .with_extension("")
+                    .strip_prefix("src")
+                    .unwrap(),
+            )
+            .components()
+            .map(|c| {
+                if let std::path::Component::Normal(c) = c {
+                    c.to_string_lossy()
+                } else {
+                    unreachable!()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("::"),
+    )
+    .unwrap()
+}
 
 #[derive(deluxe::ParseMetaItem)]
 struct AddSubsonicResponse {
@@ -58,31 +84,29 @@ pub fn add_subsonic_response(
         let subsonic_ident = format_ident!("Subsonic{}", item_ident.to_string());
 
         quote! {
-            #[derive(serde::Serialize)]
-            #[serde(rename_all = "camelCase")]
+            #[nghe_proc_macros::add_response_derive]
             #item_struct
 
-            #[derive(serde::Serialize)]
+            #[nghe_proc_macros::add_response_derive]
             pub struct #root_ident {
                 #[serde(flatten)]
-                constant: #constant_type,
+                pub constant: #constant_type,
                 #[serde(flatten)]
-                body: #item_ident,
+                pub body: #item_ident,
             }
 
-            #[derive(serde::Serialize)]
-            #[serde(rename_all = "camelCase")]
+            #[nghe_proc_macros::add_response_derive]
             pub struct #subsonic_ident {
                 #[serde(rename = "subsonic-response")]
-                root: #root_ident
+                pub root: #root_ident
             }
 
             impl From<#item_ident> for #subsonic_ident {
-                fn from(old: #item_ident) -> Self {
+                fn from(body: #item_ident) -> Self {
                     Self {
                         root: #root_ident {
                             constant: Default::default(),
-                            body: old,
+                            body,
                         }
                     }
                 }
@@ -98,6 +122,8 @@ pub fn add_subsonic_response(
 #[proc_macro]
 pub fn add_axum_response(item_ident: proc_macro::TokenStream) -> proc_macro::TokenStream {
     match try {
+        let types_path = get_caller_types_module();
+
         let item_ident = format_ident!("{}", item_ident.to_string());
         let subsonic_ident = format_ident!("Subsonic{}", item_ident.to_string());
 
@@ -109,13 +135,9 @@ pub fn add_axum_response(item_ident: proc_macro::TokenStream) -> proc_macro::Tok
         let json_response_ident = format_ident!("{}JsonResponse", base_type);
 
         quote! {
-            pub type #json_response_ident = #json_response_path<#subsonic_ident>;
+            use #types_path::*;
 
-            impl From<#item_ident> for #json_response_ident {
-                fn from(value: #item_ident) -> Self {
-                    Ok(axum::Json(value.into()))
-                }
-            }
+            pub type #json_response_ident = #json_response_path<#subsonic_ident>;
         }
         .into()
     } {
@@ -208,12 +230,10 @@ pub fn add_common_convert(
         common_params_fields.push(quote! { common, });
 
         quote! {
-            #[derive(serde::Deserialize)]
-            #[serde(rename_all = "camelCase")]
+            #[nghe_proc_macros::add_request_derive]
             #item_struct
 
-            #[derive(serde::Deserialize)]
-            #[serde(rename_all = "camelCase")]
+            #[nghe_proc_macros::add_request_derive]
             #common_item_struct
 
             impl AsRef<#common_path> for #common_item_ident {
@@ -256,6 +276,8 @@ struct AddCommonValidate {
 #[proc_macro]
 pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     match try {
+        let types_path = get_caller_types_module();
+
         let mut args = deluxe::parse2::<AddCommonValidate>(input.into())?
             .args
             .into_iter()
@@ -287,7 +309,7 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
                 quote! { #role_name: #has_role }
             })
             .collect::<Vec<_>>();
-        let role_struct_path = parse_str::<ExprPath>("crate::models::users::Role")?;
+        let role_struct_path = parse_str::<ExprPath>("nghe_types::open_subsonic::user::Role")?;
         let role_struct = quote! {
             #role_struct_path {
               #( #role_stmts ),*
@@ -305,19 +327,75 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
         let common_item_ident = format_ident!("{}WithCommon", base_type);
 
         quote! {
+            use #types_path::*;
+
             pub type #request_ident =
-                #validated_form_path<#common_item_ident, #item_ident,{ #role_struct }>;
+                #validated_form_path<#common_item_ident, #item_ident, { #role_struct }>;
 
             #[cfg(test)]
-            impl #item_ident {
-                fn validated(self, user_id: uuid::Uuid) -> #request_ident {
-                    #request_ident {
-                        params: self,
+            impl #request_ident {
+                fn validated(params: #item_ident, user_id: uuid::Uuid) -> Self {
+                    Self {
+                        params,
                         user_id,
                         phantom: std::marker::PhantomData,
                     }
                 }
             }
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn add_request_derive(
+    _: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match try {
+        let input: proc_macro2::TokenStream = input.into();
+        quote! {
+            #[cfg_attr(feature = "frontend", derive(serde::Serialize))]
+            #[cfg_attr(feature = "backend", derive(serde::Deserialize))]
+            #[cfg_attr(
+                all(test, not(any(feature = "frontend", feature = "backend"))),
+                derive(serde::Deserialize))
+            ]
+            #[cfg_attr(
+                any(test, feature = "frontend", feature = "backend"),
+                serde(rename_all = "camelCase")
+            )]
+            #input
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn add_response_derive(
+    _: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match try {
+        let input: proc_macro2::TokenStream = input.into();
+        quote! {
+            #[cfg_attr(feature = "frontend", derive(serde::Deserialize))]
+            #[cfg_attr(feature = "backend", derive(serde::Serialize))]
+            #[cfg_attr(
+              all(test, not(any(feature = "frontend", feature = "backend"))),
+              derive(serde::Serialize))
+            ]
+            #[cfg_attr(
+                any(test, feature = "frontend", feature = "backend"),
+                serde(rename_all = "camelCase")
+            )]
+            #input
         }
         .into()
     } {
@@ -484,12 +562,12 @@ pub fn generate_date_db(table_name: proc_macro::TokenStream) -> proc_macro::Toke
                         }
                     }
 
-                    impl From<#date_type> for crate::open_subsonic::DateId3 {
-                        fn from(value: #date_type) -> Self {
-                            Self {
-                                year: value.year.map(|v| v as _),
-                                month: value.month.map(|v| v as _),
-                                day: value.day.map(|v| v as _),
+                    impl Into<nghe_types::open_subsonic::DateId3> for #date_type {
+                        fn into(self) -> nghe_types::open_subsonic::DateId3 {
+                            nghe_types::open_subsonic::DateId3 {
+                                year: self.year.map(|v| v as _),
+                                month: self.month.map(|v| v as _),
+                                day: self.day.map(|v| v as _),
                             }
                         }
                     }

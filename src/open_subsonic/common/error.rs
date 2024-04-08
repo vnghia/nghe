@@ -3,8 +3,7 @@ use std::borrow::Cow;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use nghe_proc_macros::{add_axum_response, add_subsonic_response};
-use serde::Serialize;
+use nghe_proc_macros::add_axum_response;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -35,24 +34,12 @@ pub struct ServerError(pub anyhow::Error);
 pub type ServerResponse<T> = Result<T, ServerError>;
 pub type ServerJsonResponse<T> = ServerResponse<Json<T>>;
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ActualError {
-    code: u8,
-    message: String,
-}
-
-#[add_subsonic_response(success = false)]
-#[derive(Debug)]
-struct ErrorBody {
-    error: ActualError,
-}
 add_axum_response!(ErrorBody);
 
 fn to_error_response(code: u8, err: &anyhow::Error) -> ErrorJsonResponse {
     let message = err.to_string();
     tracing::error!("{:?}", err);
-    ErrorBody { error: ActualError { code, message } }.into()
+    Ok(axum::Json(ErrorBody { error: ActualError { code, message } }.into()))
 }
 
 impl IntoResponse for ServerError {

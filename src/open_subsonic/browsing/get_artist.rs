@@ -3,39 +3,16 @@ use axum::extract::State;
 use diesel::dsl::sql;
 use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde::Serialize;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
-use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool, OSError};
 
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetArtistParams {
-    id: Uuid,
-}
 add_common_validate!(GetArtistParams);
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ArtistId3WithAlbums {
-    #[serde(flatten)]
-    pub artist: ArtistId3,
-    #[serde(rename = "album")]
-    pub albums: Vec<AlbumId3>,
-}
-
-#[add_subsonic_response]
-pub struct GetArtistBody {
-    artist: ArtistId3WithAlbums,
-}
 add_axum_response!(GetArtistBody);
 
 async fn get_artist_and_album_ids(
@@ -89,7 +66,10 @@ pub async fn get_artist_handler(
     State(database): State<Database>,
     req: GetArtistRequest,
 ) -> GetArtistJsonResponse {
-    GetArtistBody { artist: get_artist(&database.pool, req.user_id, req.params.id).await? }.into()
+    Ok(axum::Json(
+        GetArtistBody { artist: get_artist(&database.pool, req.user_id, req.params.id).await? }
+            .into(),
+    ))
 }
 
 #[cfg(test)]

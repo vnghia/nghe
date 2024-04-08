@@ -13,6 +13,9 @@ use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
 use isolang::Language;
 use itertools::Itertools;
+use nghe_types::open_subsonic::common::request::CommonParams;
+use nghe_types::open_subsonic::scan::start_scan::ScanMode;
+use nghe_types::open_subsonic::user::Role;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -24,10 +27,9 @@ use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_music_folders;
 use crate::open_subsonic::permission::set_permission;
-use crate::open_subsonic::scan::{start_scan, ScanMode, ScanStatistic};
+use crate::open_subsonic::scan::{start_scan, ScanStatistic};
 use crate::open_subsonic::test::id3::db::*;
 use crate::open_subsonic::test::id3::query::*;
-use crate::open_subsonic::test::CommonParams;
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::MediaDateMbz;
@@ -48,7 +50,7 @@ impl Infra {
         Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
     }
 
-    pub async fn add_user(mut self, role: Option<users::Role>) -> Self {
+    pub async fn add_user(mut self, role: Option<Role>) -> Self {
         self.users.push(users::User::fake(role).create(self.database()).await);
         let user_index = self.users.len() - 1;
         if !self.music_folders.is_empty() {

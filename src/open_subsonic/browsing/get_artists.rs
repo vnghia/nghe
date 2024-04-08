@@ -3,50 +3,17 @@ use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_permission_filter,
-    add_subsonic_response,
-};
-use serde::Serialize;
+use nghe_proc_macros::{add_axum_response, add_common_validate, add_permission_filter};
 use uuid::Uuid;
 
 use crate::config::ArtistIndexConfig;
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
-use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool, OSError};
 
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetArtistsParams {
-    #[serde(rename = "musicFolderId")]
-    music_folder_ids: Option<Vec<Uuid>>,
-}
 add_common_validate!(GetArtistsParams);
-
-#[derive(Serialize)]
-#[cfg_attr(test, derive(Debug))]
-#[serde(rename_all = "camelCase")]
-pub struct Index {
-    pub name: String,
-    #[serde(rename = "artist")]
-    pub artists: Vec<ArtistId3>,
-}
-
-#[derive(Serialize)]
-#[cfg_attr(test, derive(Debug))]
-#[serde(rename_all = "camelCase")]
-pub struct Indexes {
-    pub ignored_articles: String,
-    pub index: Vec<Index>,
-}
-
-#[add_subsonic_response]
-pub struct GetArtistsBody {
-    pub artists: Indexes,
-}
 add_axum_response!(GetArtistsBody);
 
 async fn get_indexed_artists(
@@ -91,10 +58,12 @@ pub async fn get_artists_handler(
     State(database): State<Database>,
     req: GetArtistsRequest,
 ) -> GetArtistsJsonResponse {
-    GetArtistsBody {
-        artists: get_artists(&database.pool, req.user_id, &req.params.music_folder_ids).await?,
-    }
-    .into()
+    Ok(axum::Json(
+        GetArtistsBody {
+            artists: get_artists(&database.pool, req.user_id, &req.params.music_folder_ids).await?,
+        }
+        .into(),
+    ))
 }
 
 #[cfg(test)]

@@ -2626,7 +2626,6 @@ dependencies = [
  "concat-string",
  "constcat 0.5.0",
  "derivative",
- "derive-new",
  "diesel",
  "diesel-async",
  "diesel_migrations",
@@ -2648,6 +2647,7 @@ dependencies = [
  "mimalloc",
  "mime_guess",
  "nghe-proc_macros",
+ "nghe-types",
  "paste",
  "rand",
  "rayon",
@@ -2695,6 +2695,25 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.58",
+]
+
+[[package]]
+name = "nghe-types"
+version = "0.1.0"
+dependencies = [
+ "concat-string",
+ "derivative",
+ "derive-new",
+ "fake",
+ "isolang",
+ "nghe-proc_macros",
+ "paste",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum",
+ "time",
+ "uuid",
 ]
 
 [[package]]

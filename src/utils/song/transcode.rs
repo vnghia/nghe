@@ -357,8 +357,9 @@ pub fn transcode<PI: AsRef<Path>, PO: AsRef<Path>>(
 pub mod test {
     use std::path::PathBuf;
 
+    use nghe_types::open_subsonic::media_retrieval::stream::Format;
+
     use super::*;
-    use crate::open_subsonic::media_retrieval::test::Format;
 
     pub async fn transcode_to_memory(
         input_path: PathBuf,
@@ -393,10 +394,10 @@ pub mod test {
 
 #[cfg(test)]
 mod tests {
+    use nghe_types::open_subsonic::media_retrieval::stream::Format;
     use strum::IntoEnumIterator;
 
     use super::test::transcode_to_memory;
-    use crate::open_subsonic::media_retrieval::test::Format;
     use crate::utils::song::file_type::SONG_FILE_TYPES;
     use crate::utils::test::asset::get_media_asset_path;
 

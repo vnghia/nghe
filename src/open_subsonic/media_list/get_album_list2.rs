@@ -4,58 +4,19 @@ use diesel::{ExpressionMethods, PgSortExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_count_offset,
-    add_permission_filter, add_subsonic_response,
+    add_axum_response, add_common_validate, add_count_offset, add_permission_filter,
 };
-use serde::{Deserialize, Serialize};
+use nghe_types::open_subsonic::common::id3::response::*;
 use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
-use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::common::sql;
 use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool, OSError};
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum GetAlbumListType {
-    Random,
-    Newest,
-    Recent,
-    ByYear,
-    ByGenre,
-    AlphabeticalByName,
-}
-
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetAlbumList2Params {
-    #[serde(rename = "type")]
-    list_type: GetAlbumListType,
-    #[serde(rename = "size")]
-    count: Option<i64>,
-    offset: Option<i64>,
-    #[serde(rename = "musicFolderId")]
-    music_folder_ids: Option<Vec<Uuid>>,
-    // By Year
-    from_year: Option<i16>,
-    to_year: Option<i16>,
-    // By Genre
-    genre: Option<String>,
-}
 add_common_validate!(GetAlbumList2Params);
-
-#[derive(Debug, Serialize)]
-struct AlbumList2 {
-    album: Vec<AlbumId3>,
-}
-
-#[add_subsonic_response]
-struct GetAlbumList2Body {
-    album_list2: AlbumList2,
-}
 add_axum_response!(GetAlbumList2Body);
 
 pub async fn get_album_list2(
@@ -154,10 +115,12 @@ pub async fn get_album_list2_handler(
 ) -> GetAlbumList2JsonResponse {
     check_permission(&database.pool, req.user_id, &req.params.music_folder_ids).await?;
 
-    GetAlbumList2Body {
-        album_list2: AlbumList2 {
-            album: get_album_list2(&database.pool, req.user_id, req.params).await?,
-        },
-    }
-    .into()
+    Ok(axum::Json(
+        GetAlbumList2Body {
+            album_list2: AlbumList2 {
+                album: get_album_list2(&database.pool, req.user_id, req.params).await?,
+            },
+        }
+        .into(),
+    ))
 }

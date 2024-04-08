@@ -1,12 +1,8 @@
 use anyhow::Result;
 use axum::extract::State;
-use derivative::Derivative;
 use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde_with::serde_as;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use super::super::permission::set_permission;
@@ -14,24 +10,7 @@ use crate::models::*;
 use crate::utils::password::encrypt_password;
 use crate::Database;
 
-#[serde_as]
-#[add_common_convert]
-#[derive(Derivative)]
-#[derivative(Debug)]
-#[cfg_attr(test, derive(fake::Dummy))]
-pub struct CreateUserParams {
-    pub username: String,
-    #[derivative(Debug = "ignore")]
-    #[serde_as(as = "serde_with::Bytes")]
-    pub password: Vec<u8>,
-    pub email: String,
-    #[cfg_attr(test, dummy(expr = "users::Role::default()"))]
-    pub role: users::Role,
-}
 add_common_validate!(CreateUserParams, admin);
-
-#[add_subsonic_response]
-pub struct CreateUserBody {}
 add_axum_response!(CreateUserBody);
 
 pub async fn create_user_handler(
@@ -39,7 +18,7 @@ pub async fn create_user_handler(
     req: CreateUserRequest,
 ) -> CreateUserJsonResponse {
     create_user(&database, req.params).await?;
-    CreateUserBody {}.into()
+    Ok(axum::Json(CreateUserBody {}.into()))
 }
 
 pub async fn create_user(
@@ -54,7 +33,7 @@ pub async fn create_user(
             username: username.into(),
             password: password.into(),
             email: email.into(),
-            role,
+            role: role.into(),
         })
         .returning(users::User::as_returning())
         .get_result(&mut pool.get().await?)

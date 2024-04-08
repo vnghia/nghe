@@ -3,12 +3,11 @@ use std::marker::PhantomData;
 use anyhow::Result;
 use axum::extract::{FromRef, FromRequest, Request};
 use axum_extra::extract::Form;
-use derivative::Derivative;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use nghe_types::open_subsonic::common::request::CommonParams;
+use nghe_types::open_subsonic::user::Role;
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
-use serde_with::serde_as;
 use uuid::Uuid;
 
 use super::error::ServerError;
@@ -16,24 +15,7 @@ use crate::models::*;
 use crate::utils::password::*;
 use crate::{Database, OSError};
 
-#[serde_as]
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug)]
-#[cfg_attr(test, derive(Default, fake::Dummy))]
-pub struct CommonParams {
-    #[serde(rename = "u")]
-    pub username: String,
-    #[derivative(Debug = "ignore")]
-    #[serde(rename = "s")]
-    #[serde_as(as = "serde_with::Bytes")]
-    pub salt: Vec<u8>,
-    #[derivative(Debug = "ignore")]
-    #[serde(rename = "t")]
-    #[serde_as(as = "serde_with::hex::Hex")]
-    pub token: MD5Token,
-}
-
-async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: users::Role>(
+async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: Role>(
     Database { pool, key }: &Database,
     common_params: P,
 ) -> Result<Uuid> {
@@ -53,22 +35,21 @@ async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: users::Role>(
         &common_params.salt,
         &common_params.token,
     )?;
-    if REQUIRED_ROLE > user_role {
+    if REQUIRED_ROLE > user_role.into() {
         anyhow::bail!(OSError::Forbidden("access admin endpoint".into()));
     }
     Ok(user_id)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidatedForm<R, P, const REQUIRED_ROLE: users::Role> {
+pub struct ValidatedForm<R, P, const REQUIRED_ROLE: Role> {
     pub params: P,
     pub user_id: Uuid,
     pub phantom: PhantomData<R>,
 }
 
 #[async_trait::async_trait]
-impl<R, P, const REQUIRED_ROLE: users::Role, S> FromRequest<S>
-    for ValidatedForm<R, P, REQUIRED_ROLE>
+impl<R, P, const REQUIRED_ROLE: Role, S> FromRequest<S> for ValidatedForm<R, P, REQUIRED_ROLE>
 where
     R: DeserializeOwned + Send + Sync + AsRef<CommonParams> + Into<P>,
     Database: FromRef<S>,
@@ -102,7 +83,7 @@ mod tests {
     async fn test_validate_success() {
         let infra = Infra::new().await.add_user(None).await;
         assert!(
-            validate::<_, { users::Role::const_default() }>(
+            validate::<_, { Role::const_default() }>(
                 infra.database(),
                 TestParams {}.with_common(infra.to_common_params(0))
             )
@@ -116,7 +97,7 @@ mod tests {
         let infra = Infra::new().await.add_user(None).await;
         let wrong_username: String = Username().fake();
         assert!(matches!(
-            validate::<_, { users::Role::const_default() }>(
+            validate::<_, { Role::const_default() }>(
                 infra.database(),
                 TestParams {}.with_common(CommonParams {
                     username: wrong_username,
@@ -142,7 +123,7 @@ mod tests {
             to_password_token(&Password(16..32).fake::<String>().into_bytes(), &client_salt);
 
         assert!(matches!(
-            validate::<_, { users::Role::const_default() }>(
+            validate::<_, { Role::const_default() }>(
                 infra.database(),
                 TestParams {}.with_common(CommonParams {
                     username,
@@ -163,10 +144,10 @@ mod tests {
     async fn test_validate_admin_success() {
         let infra = Infra::new()
             .await
-            .add_user(Some(users::Role { admin_role: true, ..users::Role::const_default() }))
+            .add_user(Some(Role { admin_role: true, ..Role::const_default() }))
             .await;
         assert!(
-            validate::<_, { users::Role { admin_role: true, ..users::Role::const_default() } }>(
+            validate::<_, { Role { admin_role: true, ..Role::const_default() } }>(
                 infra.database(),
                 TestParams {}.with_common(infra.to_common_params(0))
             )
@@ -179,7 +160,7 @@ mod tests {
     async fn test_validate_no_admin() {
         let infra = Infra::new().await.add_user(None).await;
         assert!(matches!(
-            validate::<_, { users::Role { admin_role: true, ..users::Role::const_default() } }>(
+            validate::<_, { Role { admin_role: true, ..Role::const_default() } }>(
                 infra.database(),
                 TestParams {}.with_common(infra.to_common_params(0))
             )

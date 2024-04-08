@@ -195,9 +195,9 @@ impl SongLyric {
 #[cfg(test)]
 mod test {
     use lrc::{IDTag, TimeTag};
+    use nghe_types::open_subsonic::common::id3::response::LyricId3;
 
     use super::*;
-    use crate::open_subsonic::test::id3::response::LyricId3;
 
     impl std::fmt::Display for SongLyric {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

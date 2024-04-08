@@ -9,11 +9,11 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use isolang::Language;
+use nghe_types::open_subsonic::common::id::{MediaType, MediaTypedId};
+use nghe_types::open_subsonic::common::id3::response::*;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::super::id::{MediaType, MediaTypedId};
-use super::response::*;
 use crate::models::*;
 use crate::DatabasePool;
 

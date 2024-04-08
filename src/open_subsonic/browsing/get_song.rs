@@ -2,29 +2,16 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
+use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
-use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool, OSError};
 
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetSongParams {
-    id: Uuid,
-}
 add_common_validate!(GetSongParams);
-
-#[add_subsonic_response]
-pub struct GetSongBody {
-    song: SongId3,
-}
 add_axum_response!(GetSongBody);
 
 async fn get_song(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<SongId3Db> {
@@ -41,13 +28,15 @@ pub async fn get_song_handler(
     State(database): State<Database>,
     req: GetSongRequest,
 ) -> GetSongJsonResponse {
-    GetSongBody {
-        song: get_song(&database.pool, req.user_id, req.params.id)
-            .await?
-            .into_res(&database.pool)
-            .await?,
-    }
-    .into()
+    Ok(axum::Json(
+        GetSongBody {
+            song: get_song(&database.pool, req.user_id, req.params.id)
+                .await?
+                .into_res(&database.pool)
+                .await?,
+        }
+        .into(),
+    ))
 }
 
 #[cfg(test)]

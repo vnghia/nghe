@@ -14,5 +14,5 @@ pub fn router() -> Router<crate::Database> {
 
 #[cfg(test)]
 pub mod test {
-    pub use super::create::{create_user, CreateUserParams};
+    pub use super::create::create_user;
 }

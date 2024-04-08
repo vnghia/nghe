@@ -1,29 +1,12 @@
 use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde::Serialize;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
 
 use crate::models::*;
 use crate::Database;
 
-#[add_common_convert]
-pub struct GetMusicFoldersParams {}
 add_common_validate!(GetMusicFoldersParams);
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MusicFolders {
-    music_folder: Vec<music_folders::MusicFolder>,
-}
-
-#[add_subsonic_response]
-#[derive(Debug)]
-pub struct GetMusicFoldersBody {
-    music_folders: MusicFolders,
-}
 add_axum_response!(GetMusicFoldersBody);
 
 pub async fn get_music_folders_handler(
@@ -36,9 +19,14 @@ pub async fn get_music_folders_handler(
         .filter(user_music_folder_permissions::user_id.eq(req.user_id))
         .filter(user_music_folder_permissions::allow)
         .load(&mut database.pool.get().await?)
-        .await?;
+        .await?
+        .into_iter()
+        .map(music_folders::MusicFolder::into)
+        .collect();
 
-    GetMusicFoldersBody { music_folders: MusicFolders { music_folder: music_folders } }.into()
+    Ok(axum::Json(
+        GetMusicFoldersBody { music_folders: MusicFolders { music_folder: music_folders } }.into(),
+    ))
 }
 
 #[cfg(test)]
@@ -54,7 +42,7 @@ mod tests {
 
         let results = get_music_folders_handler(
             infra.state(),
-            GetMusicFoldersParams {}.validated(infra.user_id(0)),
+            GetMusicFoldersRequest::validated(GetMusicFoldersParams {}, infra.user_id(0)),
         )
         .await
         .unwrap()
@@ -77,7 +65,7 @@ mod tests {
 
         let results = get_music_folders_handler(
             infra.state(),
-            GetMusicFoldersParams {}.validated(infra.user_id(0)),
+            GetMusicFoldersRequest::validated(GetMusicFoldersParams {}, infra.user_id(0)),
         )
         .await
         .unwrap()

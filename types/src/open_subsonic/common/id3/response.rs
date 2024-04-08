@@ -2,14 +2,14 @@
 
 use derive_new::new;
 use isolang::Language;
-use serde::Serialize;
+use nghe_proc_macros::add_response_derive;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::super::id::MediaTypedId;
 
-#[derive(Debug, Serialize, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default)]
+#[add_response_derive]
 pub struct DateId3 {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<u16>,
@@ -25,8 +25,8 @@ impl DateId3 {
     }
 }
 
-#[derive(new, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(new, Debug)]
+#[add_response_derive]
 pub struct ArtistId3 {
     pub id: Uuid,
     pub name: String,
@@ -35,8 +35,8 @@ pub struct ArtistId3 {
     pub album_count: Option<u16>,
 }
 
-#[derive(new, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(new, Debug)]
+#[add_response_derive]
 pub struct AlbumId3 {
     pub id: Uuid,
     pub name: String,
@@ -61,8 +61,8 @@ pub struct AlbumId3 {
     pub genres: Vec<NameId3>,
 }
 
-#[derive(new, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(new, Debug)]
+#[add_response_derive]
 pub struct SongId3 {
     pub id: Uuid,
     pub title: String,
@@ -92,29 +92,29 @@ pub struct SongId3 {
     pub genres: Vec<NameId3>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
+#[add_response_derive]
 pub struct NameId3 {
     pub name: String,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
+#[add_response_derive]
 pub struct GenreId3 {
     pub value: String,
     pub song_count: u32,
     pub album_count: u32,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
+#[add_response_derive]
 pub struct LyricLineId3 {
     pub start: Option<u32>,
     pub value: String,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
+#[add_response_derive]
 pub struct LyricId3 {
     pub lang: Language,
     pub synced: bool,

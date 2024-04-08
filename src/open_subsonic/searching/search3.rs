@@ -4,33 +4,18 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_count_offset,
-    add_permission_filter, add_subsonic_response,
+    add_axum_response, add_common_validate, add_count_offset, add_permission_filter,
 };
-use serde::Serialize;
 use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
-use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool};
 
-#[add_common_convert]
-#[derive(Debug)]
-#[cfg_attr(test, derive(Default))]
-pub struct Search3Params {
-    artist_count: Option<i64>,
-    artist_offset: Option<i64>,
-    album_count: Option<i64>,
-    album_offset: Option<i64>,
-    song_count: Option<i64>,
-    song_offset: Option<i64>,
-    #[serde(rename = "musicFolderId")]
-    music_folder_ids: Option<Vec<Uuid>>,
-}
 add_common_validate!(Search3Params);
+add_axum_response!(Search3Body);
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Default))]
@@ -42,22 +27,6 @@ struct SearchOffsetCount {
     song_count: Option<i64>,
     song_offset: Option<i64>,
 }
-
-#[derive(Serialize)]
-pub struct Search3Result {
-    #[serde(rename = "artist", skip_serializing_if = "Vec::is_empty")]
-    artists: Vec<ArtistId3>,
-    #[serde(rename = "album", skip_serializing_if = "Vec::is_empty")]
-    albums: Vec<AlbumId3>,
-    #[serde(rename = "song", skip_serializing_if = "Vec::is_empty")]
-    songs: Vec<SongId3>,
-}
-
-#[add_subsonic_response]
-pub struct Search3Body {
-    search_result3: Search3Result,
-}
-add_axum_response!(Search3Body);
 
 async fn syncing(
     pool: &DatabasePool,
@@ -112,26 +81,22 @@ pub async fn search3_handler(
 ) -> Search3JsonResponse {
     check_permission(&database.pool, req.user_id, &req.params.music_folder_ids).await?;
 
-    let search_result = syncing(
-        &database.pool,
-        req.user_id,
-        &req.params.music_folder_ids,
-        req.params.as_offset_count(),
-    )
-    .await?;
+    let search_result =
+        syncing(&database.pool, req.user_id, &req.params.music_folder_ids, (&req.params).into())
+            .await?;
 
-    Search3Body { search_result3: search_result }.into()
+    Ok(axum::Json(Search3Body { search_result3: search_result }.into()))
 }
 
-impl Search3Params {
-    fn as_offset_count(&self) -> SearchOffsetCount {
-        SearchOffsetCount {
-            artist_count: self.artist_count,
-            artist_offset: self.artist_offset,
-            album_count: self.album_count,
-            album_offset: self.album_offset,
-            song_count: self.song_count,
-            song_offset: self.song_offset,
+impl From<&Search3Params> for SearchOffsetCount {
+    fn from(value: &Search3Params) -> Self {
+        Self {
+            artist_count: value.artist_count,
+            artist_offset: value.artist_offset,
+            album_count: value.album_count,
+            album_offset: value.album_offset,
+            song_count: value.song_count,
+            song_offset: value.song_offset,
         }
     }
 }

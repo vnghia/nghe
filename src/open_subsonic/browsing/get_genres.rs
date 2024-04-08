@@ -2,32 +2,16 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde::Serialize;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
+use nghe_types::open_subsonic::common::id3::response::*;
 use uuid::Uuid;
 
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
-use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetGenresParams {}
 add_common_validate!(GetGenresParams);
-
-#[derive(Serialize)]
-pub struct Genres {
-    genre: Vec<GenreId3>,
-}
-
-#[add_subsonic_response]
-pub struct GenresBody {
-    genres: Genres,
-}
 add_axum_response!(GenresBody);
 
 async fn get_genres(pool: &DatabasePool, user_id: Uuid) -> Result<Vec<GenreId3>> {
@@ -44,7 +28,10 @@ pub async fn get_genres_handler(
     State(database): State<Database>,
     req: GetGenresRequest,
 ) -> GenresJsonResponse {
-    GenresBody { genres: Genres { genre: get_genres(&database.pool, req.user_id).await? } }.into()
+    Ok(axum::Json(
+        GenresBody { genres: Genres { genre: get_genres(&database.pool, req.user_id).await? } }
+            .into(),
+    ))
 }
 
 #[cfg(test)]

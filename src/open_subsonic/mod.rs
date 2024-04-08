@@ -11,11 +11,9 @@ pub mod system;
 pub mod user;
 
 pub use common::error::{OSError, ServerError};
-pub use common::id3::response::DateId3;
 pub use common::stream::StreamResponse;
 
 #[cfg(test)]
 pub mod test {
     pub use super::common::id3;
-    pub use super::common::request::CommonParams;
 }

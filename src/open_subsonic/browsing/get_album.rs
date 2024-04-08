@@ -4,40 +4,17 @@ use diesel::dsl::sql;
 use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
-use nghe_proc_macros::{
-    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
-};
-use serde::Serialize;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::common::error::OSError;
 use crate::open_subsonic::common::id3::db::*;
 use crate::open_subsonic::common::id3::query::*;
-use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 
-#[add_common_convert]
-#[derive(Debug)]
-pub struct GetAlbumParams {
-    id: Uuid,
-}
 add_common_validate!(GetAlbumParams);
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AlbumId3WithSongs {
-    #[serde(flatten)]
-    pub album: AlbumId3,
-    #[serde(rename = "song")]
-    pub songs: Vec<SongId3>,
-}
-
-#[add_subsonic_response]
-pub struct GetAlbumBody {
-    album: AlbumId3WithSongs,
-}
 add_axum_response!(GetAlbumBody);
 
 async fn get_album_and_song_ids(
@@ -92,7 +69,9 @@ pub async fn get_album_handler(
     State(database): State<Database>,
     req: GetAlbumRequest,
 ) -> GetAlbumJsonResponse {
-    GetAlbumBody { album: get_album(&database.pool, req.user_id, req.params.id).await? }.into()
+    Ok(axum::Json(
+        GetAlbumBody { album: get_album(&database.pool, req.user_id, req.params.id).await? }.into(),
+    ))
 }
 
 #[cfg(test)]
