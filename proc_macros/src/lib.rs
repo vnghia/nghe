@@ -250,9 +250,9 @@ pub fn add_common_convert(
                 }
             }
 
-            #[cfg(test)]
+            #[cfg(any(test, feature = "frontend"))]
             impl #item_ident {
-                fn with_common(self, common: #common_path) -> #common_item_ident {
+                pub fn with_common(self, common: #common_path) -> #common_item_ident {
                     let value = self;
                     #common_item_ident {
                         #( #common_params_fields ),*
@@ -395,6 +395,25 @@ pub fn add_response_derive(
                 any(test, feature = "frontend", feature = "backend"),
                 serde(rename_all = "camelCase")
             )]
+            #input
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn add_request_response_derive(
+    _: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match try {
+        let input: proc_macro2::TokenStream = input.into();
+        quote! {
+            #[derive(serde::Serialize, serde::Deserialize)]
+            #[serde(rename_all = "camelCase")]
             #input
         }
         .into()

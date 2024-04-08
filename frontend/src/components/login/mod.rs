@@ -1,16 +1,24 @@
 use concat_string::concat_string;
 use dioxus::prelude::*;
-use nghe_types::open_subsonic::user::setup::SetupParams;
+use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
+use nghe_types::open_subsonic::common::request::CommonParams;
+use nghe_types::open_subsonic::system::ping::PingParams;
+use nghe_types::utils::password::to_password_token;
+use rand::distributions::{Alphanumeric, DistString};
 use url::Url;
 
+use crate::state::{CommonState, COMMON_STATE_KEY};
 use crate::Route;
 
 #[component]
-pub fn Setup() -> Element {
+pub fn Login() -> Element {
     let nav = navigator();
+    let mut common_state = use_synced_storage::<LocalStorage, Option<CommonState>>(
+        COMMON_STATE_KEY.into(),
+        Option::default,
+    );
 
     let mut username = use_signal(String::default);
-    let mut email = use_signal(String::default);
     let mut password = use_signal(String::default);
     let mut server_url = use_signal(|| Url::parse("http://localhost:3000").unwrap());
 
@@ -30,11 +38,6 @@ pub fn Setup() -> Element {
             error_message.set("Username can not be empty".into());
             return;
         }
-        let email = email();
-        if email.is_empty() {
-            error_message.set("Email can not be empty".into());
-            return;
-        }
         let password = password();
         if password.is_empty() {
             error_message.set("Password can not be empty".into());
@@ -44,18 +47,23 @@ pub fn Setup() -> Element {
         spawn(async move {
             match try {
                 let server_url = server_url();
-                let setup_params = SetupParams { username, email, password: password.into_bytes() };
+
+                let salt = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
+                let token = to_password_token(password.as_bytes(), &salt);
+                let common_params = CommonParams { username, salt, token };
+                let ping_params = PingParams {}.with_common(common_params);
+
                 let client = reqwest::Client::new();
                 client
-                    .get(server_url.join("/rest/setup")?)
-                    .query(&setup_params)
+                    .get(server_url.join("/rest/ping")?)
+                    .query(&ping_params)
                     .send()
                     .await?
                     .error_for_status()?;
+
+                common_state.set(Some(CommonState { common: ping_params.common, server_url }));
             } {
-                Ok(()) => {
-                    nav.push(Route::Login {});
-                }
+                Ok(()) => {}
                 Err::<_, anyhow::Error>(e) => {
                     log::error!("{:?}", &e);
                     error_message.set(e.to_string());
@@ -64,11 +72,15 @@ pub fn Setup() -> Element {
         });
     };
 
+    if common_state().is_some() {
+        nav.push(Route::Home {});
+    }
+
     rsx! {
       div { class: "min-h-screen flex flex-col justify-center py-12 px-4 lg:px-8",
         div { class: "sm:mx-auto sm:w-full sm:max-w-md",
           h2 { class: "mt-6 text-center text-3xl leading-9 font-extrabold text-gray-900",
-            "Setup an admin account"
+            "Login"
           }
         }
         div { class: "mt-8 sm:mx-auto sm:w-full sm:max-w-md",
@@ -81,14 +93,6 @@ pub fn Setup() -> Element {
                 value: "{username}",
                 autocomplete: "username",
                 oninput: move |e| username.set(e.value())
-              }
-              div { class: "label", span { "Email" } }
-              input {
-                class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
-                r#type: "email",
-                value: "{email}",
-                autocomplete: "email",
-                oninput: move |e| email.set(e.value())
               }
               div { class: "label", span { "Password" } }
               input {

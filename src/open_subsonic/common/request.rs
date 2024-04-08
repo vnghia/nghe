@@ -31,7 +31,7 @@ async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: Role>(
     };
 
     check_password(
-        &decrypt_password(key, &user_password)?,
+        decrypt_password(key, user_password)?,
         &common_params.salt,
         &common_params.token,
     )?;
@@ -72,6 +72,7 @@ mod tests {
     use fake::faker::internet::en::*;
     use fake::Fake;
     use nghe_proc_macros::add_common_convert;
+    use nghe_types::utils::password::to_password_token;
 
     use super::*;
     use crate::utils::test::Infra;
@@ -118,9 +119,8 @@ mod tests {
         let infra = Infra::new().await.add_user(None).await;
 
         let username = infra.users[0].username.clone();
-        let client_salt = Password(8..16).fake::<String>().into_bytes();
-        let client_token =
-            to_password_token(&Password(16..32).fake::<String>().into_bytes(), &client_salt);
+        let client_salt = Password(8..16).fake::<String>();
+        let client_token = to_password_token(Password(16..32).fake::<String>(), &client_salt);
 
         assert!(matches!(
             validate::<_, { Role::const_default() }>(

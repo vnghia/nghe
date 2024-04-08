@@ -9,12 +9,16 @@ edition.workspace = true
 anyhow.workspace = true
 concat-string.workspace = true
 dioxus = { version = "0.5", features = ["web", "router"] }
+dioxus-sdk = { version = "0.5.0", features = ["storage"] }
+getrandom = { version = "0.2.14", features = ["js"] }
 manganis = "0.2.2"
 nghe-types = { path = "../types", default-features = false, features = [
   "frontend",
 ] }
+rand.workspace = true
 reqwest = "0.12.3"
-url = "2.5.0"
+serde.workspace = true
+url = { version = "2.5.0", features = ["serde"] }
 
 # Debug
 log = "0.4.19"

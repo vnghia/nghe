@@ -1,34 +1,38 @@
 use anyhow::Result;
 use libaes::Cipher;
+use nghe_types::open_subsonic::common::request::MD5Token;
+use nghe_types::utils::password::to_password_token;
 
 use crate::database::EncryptionKey;
 use crate::OSError;
 
 const IV_LEN: usize = 16;
 
-pub type MD5Token = [u8; 16];
+pub fn encrypt_password<D: AsRef<[u8]>>(key: &EncryptionKey, data: D) -> Vec<u8> {
+    let data = data.as_ref();
 
-pub fn encrypt_password(key: &EncryptionKey, data: &[u8]) -> Vec<u8> {
     let iv: [u8; IV_LEN] = rand::random();
     [iv.as_slice(), Cipher::new_128(key).cbc_encrypt(&iv, data).as_slice()].concat()
 }
 
-pub fn decrypt_password(key: &EncryptionKey, data: &[u8]) -> Result<Vec<u8>> {
+pub fn decrypt_password<D: AsRef<[u8]>>(key: &EncryptionKey, data: D) -> Result<Vec<u8>> {
+    let data = data.as_ref();
+
     let cipher_text = &data[IV_LEN..];
     let iv = &data[..IV_LEN];
     Ok(Cipher::new_128(key).cbc_decrypt(iv, cipher_text))
 }
 
-pub fn to_password_token(password: &[u8], client_salt: &[u8]) -> MD5Token {
-    let mut data = Vec::with_capacity(password.len() + client_salt.len());
-    data.extend_from_slice(password);
-    data.extend_from_slice(client_salt);
-    md5::compute(data).into()
-}
+pub fn check_password<P: AsRef<[u8]>, S: AsRef<[u8]>>(
+    password: P,
+    salt: S,
+    token: &MD5Token,
+) -> Result<()> {
+    let password = password.as_ref();
+    let salt = salt.as_ref();
 
-pub fn check_password(password: &[u8], client_salt: &[u8], client_token: &MD5Token) -> Result<()> {
-    let password_token = to_password_token(password, client_salt);
-    if password_token == *client_token { Ok(()) } else { anyhow::bail!(OSError::Unauthorized) }
+    let password_token = to_password_token(password, salt);
+    if &password_token == token { Ok(()) } else { anyhow::bail!(OSError::Unauthorized) }
 }
 
 #[cfg(test)]
@@ -45,7 +49,7 @@ mod tests {
     fn test_roundtrip_password() {
         let key: EncryptionKey = rand::random();
         let password = Password(16..32).fake::<String>().into_bytes();
-        assert_eq!(password, decrypt_password(&key, &encrypt_password(&key, &password)).unwrap())
+        assert_eq!(password, decrypt_password(&key, encrypt_password(&key, &password)).unwrap())
     }
 
     #[test]
@@ -65,7 +69,7 @@ mod tests {
         let password = Password(16..32).fake::<String>().into_bytes();
         let client_salt = Password(8..16).fake::<String>().into_bytes();
         let client_token = to_password_token(&password, &client_salt);
-        assert!(check_password(&password, &client_salt, &client_token).is_ok())
+        assert!(check_password(password, client_salt, &client_token).is_ok())
     }
 
     #[test]
@@ -73,7 +77,7 @@ mod tests {
         let password = Password(16..32).fake::<String>().into_bytes();
         let client_salt = Password(8..16).fake::<String>().into_bytes();
         let wrong_client_salt = Password(8..16).fake::<String>().into_bytes();
-        let client_token = to_password_token(&password, &client_salt);
-        assert!(check_password(&password, &wrong_client_salt, &client_token).is_err())
+        let client_token = to_password_token(&password, client_salt);
+        assert!(check_password(password, wrong_client_salt, &client_token).is_err())
     }
 }

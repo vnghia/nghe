@@ -21,6 +21,7 @@ fake = { version = "2.9.2", features = [
   "time",
 ] }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
+rand = "0.8.5"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.115"
 serde_with = { version = "3.7.0", features = ["hex"] }
@@ -54,7 +55,6 @@ itertools = "0.12.1"
 libaes = "0.7.0"
 lofty = "0.18.2"
 lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }
-md5 = "0.7.0"
 mimalloc = "0.1.39"
 mime_guess = "2.0.4"
 nghe-proc_macros = { path = "proc_macros" }
@@ -62,7 +62,7 @@ nghe-types = { path = "types", default-features = false, features = [
   "backend",
 ] }
 paste = "1.0.14"
-rand = "0.8.5"
+rand.workspace = true
 rayon = "1.10.0"
 rsmpeg = { git = "https://github.com/vnghia/rsmpeg.git", rev = "e34a83a", features = [
   "link_system_ffmpeg",
