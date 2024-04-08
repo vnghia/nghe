@@ -1,7 +1,7 @@
 use anyhow::Result;
 use axum::extract::State;
 use itertools::Itertools;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -11,11 +11,12 @@ use crate::open_subsonic::browsing::get_album::get_album;
 use crate::open_subsonic::browsing::get_artist::get_artist;
 use crate::{Database, DatabasePool, OSError};
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetMusicDirectoryParams {
     id: MediaTypedId,
 }
+add_common_validate!(GetMusicDirectoryParams);
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]

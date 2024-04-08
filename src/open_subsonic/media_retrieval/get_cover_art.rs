@@ -7,7 +7,7 @@ use diesel::{
     ExpressionMethods, OptionalExtension, PgSortExpressionMethods, QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::add_validate;
+use nghe_proc_macros::{add_common_convert, add_common_validate};
 use uuid::Uuid;
 
 use super::super::common::id::{MediaType, MediaTypedId};
@@ -17,11 +17,12 @@ use crate::open_subsonic::permission::with_permission;
 use crate::open_subsonic::StreamResponse;
 use crate::{Database, DatabasePool, OSError, ServerError};
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetCoverArtParams {
     id: MediaTypedId,
 }
+add_common_validate!(GetCoverArtParams);
 
 pub async fn get_song_cover_art<P: AsRef<Path>>(
     pool: &DatabasePool,

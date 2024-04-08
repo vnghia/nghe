@@ -1,14 +1,15 @@
 use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde::Serialize;
 
 use crate::models::*;
 use crate::Database;
 
-#[add_validate]
+#[add_common_convert]
 pub struct GetMusicFoldersParams {}
+add_common_validate!(GetMusicFoldersParams);
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,7 +51,7 @@ mod tests {
 
         let results = get_music_folders_handler(
             infra.state(),
-            GetMusicFoldersParams {}.to_validated_form(infra.user_id(0)),
+            GetMusicFoldersParams {}.validated(infra.user_id(0)),
         )
         .await
         .unwrap()
@@ -73,7 +74,7 @@ mod tests {
 
         let results = get_music_folders_handler(
             infra.state(),
-            GetMusicFoldersParams {}.to_validated_form(infra.user_id(0)),
+            GetMusicFoldersParams {}.validated(infra.user_id(0)),
         )
         .await
         .unwrap()

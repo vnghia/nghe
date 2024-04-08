@@ -4,7 +4,7 @@ use diesel::dsl::sql;
 use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -16,11 +16,12 @@ use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetAlbumParams {
     id: Uuid,
 }
+add_common_validate!(GetAlbumParams);
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

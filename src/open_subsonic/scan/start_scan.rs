@@ -5,7 +5,7 @@ use axum::extract::State;
 use axum::Extension;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde::Deserialize;
 use time::OffsetDateTime;
 
@@ -22,11 +22,12 @@ pub enum ScanMode {
     Force,
 }
 
-#[add_validate(admin)]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct StartScanParams {
     scan_mode: ScanMode,
 }
+add_common_validate!(StartScanParams, admin);
 
 #[wrap_subsonic_response]
 pub struct StartScanBody {}

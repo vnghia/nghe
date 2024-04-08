@@ -1,12 +1,13 @@
 use axum::extract::State;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde::Serialize;
 
 use crate::Database;
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetBookmarksParams {}
+add_common_validate!(GetBookmarksParams);
 
 #[derive(Serialize)]
 pub struct BookmarksResult {}

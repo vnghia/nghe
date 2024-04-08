@@ -2,7 +2,7 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -12,9 +12,10 @@ use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetGenresParams {}
+add_common_validate!(GetGenresParams);
 
 #[derive(Serialize)]
 pub struct Genres {

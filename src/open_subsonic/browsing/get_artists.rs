@@ -3,7 +3,9 @@ use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use nghe_proc_macros::{add_permission_filter, add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_common_convert, add_common_validate, add_permission_filter, wrap_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -15,12 +17,13 @@ use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool, OSError};
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetArtistsParams {
     #[serde(rename = "musicFolderId")]
     music_folder_ids: Option<Vec<Uuid>>,
 }
+add_common_validate!(GetArtistsParams);
 
 #[derive(Serialize)]
 #[cfg_attr(test, derive(Debug))]

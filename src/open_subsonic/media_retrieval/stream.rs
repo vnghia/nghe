@@ -4,7 +4,7 @@ use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
 use concat_string::concat_string;
-use nghe_proc_macros::add_validate;
+use nghe_proc_macros::{add_common_convert, add_common_validate};
 use serde::Deserialize;
 use strum::AsRefStr;
 use tracing::instrument;
@@ -32,7 +32,7 @@ pub enum Format {
     Wma,
 }
 
-#[add_validate(stream)]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct StreamParams {
     id: Uuid,
@@ -40,6 +40,7 @@ pub struct StreamParams {
     format: Option<Format>,
     time_offset: Option<u32>,
 }
+add_common_validate!(StreamParams, stream);
 
 #[instrument(skip(output_path, buffer_size))]
 fn spawn_transcoding(

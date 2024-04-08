@@ -33,36 +33,30 @@ pub struct CommonParams {
     pub token: MD5Token,
 }
 
-#[async_trait::async_trait]
-pub trait Validate<P> {
-    fn common(&self) -> &CommonParams;
-    fn params(self) -> P;
+async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: users::Role>(
+    Database { pool, key }: &Database,
+    common_params: P,
+) -> Result<Uuid> {
+    let common_params = common_params.as_ref();
+    let (user_id, user_password, user_role) = match users::table
+        .filter(users::username.eq(&common_params.username))
+        .select((users::id, users::password, users::Role::as_select()))
+        .first::<(Uuid, Vec<u8>, users::Role)>(&mut pool.get().await?)
+        .await
+    {
+        Ok(res) => res,
+        _ => anyhow::bail!(OSError::Unauthorized),
+    };
 
-    async fn validate<const REQUIRED_ROLE: users::Role>(
-        &self,
-        Database { pool, key }: &Database,
-    ) -> Result<Uuid> {
-        let common_params = self.common();
-        let (user_id, user_password, user_role) = match users::table
-            .filter(users::username.eq(&common_params.username))
-            .select((users::id, users::password, users::Role::as_select()))
-            .first::<(Uuid, Vec<u8>, users::Role)>(&mut pool.get().await?)
-            .await
-        {
-            Ok(res) => res,
-            _ => anyhow::bail!(OSError::Unauthorized),
-        };
-
-        check_password(
-            &decrypt_password(key, &user_password)?,
-            &common_params.salt,
-            &common_params.token,
-        )?;
-        if REQUIRED_ROLE > user_role {
-            anyhow::bail!(OSError::Forbidden("access admin endpoint".into()));
-        }
-        Ok(user_id)
+    check_password(
+        &decrypt_password(key, &user_password)?,
+        &common_params.salt,
+        &common_params.token,
+    )?;
+    if REQUIRED_ROLE > user_role {
+        anyhow::bail!(OSError::Forbidden("access admin endpoint".into()));
     }
+    Ok(user_id)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -76,7 +70,7 @@ pub struct ValidatedForm<R, P, const REQUIRED_ROLE: users::Role> {
 impl<R, P, const REQUIRED_ROLE: users::Role, S> FromRequest<S>
     for ValidatedForm<R, P, REQUIRED_ROLE>
 where
-    R: DeserializeOwned + Send + Sync + Validate<P>,
+    R: DeserializeOwned + Send + Sync + AsRef<CommonParams> + Into<P>,
     Database: FromRef<S>,
     S: Send + Sync,
 {
@@ -87,8 +81,8 @@ where
             .await
             .map_err(std::convert::Into::<OSError>::into)?;
         let database = Database::from_ref(state);
-        let user_id = request_params.validate::<REQUIRED_ROLE>(&database).await?;
-        Ok(ValidatedForm { params: request_params.params(), user_id, phantom: PhantomData })
+        let user_id = validate::<_, REQUIRED_ROLE>(&database, &request_params).await?;
+        Ok(ValidatedForm { params: request_params.into(), user_id, phantom: PhantomData })
     }
 }
 
@@ -96,23 +90,24 @@ where
 mod tests {
     use fake::faker::internet::en::*;
     use fake::Fake;
-    use nghe_proc_macros::add_validate;
+    use nghe_proc_macros::add_common_convert;
 
     use super::*;
     use crate::utils::test::Infra;
 
-    #[add_validate]
+    #[add_common_convert]
     struct TestParams {}
 
     #[tokio::test]
     async fn test_validate_success() {
         let infra = Infra::new().await.add_user(None).await;
         assert!(
-            TestParams {}
-                .to_validate(infra.to_common_params(0))
-                .validate::<{ users::Role::const_default() }>(infra.database())
-                .await
-                .is_ok()
+            validate::<_, { users::Role::const_default() }>(
+                infra.database(),
+                TestParams {}.with_common(infra.to_common_params(0))
+            )
+            .await
+            .is_ok()
         );
     }
 
@@ -121,14 +116,18 @@ mod tests {
         let infra = Infra::new().await.add_user(None).await;
         let wrong_username: String = Username().fake();
         assert!(matches!(
-            TestParams {}
-                .to_validate(CommonParams { username: wrong_username, ..infra.to_common_params(0) })
-                .validate::<{ users::Role::const_default() }>(infra.database())
-                .await
-                .unwrap_err()
-                .root_cause()
-                .downcast_ref::<OSError>()
-                .unwrap(),
+            validate::<_, { users::Role::const_default() }>(
+                infra.database(),
+                TestParams {}.with_common(CommonParams {
+                    username: wrong_username,
+                    ..infra.to_common_params(0)
+                })
+            )
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
             OSError::Unauthorized
         ));
     }
@@ -143,14 +142,19 @@ mod tests {
             to_password_token(&Password(16..32).fake::<String>().into_bytes(), &client_salt);
 
         assert!(matches!(
-            TestParams {}
-                .to_validate(CommonParams { username, salt: client_salt, token: client_token })
-                .validate::<{ users::Role::const_default() }>(infra.database())
-                .await
-                .unwrap_err()
-                .root_cause()
-                .downcast_ref::<OSError>()
-                .unwrap(),
+            validate::<_, { users::Role::const_default() }>(
+                infra.database(),
+                TestParams {}.with_common(CommonParams {
+                    username,
+                    salt: client_salt,
+                    token: client_token
+                })
+            )
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
             OSError::Unauthorized
         ));
     }
@@ -162,13 +166,12 @@ mod tests {
             .add_user(Some(users::Role { admin_role: true, ..users::Role::const_default() }))
             .await;
         assert!(
-            TestParams {}
-                .to_validate(infra.to_common_params(0))
-                .validate::<{ users::Role { admin_role: true, ..users::Role::const_default() } }>(
-                    infra.database()
-                )
-                .await
-                .is_ok()
+            validate::<_, { users::Role { admin_role: true, ..users::Role::const_default() } }>(
+                infra.database(),
+                TestParams {}.with_common(infra.to_common_params(0))
+            )
+            .await
+            .is_ok()
         );
     }
 
@@ -176,16 +179,15 @@ mod tests {
     async fn test_validate_no_admin() {
         let infra = Infra::new().await.add_user(None).await;
         assert!(matches!(
-            TestParams {}
-                .to_validate(infra.to_common_params(0))
-                .validate::<{ users::Role { admin_role: true, ..users::Role::const_default() } }>(
-                    infra.database()
-                )
-                .await
-                .unwrap_err()
-                .root_cause()
-                .downcast_ref::<OSError>()
-                .unwrap(),
+            validate::<_, { users::Role { admin_role: true, ..users::Role::const_default() } }>(
+                infra.database(),
+                TestParams {}.with_common(infra.to_common_params(0))
+            )
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
             OSError::Forbidden(_)
         ));
     }

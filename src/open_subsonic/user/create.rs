@@ -3,7 +3,7 @@ use axum::extract::State;
 use derivative::Derivative;
 use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde_with::serde_as;
 use uuid::Uuid;
 
@@ -13,7 +13,7 @@ use crate::utils::password::encrypt_password;
 use crate::Database;
 
 #[serde_as]
-#[add_validate(admin)]
+#[add_common_convert]
 #[derive(Derivative)]
 #[derivative(Debug)]
 #[cfg_attr(test, derive(fake::Dummy))]
@@ -26,6 +26,7 @@ pub struct CreateUserParams {
     #[cfg_attr(test, dummy(expr = "users::Role::default()"))]
     pub role: users::Role,
 }
+add_common_validate!(CreateUserParams, admin);
 
 #[wrap_subsonic_response]
 pub struct CreateUserBody {}

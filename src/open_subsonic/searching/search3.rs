@@ -4,7 +4,8 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_count_offset, add_permission_filter, add_validate, wrap_subsonic_response,
+    add_common_convert, add_common_validate, add_count_offset, add_permission_filter,
+    wrap_subsonic_response,
 };
 use serde::Serialize;
 use uuid::Uuid;
@@ -16,7 +17,7 @@ use crate::open_subsonic::common::id3::response::*;
 use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool};
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Default))]
 pub struct Search3Params {
@@ -29,6 +30,7 @@ pub struct Search3Params {
     #[serde(rename = "musicFolderId")]
     music_folder_ids: Option<Vec<Uuid>>,
 }
+add_common_validate!(Search3Params);
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Default))]

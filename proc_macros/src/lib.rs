@@ -13,7 +13,7 @@ use syn::parse::Parser;
 use syn::spanned::Spanned;
 use syn::{
     parse_macro_input, parse_quote, parse_str, Error, Expr, ExprCall, ExprPath, Field, Fields,
-    Item, ItemStruct,
+    Ident, Item, ItemStruct,
 };
 
 const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
@@ -26,6 +26,16 @@ const DATE_TYPE_PREFIXES: &[&str] = &["", "release_", "original_release_"];
 struct WrapSubsonicResponse {
     #[deluxe(default = true)]
     success: bool,
+}
+
+fn get_base_name(ident: &Ident, suffix: &str) -> Result<String, Error> {
+    ident
+        .to_string()
+        .strip_suffix(suffix)
+        .ok_or_else(|| {
+            Error::new(ident.span(), concat_string!("struct's name should end with ", suffix))
+        })
+        .map(String::from)
 }
 
 #[proc_macro_attribute]
@@ -47,13 +57,7 @@ pub fn wrap_subsonic_response(
         let root_struct = format_ident!("Root{}", item_struct_ident.to_string());
         let subsonic_struct = format_ident!("Subsonic{}", item_struct_ident.to_string());
 
-        let base_type = item_struct_ident
-            .to_string()
-            .strip_suffix("Body")
-            .ok_or_else(|| {
-                Error::new(item_struct_ident.span(), "struct's name should end with `Body`")
-            })?
-            .to_string();
+        let base_type = get_base_name(&item_struct_ident, "Body")?;
 
         let json_response_path = parse_str::<ExprPath>(&concat_string!(
             COMMON_ERROR_IMPORT_PREFIX,
@@ -147,25 +151,100 @@ fn all_roles() -> &'static HashSet<String> {
     })
 }
 
-#[derive(Debug, deluxe::ParseMetaItem)]
-#[deluxe(transparent(flatten_unnamed, append))]
-struct AddValidateResponse {
-    roles: Vec<Expr>,
-}
-
 #[proc_macro_attribute]
-pub fn add_validate(
-    args: proc_macro::TokenStream,
+pub fn add_common_convert(
+    _: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     match try {
         let item_struct = parse_macro_input!(input as ItemStruct);
-        let item_struct_ident = &item_struct.ident;
-        let mut validate_item_struct = item_struct.clone();
+        let item_ident = &item_struct.ident;
+        let mut common_item_struct = item_struct.clone();
 
-        let args = deluxe::parse2::<AddValidateResponse>(args.into())?;
-        let roles = args
-            .roles
+        let params_fields = if let Fields::Named(ref fields) = item_struct.fields {
+            fields
+                .named
+                .iter()
+                .map(|f| {
+                    f.ident
+                        .as_ref()
+                        .map(|ident| {
+                            quote! { #ident: value.#ident }
+                        })
+                        .ok_or(Error::new(f.span(), "struct field name is missing"))
+                })
+                .collect::<Result<_, Error>>()?
+        } else {
+            vec![]
+        };
+
+        let common_path =
+            parse_str::<ExprPath>(&concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams"))?;
+        let base_type = get_base_name(&item_ident, "Params")?;
+
+        common_item_struct.ident = format_ident!("{}WithCommon", base_type);
+        let common_item_ident = &common_item_struct.ident;
+        if let Fields::Named(ref mut fields) = common_item_struct.fields {
+            fields.named.push(Field::parse_named.parse2(quote! {
+                #[serde(flatten)]
+                pub common: #common_path
+            })?);
+        }
+
+        let mut common_params_fields = params_fields.clone();
+        common_params_fields.push(quote! { common, });
+
+        quote! {
+            #[derive(serde::Deserialize)]
+            #[serde(rename_all = "camelCase")]
+            #item_struct
+
+            #[derive(serde::Deserialize)]
+            #[serde(rename_all = "camelCase")]
+            #common_item_struct
+
+            impl AsRef<#common_path> for #common_item_ident {
+                fn as_ref(&self) -> &#common_path {
+                    &self.common
+                }
+            }
+
+            impl From<#common_item_ident> for #item_ident {
+                fn from(value: #common_item_ident) -> #item_ident {
+                    Self {
+                        #( #params_fields ),*
+                    }
+                }
+            }
+
+            #[cfg(test)]
+            impl #item_ident {
+                fn with_common(self, common: #common_path) -> #common_item_ident {
+                    let value = self;
+                    #common_item_ident {
+                        #( #common_params_fields ),*
+                    }
+                }
+            }
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[derive(Debug, deluxe::ParseMetaItem)]
+#[deluxe(transparent(flatten_unnamed, append))]
+struct AddCommonValidate {
+    args: Vec<Expr>,
+}
+
+#[proc_macro]
+pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    match try {
+        let mut args = deluxe::parse2::<AddCommonValidate>(input.into())?
+            .args
             .into_iter()
             .map(|e| {
                 if let Expr::Path(p) = e {
@@ -179,7 +258,11 @@ pub fn add_validate(
                     Err(Error::new(e.span(), "expression should be a path"))
                 }
             })
-            .collect::<Result<HashSet<_>, _>>()?;
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let item_ident = format_ident!("{}", args.remove(0));
+
+        let roles = HashSet::from_iter(args);
         if !all_roles().is_superset(&roles) {
             do yeet Error::new(Span::call_site(), "inputs contain invalid role");
         }
@@ -198,86 +281,24 @@ pub fn add_validate(
             }
         };
 
-        let params_fields = if let Fields::Named(ref fields) = item_struct.fields {
-            fields
-                .named
-                .iter()
-                .map(|f| {
-                    f.ident
-                        .as_ref()
-                        .map(|ident| {
-                            quote! { #ident: self.#ident }
-                        })
-                        .ok_or(Error::new(f.span(), "struct field name is missing"))
-                })
-                .collect::<Result<_, Error>>()?
-        } else {
-            vec![]
-        };
-
-        let common_path =
-            parse_str::<ExprPath>(&concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams"))?;
-        let validate_trait_path =
-            parse_str::<ExprPath>(&concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::Validate"))?;
         let validated_form_path = parse_str::<ExprPath>(&concat_string!(
             COMMON_REQUEST_IMPORT_PREFIX,
             "::ValidatedForm"
         ))?;
 
-        let base_type = item_struct_ident
-            .to_string()
-            .strip_suffix("Params")
-            .ok_or_else(|| {
-                Error::new(item_struct_ident.span(), "struct's name should end with `Params`")
-            })?
-            .to_string();
+        let base_type = get_base_name(&item_ident, "Params")?;
 
-        let validated_form = format_ident!("{}Request", base_type);
-        validate_item_struct.ident = format_ident!("{}Validate", base_type);
-        let validate_item_ident = &validate_item_struct.ident;
-        if let Fields::Named(ref mut fields) = validate_item_struct.fields {
-            fields.named.push(Field::parse_named.parse2(quote! {
-                #[serde(flatten)]
-                pub common: #common_path
-            })?);
-        };
-        let mut validate_params_fields = params_fields.clone();
-        validate_params_fields.push(quote! { common, });
+        let request_ident = format_ident!("{}Request", base_type);
+        let common_item_ident = format_ident!("{}WithCommon", base_type);
 
         quote! {
-            #[derive(serde::Deserialize)]
-            #[serde(rename_all = "camelCase")]
-            #item_struct
-
-            #[derive(serde::Deserialize)]
-            #[serde(rename_all = "camelCase")]
-            #validate_item_struct
-
-            impl #validate_trait_path<#item_struct_ident> for #validate_item_ident {
-                fn common(&self) -> &#common_path {
-                    &self.common
-                }
-
-                fn params(self) -> #item_struct_ident {
-                    #item_struct_ident {
-                        #( #params_fields ),*
-                    }
-                }
-            }
-
-            pub type #validated_form =
-                #validated_form_path<#validate_item_ident, #item_struct_ident,{ #role_struct }>;
+            pub type #request_ident =
+                #validated_form_path<#common_item_ident, #item_ident,{ #role_struct }>;
 
             #[cfg(test)]
-            impl #item_struct_ident {
-                fn to_validate(self, common: #common_path) -> #validate_item_ident {
-                    #validate_item_ident {
-                        #( #validate_params_fields ),*
-                    }
-                }
-
-                fn to_validated_form(self, user_id: uuid::Uuid) -> #validated_form {
-                    #validated_form {
+            impl #item_ident {
+                fn validated(self, user_id: uuid::Uuid) -> #request_ident {
+                    #request_ident {
                         params: self,
                         user_id,
                         phantom: std::marker::PhantomData,

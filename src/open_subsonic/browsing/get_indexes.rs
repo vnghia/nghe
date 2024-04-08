@@ -1,6 +1,6 @@
 use axum::extract::State;
 use itertools::Itertools;
-use nghe_proc_macros::{add_validate, wrap_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -8,12 +8,13 @@ use super::super::common::id::{MediaType, MediaTypedId};
 use super::get_artists::get_artists;
 use crate::Database;
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetIndexesParams {
     #[serde(rename = "musicFolderId")]
     music_folder_ids: Option<Vec<Uuid>>,
 }
+add_common_validate!(GetIndexesParams);
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

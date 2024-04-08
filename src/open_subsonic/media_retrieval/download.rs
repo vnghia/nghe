@@ -1,17 +1,18 @@
 use anyhow::Result;
 use axum::extract::State;
-use nghe_proc_macros::add_validate;
+use nghe_proc_macros::{add_common_convert, add_common_validate};
 use uuid::Uuid;
 
 use super::utils::get_song_download_info;
 use crate::open_subsonic::StreamResponse;
 use crate::{Database, DatabasePool, ServerError};
 
-#[add_validate(download)]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct DownloadParams {
     id: Uuid,
 }
+add_common_validate!(DownloadParams, download);
 
 pub async fn download(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<StreamResponse> {
     let (absolute_path, ..) = get_song_download_info(pool, user_id, song_id).await?;

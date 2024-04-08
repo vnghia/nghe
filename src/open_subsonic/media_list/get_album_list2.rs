@@ -4,7 +4,8 @@ use diesel::{ExpressionMethods, PgSortExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_count_offset, add_permission_filter, add_validate, wrap_subsonic_response,
+    add_common_convert, add_common_validate, add_count_offset, add_permission_filter,
+    wrap_subsonic_response,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -28,7 +29,7 @@ pub enum GetAlbumListType {
     AlphabeticalByName,
 }
 
-#[add_validate]
+#[add_common_convert]
 #[derive(Debug)]
 pub struct GetAlbumList2Params {
     #[serde(rename = "type")]
@@ -44,6 +45,7 @@ pub struct GetAlbumList2Params {
     // By Genre
     genre: Option<String>,
 }
+add_common_validate!(GetAlbumList2Params);
 
 #[derive(Debug, Serialize)]
 struct AlbumList2 {
