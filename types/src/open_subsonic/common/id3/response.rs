@@ -20,6 +20,7 @@ pub struct DateId3 {
 }
 
 impl DateId3 {
+    #[cfg(feature = "backend")]
     fn skip_serializing(&self) -> bool {
         self.year.is_none()
     }

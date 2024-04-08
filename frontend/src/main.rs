@@ -2,6 +2,7 @@
 
 use dioxus::prelude::*;
 use log::LevelFilter;
+use nghe_frontend::components::setup::Setup;
 
 const _TAILWIND_STYLE: &str = manganis::mg!(file("public/tailwind.css"));
 
@@ -11,6 +12,8 @@ enum Route {
     Home {},
     #[route("/blog/:id")]
     Blog { id: i32 },
+    #[route("/setup")]
+    Setup {},
 }
 
 fn main() {
@@ -40,12 +43,7 @@ fn Home() -> Element {
     let mut count = use_signal(|| 0);
 
     rsx! {
-        Link {
-            to: Route::Blog {
-                id: count()
-            },
-            "Go to blog"
-        }
+        Link { to: Route::Blog { id: count() }, "Go to blog" }
         div {
             h1 { "High-Five counter: {count}" }
             button { class: "btn", onclick: move |_| count += 1, "Up high!" }
