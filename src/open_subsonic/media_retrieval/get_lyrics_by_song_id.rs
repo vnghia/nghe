@@ -2,7 +2,9 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -26,10 +28,11 @@ pub struct LyricList {
     structured_lyrics: Vec<LyricId3>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetLyricsBySongIdBody {
     lyrics_list: LyricList,
 }
+add_axum_response!(GetLyricsBySongIdBody);
 
 async fn get_lyrics_by_song_id(
     pool: &DatabasePool,

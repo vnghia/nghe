@@ -1,4 +1,4 @@
-use nghe_proc_macros::wrap_subsonic_response;
+use nghe_proc_macros::{add_axum_response, add_subsonic_response};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -8,10 +8,11 @@ pub struct OSExtension {
     versions: &'static [u8],
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetOpenSubsonicExtensionsBody {
     open_subsonic_extensions: &'static [OSExtension],
 }
+add_axum_response!(GetOpenSubsonicExtensionsBody);
 
 pub async fn get_open_subsonic_extensions_handler() -> GetOpenSubsonicExtensionsJsonResponse {
     GetOpenSubsonicExtensionsBody {

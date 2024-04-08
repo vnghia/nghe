@@ -4,7 +4,8 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use nghe_proc_macros::{
-    add_common_convert, add_common_validate, add_permission_filter, wrap_subsonic_response,
+    add_axum_response, add_common_convert, add_common_validate, add_permission_filter,
+    add_subsonic_response,
 };
 use serde::Serialize;
 use uuid::Uuid;
@@ -42,10 +43,11 @@ pub struct Indexes {
     pub index: Vec<Index>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetArtistsBody {
     pub artists: Indexes,
 }
+add_axum_response!(GetArtistsBody);
 
 async fn get_indexed_artists(
     pool: &DatabasePool,

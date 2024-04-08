@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use nghe_proc_macros::wrap_subsonic_response;
+use nghe_proc_macros::{add_axum_response, add_subsonic_response};
 use serde::Serialize;
 use thiserror::Error;
 
@@ -42,11 +42,12 @@ struct ActualError {
     message: String,
 }
 
-#[wrap_subsonic_response(success = false)]
+#[add_subsonic_response(success = false)]
 #[derive(Debug)]
 struct ErrorBody {
     error: ActualError,
 }
+add_axum_response!(ErrorBody);
 
 fn to_error_response(code: u8, err: &anyhow::Error) -> ErrorJsonResponse {
     let message = err.to_string();

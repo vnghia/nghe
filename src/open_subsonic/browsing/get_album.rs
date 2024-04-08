@@ -4,7 +4,9 @@ use diesel::dsl::sql;
 use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -32,10 +34,11 @@ pub struct AlbumId3WithSongs {
     pub songs: Vec<SongId3>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetAlbumBody {
     album: AlbumId3WithSongs,
 }
+add_axum_response!(GetAlbumBody);
 
 async fn get_album_and_song_ids(
     pool: &DatabasePool,

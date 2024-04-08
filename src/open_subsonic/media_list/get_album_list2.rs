@@ -4,8 +4,8 @@ use diesel::{ExpressionMethods, PgSortExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_common_convert, add_common_validate, add_count_offset, add_permission_filter,
-    wrap_subsonic_response,
+    add_axum_response, add_common_convert, add_common_validate, add_count_offset,
+    add_permission_filter, add_subsonic_response,
 };
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -52,10 +52,11 @@ struct AlbumList2 {
     album: Vec<AlbumId3>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 struct GetAlbumList2Body {
     album_list2: AlbumList2,
 }
+add_axum_response!(GetAlbumList2Body);
 
 pub async fn get_album_list2(
     pool: &DatabasePool,

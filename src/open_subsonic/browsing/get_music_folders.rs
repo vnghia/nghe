@@ -1,7 +1,9 @@
 use axum::extract::State;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde::Serialize;
 
 use crate::models::*;
@@ -17,11 +19,12 @@ pub struct MusicFolders {
     music_folder: Vec<music_folders::MusicFolder>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 #[derive(Debug)]
 pub struct GetMusicFoldersBody {
     music_folders: MusicFolders,
 }
+add_axum_response!(GetMusicFoldersBody);
 
 pub async fn get_music_folders_handler(
     State(database): State<Database>,

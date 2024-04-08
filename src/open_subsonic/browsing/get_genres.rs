@@ -2,7 +2,9 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -22,10 +24,11 @@ pub struct Genres {
     genre: Vec<GenreId3>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GenresBody {
     genres: Genres,
 }
+add_axum_response!(GenresBody);
 
 async fn get_genres(pool: &DatabasePool, user_id: Uuid) -> Result<Vec<GenreId3>> {
     Ok(get_genre_id3_db()

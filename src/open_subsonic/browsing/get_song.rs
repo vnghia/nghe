@@ -2,7 +2,9 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use uuid::Uuid;
 
 use crate::models::*;
@@ -19,10 +21,11 @@ pub struct GetSongParams {
 }
 add_common_validate!(GetSongParams);
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetSongBody {
     song: SongId3,
 }
+add_axum_response!(GetSongBody);
 
 async fn get_song(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<SongId3Db> {
     get_song_id3_db()

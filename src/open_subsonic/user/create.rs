@@ -3,7 +3,9 @@ use axum::extract::State;
 use derivative::Derivative;
 use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde_with::serde_as;
 use uuid::Uuid;
 
@@ -28,8 +30,9 @@ pub struct CreateUserParams {
 }
 add_common_validate!(CreateUserParams, admin);
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct CreateUserBody {}
+add_axum_response!(CreateUserBody);
 
 pub async fn create_user_handler(
     State(database): State<Database>,

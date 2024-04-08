@@ -22,12 +22,6 @@ const COMMON_ERROR_IMPORT_PREFIX: &str = "crate::open_subsonic::common::error";
 
 const DATE_TYPE_PREFIXES: &[&str] = &["", "release_", "original_release_"];
 
-#[derive(deluxe::ParseMetaItem)]
-struct WrapSubsonicResponse {
-    #[deluxe(default = true)]
-    success: bool,
-}
-
 fn get_base_name(ident: &Ident, suffix: &str) -> Result<String, Error> {
     ident
         .to_string()
@@ -38,32 +32,30 @@ fn get_base_name(ident: &Ident, suffix: &str) -> Result<String, Error> {
         .map(String::from)
 }
 
+#[derive(deluxe::ParseMetaItem)]
+struct AddSubsonicResponse {
+    #[deluxe(default = true)]
+    success: bool,
+}
+
 #[proc_macro_attribute]
-pub fn wrap_subsonic_response(
+pub fn add_subsonic_response(
     args: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
     match try {
         let item_struct = parse_macro_input!(input as ItemStruct);
-        let item_struct_ident = &item_struct.ident;
+        let item_ident = &item_struct.ident;
 
-        let args = deluxe::parse2::<WrapSubsonicResponse>(args.into())?;
+        let args = deluxe::parse2::<AddSubsonicResponse>(args.into())?;
         let constant_type = parse_str::<ExprPath>(&if args.success {
             concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::SuccessConstantResponse")
         } else {
             concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::ErrorConstantResponse")
         })?;
 
-        let root_struct = format_ident!("Root{}", item_struct_ident.to_string());
-        let subsonic_struct = format_ident!("Subsonic{}", item_struct_ident.to_string());
-
-        let base_type = get_base_name(&item_struct_ident, "Body")?;
-
-        let json_response_path = parse_str::<ExprPath>(&concat_string!(
-            COMMON_ERROR_IMPORT_PREFIX,
-            "::ServerJsonResponse"
-        ))?;
-        let json_response_type = format_ident!("{}JsonResponse", base_type);
+        let root_ident = format_ident!("Root{}", item_ident.to_string());
+        let subsonic_ident = format_ident!("Subsonic{}", item_ident.to_string());
 
         quote! {
             #[derive(serde::Serialize)]
@@ -71,36 +63,57 @@ pub fn wrap_subsonic_response(
             #item_struct
 
             #[derive(serde::Serialize)]
-            pub struct #root_struct {
+            pub struct #root_ident {
                 #[serde(flatten)]
                 constant: #constant_type,
                 #[serde(flatten)]
-                body: #item_struct_ident,
+                body: #item_ident,
             }
 
             #[derive(serde::Serialize)]
             #[serde(rename_all = "camelCase")]
-            pub struct #subsonic_struct {
+            pub struct #subsonic_ident {
                 #[serde(rename = "subsonic-response")]
-                root: #root_struct
+                root: #root_ident
             }
 
-            pub type #json_response_type = #json_response_path<#subsonic_struct>;
-
-            impl From<#item_struct_ident> for #subsonic_struct {
-                fn from(old: #item_struct_ident) -> Self {
+            impl From<#item_ident> for #subsonic_ident {
+                fn from(old: #item_ident) -> Self {
                     Self {
-                        root: #root_struct {
+                        root: #root_ident {
                             constant: Default::default(),
                             body: old,
                         }
                     }
                 }
             }
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
 
-            impl From<#item_struct_ident> for #json_response_type {
-                fn from(old: #item_struct_ident) -> Self {
-                    Ok(axum::Json(old.into()))
+#[proc_macro]
+pub fn add_axum_response(item_ident: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    match try {
+        let item_ident = format_ident!("{}", item_ident.to_string());
+        let subsonic_ident = format_ident!("Subsonic{}", item_ident.to_string());
+
+        let base_type = get_base_name(&item_ident, "Body")?;
+        let json_response_path = parse_str::<ExprPath>(&concat_string!(
+            COMMON_ERROR_IMPORT_PREFIX,
+            "::ServerJsonResponse"
+        ))?;
+        let json_response_ident = format_ident!("{}JsonResponse", base_type);
+
+        quote! {
+            pub type #json_response_ident = #json_response_path<#subsonic_ident>;
+
+            impl From<#item_ident> for #json_response_ident {
+                fn from(value: #item_ident) -> Self {
+                    Ok(axum::Json(value.into()))
                 }
             }
         }
@@ -180,7 +193,7 @@ pub fn add_common_convert(
 
         let common_path =
             parse_str::<ExprPath>(&concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams"))?;
-        let base_type = get_base_name(&item_ident, "Params")?;
+        let base_type = get_base_name(item_ident, "Params")?;
 
         common_item_struct.ident = format_ident!("{}WithCommon", base_type);
         let common_item_ident = &common_item_struct.ident;

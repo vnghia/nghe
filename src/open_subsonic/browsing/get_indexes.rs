@@ -1,6 +1,8 @@
 use axum::extract::State;
 use itertools::Itertools;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -47,10 +49,11 @@ pub struct Indexes {
     index: Vec<Index>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetIndexesBody {
     indexes: Indexes,
 }
+add_axum_response!(GetIndexesBody);
 
 pub async fn get_indexed_handler(
     State(database): State<Database>,

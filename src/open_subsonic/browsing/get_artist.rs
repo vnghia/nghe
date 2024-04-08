@@ -3,7 +3,9 @@ use axum::extract::State;
 use diesel::dsl::sql;
 use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -30,10 +32,11 @@ pub struct ArtistId3WithAlbums {
     pub albums: Vec<AlbumId3>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetArtistBody {
     artist: ArtistId3WithAlbums,
 }
+add_axum_response!(GetArtistBody);
 
 async fn get_artist_and_album_ids(
     pool: &DatabasePool,

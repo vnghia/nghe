@@ -2,7 +2,7 @@ use axum::extract::State;
 use axum::Form;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::wrap_subsonic_response;
+use nghe_proc_macros::{add_axum_response, add_subsonic_response};
 use serde::Deserialize;
 use serde_with::serde_as;
 
@@ -20,9 +20,10 @@ pub struct SetupParams {
     pub email: String,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 #[derive(Debug)]
 pub struct SetupBody {}
+add_axum_response!(SetupBody);
 
 pub async fn setup_handler(
     State(database): State<Database>,

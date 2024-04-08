@@ -57,15 +57,16 @@ emit_constant_serialize!(status_failed, str, "failed");
 
 #[cfg(test)]
 mod tests {
-    use nghe_proc_macros::wrap_subsonic_response;
+    use nghe_proc_macros::{add_axum_response, add_subsonic_response};
     use serde_json::{json, to_value};
 
     use super::constant;
 
     #[test]
     fn test_ser_success_empty() {
-        #[wrap_subsonic_response]
+        #[add_subsonic_response]
         struct TestBody {}
+        add_axum_response!(TestBody);
 
         assert_eq!(
             to_value(Into::<SubsonicTestBody>::into(TestBody {})).unwrap(),
@@ -83,10 +84,11 @@ mod tests {
 
     #[test]
     fn test_ser_success() {
-        #[wrap_subsonic_response]
+        #[add_subsonic_response]
         struct TestBody {
             a: u16,
         }
+        add_axum_response!(TestBody);
         let a = 10;
 
         assert_eq!(
@@ -106,10 +108,11 @@ mod tests {
 
     #[test]
     fn test_ser_success_camel_case() {
-        #[wrap_subsonic_response]
+        #[add_subsonic_response]
         struct TestBody {
             camel_case: u16,
         }
+        add_axum_response!(TestBody);
         let camel_case = 10;
 
         assert_eq!(
@@ -129,8 +132,9 @@ mod tests {
 
     #[test]
     fn test_ser_error_empty() {
-        #[wrap_subsonic_response(success = false)]
+        #[add_subsonic_response(success = false)]
         struct TestBody {}
+        add_axum_response!(TestBody);
 
         assert_eq!(
             to_value(Into::<SubsonicTestBody>::into(TestBody {})).unwrap(),
@@ -148,10 +152,11 @@ mod tests {
 
     #[test]
     fn test_ser_error() {
-        #[wrap_subsonic_response(success = false)]
+        #[add_subsonic_response(success = false)]
         struct TestBody {
             a: u16,
         }
+        add_axum_response!(TestBody);
         let a = 10;
 
         assert_eq!(

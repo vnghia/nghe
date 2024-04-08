@@ -1,7 +1,9 @@
 use anyhow::Result;
 use axum::extract::State;
 use itertools::Itertools;
-use nghe_proc_macros::{add_common_convert, add_common_validate, wrap_subsonic_response};
+use nghe_proc_macros::{
+    add_axum_response, add_common_convert, add_common_validate, add_subsonic_response,
+};
 use serde::Serialize;
 use uuid::Uuid;
 
@@ -27,10 +29,11 @@ pub struct MusicDirectory {
     children: Vec<ChildItem>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct GetMusicDirectoryBody {
     directory: MusicDirectory,
 }
+add_axum_response!(GetMusicDirectoryBody);
 
 async fn get_artist_directory(
     pool: &DatabasePool,

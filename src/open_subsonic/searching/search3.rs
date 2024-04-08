@@ -4,8 +4,8 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_common_convert, add_common_validate, add_count_offset, add_permission_filter,
-    wrap_subsonic_response,
+    add_axum_response, add_common_convert, add_common_validate, add_count_offset,
+    add_permission_filter, add_subsonic_response,
 };
 use serde::Serialize;
 use uuid::Uuid;
@@ -53,10 +53,11 @@ pub struct Search3Result {
     songs: Vec<SongId3>,
 }
 
-#[wrap_subsonic_response]
+#[add_subsonic_response]
 pub struct Search3Body {
     search_result3: Search3Result,
 }
+add_axum_response!(Search3Body);
 
 async fn syncing(
     pool: &DatabasePool,
