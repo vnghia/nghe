@@ -3,7 +3,7 @@ use nghe_types::open_subsonic::common::response::ErrorConstantResponse;
 #[cfg(test)]
 use nghe_types::open_subsonic::common::response::SuccessConstantResponse;
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "frontend")))]
 mod tests {
     use nghe_proc_macros::{add_axum_response, add_subsonic_response};
     use nghe_types::open_subsonic::common::constant;
