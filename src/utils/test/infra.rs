@@ -15,7 +15,6 @@ use isolang::Language;
 use itertools::Itertools;
 use nghe_types::params::CommonParams;
 use nghe_types::scan::start_scan::ScanMode;
-use nghe_types::user::Role;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
@@ -49,7 +48,7 @@ impl Infra {
         Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
     }
 
-    pub async fn add_user(mut self, role: Option<Role>) -> Self {
+    pub async fn add_user(mut self, role: Option<users::Role>) -> Self {
         self.users.push(users::User::fake(role).create(self.database()).await);
         let user_index = self.users.len() - 1;
         if !self.music_folders.is_empty() {

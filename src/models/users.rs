@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::marker::ConstParamTy;
 
 #[cfg(test)]
 use derivative::Derivative;
@@ -9,14 +10,16 @@ use uuid::Uuid;
 
 pub use crate::schema::users;
 
-#[derive(Debug, Queryable, Selectable, Insertable)]
+#[derive(
+    Debug, Queryable, Selectable, Insertable, ConstParamTy, PartialEq, Eq, PartialOrd, Ord,
+)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Role {
-    admin_role: bool,
-    stream_role: bool,
-    download_role: bool,
-    share_role: bool,
+    pub admin_role: bool,
+    pub stream_role: bool,
+    pub download_role: bool,
+    pub share_role: bool,
 }
 
 #[derive(Queryable, Selectable)]

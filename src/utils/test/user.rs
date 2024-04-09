@@ -2,7 +2,6 @@ use fake::faker::internet::en::*;
 use fake::Fake;
 use nghe_types::params::{to_password_token, CommonParams};
 use nghe_types::user::create::CreateUserParams;
-use nghe_types::user::Role;
 
 use crate::database::EncryptionKey;
 use crate::models::*;
@@ -11,12 +10,12 @@ use crate::utils::password::decrypt_password;
 use crate::Database;
 
 impl users::User {
-    pub fn fake(role: Option<Role>) -> Self {
+    pub fn fake(role: Option<users::Role>) -> Self {
         Self {
             username: Username().fake(),
             password: Password(16..32).fake::<String>().into_bytes(),
             email: SafeEmail().fake(),
-            role: role.unwrap_or_default().into(),
+            role: role.unwrap_or_default(),
             ..Default::default()
         }
     }

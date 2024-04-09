@@ -323,7 +323,7 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
                 quote! { #role_name: #has_role }
             })
             .collect::<Vec<_>>();
-        let role_struct_path = parse_str::<ExprPath>("nghe_types::user::Role")?;
+        let role_struct_path = parse_str::<ExprPath>("crate::models::users::Role")?;
         let role_struct = quote! {
             #role_struct_path {
               #( #role_stmts ),*
