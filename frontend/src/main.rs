@@ -14,5 +14,7 @@ fn main() {
 }
 
 fn App() -> Element {
-    rsx! { Router::<nghe_frontend::Route> {} }
+    rsx! {
+        Router::<nghe_frontend::Route> {}
+    }
 }

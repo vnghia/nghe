@@ -65,16 +65,16 @@ pub fn Setup() -> Element {
     };
 
     rsx! {
-      div { class: "min-h-screen flex flex-col justify-center py-12 px-4 lg:px-8",
+      div { class: "bg-base-100 min-h-screen flex flex-col justify-center py-12 px-4 lg:px-8",
         div { class: "sm:mx-auto sm:w-full sm:max-w-md",
-          h2 { class: "mt-6 text-center text-3xl leading-9 font-extrabold text-gray-900",
+          h2 { class: "text-base-content mt-6 text-center text-3xl leading-9 font-extrabold",
             "Setup an admin account"
           }
         }
         div { class: "mt-8 sm:mx-auto sm:w-full sm:max-w-md",
-          div { class: "rounded-box bg-white py-8 px-6 shadow",
+          div { class: "bg-primary rounded-box py-8 px-6 shadow",
             div { class: "form-control sm:mx-auto sm:w-full sm:max-w-md",
-              div { class: "label", span { "Username" } }
+              div { class: "label", span { class: "text-primary-content", "Username" } }
               input {
                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
                 r#type: "text",
@@ -82,7 +82,7 @@ pub fn Setup() -> Element {
                 autocomplete: "username",
                 oninput: move |e| username.set(e.value())
               }
-              div { class: "label", span { "Email" } }
+              div { class: "label", span { class: "text-primary-content", "Email" } }
               input {
                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
                 r#type: "email",
@@ -90,7 +90,7 @@ pub fn Setup() -> Element {
                 autocomplete: "email",
                 oninput: move |e| email.set(e.value())
               }
-              div { class: "label", span { "Password" } }
+              div { class: "label", span { class: "text-primary-content", "Password" } }
               input {
                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
                 r#type: "password",
@@ -98,7 +98,7 @@ pub fn Setup() -> Element {
                 autocomplete: "password",
                 oninput: move |e| password.set(e.value())
               }
-              div { class: "label", span { "Server URL" } }
+              div { class: "label", span { class: "text-primary-content", "Server URL" } }
               input {
                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
                 r#type: "text",
