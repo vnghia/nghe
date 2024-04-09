@@ -11,11 +11,11 @@ use super::super::id::MediaTypedId;
 #[add_types_derive]
 #[derive(Debug, Default)]
 pub struct DateId3 {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub year: Option<u16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub month: Option<u8>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub day: Option<u8>,
 }
 
@@ -31,7 +31,7 @@ pub struct ArtistId3 {
     pub id: Uuid,
     pub name: String,
     #[new(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub album_count: Option<u16>,
 }
 
@@ -40,11 +40,11 @@ pub struct ArtistId3 {
 pub struct AlbumId3 {
     pub id: Uuid,
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub year: Option<u16>,
-    #[serde(skip_serializing_if = "DateId3::skip_serializing")]
+    #[serde(skip_serializing_if = "DateId3::skip_serializing", default)]
     pub release_date: DateId3,
-    #[serde(skip_serializing_if = "DateId3::skip_serializing")]
+    #[serde(skip_serializing_if = "DateId3::skip_serializing", default)]
     pub original_release_date: DateId3,
     pub song_count: u16,
     pub duration: u32,
@@ -54,10 +54,10 @@ pub struct AlbumId3 {
     // So album covert art id is default to album id.
     pub cover_art: MediaTypedId,
     #[new(default)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub artists: Vec<ArtistId3>,
     #[new(default)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub genres: Vec<NameId3>,
 }
 
@@ -73,22 +73,22 @@ pub struct SongId3 {
     pub suffix: String,
     pub bit_rate: u32,
     pub album_id: Uuid,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub year: Option<u16>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub track: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub disc_number: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub cover_art: Option<MediaTypedId>,
     #[new(default)]
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub content_type: Option<String>,
     #[new(default)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub artists: Vec<ArtistId3>,
     #[new(default)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub genres: Vec<NameId3>,
 }
 

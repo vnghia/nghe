@@ -17,13 +17,13 @@ macro_rules! emit_constant_serialize {
 #[add_types_derive]
 #[derive(Default)]
 struct ConstantResponse {
-    #[serde(serialize_with = "emit_open_subsonic_version")]
+    #[serde(serialize_with = "emit_open_subsonic_version", skip_deserializing)]
     version: (),
-    #[serde(rename = "type", serialize_with = "emit_server_type")]
+    #[serde(rename = "type", serialize_with = "emit_server_type", skip_deserializing)]
     server_type: (),
-    #[serde(serialize_with = "emit_server_version")]
+    #[serde(serialize_with = "emit_server_version", skip_deserializing)]
     server_version: (),
-    #[serde(serialize_with = "emit_open_subsonic_support")]
+    #[serde(serialize_with = "emit_open_subsonic_support", skip_deserializing)]
     open_subsonic: (),
 }
 
@@ -31,7 +31,7 @@ struct ConstantResponse {
 #[add_types_derive]
 #[derive(Default)]
 pub struct SuccessConstantResponse {
-    #[serde(serialize_with = "emit_status_ok")]
+    #[serde(serialize_with = "emit_status_ok", skip_deserializing)]
     status: (),
 
     #[serde(flatten)]
@@ -42,7 +42,7 @@ pub struct SuccessConstantResponse {
 #[add_types_derive]
 #[derive(Default)]
 pub struct ErrorConstantResponse {
-    #[serde(serialize_with = "emit_status_failed")]
+    #[serde(serialize_with = "emit_status_failed", skip_deserializing)]
     status: (),
 
     #[serde(flatten)]

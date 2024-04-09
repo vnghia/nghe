@@ -19,11 +19,11 @@ pub struct Search3Params {
 
 #[add_types_derive]
 pub struct Search3Result {
-    #[serde(rename = "artist", skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "artist", skip_serializing_if = "Vec::is_empty", default)]
     pub artists: Vec<ArtistId3>,
-    #[serde(rename = "album", skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "album", skip_serializing_if = "Vec::is_empty", default)]
     pub albums: Vec<AlbumId3>,
-    #[serde(rename = "song", skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "song", skip_serializing_if = "Vec::is_empty", default)]
     pub songs: Vec<SongId3>,
 }
 
