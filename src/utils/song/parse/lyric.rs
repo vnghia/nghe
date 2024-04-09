@@ -195,7 +195,7 @@ impl SongLyric {
 #[cfg(test)]
 mod test {
     use lrc::{IDTag, TimeTag};
-    use nghe_types::open_subsonic::common::id3::response::LyricId3;
+    use nghe_types::id3::LyricId3;
 
     use super::*;
 

@@ -2,7 +2,7 @@
 mod tests {
     use concat_string::concat_string;
     use fake::{Fake, Faker};
-    use nghe_types::open_subsonic::common::id::{MediaType, MediaTypedId, TypedId, TYPED_ID_STR};
+    use nghe_types::id::{MediaType, MediaTypedId, TypedId, TYPED_ID_STR};
     use serde::{Deserialize, Serialize};
     use serde_json::{from_str, json, to_value};
     use uuid::Uuid;

@@ -6,8 +6,7 @@ use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use crate::models::*;
-use crate::open_subsonic::common::id3::db::*;
-use crate::open_subsonic::common::id3::query::*;
+use crate::open_subsonic::id3::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool, OSError};
 

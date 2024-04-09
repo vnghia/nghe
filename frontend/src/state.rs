@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
-use nghe_types::open_subsonic::common::request::CommonParams;
+use nghe_types::params::CommonParams;
 use serde::{Deserialize, Serialize};
 use url::Url;
 

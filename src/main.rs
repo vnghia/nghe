@@ -10,7 +10,7 @@ use nghe::open_subsonic::{
     system, user,
 };
 use nghe::Database;
-use nghe_types::open_subsonic::scan::start_scan::ScanMode;
+use nghe_types::scan::start_scan::ScanMode;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;

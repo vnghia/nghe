@@ -1,7 +1,7 @@
 use axum::extract::State;
 use itertools::Itertools;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
-use nghe_types::open_subsonic::common::id::{MediaType, MediaTypedId};
+use nghe_types::id::{MediaType, MediaTypedId};
 
 use super::get_artists::get_artists;
 use crate::Database;

@@ -3,11 +3,10 @@ use axum::extract::State;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
-use nghe_types::open_subsonic::common::id3::response::*;
+use nghe_types::id3::*;
 use uuid::Uuid;
 
-use crate::open_subsonic::common::id3::db::*;
-use crate::open_subsonic::common::id3::query::*;
+use crate::open_subsonic::id3::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 

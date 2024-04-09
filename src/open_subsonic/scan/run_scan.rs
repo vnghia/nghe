@@ -7,7 +7,7 @@ use diesel_async::RunQueryDsl;
 use futures::{StreamExt, TryStreamExt};
 use futures_buffered::FuturesUnorderedBounded;
 use lofty::FileType;
-use nghe_types::open_subsonic::scan::start_scan::ScanMode;
+use nghe_types::scan::start_scan::ScanMode;
 use tracing::{instrument, Instrument};
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;

@@ -9,8 +9,7 @@ use nghe_proc_macros::{
 use uuid::Uuid;
 
 use crate::models::*;
-use crate::open_subsonic::common::id3::db::*;
-use crate::open_subsonic::common::id3::query::*;
+use crate::open_subsonic::id3::*;
 use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool};
 

@@ -8,7 +8,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::add_common_validate;
-use nghe_types::open_subsonic::common::id::MediaType;
+use nghe_types::id::MediaType;
 use uuid::Uuid;
 
 use crate::config::ArtConfig;

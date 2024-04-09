@@ -9,8 +9,8 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use isolang::Language;
-use nghe_types::open_subsonic::common::id::{MediaType, MediaTypedId};
-use nghe_types::open_subsonic::common::id3::response::*;
+use nghe_types::id::{MediaType, MediaTypedId};
+use nghe_types::id3::*;
 use time::OffsetDateTime;
 use uuid::Uuid;
 

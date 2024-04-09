@@ -357,7 +357,7 @@ pub fn transcode<PI: AsRef<Path>, PO: AsRef<Path>>(
 pub mod test {
     use std::path::PathBuf;
 
-    use nghe_types::open_subsonic::media_retrieval::stream::Format;
+    use nghe_types::media_retrieval::stream::Format;
 
     use super::*;
 
@@ -394,7 +394,7 @@ pub mod test {
 
 #[cfg(test)]
 mod tests {
-    use nghe_types::open_subsonic::media_retrieval::stream::Format;
+    use nghe_types::media_retrieval::stream::Format;
     use strum::IntoEnumIterator;
 
     use super::test::transcode_to_memory;

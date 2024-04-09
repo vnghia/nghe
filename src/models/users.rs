@@ -47,7 +47,7 @@ pub struct NewUser<'a> {
     pub role: Role,
 }
 
-impl From<Role> for nghe_types::open_subsonic::user::Role {
+impl From<Role> for nghe_types::user::Role {
     fn from(value: Role) -> Self {
         Self {
             admin_role: value.admin_role,
@@ -58,8 +58,8 @@ impl From<Role> for nghe_types::open_subsonic::user::Role {
     }
 }
 
-impl From<nghe_types::open_subsonic::user::Role> for Role {
-    fn from(value: nghe_types::open_subsonic::user::Role) -> Self {
+impl From<nghe_types::user::Role> for Role {
+    fn from(value: nghe_types::user::Role) -> Self {
         Self {
             admin_role: value.admin_role,
             stream_role: value.stream_role,

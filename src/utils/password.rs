@@ -1,7 +1,6 @@
 use anyhow::Result;
 use libaes::Cipher;
-use nghe_types::open_subsonic::common::request::MD5Token;
-use nghe_types::utils::password::to_password_token;
+use nghe_types::params::{to_password_token, MD5Token};
 
 use crate::database::EncryptionKey;
 use crate::OSError;

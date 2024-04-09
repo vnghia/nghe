@@ -1,9 +1,8 @@
 use concat_string::concat_string;
 use dioxus::prelude::*;
 use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
-use nghe_types::open_subsonic::common::request::CommonParams;
-use nghe_types::open_subsonic::system::ping::PingParams;
-use nghe_types::utils::password::to_password_token;
+use nghe_types::params::{to_password_token, CommonParams};
+use nghe_types::system::ping::PingParams;
 use rand::distributions::{Alphanumeric, DistString};
 use url::Url;
 

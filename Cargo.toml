@@ -7,36 +7,49 @@ edition = "2021"
 
 [package]
 name = "nghe"
-version.workspace = true
-edition.workspace = true
+version = { workspace = true }
+edition = { workspace = true }
 
 [workspace.dependencies]
 anyhow = { version = "1.0.81", features = ["backtrace"] }
-concat-string = "1.0.1"
-derivative = "2.2.0"
+concat-string = { version = "1.0.1" }
+derivative = { version = "2.2.0" }
+isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
+rand = { version = "0.8.5" }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_with = { version = "3.7.0", features = ["hex"] }
+strum = { version = "0.26.2", features = ["derive"] }
+time = { version = "0.3.34", features = ["serde-human-readable", "macros"] }
+uuid = { version = "1.8.0", features = ["serde"] }
+
+# Dev
+serde_json = { version = "1.0.115" }
 fake = { version = "2.9.2", features = [
   "derive",
   "uuid",
   "serde_json",
   "time",
 ] }
-isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
-rand = "0.8.5"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.115"
-serde_with = { version = "3.7.0", features = ["hex"] }
-strum = { version = "0.26.2", features = ["derive"] }
-time = { version = "0.3.34", features = ["serde-human-readable", "macros"] }
-uuid = { version = "1.8.0", features = ["serde"] }
 
 [dependencies]
-anyhow.workspace = true
-async-trait = "0.1.79"
+anyhow = { workspace = true }
+concat-string = { workspace = true }
+derivative = { workspace = true }
+isolang = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_with = { workspace = true }
+strum = { workspace = true }
+time = { workspace = true }
+uuid = { workspace = true }
+
+nghe-proc_macros = { path = "proc_macros" }
+nghe-types = { path = "types" }
+
+async-trait = { version = "0.1.79" }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form"] }
-concat-string.workspace = true
-constcat = "0.5.0"
-derivative.workspace = true
+constcat = { version = "0.5.0" }
 diesel = { version = "2.1.5", features = ["uuid", "time"] }
 diesel-async = { version = "0.4.1", features = [
   "postgres",
@@ -46,59 +59,46 @@ diesel-async = { version = "0.4.1", features = [
 diesel_migrations = { version = "2.1.0", features = ["postgres"] }
 figment = { version = "0.10.15", features = ["env"] }
 flume = { version = "0.11.0", features = ["async"] }
-futures = "0.3.30"
-futures-buffered = "0.2.4"
-hex = "0.4.3"
-ignore = "0.4.22"
-isolang.workspace = true
-itertools = "0.12.1"
-libaes = "0.7.0"
-lofty = "0.18.2"
+futures = { version = "0.3.30" }
+futures-buffered = { version = "0.2.4" }
+hex = { version = "0.4.3" }
+ignore = { version = "0.4.22" }
+itertools = { version = "0.12.1" }
+libaes = { version = "0.7.0" }
+lofty = { version = "0.18.2" }
 lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }
-mimalloc = "0.1.39"
-mime_guess = "2.0.4"
-nghe-proc_macros = { path = "proc_macros" }
-nghe-types = { path = "types", default-features = false, features = [
-  "backend",
-] }
-paste = "1.0.14"
-rand.workspace = true
-rayon = "1.10.0"
+mimalloc = { version = "0.1.39" }
+mime_guess = { version = "2.0.4" }
+rayon = { version = "1.10.0" }
 rsmpeg = { git = "https://github.com/vnghia/rsmpeg.git", rev = "e34a83a", features = [
   "link_system_ffmpeg",
 ] }
-serde.workspace = true
-serde_with.workspace = true
-strum.workspace = true
-thiserror = "1.0.58"
-time.workspace = true
-tokio = { version = "1.37", features = ["full"] }
-tokio-postgres = "0.7.10"
+thiserror = { version = "1.0.58" }
+tokio = { version = "1.37.0", features = ["full"] }
+tokio-postgres = { version = "0.7.10" }
 tokio-util = { version = "0.7.10", features = ["io"] }
-tower = { version = "0.4", features = ["util"] }
+tower = { version = "0.4.13", features = ["util"] }
 tower-http = { version = "0.5.2", features = ["cors", "fs", "trace"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-urlencoding = "2.1.3"
-uuid.workspace = true
-walkdir = "2.5.0"
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+urlencoding = { version = "2.1.3" }
+walkdir = { version = "2.5.0" }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
 
 [build-dependencies]
-built = { version = "0.7", features = ["git2"] }
+built = { version = "0.7.1", features = ["git2"] }
 
 [dev-dependencies]
-fake.workspace = true
-http-body-util = "0.1.1"
+fake = { workspace = true }
+serde_json = { workspace = true }
+
+nghe-types = { path = "types", features = ["test"] }
+
+http-body-util = { version = "0.1.1" }
 image = { version = "0.25.1", default-features = false, features = [
   "jpeg",
   "png",
 ] }
-nghe-types = { path = "types", default-features = false, features = [
-  "backend",
-  "test",
-] }
-serde_json.workspace = true
 tempfile = "3.10.1"
 url = "2.5.0"
 uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }

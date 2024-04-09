@@ -12,8 +12,9 @@ pub mod user;
 
 pub use common::error::{OSError, ServerError};
 pub use common::stream::StreamResponse;
+pub use common::*;
 
 #[cfg(test)]
 pub mod test {
-    pub use super::common::id3;
+    pub use super::id3;
 }

@@ -1,9 +1,8 @@
 use fake::faker::internet::en::*;
 use fake::Fake;
-use nghe_types::open_subsonic::common::request::CommonParams;
-use nghe_types::open_subsonic::user::create::CreateUserParams;
-use nghe_types::open_subsonic::user::Role;
-use nghe_types::utils::password::to_password_token;
+use nghe_types::params::{to_password_token, CommonParams};
+use nghe_types::user::create::CreateUserParams;
+use nghe_types::user::Role;
 
 use crate::database::EncryptionKey;
 use crate::models::*;

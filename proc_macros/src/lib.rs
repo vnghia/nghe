@@ -18,9 +18,11 @@ use syn::{
     Ident, Item, ItemStruct,
 };
 
-const CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::open_subsonic::common::response";
-const COMMON_REQUEST_IMPORT_PREFIX: &str = "crate::open_subsonic::common::request";
-const COMMON_ERROR_IMPORT_PREFIX: &str = "crate::open_subsonic::common::error";
+const TYPES_CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::response";
+const TYPES_COMMON_PARAMS_IMPORT_PREFIX: &str = "crate::params";
+
+const BACKEND_COMMON_PARAMS_IMPORT_PREFIX: &str = "crate::open_subsonic::params";
+const BACKEND_COMMON_ERROR_IMPORT_PREFIX: &str = "crate::open_subsonic::common::error";
 
 const DATE_TYPE_PREFIXES: &[&str] = &["", "release_", "original_release_"];
 
@@ -42,6 +44,8 @@ fn get_caller_types_module() -> ExprPath {
                     .path()
                     .with_extension("")
                     .strip_prefix("src")
+                    .unwrap()
+                    .strip_prefix("open_subsonic")
                     .unwrap(),
             )
             .components()
@@ -75,19 +79,19 @@ pub fn add_subsonic_response(
 
         let args = deluxe::parse2::<AddSubsonicResponse>(args.into())?;
         let constant_type = parse_str::<ExprPath>(&if args.success {
-            concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::SuccessConstantResponse")
+            concat_string!(TYPES_CONSTANT_RESPONSE_IMPORT_PREFIX, "::SuccessConstantResponse")
         } else {
-            concat_string!(CONSTANT_RESPONSE_IMPORT_PREFIX, "::ErrorConstantResponse")
+            concat_string!(TYPES_CONSTANT_RESPONSE_IMPORT_PREFIX, "::ErrorConstantResponse")
         })?;
 
         let root_ident = format_ident!("Root{}", item_ident.to_string());
         let subsonic_ident = format_ident!("Subsonic{}", item_ident.to_string());
 
         quote! {
-            #[nghe_proc_macros::add_response_derive]
+            #[nghe_proc_macros::add_types_derive]
             #item_struct
 
-            #[nghe_proc_macros::add_response_derive]
+            #[nghe_proc_macros::add_types_derive]
             pub struct #root_ident {
                 #[serde(flatten)]
                 pub constant: #constant_type,
@@ -95,7 +99,7 @@ pub fn add_subsonic_response(
                 pub body: #item_ident,
             }
 
-            #[nghe_proc_macros::add_response_derive]
+            #[nghe_proc_macros::add_types_derive]
             pub struct #subsonic_ident {
                 #[serde(rename = "subsonic-response")]
                 pub root: #root_ident
@@ -129,7 +133,7 @@ pub fn add_axum_response(item_ident: proc_macro::TokenStream) -> proc_macro::Tok
 
         let base_type = get_base_name(&item_ident, "Body")?;
         let json_response_path = parse_str::<ExprPath>(&concat_string!(
-            COMMON_ERROR_IMPORT_PREFIX,
+            BACKEND_COMMON_ERROR_IMPORT_PREFIX,
             "::ServerJsonResponse"
         ))?;
         let json_response_ident = format_ident!("{}JsonResponse", base_type);
@@ -213,8 +217,10 @@ pub fn add_common_convert(
             vec![]
         };
 
-        let common_path =
-            parse_str::<ExprPath>(&concat_string!(COMMON_REQUEST_IMPORT_PREFIX, "::CommonParams"))?;
+        let common_path = parse_str::<ExprPath>(&concat_string!(
+            TYPES_COMMON_PARAMS_IMPORT_PREFIX,
+            "::CommonParams"
+        ))?;
         let base_type = get_base_name(item_ident, "Params")?;
 
         common_item_struct.ident = format_ident!("{}WithCommon", base_type);
@@ -230,10 +236,10 @@ pub fn add_common_convert(
         common_params_fields.push(quote! { common, });
 
         quote! {
-            #[nghe_proc_macros::add_request_derive]
+            #[nghe_proc_macros::add_types_derive]
             #item_struct
 
-            #[nghe_proc_macros::add_request_derive]
+            #[nghe_proc_macros::add_types_derive]
             #common_item_struct
 
             impl AsRef<#common_path> for #common_item_ident {
@@ -250,7 +256,6 @@ pub fn add_common_convert(
                 }
             }
 
-            #[cfg(any(test, feature = "frontend"))]
             impl #item_ident {
                 pub fn with_common(self, common: #common_path) -> #common_item_ident {
                     let value = self;
@@ -309,7 +314,7 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
                 quote! { #role_name: #has_role }
             })
             .collect::<Vec<_>>();
-        let role_struct_path = parse_str::<ExprPath>("nghe_types::open_subsonic::user::Role")?;
+        let role_struct_path = parse_str::<ExprPath>("nghe_types::user::Role")?;
         let role_struct = quote! {
             #role_struct_path {
               #( #role_stmts ),*
@@ -317,7 +322,7 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
         };
 
         let validated_form_path = parse_str::<ExprPath>(&concat_string!(
-            COMMON_REQUEST_IMPORT_PREFIX,
+            BACKEND_COMMON_PARAMS_IMPORT_PREFIX,
             "::ValidatedForm"
         ))?;
 
@@ -351,61 +356,7 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
 }
 
 #[proc_macro_attribute]
-pub fn add_request_derive(
-    _: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    match try {
-        let input: proc_macro2::TokenStream = input.into();
-        quote! {
-            #[cfg_attr(feature = "frontend", derive(serde::Serialize))]
-            #[cfg_attr(feature = "backend", derive(serde::Deserialize))]
-            #[cfg_attr(
-                all(test, not(any(feature = "frontend", feature = "backend"))),
-                derive(serde::Deserialize))
-            ]
-            #[cfg_attr(
-                any(test, feature = "frontend", feature = "backend"),
-                serde(rename_all = "camelCase")
-            )]
-            #input
-        }
-        .into()
-    } {
-        Ok(r) => r,
-        Err::<_, Error>(e) => e.into_compile_error().into(),
-    }
-}
-
-#[proc_macro_attribute]
-pub fn add_response_derive(
-    _: proc_macro::TokenStream,
-    input: proc_macro::TokenStream,
-) -> proc_macro::TokenStream {
-    match try {
-        let input: proc_macro2::TokenStream = input.into();
-        quote! {
-            #[cfg_attr(feature = "frontend", derive(serde::Deserialize))]
-            #[cfg_attr(feature = "backend", derive(serde::Serialize))]
-            #[cfg_attr(
-              all(test, not(any(feature = "frontend", feature = "backend"))),
-              derive(serde::Serialize))
-            ]
-            #[cfg_attr(
-                any(test, feature = "frontend", feature = "backend"),
-                serde(rename_all = "camelCase")
-            )]
-            #input
-        }
-        .into()
-    } {
-        Ok(r) => r,
-        Err::<_, Error>(e) => e.into_compile_error().into(),
-    }
-}
-
-#[proc_macro_attribute]
-pub fn add_request_response_derive(
+pub fn add_types_derive(
     _: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
@@ -581,9 +532,9 @@ pub fn generate_date_db(table_name: proc_macro::TokenStream) -> proc_macro::Toke
                         }
                     }
 
-                    impl Into<nghe_types::open_subsonic::DateId3> for #date_type {
-                        fn into(self) -> nghe_types::open_subsonic::DateId3 {
-                            nghe_types::open_subsonic::DateId3 {
+                    impl Into<nghe_types::id3::DateId3> for #date_type {
+                        fn into(self) -> nghe_types::id3::DateId3 {
+                            nghe_types::id3::DateId3 {
                                 year: self.year.map(|v| v as _),
                                 month: self.month.map(|v| v as _),
                                 day: self.day.map(|v| v as _),

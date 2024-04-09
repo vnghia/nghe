@@ -30,3 +30,13 @@ pub type DatabasePool =
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
+
+#[cfg(test)]
+pub mod params {
+    pub use nghe_types::params::*;
+}
+
+#[cfg(test)]
+pub mod response {
+    pub use nghe_types::response::*;
+}

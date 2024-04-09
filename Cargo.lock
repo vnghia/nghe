@@ -2779,7 +2779,6 @@ dependencies = [
  "mime_guess",
  "nghe-proc_macros",
  "nghe-types",
- "paste",
  "rand",
  "rayon",
  "rsmpeg",

@@ -3,8 +3,8 @@ use axum::Form;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::add_axum_response;
-use nghe_types::open_subsonic::user::create::CreateUserParams;
-use nghe_types::open_subsonic::user::Role;
+use nghe_types::user::create::CreateUserParams;
+use nghe_types::user::Role;
 
 use super::create::create_user;
 use crate::models::*;

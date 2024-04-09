@@ -2,8 +2,8 @@ use anyhow::Result;
 use axum::extract::State;
 use itertools::Itertools;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
-use nghe_types::open_subsonic::browsing::get_indexes::ChildItem;
-use nghe_types::open_subsonic::common::id::{MediaType, MediaTypedId};
+use nghe_types::browsing::get_indexes::ChildItem;
+use nghe_types::id::{MediaType, MediaTypedId};
 use uuid::Uuid;
 
 use crate::open_subsonic::browsing::get_album::get_album;

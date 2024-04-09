@@ -23,7 +23,7 @@ pub struct NewMusicFolder<'a> {
     pub path: Cow<'a, str>,
 }
 
-impl From<MusicFolder> for nghe_types::open_subsonic::browsing::MusicFolder {
+impl From<MusicFolder> for nghe_types::browsing::MusicFolder {
     fn from(value: MusicFolder) -> Self {
         Self { id: value.id, path: value.path }
     }

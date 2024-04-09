@@ -1,26 +1,23 @@
 [package]
 name = "nghe-frontend"
-version.workspace = true
-edition.workspace = true
-
+version = { workspace = true }
+edition = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow.workspace = true
-concat-string.workspace = true
-dioxus = { version = "0.5", features = ["web", "router"] }
+anyhow = { workspace = true }
+concat-string = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+
+nghe-types = { path = "../types" }
+
+console_error_panic_hook = { verison = "0.1.7" }
+dioxus = { version = "0.5.1", features = ["web", "router"] }
+dioxus-logger = { version = "0.4.1" }
 dioxus-sdk = { version = "0.5.0", features = ["storage"] }
 getrandom = { version = "0.2.14", features = ["js"] }
-manganis = "0.2.2"
-nghe-types = { path = "../types", default-features = false, features = [
-  "frontend",
-] }
-rand.workspace = true
-reqwest = "0.12.3"
-serde.workspace = true
+log = { version = "0.4.19" }
+manganis = { version = "0.2.2" }
+reqwest = { version = "0.12.3" }
 url = { version = "2.5.0", features = ["serde"] }
-
-# Debug
-log = "0.4.19"
-dioxus-logger = "0.4.1"
-console_error_panic_hook = "0.1.7"

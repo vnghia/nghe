@@ -1,6 +1,6 @@
 use concat_string::concat_string;
 use dioxus::prelude::*;
-use nghe_types::open_subsonic::user::setup::SetupParams;
+use nghe_types::user::setup::SetupParams;
 use url::Url;
 
 use crate::Route;
