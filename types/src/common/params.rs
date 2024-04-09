@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use derivative::Derivative;
 use nghe_proc_macros::add_types_derive;
 use serde_with::serde_as;
@@ -29,4 +31,16 @@ pub fn to_password_token<P: AsRef<[u8]>, S: AsRef<[u8]>>(password: P, salt: S) -
     data.extend_from_slice(password);
     data.extend_from_slice(salt);
     md5::compute(data).into()
+}
+
+impl From<CommonParams> for Cow<'static, CommonParams> {
+    fn from(value: CommonParams) -> Self {
+        Cow::Owned(value)
+    }
+}
+
+impl<'common> From<&'common CommonParams> for Cow<'common, CommonParams> {
+    fn from(value: &'common CommonParams) -> Self {
+        Cow::Borrowed(value)
+    }
 }

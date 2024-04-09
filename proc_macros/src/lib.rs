@@ -15,7 +15,7 @@ use syn::parse::Parser;
 use syn::spanned::Spanned;
 use syn::{
     parse_macro_input, parse_quote, parse_str, Error, Expr, ExprCall, ExprPath, Field, Fields,
-    Ident, Item, ItemStruct,
+    GenericParam, Ident, Item, ItemStruct, Lifetime, LifetimeParam,
 };
 
 const TYPES_CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::response";
@@ -225,15 +225,21 @@ pub fn add_common_convert(
 
         common_item_struct.ident = format_ident!("{}WithCommon", base_type);
         let common_item_ident = &common_item_struct.ident;
+
+        let lt = Lifetime::new("'common", Span::call_site());
+        common_item_struct
+            .generics
+            .params
+            .push(GenericParam::Lifetime(LifetimeParam::new(lt.clone())));
         if let Fields::Named(ref mut fields) = common_item_struct.fields {
             fields.named.push(Field::parse_named.parse2(quote! {
                 #[serde(flatten)]
-                pub common: #common_path
+                pub common: std::borrow::Cow<#lt, #common_path>
             })?);
         }
 
         let mut common_params_fields = params_fields.clone();
-        common_params_fields.push(quote! { common, });
+        common_params_fields.push(quote! { common });
 
         quote! {
             #[nghe_proc_macros::add_types_derive]
@@ -242,14 +248,14 @@ pub fn add_common_convert(
             #[nghe_proc_macros::add_types_derive]
             #common_item_struct
 
-            impl AsRef<#common_path> for #common_item_ident {
+            impl AsRef<#common_path> for #common_item_ident<'static> {
                 fn as_ref(&self) -> &#common_path {
-                    &self.common
+                    &self.common.as_ref()
                 }
             }
 
-            impl From<#common_item_ident> for #item_ident {
-                fn from(value: #common_item_ident) -> #item_ident {
+            impl<#lt> From<#common_item_ident<#lt>> for #item_ident {
+                fn from(value: #common_item_ident<#lt>) -> #item_ident {
                     Self {
                         #( #params_fields ),*
                     }
@@ -257,8 +263,11 @@ pub fn add_common_convert(
             }
 
             impl #item_ident {
-                pub fn with_common(self, common: #common_path) -> #common_item_ident {
+                pub fn with_common<#lt, T: Into<std::borrow::Cow<#lt, #common_path>>>(
+                    self, common: T
+                ) -> #common_item_ident<#lt> {
                     let value = self;
+                    let common = common.into();
                     #common_item_ident {
                         #( #common_params_fields ),*
                     }
@@ -335,7 +344,7 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
             use #types_path::*;
 
             pub type #request_ident =
-                #validated_form_path<#common_item_ident, #item_ident, { #role_struct }>;
+                #validated_form_path<#common_item_ident<'static>, #item_ident, { #role_struct }>;
 
             #[cfg(test)]
             impl #request_ident {

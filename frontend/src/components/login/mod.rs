@@ -49,18 +49,17 @@ pub fn Login() -> Element {
 
                 let salt = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
                 let token = to_password_token(password.as_bytes(), &salt);
-                let common_params = CommonParams { username, salt, token };
-                let ping_params = PingParams {}.with_common(common_params);
+                let common = CommonParams { username, salt, token };
 
                 let client = reqwest::Client::new();
                 client
                     .get(server_url.join("/rest/ping")?)
-                    .query(&ping_params)
+                    .query(&PingParams {}.with_common(&common))
                     .send()
                     .await?
                     .error_for_status()?;
 
-                common_state.set(Some(CommonState { common: ping_params.common, server_url }));
+                common_state.set(Some(CommonState { common, server_url }));
             } {
                 Ok(()) => {}
                 Err::<_, anyhow::Error>(e) => {
