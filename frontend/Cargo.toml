@@ -1,8 +1,10 @@
+cargo-features = ["per-package-target"]
+
 [package]
 name = "nghe-frontend"
 version = { workspace = true }
 edition = { workspace = true }
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+forced-target = "wasm32-unknown-unknown"
 
 [dependencies]
 anyhow = { workspace = true }
