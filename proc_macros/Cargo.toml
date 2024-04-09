@@ -11,7 +11,6 @@ concat-string = { workspace = true }
 
 convert_case = "0.6.0"
 deluxe = { version = "0.5.0" }
-lazy_static = { version = "1.4.0" }
 proc-macro2 = { version = "1.0.79" }
 quote = { version = "1.0.35" }
 syn = { version = "2.0.58", features = ["full"] }
