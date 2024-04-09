@@ -10,3 +10,4 @@ pub mod user;
 pub use db::TemporaryDb;
 pub use fs::TemporaryFs;
 pub use infra::Infra;
+pub use user::User;

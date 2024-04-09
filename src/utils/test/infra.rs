@@ -20,7 +20,7 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use super::db::SongDbInformation;
 use super::fs::SongFsInformation;
-use super::{picture, random, TemporaryDb, TemporaryFs};
+use super::{picture, random, TemporaryDb, TemporaryFs, User};
 use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
@@ -36,7 +36,7 @@ use crate::{Database, DatabasePool};
 pub struct Infra {
     pub db: TemporaryDb,
     pub fs: TemporaryFs,
-    pub users: Vec<users::User>,
+    pub users: Vec<User>,
     pub music_folders: Vec<music_folders::MusicFolder>,
     pub song_fs_infos_vec: Vec<Vec<SongFsInformation>>,
 }
@@ -49,7 +49,7 @@ impl Infra {
     }
 
     pub async fn add_user(mut self, role: Option<users::Role>) -> Self {
-        self.users.push(users::User::fake(role).create(self.database()).await);
+        self.users.push(User::fake(role).create(self.database()).await);
         let user_index = self.users.len() - 1;
         if !self.music_folders.is_empty() {
             self.permissions(user_index..=user_index, .., true).await;
@@ -78,7 +78,7 @@ impl Infra {
         allow: bool,
     ) -> &Self
     where
-        SU: SliceIndex<[users::User], Output = [users::User]>,
+        SU: SliceIndex<[User], Output = [User]>,
         SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
         set_permission(
@@ -99,7 +99,7 @@ impl Infra {
         allow: bool,
     ) -> &Self
     where
-        SU: SliceIndex<[users::User], Output = [users::User]> + Clone,
+        SU: SliceIndex<[User], Output = [User]> + Clone,
         SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
         self.permissions(user_slice.clone(), .., !allow)
@@ -274,13 +274,13 @@ impl Infra {
 
     pub fn user_ids<S>(&self, slice: S) -> Vec<Uuid>
     where
-        S: SliceIndex<[users::User], Output = [users::User]>,
+        S: SliceIndex<[User], Output = [User]>,
     {
         self.users[slice].as_ref().iter().map(|u| u.id).sorted().collect_vec()
     }
 
     pub fn to_common_params(&self, index: usize) -> CommonParams {
-        self.users[index].to_common_params(self.key())
+        (&self.users[index]).into()
     }
 
     pub fn music_folder_id(&self, index: usize) -> Uuid {

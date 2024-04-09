@@ -21,7 +21,7 @@ pub async fn setup_handler(
     } else {
         create_user(
             &database,
-            CreateUserParams {
+            &CreateUserParams {
                 username: params.username,
                 password: params.password,
                 email: params.email,
@@ -43,12 +43,12 @@ mod tests {
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::utils::test::Infra;
+    use crate::utils::test::{Infra, User};
 
     #[tokio::test]
     async fn test_setup_no_user() {
         let infra = Infra::new().await;
-        let users::User { username, password, .. } = users::User::fake(None);
+        let User { username, password, .. } = User::fake(None);
         let form = Form(SetupParams { username, password, ..Faker.fake() });
         assert!(setup_handler(infra.state(), form).await.is_ok());
     }
@@ -56,7 +56,7 @@ mod tests {
     #[tokio::test]
     async fn test_setup_with_user() {
         let infra = Infra::new().await.add_user(None).await;
-        let users::User { username, password, .. } = users::User::fake(None);
+        let User { username, password, .. } = User::fake(None);
         let form = Form(SetupParams { username, password, ..Faker.fake() });
         if let Some(err) = setup_handler(infra.state(), form).await.err() {
             assert!(matches!(
