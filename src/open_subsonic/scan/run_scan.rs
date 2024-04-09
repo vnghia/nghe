@@ -231,9 +231,10 @@ pub async fn run_scan(
 
         let span = tracing::Span::current();
         let (tx, rx) = flume::bounded(scan_config.channel_size);
+        let scan_parallel = scan_config.parallel;
         scan_media_files_tasks.push(tokio::task::spawn_blocking(move || {
             let _enter = span.enter();
-            scan_media_files(music_folder_path, tx)
+            scan_media_files(music_folder_path, tx, scan_parallel)
         }));
 
         while let Ok(scanned_media_file) = rx.recv_async().await {
