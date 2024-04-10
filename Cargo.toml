@@ -85,7 +85,7 @@ walkdir = { version = "2.5.0" }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
 
 [build-dependencies]
-built = { version = "0.7.1", features = ["git2"] }
+built = { version = "0.7.2", features = ["git2"] }
 
 [dev-dependencies]
 fake = { workspace = true }
