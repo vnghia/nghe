@@ -52,8 +52,6 @@ jobs:
           EOF
           docker restart postgres
 
-      - name: Install mold
-        uses: rui314/setup-mold@v1
       - name: Install ffmpeg build deps
         run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
