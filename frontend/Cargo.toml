@@ -19,7 +19,7 @@ dioxus = { version = "0.5.1", features = ["web", "router"] }
 dioxus-logger = { version = "0.4.1" }
 dioxus-sdk = { version = "0.5.0", features = ["storage"] }
 getrandom = { version = "0.2.14", features = ["js"] }
-log = { version = "0.4.19" }
+log = { version = "0.4.21" }
 manganis = { version = "0.2.2" }
 reqwest = { version = "0.12.3" }
 url = { version = "2.5.0", features = ["serde"] }
