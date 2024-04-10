@@ -39,12 +39,7 @@ async fn main() {
     let database = Database::new(&config.database.url, config.database.key).await;
 
     // music folders
-    let (upserted_music_folders, _) = refresh_music_folders(
-        &database.pool,
-        &config.folder.top_paths,
-        &config.folder.depth_levels,
-    )
-    .await;
+    let (upserted_music_folders, _) = refresh_music_folders(&database.pool, &config.folder).await;
 
     // build permission
     permission::build_permission(&database.pool).await.expect("can not build user permission");

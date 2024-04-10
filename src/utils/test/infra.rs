@@ -21,7 +21,7 @@ use xxhash_rust::xxh3::xxh3_64;
 use super::db::SongDbInformation;
 use super::fs::SongFsInformation;
 use super::{picture, random, TemporaryDb, TemporaryFs, User};
-use crate::config::{ArtistIndexConfig, ScanConfig};
+use crate::config::{ArtistIndexConfig, FolderConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::browsing::refresh_music_folders;
@@ -63,8 +63,15 @@ impl Infra {
         } else {
             let music_folder_paths =
                 (0..n_folder).map(|_| self.fs.create_dir(Faker.fake::<String>())).collect_vec();
-            let (upserted_folders, _) =
-                refresh_music_folders(self.pool(), &music_folder_paths, &[]).await;
+            let (upserted_folders, _) = refresh_music_folders(
+                self.pool(),
+                &FolderConfig {
+                    top_paths: music_folder_paths,
+                    top_names: vec![],
+                    depth_levels: vec![],
+                },
+            )
+            .await;
             self.music_folders = upserted_folders;
             self.song_fs_infos_vec = vec![vec![]; n_folder];
             self

@@ -13,18 +13,19 @@ pub use crate::schema::music_folders;
 #[cfg_attr(test, derive(Clone, PartialEq, Eq, PartialOrd, Ord))]
 pub struct MusicFolder {
     pub id: Uuid,
-    #[serde(rename = "name")]
     pub path: String,
+    pub name: String,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = music_folders)]
 pub struct NewMusicFolder<'a> {
     pub path: Cow<'a, str>,
+    pub name: Cow<'a, str>,
 }
 
 impl From<MusicFolder> for nghe_types::browsing::MusicFolder {
     fn from(value: MusicFolder) -> Self {
-        Self { id: value.id, path: value.path }
+        Self { id: value.id, name: value.name }
     }
 }

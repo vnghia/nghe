@@ -5,5 +5,5 @@ use uuid::Uuid;
 #[derive(Debug)]
 pub struct MusicFolder {
     pub id: Uuid,
-    pub path: String,
+    pub name: String,
 }

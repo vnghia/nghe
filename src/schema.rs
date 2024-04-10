@@ -69,6 +69,8 @@ diesel::table! {
         id -> Uuid,
         path -> Text,
         scanned_at -> Timestamptz,
+        name -> Text,
+        updated_at -> Timestamptz,
     }
 }
 

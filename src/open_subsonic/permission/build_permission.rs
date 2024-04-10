@@ -52,7 +52,7 @@ mod tests {
         infra.permissions(.., ..1, false).await;
 
         diesel::insert_into(music_folders::table)
-            .values(&[music_folders::NewMusicFolder { path: "path".into() }])
+            .values(&[music_folders::NewMusicFolder { path: "path".into(), name: "name".into() }])
             .returning(music_folders::id)
             .get_result::<Uuid>(&mut infra.pool().get().await.unwrap())
             .await

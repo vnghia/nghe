@@ -38,6 +38,7 @@ pub struct DatabaseConfig {
 #[derive(Debug, Deserialize)]
 pub struct FolderConfig {
     pub top_paths: Vec<PathBuf>,
+    pub top_names: Vec<String>,
     pub depth_levels: Vec<usize>,
 }
 
@@ -102,6 +103,7 @@ impl Config {
         Figment::new()
             .merge(Env::prefixed(constcat::concat!(built_info::PKG_NAME, "_")).split("__"))
             .join(Serialized::default("server", ServerConfig::default()))
+            .join(Serialized::default("folder.top_names", Vec::<String>::default()))
             .join(Serialized::default("folder.depth_levels", Vec::<usize>::default()))
             .join(Serialized::default("artist", ArtistConfig::default()))
             .join(Serialized::default("parsing", ParsingConfig::default()))
