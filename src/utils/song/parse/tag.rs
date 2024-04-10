@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::models::*;
 use crate::OSError;
 
-type FormatDescription<'a> = &'a [time::format_description::FormatItem<'a>];
+type FormatDescription<'a> = &'a [time::format_description::BorrowedFormatItem<'a>];
 
 const YMD_FORMAT: FormatDescription = format_description!("[year]-[month]-[day]");
 const YM_FORMAT: FormatDescription = format_description!("[year]-[month]");
