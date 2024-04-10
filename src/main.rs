@@ -2,8 +2,8 @@ use axum::Router;
 use nghe::config::Config;
 use nghe::open_subsonic::browsing::refresh_music_folders;
 use nghe::open_subsonic::{
-    bookmarks, browsing, extension, media_list, media_retrieval, permission, scan, searching,
-    system, user,
+    bookmarks, browsing, extension, media_annotation, media_list, media_retrieval, permission,
+    scan, searching, system, user,
 };
 use nghe::Database;
 use nghe_types::constant::{SERVER_NAME, SERVER_VERSION};
@@ -73,6 +73,7 @@ fn app(database: Database, config: Config) -> Router {
         .merge(bookmarks::router())
         .merge(searching::router())
         .merge(scan::router(config.artist_index, config.parsing, config.scan, config.art))
+        .merge(media_annotation::router())
         .layer(
             ServiceBuilder::new().layer(TraceLayer::new_for_http()).layer(CorsLayer::permissive()),
         )

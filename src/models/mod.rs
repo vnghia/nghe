@@ -4,6 +4,7 @@ pub mod configs;
 pub mod genres;
 pub mod lyrics;
 pub mod music_folders;
+pub mod playbacks;
 pub mod scans;
 pub mod song_cover_arts;
 pub mod songs;

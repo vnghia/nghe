@@ -75,6 +75,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    playbacks (user_id, song_id) {
+        user_id -> Uuid,
+        song_id -> Uuid,
+        count -> Int4,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     scans (started_at) {
         started_at -> Timestamptz,
         is_scanning -> Bool,
@@ -196,6 +205,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     genres,
     lyrics,
     music_folders,
+    playbacks,
     scans,
     song_cover_arts,
     songs,
