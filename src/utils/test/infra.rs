@@ -502,7 +502,7 @@ impl Infra {
             date: song.date.into(),
             release_date: song.release_date.into(),
             original_release_date: song.original_release_date.into(),
-            mbz_id: None,
+            mbz_id: song.mbz_id,
         };
 
         let album = get_basic_album_id3_db()
@@ -639,6 +639,7 @@ impl Infra {
             );
             assert_eq!(song_fs.release_date_or_default(), song_db.release_date);
             assert_eq!(song_fs.original_release_date, song_db.original_release_date);
+            assert_eq!(song_fs.mbz_id, song_db.mbz_id);
 
             let album_fs = &song_fs_tag.album;
             let album_db = &song_db_tag.album;

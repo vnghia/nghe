@@ -35,6 +35,7 @@ pub struct ArtistId3Db {
     #[diesel(select_expression = count_distinct(songs::album_id))]
     #[diesel(select_expression_type = count_distinct<songs::album_id>)]
     pub album_count: i64,
+    pub mbz_id: Option<Uuid>,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -66,6 +67,7 @@ pub struct AlbumId3Db {
     pub artist_ids: Vec<Uuid>,
     #[diesel(embed)]
     pub genres: GenresId3Db,
+    pub mbz_id: Option<Uuid>,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -97,6 +99,7 @@ pub struct SongId3Db {
     pub artist_ids: Vec<Uuid>,
     #[diesel(embed)]
     pub genres: GenresId3Db,
+    pub mbz_id: Option<Uuid>,
 }
 
 pub type BasicGenreId3Db = genres::Genre;
@@ -147,6 +150,7 @@ impl From<ArtistId3Db> for ArtistId3 {
             id: value.basic.id,
             name: value.basic.no_id.name.into_owned(),
             album_count: Some(value.album_count as _),
+            music_brainz_id: value.mbz_id,
         }
     }
 }
@@ -190,6 +194,7 @@ impl AlbumId3Db {
             cover_art: MediaTypedId { t: Some(MediaType::Album), id: self.basic.id },
             artists,
             genres: self.genres.into(),
+            music_brainz_id: self.mbz_id,
         })
     }
 }
@@ -229,6 +234,7 @@ impl SongId3Db {
             suffix: self.basic.format,
             artists,
             genres: self.genres.into(),
+            music_brainz_id: self.mbz_id,
         })
     }
 }

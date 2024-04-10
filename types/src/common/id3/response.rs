@@ -33,6 +33,9 @@ pub struct ArtistId3 {
     #[new(default)]
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub album_count: Option<u16>,
+    #[new(default)]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub music_brainz_id: Option<Uuid>,
 }
 
 #[add_types_derive]
@@ -59,6 +62,9 @@ pub struct AlbumId3 {
     #[new(default)]
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub genres: Vec<NameId3>,
+    #[new(default)]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub music_brainz_id: Option<Uuid>,
 }
 
 #[add_types_derive]
@@ -90,6 +96,9 @@ pub struct SongId3 {
     #[new(default)]
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub genres: Vec<NameId3>,
+    #[new(default)]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub music_brainz_id: Option<Uuid>,
 }
 
 #[add_types_derive]

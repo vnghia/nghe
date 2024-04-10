@@ -135,6 +135,7 @@ diesel::table! {
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
         cover_art_id -> Nullable<Uuid>,
+        mbz_id -> Nullable<Uuid>,
     }
 }
 

@@ -31,6 +31,7 @@ pub struct SongUpdateInformationDB<'a> {
     pub original_release_month: Option<i16>,
     pub original_release_day: Option<i16>,
     pub languages: Vec<&'static str>,
+    pub mbz_id: Option<Uuid>,
     // Song property
     pub format: Cow<'a, str>,
     pub duration: f32,
@@ -79,6 +80,7 @@ pub mod test {
         #[diesel(embed)]
         pub original_release_date: SongOriginalReleaseDateDb,
         pub languages: Vec<Option<String>>,
+        pub mbz_id: Option<Uuid>,
         // Filesystem property
         #[diesel(embed)]
         pub music_folder: music_folders::MusicFolder,

@@ -119,6 +119,7 @@ impl SongInformation {
             original_release_month,
             original_release_day,
             languages: self.tag.languages.iter().map(|language| language.to_639_3()).collect_vec(),
+            mbz_id: self.tag.song.mbz_id,
             // Song property
             format: to_extension(&self.property.format).into(),
             duration: self.property.duration,
