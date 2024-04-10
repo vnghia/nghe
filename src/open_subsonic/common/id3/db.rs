@@ -135,47 +135,47 @@ pub struct LyricId3Db {
     pub line_starts: Option<Vec<Option<i32>>>,
 }
 
-impl BasicArtistId3Db {
-    pub fn into_res(self) -> ArtistId3 {
-        ArtistId3::new(self.id, self.no_id.name.into_owned())
+impl From<BasicArtistId3Db> for ArtistId3 {
+    fn from(value: BasicArtistId3Db) -> Self {
+        Self::new(value.id, value.no_id.name.into_owned())
     }
 }
 
-impl ArtistId3Db {
-    pub fn into_res(self) -> ArtistId3 {
-        ArtistId3 {
-            id: self.basic.id,
-            name: self.basic.no_id.name.into_owned(),
-            album_count: Some(self.album_count as _),
+impl From<ArtistId3Db> for ArtistId3 {
+    fn from(value: ArtistId3Db) -> Self {
+        Self {
+            id: value.basic.id,
+            name: value.basic.no_id.name.into_owned(),
+            album_count: Some(value.album_count as _),
         }
     }
 }
 
-impl BasicAlbumId3Db {
-    pub fn into_res(self) -> AlbumId3 {
-        AlbumId3::new(
-            self.id,
-            self.no_id.name.into_owned(),
-            self.no_id.date.year.map(|v| v as _),
-            self.no_id.release_date.into(),
-            self.no_id.original_release_date.into(),
-            self.song_count as _,
-            self.duration as _,
-            self.created_at,
-            MediaTypedId { t: Some(MediaType::Album), id: self.id },
+impl From<BasicAlbumId3Db> for AlbumId3 {
+    fn from(value: BasicAlbumId3Db) -> Self {
+        Self::new(
+            value.id,
+            value.no_id.name.into_owned(),
+            value.no_id.date.year.map(|v| v as _),
+            value.no_id.release_date.into(),
+            value.no_id.original_release_date.into(),
+            value.song_count as _,
+            value.duration as _,
+            value.created_at,
+            MediaTypedId { t: Some(MediaType::Album), id: value.id },
         )
     }
 }
 
 impl AlbumId3Db {
-    pub async fn into_res(self, pool: &DatabasePool) -> Result<AlbumId3> {
+    pub async fn into(self, pool: &DatabasePool) -> Result<AlbumId3> {
         let artists = artists::table
             .filter(artists::id.eq_any(self.artist_ids))
             .select(BasicArtistId3Db::as_select())
             .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
             .await?
             .into_iter()
-            .map(BasicArtistId3Db::into_res)
+            .map(BasicArtistId3Db::into)
             .collect();
 
         Ok(AlbumId3 {
@@ -189,20 +189,20 @@ impl AlbumId3Db {
             created: self.basic.created_at,
             cover_art: MediaTypedId { t: Some(MediaType::Album), id: self.basic.id },
             artists,
-            genres: self.genres.into_res(),
+            genres: self.genres.into(),
         })
     }
 }
 
 impl SongId3Db {
-    pub async fn into_res(self, pool: &DatabasePool) -> Result<SongId3> {
+    pub async fn into(self, pool: &DatabasePool) -> Result<SongId3> {
         let artists = artists::table
             .filter(artists::id.eq_any(self.artist_ids))
             .select(BasicArtistId3Db::as_select())
             .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
             .await?
             .into_iter()
-            .map(BasicArtistId3Db::into_res)
+            .map(BasicArtistId3Db::into)
             .collect();
 
         Ok(SongId3 {
@@ -228,44 +228,49 @@ impl SongId3Db {
             ),
             suffix: self.basic.format,
             artists,
-            genres: self.genres.into_res(),
+            genres: self.genres.into(),
         })
     }
 }
 
-impl GenreId3Db {
-    pub fn into_res(self) -> GenreId3 {
-        GenreId3 {
-            value: self.value.value.into_owned(),
-            song_count: self.song_count as _,
-            album_count: self.album_count as _,
+impl From<GenreId3Db> for GenreId3 {
+    fn from(value: GenreId3Db) -> Self {
+        Self {
+            value: value.value.value.into_owned(),
+            song_count: value.song_count as _,
+            album_count: value.album_count as _,
         }
     }
 }
 
-impl GenresId3Db {
-    pub fn into_res(self) -> Vec<NameId3> {
-        self.genres.into_iter().filter_map(|g| g.map(|g| NameId3 { name: g })).collect()
+impl From<GenresId3Db> for Vec<NameId3> {
+    fn from(value: GenresId3Db) -> Self {
+        value.genres.into_iter().filter_map(|g| g.map(|g| NameId3 { name: g })).collect()
     }
 }
 
-impl LyricId3Db {
-    pub fn into_res(self) -> Result<LyricId3> {
-        let synced = self.line_starts.is_some();
+impl From<LyricId3Db> for LyricId3 {
+    fn from(value: LyricId3Db) -> Self {
+        let synced = value.line_starts.is_some();
 
-        let line = if let Some(line_starts) = self.line_starts {
+        let line = if let Some(line_starts) = value.line_starts {
             line_starts
                 .into_iter()
-                .zip(self.line_values)
+                .zip(value.line_values)
                 .map(|(s, v)| LyricLineId3 { start: s.map(|s| s as _), value: v.unwrap() })
                 .collect()
         } else {
-            self.line_values
+            value
+                .line_values
                 .into_iter()
                 .map(|v| LyricLineId3 { start: None, value: v.unwrap() })
                 .collect()
         };
 
-        Ok(LyricId3 { lang: Language::from_str(&self.language)?, synced, line })
+        Self {
+            lang: Language::from_str(&value.language).expect("language inside database not found"),
+            synced,
+            line,
+        }
     }
 }

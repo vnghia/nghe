@@ -3,7 +3,6 @@ use axum::extract::State;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
-use nghe_types::id3::*;
 use uuid::Uuid;
 
 use crate::open_subsonic::id3::*;
@@ -13,14 +12,12 @@ use crate::{Database, DatabasePool};
 add_common_validate!(GetGenresParams);
 add_axum_response!(GenresBody);
 
-async fn get_genres(pool: &DatabasePool, user_id: Uuid) -> Result<Vec<GenreId3>> {
-    Ok(get_genre_id3_db()
+async fn get_genres(pool: &DatabasePool, user_id: Uuid) -> Result<Vec<GenreId3Db>> {
+    get_genre_id3_db()
         .filter(with_permission(user_id))
         .get_results::<GenreId3Db>(&mut pool.get().await?)
-        .await?
-        .into_iter()
-        .map(GenreId3Db::into_res)
-        .collect())
+        .await
+        .map_err(anyhow::Error::from)
 }
 
 pub async fn get_genres_handler(
@@ -28,8 +25,16 @@ pub async fn get_genres_handler(
     req: GetGenresRequest,
 ) -> GenresJsonResponse {
     Ok(axum::Json(
-        GenresBody { genres: Genres { genre: get_genres(&database.pool, req.user_id).await? } }
-            .into(),
+        GenresBody {
+            genres: Genres {
+                genre: get_genres(&database.pool, req.user_id)
+                    .await?
+                    .into_iter()
+                    .map(GenreId3Db::into)
+                    .collect(),
+            },
+        }
+        .into(),
     ))
 }
 
@@ -44,7 +49,13 @@ mod tests {
     use crate::utils::test::Infra;
 
     async fn get_genre_values(pool: &DatabasePool, user_id: Uuid) -> Vec<String> {
-        get_genres(pool, user_id).await.unwrap().into_iter().map(|v| v.value).sorted().collect()
+        get_genres(pool, user_id)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|v| v.value.value.into())
+            .sorted()
+            .collect()
     }
 
     #[tokio::test]

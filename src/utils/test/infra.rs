@@ -576,7 +576,7 @@ impl Infra {
             .await
             .optional()
             .unwrap()
-            .map(|(l, d, e)| (l.into_res().unwrap(), d, e).into());
+            .map(|(l, d, e)| (l.into(), d, e).into());
 
         SongDbInformation {
             tag,

@@ -47,7 +47,10 @@ pub async fn get_artists(
         .into_iter()
         .into_group_map()
         .into_iter()
-        .map(|(k, v)| Index { name: k, artists: v.into_iter().map(|v| v.into_res()).collect() })
+        .map(|(k, v)| Index {
+            name: k,
+            artists: v.into_iter().map(BasicArtistId3Db::into).collect(),
+        })
         .collect_vec();
 
     Ok(Indexes { ignored_articles, index })

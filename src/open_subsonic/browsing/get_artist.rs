@@ -56,8 +56,8 @@ pub async fn get_artist(
     let basic_albums = get_basic_albums(pool, user_id, &album_ids).await?;
 
     Ok(ArtistId3WithAlbums {
-        artist: artist.into_res(),
-        albums: basic_albums.into_iter().map(|v| v.into_res()).collect(),
+        artist: artist.into(),
+        albums: basic_albums.into_iter().map(BasicAlbumId3Db::into).collect(),
     })
 }
 

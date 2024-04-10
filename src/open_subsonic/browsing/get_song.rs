@@ -31,7 +31,7 @@ pub async fn get_song_handler(
         GetSongBody {
             song: get_song(&database.pool, req.user_id, req.params.id)
                 .await?
-                .into_res(&database.pool)
+                .into(&database.pool)
                 .await?,
         }
         .into(),

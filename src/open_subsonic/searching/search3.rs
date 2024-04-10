@@ -62,13 +62,13 @@ async fn syncing(
         .await?;
 
     Ok(Search3Result {
-        artists: artists.into_iter().map(|v| v.into_res()).collect(),
+        artists: artists.into_iter().map(BasicArtistId3Db::into).collect(),
         albums: stream::iter(albums)
-            .then(|v| async move { v.into_res(pool).await })
+            .then(|v| async move { v.into(pool).await })
             .try_collect()
             .await?,
         songs: stream::iter(songs)
-            .then(|v| async move { v.into_res(pool).await })
+            .then(|v| async move { v.into(pool).await })
             .try_collect()
             .await?,
     })

@@ -56,9 +56,9 @@ pub async fn get_album(
     let songs = get_songs(pool, user_id, &song_ids).await?;
 
     Ok(AlbumId3WithSongs {
-        album: album.into_res(pool).await?,
+        album: album.into(pool).await?,
         songs: stream::iter(songs)
-            .then(|v| async move { v.into_res(pool).await })
+            .then(|v| async move { v.into(pool).await })
             .try_collect()
             .await?,
     })
@@ -157,7 +157,7 @@ mod tests {
         assert_eq!(album_id3.artist_ids.clone().into_iter().sorted().collect_vec(), artist_ids);
         assert_eq!(
             album_id3
-                .into_res(infra.pool())
+                .into(infra.pool())
                 .await
                 .unwrap()
                 .artists

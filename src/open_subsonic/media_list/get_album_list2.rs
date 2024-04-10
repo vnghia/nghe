@@ -105,7 +105,7 @@ pub async fn get_album_list2(
         }
     };
 
-    stream::iter(albums).then(|v| async move { v.into_res(pool).await }).try_collect().await
+    stream::iter(albums).then(|v| async move { v.into(pool).await }).try_collect().await
 }
 
 pub async fn get_album_list2_handler(
