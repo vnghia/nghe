@@ -130,6 +130,21 @@ pub struct LyricId3 {
     pub line: Vec<LyricLineId3>,
 }
 
+#[add_types_derive]
+#[derive(Debug)]
+pub struct InfoId3 {
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub music_brainz_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub last_fm_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub small_image_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub medium_image_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub large_image_url: Option<String>,
+}
+
 impl From<String> for NameId3 {
     fn from(name: String) -> Self {
         Self { name }

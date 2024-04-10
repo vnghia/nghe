@@ -1,5 +1,7 @@
 mod get_album;
+mod get_album_info2;
 mod get_artist;
+mod get_artist_info2;
 mod get_artists;
 mod get_genres;
 mod get_indexes;
@@ -36,4 +38,8 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/getGenres.view", get(get_genres::get_genres_handler))
         .route("/rest/getTopSongs", get(get_top_songs::get_top_songs_handler))
         .route("/rest/getTopSongs.view", get(get_top_songs::get_top_songs_handler))
+        .route("/rest/getAlbumInfo2", get(get_album_info2::get_album_info2_handler))
+        .route("/rest/getAlbumInfo2.view", get(get_album_info2::get_album_info2_handler))
+        .route("/rest/getArtistInfo2", get(get_artist_info2::get_artist_info2_handler))
+        .route("/rest/getArtistInfo2.view", get(get_artist_info2::get_artist_info2_handler))
 }
