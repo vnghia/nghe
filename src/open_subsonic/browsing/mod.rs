@@ -6,6 +6,7 @@ mod get_indexes;
 mod get_music_directory;
 mod get_music_folders;
 mod get_song;
+mod get_top_songs;
 mod refresh_music_folders;
 
 use axum::routing::get;
@@ -33,4 +34,6 @@ pub fn router() -> Router<crate::Database> {
         )
         .route("/rest/getGenres", get(get_genres::get_genres_handler))
         .route("/rest/getGenres.view", get(get_genres::get_genres_handler))
+        .route("/rest/getTopSongs", get(get_top_songs::get_top_songs_handler))
+        .route("/rest/getTopSongs.view", get(get_top_songs::get_top_songs_handler))
 }
