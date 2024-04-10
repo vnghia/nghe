@@ -1,10 +1,11 @@
 use nghe_proc_macros::{add_common_convert, add_subsonic_response, add_types_derive};
+use strum::EnumIter;
 use uuid::Uuid;
 
 use crate::id3::*;
 
 #[add_types_derive]
-#[derive(Debug)]
+#[derive(Debug, EnumIter)]
 pub enum GetAlbumListType {
     Random,
     Newest,

@@ -135,3 +135,34 @@ pub async fn get_album_list2_handler(
         .into(),
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use strum::IntoEnumIterator;
+
+    use super::*;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_get_album() {
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra.add_n_song(0, 20).scan(.., None).await;
+        for list_type in GetAlbumListType::iter() {
+            get_album_list2(
+                infra.pool(),
+                infra.user_id(0),
+                GetAlbumList2Params {
+                    list_type,
+                    count: None,
+                    offset: None,
+                    music_folder_ids: None,
+                    from_year: Some(1000),
+                    to_year: Some(2000),
+                    genre: Some("genre".into()),
+                },
+            )
+            .await
+            .unwrap();
+        }
+    }
+}
