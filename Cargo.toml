@@ -11,7 +11,7 @@ version = { workspace = true }
 edition = { workspace = true }
 
 [workspace.dependencies]
-anyhow = { version = "1.0.81", features = ["backtrace"] }
+anyhow = { version = "1.0.82", features = ["backtrace"] }
 concat-string = { version = "1.0.1" }
 derivative = { version = "2.2.0" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
