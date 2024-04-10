@@ -186,6 +186,8 @@ diesel::table! {
 }
 
 diesel::joinable!(lyrics -> songs (song_id));
+diesel::joinable!(playbacks -> songs (song_id));
+diesel::joinable!(playbacks -> users (user_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
 diesel::joinable!(songs -> song_cover_arts (cover_art_id));
