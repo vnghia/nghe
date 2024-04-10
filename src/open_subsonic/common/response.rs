@@ -15,7 +15,7 @@ mod tests {
                 "subsonic-response": {
                     "status": "ok",
                     "version": constant::OPEN_SUBSONIC_VERSION,
-                    "type": constant::SERVER_TYPE,
+                    "type": constant::SERVER_NAME,
                     "serverVersion": constant::SERVER_VERSION,
                     "openSubsonic": true
                 }
@@ -39,7 +39,7 @@ mod tests {
                     "a": a,
                     "status": "ok",
                     "version": constant::OPEN_SUBSONIC_VERSION,
-                    "type": constant::SERVER_TYPE,
+                    "type": constant::SERVER_NAME,
                     "serverVersion": constant::SERVER_VERSION,
                     "openSubsonic": true
                 }
@@ -63,7 +63,7 @@ mod tests {
                     "camelCase": camel_case,
                     "status": "ok",
                     "version": constant::OPEN_SUBSONIC_VERSION,
-                    "type": constant::SERVER_TYPE,
+                    "type": constant::SERVER_NAME,
                     "serverVersion": constant::SERVER_VERSION,
                     "openSubsonic": true
                 }
@@ -83,7 +83,7 @@ mod tests {
                 "subsonic-response": {
                     "status": "failed",
                     "version": constant::OPEN_SUBSONIC_VERSION,
-                    "type": constant::SERVER_TYPE,
+                    "type": constant::SERVER_NAME,
                     "serverVersion": constant::SERVER_VERSION,
                     "openSubsonic": true
                 }
@@ -107,7 +107,7 @@ mod tests {
                     "a": a,
                     "status": "failed",
                     "version": constant::OPEN_SUBSONIC_VERSION,
-                    "type": constant::SERVER_TYPE,
+                    "type": constant::SERVER_NAME,
                     "serverVersion": constant::SERVER_VERSION,
                     "openSubsonic": true
                 }

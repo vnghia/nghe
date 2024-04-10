@@ -13,6 +13,7 @@ edition = { workspace = true }
 [workspace.dependencies]
 anyhow = { version = "1.0.82", features = ["backtrace"] }
 concat-string = { version = "1.0.1" }
+constcat = { version = "0.5.0" }
 derivative = { version = "2.2.0" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 rand = { version = "0.8.5" }
@@ -34,6 +35,7 @@ fake = { version = "2.9.2", features = [
 [dependencies]
 anyhow = { workspace = true }
 concat-string = { workspace = true }
+constcat = { workspace = true }
 derivative = { workspace = true }
 isolang = { workspace = true }
 rand = { workspace = true }
@@ -49,7 +51,6 @@ nghe-types = { path = "types" }
 async-trait = { version = "0.1.79" }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form"] }
-constcat = { version = "0.5.0" }
 diesel = { version = "2.1.5", features = ["uuid", "time"] }
 diesel-async = { version = "0.4.1", features = [
   "postgres",
@@ -83,9 +84,6 @@ tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 walkdir = { version = "2.5.0" }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
-
-[build-dependencies]
-built = { version = "0.7.2", features = ["git2"] }
 
 [dev-dependencies]
 fake = { workspace = true }

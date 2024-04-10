@@ -9,6 +9,7 @@ test = ["fake", "serde_json"]
 
 [dependencies]
 concat-string = { workspace = true }
+constcat = { workspace = true }
 derivative = { workspace = true }
 isolang = { workspace = true }
 serde = { workspace = true }
@@ -26,3 +27,6 @@ paste = "1.0.14"
 # Test
 fake = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
+
+[build-dependencies]
+built = { version = "0.7.2", features = ["git2"] }

@@ -1,7 +1,3 @@
-mod built_info {
-    include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
 use axum::Router;
 use nghe::config::Config;
 use nghe::open_subsonic::browsing::refresh_music_folders;
@@ -10,6 +6,7 @@ use nghe::open_subsonic::{
     system, user,
 };
 use nghe::Database;
+use nghe_types::constant::{SERVER_NAME, SERVER_VERSION};
 use nghe_types::scan::start_scan::ScanMode;
 use tokio::signal;
 use tower::ServiceBuilder;
@@ -22,15 +19,14 @@ use tracing_subscriber::util::SubscriberInitExt;
 async fn main() {
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            [
-                constcat::concat!(built_info::PKG_NAME, "=info").to_owned(),
-                "tower_http=info".to_owned(),
-            ]
-            .join(",")
-            .into()
+            [constcat::concat!(SERVER_NAME, "=info").to_owned(), "tower_http=info".to_owned()]
+                .join(",")
+                .into()
         }))
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    tracing::info!(server_version = SERVER_VERSION);
 
     let config = Config::default();
     tracing::info!(?config);

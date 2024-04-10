@@ -50,7 +50,7 @@ pub struct ErrorConstantResponse {
 }
 
 emit_constant_serialize!(open_subsonic_version, str, constant::OPEN_SUBSONIC_VERSION);
-emit_constant_serialize!(server_type, str, constant::SERVER_TYPE);
+emit_constant_serialize!(server_type, str, constant::SERVER_NAME);
 emit_constant_serialize!(server_version, str, constant::SERVER_VERSION);
 emit_constant_serialize!(open_subsonic_support, bool, true);
 emit_constant_serialize!(status_ok, str, "ok");

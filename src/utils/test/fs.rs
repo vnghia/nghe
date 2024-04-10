@@ -1,7 +1,3 @@
-mod built_info {
-    include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
 use std::ffi::OsStr;
 use std::fs::*;
 use std::io::Write;
@@ -10,6 +6,7 @@ use std::path::{Path, PathBuf};
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use lofty::{FileType, TagExt, TagType, TaggedFileExt};
+use nghe_types::constant::SERVER_NAME;
 use rand::seq::SliceRandom;
 use tempfile::{Builder, TempDir};
 use xxhash_rust::xxh3::xxh3_64;
@@ -47,7 +44,7 @@ impl TemporaryFs {
     fn new() -> Self {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let root = Builder::new().prefix(built_info::PKG_NAME).tempdir().unwrap();
+        let root = Builder::new().prefix(SERVER_NAME).tempdir().unwrap();
         let parsing_config = ParsingConfig::default();
         let transcoding_config = TranscodingConfig {
             cache_path: Some(root.path().canonicalize().unwrap().join("transcoding-cache")),

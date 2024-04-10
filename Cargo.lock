@@ -2754,7 +2754,6 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-extra",
- "built",
  "concat-string",
  "constcat 0.5.0",
  "derivative",
@@ -2838,7 +2837,9 @@ dependencies = [
 name = "nghe-types"
 version = "0.1.0"
 dependencies = [
+ "built",
  "concat-string",
+ "constcat 0.5.0",
  "derivative",
  "derive-new",
  "fake",

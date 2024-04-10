@@ -1,13 +1,10 @@
-mod built_info {
-    include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
 use std::net::IpAddr;
 use std::path::PathBuf;
 
 use derivative::Derivative;
 use figment::providers::{Env, Serialized};
 use figment::Figment;
+use nghe_types::constant::SERVER_NAME;
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DefaultOnNull};
 
@@ -101,7 +98,7 @@ pub struct Config {
 impl Config {
     pub fn new() -> Self {
         Figment::new()
-            .merge(Env::prefixed(constcat::concat!(built_info::PKG_NAME, "_")).split("__"))
+            .merge(Env::prefixed(constcat::concat!(SERVER_NAME, "_")).split("__"))
             .join(Serialized::default("server", ServerConfig::default()))
             .join(Serialized::default("folder.top_names", Vec::<String>::default()))
             .join(Serialized::default("folder.depth_levels", Vec::<usize>::default()))

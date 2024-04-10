@@ -1,6 +1,6 @@
 #![deny(clippy::all)]
 #![feature(ascii_char)]
-#![feature(const_option)]
+#![feature(const_option, const_option_ext)]
 
 pub mod bookmarks;
 pub mod browsing;
