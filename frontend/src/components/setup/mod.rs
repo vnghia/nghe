@@ -1,8 +1,8 @@
-use concat_string::concat_string;
 use dioxus::prelude::*;
 use nghe_types::user::setup::SetupParams;
 use url::Url;
 
+use super::ERROR_SIGNAL;
 use crate::Route;
 
 #[component]
@@ -14,30 +14,28 @@ pub fn Setup() -> Element {
     let mut password = use_signal(String::default);
     let mut server_url = use_signal(|| Url::parse("http://localhost:3000").unwrap());
 
-    let mut error_message = use_signal(String::default);
-
     let on_input_url = move |e: Event<FormData>| match Url::parse(&e.value()) {
         Ok(url) => {
             server_url.set(url);
-            error_message.set(Default::default());
+            *ERROR_SIGNAL.write() = None;
         }
-        Err(e) => error_message.set(concat_string!("Can not parse server url: ", e.to_string())),
+        Err(e) => *ERROR_SIGNAL.write() = Some(e.into()),
     };
 
     let on_submit_setup = move |_: Event<MouseData>| {
         let username = username();
         if username.is_empty() {
-            error_message.set("Username can not be empty".into());
+            *ERROR_SIGNAL.write() = Some(anyhow::anyhow!("Username can not be empty"));
             return;
         }
         let email = email();
         if email.is_empty() {
-            error_message.set("Email can not be empty".into());
+            *ERROR_SIGNAL.write() = Some(anyhow::anyhow!("Email can not be empty"));
             return;
         }
         let password = password();
         if password.is_empty() {
-            error_message.set("Password can not be empty".into());
+            *ERROR_SIGNAL.write() = Some(anyhow::anyhow!("Password can not be empty"));
             return;
         }
 
@@ -57,8 +55,7 @@ pub fn Setup() -> Element {
                     nav.push(Route::Login {});
                 }
                 Err::<_, anyhow::Error>(e) => {
-                    log::error!("{:?}", &e);
-                    error_message.set(e.to_string());
+                    *ERROR_SIGNAL.write() = Some(e);
                 }
             }
         });
@@ -120,11 +117,6 @@ pub fn Setup() -> Element {
                         }
                     }
                 }
-            }
-        }
-        if !error_message().is_empty() {
-            div { class: "toast",
-                div { class: "alert alert-error", "{error_message}" }
             }
         }
     }
