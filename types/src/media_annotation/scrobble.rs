@@ -7,7 +7,7 @@ pub struct ScrobbleParams {
     pub ids: Vec<Uuid>,
     #[serde(rename = "time")]
     pub times: Option<Vec<i128>>,
-    pub submission: bool,
+    pub submission: Option<bool>,
 }
 
 #[add_subsonic_response]

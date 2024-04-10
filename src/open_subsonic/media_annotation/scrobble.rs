@@ -17,7 +17,7 @@ add_common_validate!(ScrobbleParams);
 add_axum_response!(ScrobbleBody);
 
 async fn scrobble(pool: &DatabasePool, user_id: Uuid, params: &ScrobbleParams) -> Result<()> {
-    if params.submission {
+    if params.submission.unwrap_or(true) {
         if let Some(ref times) = params.times {
             if params.ids.len() != times.len() {
                 anyhow::bail!(OSError::InvalidParameter(
@@ -105,7 +105,7 @@ mod tests {
             scrobble(
                 infra.pool(),
                 user_id,
-                &ScrobbleParams { ids: vec![song_id], times: None, submission: true },
+                &ScrobbleParams { ids: vec![song_id], times: None, submission: Some(true) },
             )
             .await
             .unwrap();
@@ -136,7 +136,7 @@ mod tests {
                 scrobble(
                     infra.pool(),
                     user_id,
-                    &ScrobbleParams { ids: vec![song_id], times: None, submission: true },
+                    &ScrobbleParams { ids: vec![song_id], times: None, submission: Some(true) },
                 )
                 .await
                 .unwrap();
@@ -148,7 +148,7 @@ mod tests {
             scrobble(
                 infra.pool(),
                 user_id,
-                &ScrobbleParams { ids: song_ids.clone(), times: None, submission: true },
+                &ScrobbleParams { ids: song_ids.clone(), times: None, submission: Some(true) },
             )
             .await
             .unwrap();
@@ -182,7 +182,7 @@ mod tests {
                 scrobble(
                     infra.pool(),
                     user_id,
-                    &ScrobbleParams { ids: vec![song_id], times: None, submission: true },
+                    &ScrobbleParams { ids: vec![song_id], times: None, submission: Some(true) },
                 )
                 .await
                 .unwrap();
@@ -199,7 +199,7 @@ mod tests {
                         .map(|t: &OffsetDateTime| t.unix_timestamp_nanos() / 1000000)
                         .collect(),
                 ),
-                submission: true,
+                submission: Some(true),
             },
         )
         .await
