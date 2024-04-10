@@ -1,5 +1,6 @@
 use anyhow::Result;
 use axum::extract::State;
+use diesel::dsl::sum;
 use diesel::{ExpressionMethods, PgSortExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
@@ -41,6 +42,17 @@ pub async fn get_album_list2(
             #[add_count_offset]
             get_album_id3_db()
                 .order(albums::year.desc().nulls_last())
+                .get_results::<AlbumId3Db>(&mut pool.get().await?)
+                .await?
+        }
+        GetAlbumListType::Frequent =>
+        {
+            #[add_permission_filter]
+            #[add_count_offset]
+            get_album_id3_db()
+                .inner_join(playbacks::table)
+                .filter(playbacks::user_id.eq(user_id))
+                .order(sum(playbacks::count).desc())
                 .get_results::<AlbumId3Db>(&mut pool.get().await?)
                 .await?
         }

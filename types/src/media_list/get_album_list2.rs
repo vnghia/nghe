@@ -8,6 +8,7 @@ use crate::id3::*;
 pub enum GetAlbumListType {
     Random,
     Newest,
+    Frequent,
     Recent,
     ByYear,
     ByGenre,
