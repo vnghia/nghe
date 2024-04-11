@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use nghe_types::params::{to_password_token, CommonParams};
-use nghe_types::system::ping::{PingParams, SubsonicPingBody};
+use nghe_types::user::login::{LoginParams, SubsonicLoginBody};
 use rand::distributions::{Alphanumeric, DistString};
 use url::Url;
 
@@ -26,12 +26,16 @@ pub fn Login() -> Element {
                 let salt = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
                 let token = to_password_token(password().as_bytes(), &salt);
                 let common = CommonParams { username: username(), salt, token };
-                let common_state_inner = CommonState { common, server_url };
-                common_state_inner
-                    .send_with_common::<_, SubsonicPingBody>("/rest/ping", PingParams {})
-                    .await?;
+                let common_state_inner =
+                    CommonState { common, server_url, role: Default::default() };
+                let role = common_state_inner
+                    .send_with_common::<_, SubsonicLoginBody>("/rest/login", LoginParams {})
+                    .await?
+                    .root
+                    .body
+                    .role;
 
-                common_state.set(Some(common_state_inner));
+                common_state.set(Some(CommonState { role, ..common_state_inner }));
             };
             result.toast();
         });

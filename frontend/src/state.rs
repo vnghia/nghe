@@ -6,6 +6,7 @@ use dioxus::prelude::*;
 use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
 use gloo::net::http::{Request, Response};
 use nghe_types::params::{CommonParams, WithCommon};
+use nghe_types::user::Role;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -15,6 +16,7 @@ use crate::Route;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommonState {
     pub common: CommonParams,
+    pub role: Role,
     pub server_url: Option<Url>,
 }
 
