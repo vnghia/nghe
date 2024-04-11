@@ -1,11 +1,11 @@
 use dioxus::prelude::*;
 
-use crate::state::use_common_state;
+use crate::state::CommonState;
 use crate::Route;
 
 #[component]
 pub fn Drawer() -> Element {
-    let mut common_state = use_common_state();
+    let mut common_state = CommonState::use_redirect();
 
     let onclick_logout = move |_: Event<MouseData>| {
         common_state.set(None);

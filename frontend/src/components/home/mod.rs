@@ -1,10 +1,10 @@
 use dioxus::prelude::*;
 
-use crate::state::use_common_state;
+use crate::state::CommonState;
 
 #[component]
 pub fn Home() -> Element {
-    let common_state = use_common_state();
+    let _common_state = CommonState::use_redirect();
     rsx! {
         div { "Home" }
     }

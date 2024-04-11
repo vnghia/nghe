@@ -1,21 +1,17 @@
 use dioxus::prelude::*;
-use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
 use nghe_types::params::{to_password_token, CommonParams};
 use nghe_types::system::ping::PingParams;
 use rand::distributions::{Alphanumeric, DistString};
 use url::Url;
 
 use super::{Toast, UserForm};
-use crate::state::{CommonState, COMMON_STATE_KEY};
+use crate::state::CommonState;
 use crate::Route;
 
 #[component]
 pub fn Login() -> Element {
     let nav = navigator();
-    let mut common_state = use_synced_storage::<LocalStorage, Option<CommonState>>(
-        COMMON_STATE_KEY.into(),
-        Option::default,
-    );
+    let mut common_state = CommonState::use_no_redirect();
 
     let username = use_signal(String::default);
     let password = use_signal(String::default);
