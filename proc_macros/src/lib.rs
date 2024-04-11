@@ -354,10 +354,13 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
 
             #[cfg(test)]
             impl #request_ident {
-                fn validated(params: #item_ident, user_id: uuid::Uuid) -> Self {
+                fn validated(
+                    params: #item_ident, user_id: uuid::Uuid, user_role: #role_struct_path
+                ) -> Self {
                     Self {
                         params,
                         user_id,
+                        user_role,
                         phantom: std::marker::PhantomData,
                     }
                 }

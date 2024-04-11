@@ -42,7 +42,11 @@ mod tests {
 
         let results = get_music_folders_handler(
             infra.state(),
-            GetMusicFoldersRequest::validated(GetMusicFoldersParams {}, infra.user_id(0)),
+            GetMusicFoldersRequest::validated(
+                GetMusicFoldersParams {},
+                infra.user_id(0),
+                Default::default(),
+            ),
         )
         .await
         .unwrap()
@@ -65,7 +69,11 @@ mod tests {
 
         let results = get_music_folders_handler(
             infra.state(),
-            GetMusicFoldersRequest::validated(GetMusicFoldersParams {}, infra.user_id(0)),
+            GetMusicFoldersRequest::validated(
+                GetMusicFoldersParams {},
+                infra.user_id(0),
+                Default::default(),
+            ),
         )
         .await
         .unwrap()

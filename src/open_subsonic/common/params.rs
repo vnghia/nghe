@@ -17,7 +17,7 @@ use crate::{Database, OSError};
 async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: users::Role>(
     Database { pool, key }: &Database,
     common_params: P,
-) -> Result<Uuid> {
+) -> Result<(Uuid, users::Role)> {
     let common_params = common_params.as_ref();
     let (user_id, user_password, user_role) = match users::table
         .filter(users::username.eq(&common_params.username))
@@ -37,13 +37,14 @@ async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: users::Role>(
     if REQUIRED_ROLE > user_role {
         anyhow::bail!(OSError::Forbidden("access admin endpoint".into()));
     }
-    Ok(user_id)
+    Ok((user_id, user_role))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedForm<R, P, const REQUIRED_ROLE: users::Role> {
     pub params: P,
     pub user_id: Uuid,
+    pub user_role: users::Role,
     pub phantom: PhantomData<R>,
 }
 
@@ -62,8 +63,13 @@ where
             .await
             .map_err(std::convert::Into::<OSError>::into)?;
         let database = Database::from_ref(state);
-        let user_id = validate::<_, REQUIRED_ROLE>(&database, &request_params).await?;
-        Ok(ValidatedForm { params: request_params.into(), user_id, phantom: PhantomData })
+        let (user_id, user_role) = validate::<_, REQUIRED_ROLE>(&database, &request_params).await?;
+        Ok(ValidatedForm {
+            params: request_params.into(),
+            user_id,
+            user_role,
+            phantom: PhantomData,
+        })
     }
 }
 
