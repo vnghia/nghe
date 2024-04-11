@@ -10,19 +10,20 @@ use crate::Database;
 
 #[derive(Clone)]
 pub struct User {
+    pub basic: users::BasicUser<'static>,
     pub id: Uuid,
-    pub username: String,
     pub password: Vec<u8>,
-    pub role: users::Role,
 }
 
 impl User {
     pub fn fake(role: Option<users::Role>) -> Self {
         Self {
+            basic: users::BasicUser {
+                username: Username().fake::<String>().into(),
+                role: role.unwrap_or_default(),
+            },
             id: Faker.fake(),
-            username: Username().fake(),
             password: Password(16..32).fake::<String>().into_bytes(),
-            role: role.unwrap_or_default(),
         }
     }
 
@@ -36,13 +37,13 @@ impl From<&User> for CommonParams {
     fn from(value: &User) -> Self {
         let salt = Password(8..16).fake::<String>();
         let token = to_password_token(&value.password, &salt);
-        Self { username: value.username.to_string(), salt, token }
+        Self { username: value.basic.username.to_string(), salt, token }
     }
 }
 
 impl From<User> for CreateUserParams {
     fn from(value: User) -> Self {
-        let User { username, password, role, .. } = value;
-        CreateUserParams { username, password, email: SafeEmail().fake(), role: role.into() }
+        let User { basic, password, .. } = value;
+        CreateUserParams { basic: basic.into(), password, email: SafeEmail().fake() }
     }
 }

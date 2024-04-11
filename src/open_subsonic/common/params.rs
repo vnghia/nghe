@@ -124,7 +124,7 @@ mod tests {
     async fn test_validate_wrong_password() {
         let infra = Infra::new().await.add_user(None).await;
 
-        let username = infra.users[0].username.clone();
+        let username = infra.users[0].basic.username.to_string();
         let client_salt = Password(8..16).fake::<String>();
         let client_token = to_password_token(Password(16..32).fake::<String>(), &client_salt);
 

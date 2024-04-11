@@ -4,7 +4,7 @@ use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::add_axum_response;
 use nghe_types::user::create::CreateUserParams;
-use nghe_types::user::Role;
+use nghe_types::user::{BasicUser, Role};
 
 use super::create::create_user;
 use crate::models::*;
@@ -22,15 +22,17 @@ pub async fn setup_handler(
         create_user(
             &database,
             &CreateUserParams {
-                username: params.username,
+                basic: BasicUser {
+                    username: params.username,
+                    role: Role {
+                        admin_role: true,
+                        stream_role: true,
+                        download_role: true,
+                        share_role: true,
+                    },
+                },
                 password: params.password,
                 email: params.email,
-                role: Role {
-                    admin_role: true,
-                    stream_role: true,
-                    download_role: true,
-                    share_role: true,
-                },
             },
         )
         .await?;
@@ -48,16 +50,18 @@ mod tests {
     #[tokio::test]
     async fn test_setup_no_user() {
         let infra = Infra::new().await;
-        let User { username, password, .. } = User::fake(None);
-        let form = Form(SetupParams { username, password, ..Faker.fake() });
+        let User { basic, password, .. } = User::fake(None);
+        let form =
+            Form(SetupParams { username: basic.username.into_owned(), password, ..Faker.fake() });
         assert!(setup_handler(infra.state(), form).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_setup_with_user() {
         let infra = Infra::new().await.add_user(None).await;
-        let User { username, password, .. } = User::fake(None);
-        let form = Form(SetupParams { username, password, ..Faker.fake() });
+        let User { basic, password, .. } = User::fake(None);
+        let form =
+            Form(SetupParams { username: basic.username.into_owned(), password, ..Faker.fake() });
         if let Some(err) = setup_handler(infra.state(), form).await.err() {
             assert!(matches!(
                 err.0.root_cause().downcast_ref::<OSError>().unwrap(),

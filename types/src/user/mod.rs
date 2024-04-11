@@ -1,6 +1,7 @@
+pub mod common;
 pub mod create;
+pub mod get_users;
 pub mod login;
-pub mod role;
 pub mod setup;
 
-pub use role::Role;
+pub use common::{BasicUser, Role, User};
