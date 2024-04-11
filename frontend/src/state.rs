@@ -106,7 +106,7 @@ impl CommonState {
                         .to_string()
                         .into()
                 })
-                .unwrap_or(Cow::Borrowed(url.into())),
+                .unwrap_or(Cow::Borrowed(url)),
             "?",
             query
         ))
