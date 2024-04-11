@@ -44,3 +44,9 @@ impl<'common> From<&'common CommonParams> for Cow<'common, CommonParams> {
         Cow::Borrowed(value)
     }
 }
+
+pub trait WithCommon<'common> {
+    type Out;
+
+    fn with_common<T: Into<Cow<'common, CommonParams>>>(self, common: T) -> Self::Out;
+}

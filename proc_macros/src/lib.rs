@@ -221,6 +221,10 @@ pub fn add_common_convert(
             TYPES_COMMON_PARAMS_IMPORT_PREFIX,
             "::CommonParams"
         ))?;
+        let with_common_path = parse_str::<ExprPath>(&concat_string!(
+            TYPES_COMMON_PARAMS_IMPORT_PREFIX,
+            "::WithCommon"
+        ))?;
         let base_type = get_base_name(item_ident, "Params")?;
 
         common_item_struct.ident = format_ident!("{}WithCommon", base_type);
@@ -262,8 +266,10 @@ pub fn add_common_convert(
                 }
             }
 
-            impl #item_ident {
-                pub fn with_common<#lt, T: Into<std::borrow::Cow<#lt, #common_path>>>(
+            impl<#lt> #with_common_path<#lt> for #item_ident {
+                type Out = #common_item_ident<#lt>;
+
+                fn with_common<T: Into<std::borrow::Cow<#lt, #common_path>>>(
                     self, common: T
                 ) -> #common_item_ident<#lt> {
                     let value = self;

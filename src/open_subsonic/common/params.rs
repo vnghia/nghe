@@ -72,7 +72,7 @@ mod tests {
     use fake::faker::internet::en::*;
     use fake::Fake;
     use nghe_proc_macros::add_common_convert;
-    use nghe_types::params::to_password_token;
+    use nghe_types::params::{to_password_token, WithCommon};
 
     use super::*;
     use crate::utils::test::Infra;
