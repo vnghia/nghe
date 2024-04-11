@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use url::Url;
 
-use super::ERROR_SIGNAL;
+use super::Toast;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct UserFormProps {
@@ -20,44 +20,37 @@ pub fn UserForm(props: UserFormProps) -> Element {
     let raw_url = server_url.as_ref().map(|url| use_signal(|| url().to_string()));
 
     let onclick = move |_: Event<MouseData>| {
-        let username = username();
-        if username.is_empty() {
-            *ERROR_SIGNAL.write() = Some(anyhow::anyhow!("Username can not be empty"));
-            return;
-        }
-
-        if let Some(email) = email {
-            let email = email();
-            if email.is_empty() {
-                *ERROR_SIGNAL.write() = Some(anyhow::anyhow!("Email can not be empty"));
-                return;
+        let result: Result<(), anyhow::Error> = try {
+            let username = username();
+            if username.is_empty() {
+                Err(anyhow::anyhow!("Username can not be empty"))?;
             }
-        }
 
-        let password = password();
-        if password.is_empty() {
-            *ERROR_SIGNAL.write() = Some(anyhow::anyhow!("Password can not be empty"));
-            return;
-        }
-
-        if let Some(raw_url) = raw_url
-            && let Some(mut server_url) = server_url
-        {
-            let raw_url = raw_url();
-            if raw_url.is_empty() {
-                *ERROR_SIGNAL.write() = Some(anyhow::anyhow!("Server url can not be empty"));
-                return;
-            }
-            match Url::parse(&raw_url) {
-                Ok(url) => server_url.set(url),
-                Err(e) => {
-                    *ERROR_SIGNAL.write() = Some(e.into());
-                    return;
+            if let Some(email) = email {
+                let email = email();
+                if email.is_empty() {
+                    Err(anyhow::anyhow!("Email can not be empty"))?;
                 }
-            };
-        }
+            }
 
-        submitable.set(true);
+            let password = password();
+            if password.is_empty() {
+                Err(anyhow::anyhow!("Password can not be empty"))?;
+            }
+
+            if let Some(raw_url) = raw_url
+                && let Some(mut server_url) = server_url
+            {
+                let raw_url = raw_url();
+                if raw_url.is_empty() {
+                    Err(anyhow::anyhow!("Password can not be empty"))?;
+                } else {
+                    server_url.set(Url::parse(&raw_url)?);
+                }
+            }
+            submitable.set(true);
+        };
+        result.toast();
     };
 
     rsx! {

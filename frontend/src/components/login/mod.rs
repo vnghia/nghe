@@ -5,7 +5,7 @@ use nghe_types::system::ping::PingParams;
 use rand::distributions::{Alphanumeric, DistString};
 use url::Url;
 
-use super::{UserForm, ERROR_SIGNAL};
+use super::{Toast, UserForm};
 use crate::state::{CommonState, COMMON_STATE_KEY};
 use crate::Route;
 
@@ -24,7 +24,7 @@ pub fn Login() -> Element {
 
     if submitable() {
         spawn(async move {
-            match try {
+            let result: Result<_, anyhow::Error> = try {
                 let server_url = server_url();
 
                 let salt = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
@@ -40,12 +40,8 @@ pub fn Login() -> Element {
                     .error_for_status()?;
 
                 common_state.set(Some(CommonState { common, server_url }));
-            } {
-                Ok(()) => {}
-                Err::<_, anyhow::Error>(e) => {
-                    *ERROR_SIGNAL.write() = Some(e);
-                }
-            }
+            };
+            result.toast();
         });
     }
 

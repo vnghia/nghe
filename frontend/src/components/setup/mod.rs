@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use nghe_types::user::setup::SetupParams;
 use url::Url;
 
-use super::{UserForm, ERROR_SIGNAL};
+use super::{Toast, UserForm};
 use crate::Route;
 
 #[component]
@@ -17,7 +17,7 @@ pub fn Setup() -> Element {
 
     if submitable() {
         spawn(async move {
-            match try {
+            let result: Result<_, anyhow::Error> = try {
                 let server_url = server_url();
                 let setup_params = SetupParams {
                     username: username(),
@@ -31,14 +31,8 @@ pub fn Setup() -> Element {
                     .send()
                     .await?
                     .error_for_status()?;
-            } {
-                Ok(()) => {
-                    nav.push(Route::Login {});
-                }
-                Err::<_, anyhow::Error>(e) => {
-                    *ERROR_SIGNAL.write() = Some(e);
-                }
-            }
+            };
+            result.toast().and_then(|_| nav.push(Route::Login {}));
         });
     }
 
