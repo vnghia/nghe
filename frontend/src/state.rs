@@ -1,6 +1,12 @@
+use std::borrow::Cow;
+
+use anyhow::Result;
+use concat_string::concat_string;
 use dioxus::prelude::*;
 use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
-use nghe_types::params::CommonParams;
+use gloo::net::http::{Request, Response};
+use nghe_types::params::{CommonParams, WithCommon};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -9,7 +15,27 @@ use crate::Route;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommonState {
     pub common: CommonParams,
-    pub server_url: Url,
+    pub server_url: Option<Url>,
+}
+
+trait ResponseError {
+    fn error_for_status(self) -> Result<Self>
+    where
+        Self: Sized;
+}
+
+impl ResponseError for Response {
+    fn error_for_status(self) -> Result<Self> {
+        if self.ok() {
+            Ok(self)
+        } else {
+            Err(anyhow::anyhow!(
+                "HTTP status client error ({}) for url ({})",
+                self.status(),
+                self.url()
+            ))
+        }
+    }
 }
 
 impl CommonState {
@@ -29,5 +55,64 @@ impl CommonState {
             nav.push(Route::Login {});
         }
         common_state
+    }
+
+    pub fn build_url_with_common<'common, P: WithCommon<'common, Out = impl Serialize>>(
+        &'common self,
+        params: P,
+    ) -> String {
+        Self::build_url(params.with_common(&self.common))
+    }
+
+    pub fn build_url<P: Serialize>(params: P) -> String {
+        serde_html_form::to_string(params)
+            .expect("failed to serialize params which is not possible")
+    }
+
+    pub async fn send_with_common<
+        'common,
+        P: WithCommon<'common, Out = impl Serialize>,
+        R: DeserializeOwned,
+    >(
+        &'common self,
+        url: &'static str,
+        params: P,
+    ) -> Result<R> {
+        Self::send_with_query(&self.server_url, url, &self.build_url_with_common(params)).await
+    }
+
+    pub async fn send<P: Serialize, R: DeserializeOwned>(
+        server_url: &Option<Url>,
+        url: &'static str,
+        params: P,
+    ) -> Result<R> {
+        Self::send_with_query(server_url, url, &Self::build_url(params)).await
+    }
+
+    async fn send_with_query<R: DeserializeOwned>(
+        server_url: &Option<Url>,
+        url: &'static str,
+        query: &str,
+    ) -> Result<R> {
+        Request::get(&concat_string!(
+            server_url
+                .as_ref()
+                .map(|root_url| {
+                    root_url
+                        .join(url)
+                        .expect("failed to join url which is not possible")
+                        .to_string()
+                        .into()
+                })
+                .unwrap_or(Cow::Borrowed(url.into())),
+            "?",
+            query
+        ))
+        .send()
+        .await?
+        .error_for_status()?
+        .json::<R>()
+        .await
+        .map_err(anyhow::Error::from)
     }
 }

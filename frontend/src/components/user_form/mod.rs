@@ -9,7 +9,7 @@ pub struct UserFormProps {
     username: Signal<String>,
     password: Signal<String>,
     email: Option<Signal<String>>,
-    server_url: Option<Signal<Url>>,
+    server_url: Option<Signal<Option<Url>>>,
     submitable: Signal<bool>,
 }
 
@@ -17,7 +17,9 @@ pub struct UserFormProps {
 pub fn UserForm(props: UserFormProps) -> Element {
     let UserFormProps { title, mut username, mut password, email, server_url, mut submitable } =
         props;
-    let raw_url = server_url.as_ref().map(|url| use_signal(|| url().to_string()));
+    let raw_url = server_url
+        .as_ref()
+        .map(|s| use_signal(|| s().map(|url| url.to_string()).unwrap_or_default()));
 
     let onclick = move |_: Event<MouseData>| {
         let result: Result<(), anyhow::Error> = try {
@@ -41,12 +43,12 @@ pub fn UserForm(props: UserFormProps) -> Element {
             if let Some(raw_url) = raw_url
                 && let Some(mut server_url) = server_url
             {
-                let raw_url = raw_url();
-                if raw_url.is_empty() {
-                    Err(anyhow::anyhow!("Password can not be empty"))?;
-                } else {
-                    server_url.set(Url::parse(&raw_url)?);
-                }
+                server_url.set(
+                    Some(raw_url())
+                        .filter(|s| !s.is_empty())
+                        .map(|s| Url::parse(&s))
+                        .transpose()?,
+                );
             }
             submitable.set(true);
         };

@@ -17,3 +17,6 @@ style = []
 
 [web.resource.dev]
 script = []
+
+[[web.proxy]]
+backend = "http://localhost:3000/rest"
