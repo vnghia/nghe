@@ -58,6 +58,15 @@ impl<T> Toast for Result<T, &anyhow::Error> {
     }
 }
 
+impl Toast for anyhow::Error {
+    type Out = ();
+
+    fn toast(self) -> Option<()> {
+        ErrorToast::write(&self);
+        None
+    }
+}
+
 #[component]
 pub fn Error() -> Element {
     rsx! {

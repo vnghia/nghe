@@ -1,7 +1,20 @@
 use dioxus::prelude::*;
+use gloo::utils::document;
+use wasm_bindgen::JsCast;
+use web_sys::HtmlElement;
 
+use super::Toast;
 use crate::state::CommonState;
 use crate::Route;
+
+fn remove_focus() {
+    if let Some(element) = document().active_element()
+        && let Some(ref element) = element.dyn_ref::<HtmlElement>()
+        && element.blur().is_err()
+    {
+        anyhow::anyhow!("can not blur active element").toast();
+    }
+}
 
 #[component]
 pub fn Drawer() -> Element {
@@ -79,7 +92,12 @@ pub fn Drawer() -> Element {
                                 class: "mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-300 rounded-box w-52",
                                 if common_state.role.admin_role {
                                     li {
-                                        Link { class: "text-base", to: Route::Users {}, "Users" }
+                                        Link {
+                                            class: "text-base",
+                                            to: Route::Users {},
+                                            onclick: |_| { remove_focus() },
+                                            "Users"
+                                        }
                                     }
                                 }
                                 li {

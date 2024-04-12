@@ -2942,6 +2942,8 @@ dependencies = [
  "serde",
  "serde_html_form",
  "url",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
