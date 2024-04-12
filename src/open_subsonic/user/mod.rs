@@ -1,4 +1,5 @@
 mod create;
+mod delete;
 mod get_users;
 mod login;
 mod setup;
@@ -16,6 +17,8 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/login.view", get(login::login_handler))
         .route("/rest/getUsers", get(get_users::get_users_handler))
         .route("/rest/getUsers.view", get(get_users::get_users_handler))
+        .route("/rest/deleteUser", get(delete::delete_user_handler))
+        .route("/rest/deleteUser.view", get(delete::delete_user_handler))
 }
 
 #[cfg(test)]

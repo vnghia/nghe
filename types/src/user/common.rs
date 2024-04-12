@@ -8,7 +8,7 @@ use super::super::time::time_serde;
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Role {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[add_types_derive]
 pub struct BasicUser {
     pub username: String,
@@ -16,7 +16,7 @@ pub struct BasicUser {
     pub role: Role,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[add_types_derive]
 pub struct User {
     #[serde(flatten)]
