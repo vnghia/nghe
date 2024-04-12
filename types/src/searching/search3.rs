@@ -7,12 +7,12 @@ use crate::id3::*;
 #[derive(Debug)]
 #[cfg_attr(feature = "test", derive(Default))]
 pub struct Search3Params {
-    pub artist_count: Option<i64>,
-    pub artist_offset: Option<i64>,
-    pub album_count: Option<i64>,
-    pub album_offset: Option<i64>,
-    pub song_count: Option<i64>,
-    pub song_offset: Option<i64>,
+    pub artist_count: Option<usize>,
+    pub artist_offset: Option<usize>,
+    pub album_count: Option<usize>,
+    pub album_offset: Option<usize>,
+    pub song_count: Option<usize>,
+    pub song_offset: Option<usize>,
     #[serde(rename = "musicFolderId")]
     pub music_folder_ids: Option<Vec<Uuid>>,
 }

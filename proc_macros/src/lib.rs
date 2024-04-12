@@ -491,9 +491,9 @@ pub fn add_count_offset(
 
         let mut expr = syn::parse::<Expr>(input).unwrap();
         modify_head_call_expr(&mut expr, |head_expr| {
-            Expr::MethodCall(
-                parse_quote! {#head_expr.limit(#count.unwrap_or(20)).offset(#offset.unwrap_or(0))},
-            )
+            Expr::MethodCall(parse_quote! {
+                #head_expr.limit(#count.unwrap_or(20) as _).offset(#offset.unwrap_or(0) as _)
+            })
         })?;
         expr.into_token_stream().into()
     } {

@@ -27,7 +27,7 @@ async fn scrobble(pool: &DatabasePool, user_id: Uuid, params: &ScrobbleParams) -
                 // convert milliseconds to nanoseconds
                 let updated_ats: Vec<_> = times
                     .iter()
-                    .map(|t| OffsetDateTime::from_unix_timestamp_nanos(t * 1000000))
+                    .map(|t| OffsetDateTime::from_unix_timestamp_nanos((t * 1000000) as _))
                     .try_collect()?;
                 diesel::insert_into(playbacks::table)
                     .values(
@@ -196,7 +196,7 @@ mod tests {
                 times: Some(
                     times
                         .iter()
-                        .map(|t: &OffsetDateTime| t.unix_timestamp_nanos() / 1000000)
+                        .map(|t: &OffsetDateTime| (t.unix_timestamp_nanos() / 1000000) as _)
                         .collect(),
                 ),
                 submission: Some(true),

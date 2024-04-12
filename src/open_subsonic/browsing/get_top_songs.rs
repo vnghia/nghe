@@ -18,7 +18,7 @@ async fn get_top_songs(
     pool: &DatabasePool,
     user_id: Uuid,
     artist: String,
-    count: Option<i64>,
+    count: Option<usize>,
 ) -> Result<Vec<SongId3Db>> {
     get_song_id3_db()
         .inner_join(artists::table.on(artists::id.eq(songs_artists::artist_id)))
@@ -26,7 +26,7 @@ async fn get_top_songs(
         .filter(playbacks::user_id.eq(user_id))
         .filter(artists::name.eq(artist))
         .order(sum(playbacks::count).desc().nulls_last())
-        .limit(count.unwrap_or(50))
+        .limit(count.unwrap_or(50) as _)
         .get_results::<SongId3Db>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)

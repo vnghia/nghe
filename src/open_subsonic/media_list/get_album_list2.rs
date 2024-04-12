@@ -70,10 +70,10 @@ pub async fn get_album_list2(
         GetAlbumListType::ByYear => {
             let from_year = from_year.ok_or_else(|| {
                 OSError::InvalidParameter("from year is missing when list by year".into())
-            })?;
+            })? as i16;
             let to_year = to_year.ok_or_else(|| {
                 OSError::InvalidParameter("to year is missing when list by year".into())
-            })?;
+            })? as i16;
             if from_year < to_year {
                 #[add_permission_filter]
                 #[add_count_offset]
