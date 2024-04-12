@@ -11,7 +11,7 @@ use super::BasicUser;
 pub struct CreateUserParams {
     pub basic: BasicUser,
     #[derivative(Debug = "ignore")]
-    #[serde_as(as = "serde_with::Bytes")]
+    #[serde_as(as = "serde_with::hex::Hex")]
     pub password: Vec<u8>,
     pub email: String,
 }

@@ -50,18 +50,18 @@ mod tests {
     #[tokio::test]
     async fn test_setup_no_user() {
         let infra = Infra::new().await;
-        let User { basic, password, .. } = User::fake(None);
+        let CreateUserParams { basic, password, .. } = User::fake(None).into();
         let form =
-            Form(SetupParams { username: basic.username.into_owned(), password, ..Faker.fake() });
+            Form(SetupParams { username: basic.username.to_owned(), password, ..Faker.fake() });
         assert!(setup_handler(infra.state(), form).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_setup_with_user() {
         let infra = Infra::new().await.add_user(None).await;
-        let User { basic, password, .. } = User::fake(None);
+        let CreateUserParams { basic, password, .. } = User::fake(None).into();
         let form =
-            Form(SetupParams { username: basic.username.into_owned(), password, ..Faker.fake() });
+            Form(SetupParams { username: basic.username.to_owned(), password, ..Faker.fake() });
         if let Some(err) = setup_handler(infra.state(), form).await.err() {
             assert!(matches!(
                 err.0.root_cause().downcast_ref::<OSError>().unwrap(),

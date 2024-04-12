@@ -27,7 +27,7 @@ pub fn Setup() -> Element {
                     SetupParams {
                         username: username(),
                         email: email(),
-                        password: password().into_bytes(),
+                        password: hex::encode(password()).into_bytes(),
                     },
                 )
                 .await?;
@@ -43,7 +43,6 @@ pub fn Setup() -> Element {
             password,
             email,
             server_url,
-            submitable
         }
     }
 }

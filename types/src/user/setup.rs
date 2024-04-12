@@ -7,7 +7,7 @@ use serde_with::serde_as;
 #[cfg_attr(feature = "test", derive(fake::Dummy))]
 pub struct SetupParams {
     pub username: String,
-    #[serde_as(as = "serde_with::Bytes")]
+    #[serde_as(as = "serde_with::hex::Hex")]
     pub password: Vec<u8>,
     pub email: String,
 }

@@ -15,6 +15,7 @@ anyhow = { version = "1.0.82", features = ["backtrace"] }
 concat-string = { version = "1.0.1" }
 constcat = { version = "0.5.0" }
 derivative = { version = "2.2.0" }
+hex = { version = "0.4.3" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
@@ -38,6 +39,7 @@ anyhow = { workspace = true }
 concat-string = { workspace = true }
 constcat = { workspace = true }
 derivative = { workspace = true }
+hex = { workspace = true }
 isolang = { workspace = true }
 itertools = { workspace = true }
 rand = { workspace = true }
@@ -64,7 +66,6 @@ figment = { version = "0.10.16", features = ["env"] }
 flume = { version = "0.11.0", features = ["async"] }
 futures = { version = "0.3.30" }
 futures-buffered = { version = "0.2.4" }
-hex = { version = "0.4.3" }
 ignore = { version = "0.4.22" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.18.2" }

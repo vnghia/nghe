@@ -44,6 +44,10 @@ impl From<&User> for CommonParams {
 impl From<User> for CreateUserParams {
     fn from(value: User) -> Self {
         let User { basic, password, .. } = value;
-        CreateUserParams { basic: basic.into(), password, email: SafeEmail().fake() }
+        CreateUserParams {
+            basic: basic.into(),
+            password: hex::encode(password).into_bytes(),
+            email: SafeEmail().fake(),
+        }
     }
 }

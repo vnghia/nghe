@@ -26,7 +26,7 @@ pub async fn create_user(
     params: &CreateUserParams,
 ) -> Result<Uuid> {
     let CreateUserParams { basic, password, email } = params;
-    let password = encrypt_password(key, password);
+    let password = encrypt_password(key, hex::decode(password)?);
 
     let user_id = diesel::insert_into(users::table)
         .values(&users::NewUser {
