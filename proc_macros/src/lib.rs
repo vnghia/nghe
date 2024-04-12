@@ -150,8 +150,8 @@ pub fn add_axum_response(item_ident: proc_macro::TokenStream) -> proc_macro::Tok
     }
 }
 
-fn all_roles() -> &'static HashSet<String> {
-    static ALL_ROLES: OnceLock<HashSet<String>> = OnceLock::new();
+fn all_roles() -> &'static Vec<String> {
+    static ALL_ROLES: OnceLock<Vec<String>> = OnceLock::new();
     ALL_ROLES.get_or_init(|| {
         let file = syn::parse_file(
             &std::fs::read_to_string(
@@ -183,7 +183,7 @@ fn all_roles() -> &'static HashSet<String> {
                 .named
                 .into_iter()
                 .map(|n| n.ident.unwrap().to_string().strip_suffix("_role").unwrap().to_string())
-                .collect::<HashSet<_>>()
+                .collect()
         } else {
             unreachable!()
         }
@@ -318,7 +318,7 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
         let item_ident = format_ident!("{}", args.remove(0));
 
         let roles = HashSet::from_iter(args);
-        if !all_roles().is_superset(&roles) {
+        if !all_roles().iter().cloned().collect::<HashSet<_>>().is_superset(&roles) {
             do yeet Error::new(Span::call_site(), "inputs contain invalid role");
         }
         let role_stmts = all_roles()
@@ -571,6 +571,35 @@ pub fn generate_date_db(table_name: proc_macro::TokenStream) -> proc_macro::Toke
             .collect::<Vec<_>>();
         quote! {
             #( #date_structs ) *
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+pub fn add_role_fields(
+    _: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match try {
+        let mut item_struct = parse_macro_input!(input as ItemStruct);
+        if let Fields::Named(ref mut fields) = item_struct.fields {
+            all_roles().iter().for_each(|r| {
+                let role_name = format_ident!("{}_role", r);
+                fields.named.push(
+                    Field::parse_named
+                        .parse2(quote! {
+                            pub #role_name: bool
+                        })
+                        .unwrap(),
+                );
+            })
+        }
+        quote! {
+            #item_struct
         }
         .into()
     } {

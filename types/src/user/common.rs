@@ -1,16 +1,12 @@
-use nghe_proc_macros::add_types_derive;
+use nghe_proc_macros::{add_role_fields, add_types_derive};
 use time::OffsetDateTime;
 
 use super::super::time::time_serde;
 
+#[add_role_fields]
 #[add_types_derive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Role {
-    pub admin_role: bool,
-    pub stream_role: bool,
-    pub download_role: bool,
-    pub share_role: bool,
-}
+pub struct Role {}
 
 #[derive(Debug)]
 #[add_types_derive]

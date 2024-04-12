@@ -45,9 +45,13 @@ impl From<User> for CreateUserParams {
     fn from(value: User) -> Self {
         let User { basic, password, .. } = value;
         CreateUserParams {
-            basic: basic.into(),
+            username: basic.username.to_string(),
             password: hex::encode(password).into_bytes(),
             email: SafeEmail().fake(),
+            admin_role: basic.role.admin_role,
+            stream_role: basic.role.stream_role,
+            download_role: basic.role.download_role,
+            share_role: basic.role.share_role,
         }
     }
 }

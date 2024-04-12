@@ -25,12 +25,28 @@ pub async fn create_user(
     Database { pool, key }: &Database,
     params: &CreateUserParams,
 ) -> Result<Uuid> {
-    let CreateUserParams { basic, password, email } = params;
+    let CreateUserParams {
+        username,
+        password,
+        email,
+        admin_role,
+        stream_role,
+        download_role,
+        share_role,
+    } = params;
     let password = encrypt_password(key, hex::decode(password)?);
 
     let user_id = diesel::insert_into(users::table)
         .values(&users::NewUser {
-            basic: basic.into(),
+            basic: users::BasicUser {
+                username: username.into(),
+                role: users::Role {
+                    admin_role: *admin_role,
+                    stream_role: *stream_role,
+                    download_role: *download_role,
+                    share_role: *share_role,
+                },
+            },
             password: password.into(),
             email: email.into(),
         })
