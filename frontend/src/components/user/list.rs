@@ -131,8 +131,7 @@ pub fn Users() -> Element {
                     }
                     tfoot {
                         tr {
-                            th { colspan: "7",
-                                align: "center",
+                            th { colspan: "7", "align": "center",
                                 Link { class: "btn btn-circle", to: Route::CreateUser {},
                                     svg {
                                         class: "fill-none h-6 w-6 stroke-2 stroke-base-content",

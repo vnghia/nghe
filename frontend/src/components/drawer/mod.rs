@@ -21,7 +21,7 @@ pub fn Drawer() -> Element {
                 id: "main-drawer-toggle"
             }
             div { class: "max-h-screen drawer-content flex flex-col",
-                div { class: "w-full navbar shadow bg-base-300",
+                div { class: "w-full navbar shadow bg-base-300 z-10",
                     div { class: "navbar-start",
                         div { class: "flex-none lg:hidden",
                             label {
