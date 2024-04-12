@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use nghe_types::user::Role;
 use url::Url;
 
-use super::Toast;
+use super::super::Toast;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct UserFormProps {
