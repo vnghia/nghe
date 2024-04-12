@@ -5,6 +5,7 @@ use concat_string::concat_string;
 use dioxus::prelude::*;
 use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
 use gloo::net::http::{Request, Response};
+use nghe_types::error::SubsonicErrorBody;
 use nghe_types::params::{CommonParams, WithCommon};
 use nghe_types::user::Role;
 use serde::de::DeserializeOwned;
@@ -21,21 +22,18 @@ pub struct CommonState {
 }
 
 trait ResponseError {
-    fn error_for_status(self) -> Result<Self>
+    async fn error_for_status(self) -> Result<Self>
     where
         Self: Sized;
 }
 
 impl ResponseError for Response {
-    fn error_for_status(self) -> Result<Self> {
+    async fn error_for_status(self) -> Result<Self> {
         if self.ok() {
             Ok(self)
         } else {
-            Err(anyhow::anyhow!(
-                "HTTP status client error ({}) for url ({})",
-                self.status(),
-                self.url()
-            ))
+            let error = self.json::<SubsonicErrorBody>().await?.root.body.error;
+            Err(anyhow::anyhow!("Opensubsonic error \"{}\" ({})", error.message, error.code))
         }
     }
 }
@@ -112,7 +110,8 @@ impl CommonState {
         ))
         .send()
         .await?
-        .error_for_status()?
+        .error_for_status()
+        .await?
         .json::<R>()
         .await
         .map_err(anyhow::Error::from)

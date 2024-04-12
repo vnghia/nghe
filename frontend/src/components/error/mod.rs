@@ -1,15 +1,17 @@
+use std::borrow::Cow;
+
 use anyhow::Result;
 use dioxus::prelude::*;
 
 use crate::Route;
 
-static ERROR_SIGNAL: GlobalSignal<Option<String>> = Signal::global(Default::default);
+static ERROR_SIGNAL: GlobalSignal<Option<Cow<'static, str>>> = Signal::global(Default::default);
 
 struct ErrorToast;
 
 impl ErrorToast {
-    fn write(e: &anyhow::Error) {
-        *ERROR_SIGNAL.write() = Some(e.root_cause().to_string());
+    fn write<E: Into<Cow<'static, str>>>(e: E) {
+        *ERROR_SIGNAL.write() = Some(e.into());
     }
 
     fn clear() {
@@ -19,7 +21,7 @@ impl ErrorToast {
 
 // Based on dioxus error boundary
 pub trait Toast {
-    type Out;
+    type Out = ();
 
     fn toast(self) -> Option<Self::Out>;
 }
@@ -27,14 +29,14 @@ pub trait Toast {
 impl<T> Toast for Result<T, anyhow::Error> {
     type Out = T;
 
-    fn toast(self) -> Option<T> {
+    fn toast(self) -> Option<Self::Out> {
         match self {
             Ok(t) => {
                 ErrorToast::clear();
                 Some(t)
             }
             Err(e) => {
-                ErrorToast::write(&e);
+                ErrorToast::write(e.root_cause().to_string());
                 None
             }
         }
@@ -44,25 +46,30 @@ impl<T> Toast for Result<T, anyhow::Error> {
 impl<T> Toast for Result<T, &anyhow::Error> {
     type Out = T;
 
-    fn toast(self) -> Option<T> {
+    fn toast(self) -> Option<Self::Out> {
         match self {
             Ok(t) => {
                 ErrorToast::clear();
                 Some(t)
             }
             Err(e) => {
-                ErrorToast::write(e);
+                ErrorToast::write(e.root_cause().to_string());
                 None
             }
         }
     }
 }
 
-impl Toast for anyhow::Error {
-    type Out = ();
+impl Toast for &'static str {
+    fn toast(self) -> Option<Self::Out> {
+        ErrorToast::write(self);
+        None
+    }
+}
 
-    fn toast(self) -> Option<()> {
-        ErrorToast::write(&self);
+impl Toast for String {
+    fn toast(self) -> Option<Self::Out> {
+        ErrorToast::write(self);
         None
     }
 }
@@ -73,7 +80,11 @@ pub fn Error() -> Element {
         Outlet::<Route> {}
         if let Some(e) = ERROR_SIGNAL.as_ref() {
             div { class: "toast",
-                div { class: "alert alert-error", "{e}" }
+                div {
+                    class: "alert alert-error",
+                    onclick: |_| ErrorToast::clear(),
+                    span { class: "text-error-content", "{e}" }
+                }
             }
         }
     }

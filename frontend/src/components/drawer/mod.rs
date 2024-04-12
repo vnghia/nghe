@@ -12,7 +12,7 @@ fn remove_focus() {
         && let Some(element) = element.dyn_ref::<HtmlElement>()
         && element.blur().is_err()
     {
-        anyhow::anyhow!("can not blur active element").toast();
+        "can not blur active element".toast();
     }
 }
 
