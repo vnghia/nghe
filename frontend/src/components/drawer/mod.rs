@@ -9,7 +9,7 @@ use crate::Route;
 
 fn remove_focus() {
     if let Some(element) = document().active_element()
-        && let Some(ref element) = element.dyn_ref::<HtmlElement>()
+        && let Some(element) = element.dyn_ref::<HtmlElement>()
         && element.blur().is_err()
     {
         anyhow::anyhow!("can not blur active element").toast();
@@ -55,7 +55,7 @@ pub fn Drawer() -> Element {
                         }
                     }
                     div { class: "navbar-center",
-                        a { class: "text-base-content btn btn-ghost text-xl", "nghe" }
+                        Link { class: "text-base-content btn btn-ghost text-xl", to: Route::Home {}, "nghe" }
                     }
                     div { class: "navbar-end",
                         button { class: "btn btn-ghost btn-circle",
@@ -92,12 +92,7 @@ pub fn Drawer() -> Element {
                                 class: "mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-300 rounded-box w-52",
                                 if common_state.role.admin_role {
                                     li {
-                                        Link {
-                                            class: "text-base",
-                                            to: Route::Users {},
-                                            onclick: |_| { remove_focus() },
-                                            "Users"
-                                        }
+                                        Link { class: "text-base", to: Route::Users {}, onclick: |_| { remove_focus() }, "Users" }
                                     }
                                 }
                                 li {
