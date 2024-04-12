@@ -50,9 +50,9 @@ pub fn Login() -> Element {
             title: "Login",
             username,
             password,
-            email: None,
             server_url,
-            submitable
+            submitable,
+            grow_full_screen: true
         }
     }
 }

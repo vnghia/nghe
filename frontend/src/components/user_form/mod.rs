@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use nghe_types::user::Role;
 use url::Url;
 
 use super::Toast;
@@ -9,14 +10,24 @@ pub struct UserFormProps {
     username: Signal<String>,
     password: Signal<String>,
     email: Option<Signal<String>>,
+    role: Option<Signal<Role>>,
     server_url: Option<Signal<Option<Url>>>,
     submitable: Signal<bool>,
+    grow_full_screen: bool,
 }
 
 #[component]
 pub fn UserForm(props: UserFormProps) -> Element {
-    let UserFormProps { title, mut username, mut password, email, server_url, mut submitable } =
-        props;
+    let UserFormProps {
+        title,
+        mut username,
+        mut password,
+        role,
+        email,
+        server_url,
+        mut submitable,
+        grow_full_screen,
+    } = props;
     let raw_url = server_url
         .as_ref()
         .map(|s| use_signal(|| s().map(|url| url.to_string()).unwrap_or_default()));
@@ -55,15 +66,16 @@ pub fn UserForm(props: UserFormProps) -> Element {
         result.toast();
     };
 
+    let h_class = if grow_full_screen { "min-h-screen" } else { "h-full" };
     rsx! {
-        div { class: "bg-base-100 min-h-screen flex flex-col justify-center py-12 px-4 lg:px-8",
+        div { class: "bg-base-100 {h_class} flex flex-col grow justify-center py-12 px-4 lg:px-8",
             div { class: "sm:mx-auto sm:w-full sm:max-w-md",
                 h2 { class: "text-base-content mt-6 text-center text-3xl leading-9 font-extrabold",
                     "{title}"
                 }
             }
             div { class: "mt-8 sm:mx-auto sm:w-full sm:max-w-md",
-                div { class: "bg-primary rounded-box py-8 px-6 shadow",
+                div { class: "bg-base-300 rounded-box py-8 px-6 shadow",
                     div { class: "form-control sm:mx-auto sm:w-full sm:max-w-md",
                         div { class: "label",
                             span { class: "text-base text-primary-content", "Username" }
@@ -108,8 +120,84 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                 oninput: move |e| raw_url.set(e.value())
                             }
                         }
+                        if let Some(mut role) = role {
+                            div { class: "flex flex-row justify-center items-center",
+                                div { class: "grow flex flex-col justify-center items-center",
+                                    div { class: "label",
+                                        span { class: "text-base text-primary-content",
+                                            "Admin"
+                                        }
+                                    }
+                                    input {
+                                        class: "toggle",
+                                        r#type: "checkbox",
+                                        checked: role().admin_role,
+                                        oninput: move |e| {
+                                            role.set(Role {
+                                                admin_role: e.value().parse().unwrap(),
+                                                ..role()
+                                            })
+                                        }
+                                    }
+                                }
+                                div { class: "grow flex flex-col justify-center items-center",
+                                    div { class: "label",
+                                        span { class: "text-base text-primary-content",
+                                            "Stream"
+                                        }
+                                    }
+                                    input {
+                                        class: "toggle",
+                                        r#type: "checkbox",
+                                        checked: role().stream_role,
+                                        oninput: move |e| {
+                                            role.set(Role {
+                                                stream_role: e.value().parse().unwrap(),
+                                                ..role()
+                                            })
+                                        }
+                                    }
+                                }
+                                div { class: "grow flex flex-col justify-center items-center",
+                                    div { class: "label",
+                                        span { class: "text-base text-primary-content",
+                                            "Download"
+                                        }
+                                    }
+                                    input {
+                                        class: "toggle",
+                                        r#type: "checkbox",
+                                        checked: role().download_role,
+                                        oninput: move |e| {
+                                            role.set(Role {
+                                                download_role: e.value().parse().unwrap(),
+                                                ..role()
+                                            })
+                                        }
+                                    }
+                                }
+                                div { class: "grow flex flex-col justify-center items-center",
+                                    div { class: "label",
+                                        span { class: "text-base text-primary-content",
+                                            "Share"
+                                        }
+                                    }
+                                    input {
+                                        class: "toggle",
+                                        r#type: "checkbox",
+                                        checked: role().share_role,
+                                        oninput: move |e| {
+                                            role.set(Role {
+                                                share_role: e.value().parse().unwrap(),
+                                                ..role()
+                                            })
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         button {
-                            class: "btn btn-active mt-8 text-base",
+                            class: "btn btn-active mt-8 text-base btn-accent text-accent-content",
                             onclick,
                             "Submit"
                         }

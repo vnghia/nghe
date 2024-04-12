@@ -13,5 +13,5 @@ pub use home::Home;
 pub use loading::Loading;
 pub use login::Login;
 pub use setup::Setup;
-pub use user::Users;
+pub use user::{CreateUser, Users};
 pub use user_form::UserForm;

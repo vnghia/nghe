@@ -43,6 +43,8 @@ pub fn Setup() -> Element {
             password,
             email,
             server_url,
+            submitable,
+            grow_full_screen: true
         }
     }
 }

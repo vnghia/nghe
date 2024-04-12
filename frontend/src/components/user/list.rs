@@ -104,7 +104,7 @@ pub fn Users() -> Element {
                         tfoot {
                             tr {
                                 th { colspan: "7",
-                                    button { class: "w-full btn btn-ghost btn-circle",
+                                    Link { class: "w-full btn btn-ghost btn-circle", to: Route::CreateUser {},
                                         svg {
                                             class: "fill-none h-6 w-6 stroke-2 stroke-base-content",
                                             xmlns: "http://www.w3.org/2000/svg",
