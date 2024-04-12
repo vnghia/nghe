@@ -5,7 +5,7 @@ use crate::components::*;
 #[derive(Clone, Routable, Debug, PartialEq)]
 #[rustfmt::skip]
 pub enum Route {
-    #[layout(Error)]
+    #[layout(Global)]
         #[layout(Drawer)]
             #[route("/")]
             Home {},

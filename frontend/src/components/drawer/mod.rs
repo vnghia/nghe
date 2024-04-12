@@ -1,9 +1,11 @@
 use dioxus::prelude::*;
-use gloo::utils::document;
+use gloo::utils::{document, window};
+use itertools::Itertools;
+use strum::IntoEnumIterator;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 
-use super::Toast;
+use super::{DaisyTheme, Toast};
 use crate::state::CommonState;
 use crate::Route;
 
@@ -19,6 +21,11 @@ fn remove_focus() {
 #[component]
 pub fn Drawer() -> Element {
     let mut common_state = CommonState::use_redirect();
+    let mut global_theme = DaisyTheme::use_theme();
+
+    let theme_classes = DaisyTheme::iter()
+        .map(|t| (if t == global_theme() { "text-base btn-active" } else { "text-base" }, t))
+        .collect_vec();
 
     let onclick_logout = move |_: Event<MouseData>| {
         common_state.set(None);
@@ -44,7 +51,7 @@ pub fn Drawer() -> Element {
                                 svg {
                                     view_box: "fill-none 0 0 24 24",
                                     xmlns: "http://www.w3.org/2000/svg",
-                                    class: "inline-block w-6 h-6 stroke-current stroke-2",
+                                    class: "inline-block w-6 h-6 stroke-base-content stroke-2",
                                     path {
                                         stroke_linecap: "round",
                                         stroke_linejoin: "round",
@@ -58,6 +65,42 @@ pub fn Drawer() -> Element {
                         Link { class: "text-base-content btn btn-ghost text-xl", to: Route::Home {}, "nghe" }
                     }
                     div { class: "navbar-end",
+                        div { class: "dropdown dropdown-end",
+                            div {
+                                class: "btn btn-ghost btn-circle flex justify-center items-center",
+                                tabindex: "0",
+                                role: "button",
+                                svg {
+                                    class: "h-8 w-8 stroke-base-content fill-none stroke-[1.5]",
+                                    view_box: "0 0 24 24",
+                                    "xmlns": "http://www.w3.org/2000/svg",
+                                    path {
+                                        stroke_linecap: "round",
+                                        stroke_linejoin: "round",
+                                        d: "M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                                    }
+                                }
+                            }
+                            ul {
+                                tabindex: "0",
+                                class: "mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-300 rounded-box w-52",
+                                div {
+                                    class: "max-h-80 overflow-y-auto",
+                                    for (class , theme) in theme_classes {
+                                        li { key: "{theme.as_ref()}",
+                                            button {
+                                                class,
+                                                onclick: move |_| {
+                                                    global_theme.set(theme);
+                                                    window().location().reload().expect("can not reload current page");
+                                                },
+                                                "{theme.as_ref()}"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         button { class: "btn btn-ghost btn-circle",
                             svg {
                                 class: "fill-none w-6 h-6 stroke-base-content stroke-2",

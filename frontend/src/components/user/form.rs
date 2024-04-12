@@ -75,7 +75,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                 }
             }
             div { class: "mt-8 sm:mx-auto sm:w-full sm:max-w-md",
-                div { class: "bg-base-300 rounded-box py-8 px-6 shadow",
+                div { class: "bg-primary rounded-box py-8 px-6 shadow",
                     div { class: "form-control sm:mx-auto sm:w-full sm:max-w-md",
                         div { class: "label",
                             span { class: "text-base text-primary-content", "Username" }

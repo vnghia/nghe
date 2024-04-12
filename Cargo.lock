@@ -2941,6 +2941,8 @@ dependencies = [
  "rand",
  "serde",
  "serde_html_form",
+ "serde_json",
+ "strum",
  "url",
  "wasm-bindgen",
  "web-sys",

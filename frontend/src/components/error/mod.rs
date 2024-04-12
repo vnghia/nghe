@@ -3,19 +3,21 @@ use std::borrow::Cow;
 use anyhow::Result;
 use dioxus::prelude::*;
 
-use crate::Route;
-
 static ERROR_SIGNAL: GlobalSignal<Option<Cow<'static, str>>> = Signal::global(Default::default);
 
-struct ErrorToast;
+pub struct ErrorToast;
 
 impl ErrorToast {
-    fn write<E: Into<Cow<'static, str>>>(e: E) {
+    pub fn write<E: Into<Cow<'static, str>>>(e: E) {
         *ERROR_SIGNAL.write() = Some(e.into());
     }
 
-    fn clear() {
+    pub fn clear() {
         *ERROR_SIGNAL.write() = None;
+    }
+
+    pub fn read() -> &'static GlobalSignal<Option<Cow<'static, str>>> {
+        &ERROR_SIGNAL
     }
 }
 
@@ -71,21 +73,5 @@ impl Toast for String {
     fn toast(self) -> Option<Self::Out> {
         ErrorToast::write(self);
         None
-    }
-}
-
-#[component]
-pub fn Error() -> Element {
-    rsx! {
-        Outlet::<Route> {}
-        if let Some(e) = ERROR_SIGNAL.as_ref() {
-            div { class: "toast",
-                div {
-                    class: "alert alert-error",
-                    onclick: |_| ErrorToast::clear(),
-                    span { class: "text-error-content", "{e}" }
-                }
-            }
-        }
     }
 }
