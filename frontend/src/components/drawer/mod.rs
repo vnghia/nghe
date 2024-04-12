@@ -20,7 +20,7 @@ pub fn Drawer() -> Element {
                 class: "drawer-toggle",
                 id: "main-drawer-toggle"
             }
-            div { class: "drawer-content flex flex-col",
+            div { class: "max-h-screen drawer-content flex flex-col",
                 div { class: "w-full navbar shadow bg-base-300",
                     div { class: "navbar-start",
                         div { class: "flex-none lg:hidden",
@@ -93,7 +93,7 @@ pub fn Drawer() -> Element {
                         }
                     }
                 }
-                div { class: "w-full h-full p-4 flex", Outlet::<Route> {} }
+                div { class: "min-h-0 w-full p-4 flex", Outlet::<Route> {} }
             }
             div { class: "drawer-side",
                 label {

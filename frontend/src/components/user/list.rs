@@ -34,8 +34,8 @@ pub fn Users() -> Element {
                 .collect_vec();
 
             rsx! {
-                div { class: "w-full overflow-x-auto",
-                    table { class: "table",
+                div { class: "w-full h-full overflow-x-auto overflow-y-auto",
+                    table { class: "table table-pin-rows",
                         thead {
                             tr { class: "shadow bg-base-200",
                                 th { class: "text-base", "Username" }
@@ -44,7 +44,7 @@ pub fn Users() -> Element {
                                 th { class: "text-base", "Download role" }
                                 th { class: "text-base", "Share role" }
                                 th { class: "text-base", "Created at" }
-                                th { class: "text-base" }
+                                th { class: "text-base", "Action" }
                             }
                         }
                         tbody {
@@ -87,7 +87,7 @@ pub fn Users() -> Element {
                                     td {
                                         button { class: "btn btn-ghost btn-circle",
                                             svg {
-                                                class: "fill-none h-6 w-6 stroke-2 stroke-base-content",
+                                                class: "fill-none h-6 w-6 stroke-2 stroke-error",
                                                 xmlns: "http://www.w3.org/2000/svg",
                                                 view_box: "0 0 24 24",
                                                 path {
@@ -104,7 +104,7 @@ pub fn Users() -> Element {
                         tfoot {
                             tr {
                                 th { colspan: "7",
-                                    Link { class: "w-full btn btn-ghost btn-circle", to: Route::CreateUser {},
+                                    Link { class: "w-full btn btn-circle", to: Route::CreateUser {},
                                         svg {
                                             class: "fill-none h-6 w-6 stroke-2 stroke-base-content",
                                             xmlns: "http://www.w3.org/2000/svg",
