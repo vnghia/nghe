@@ -66,7 +66,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                 div { class: "bg-primary rounded-box py-8 px-6 shadow",
                     div { class: "form-control sm:mx-auto sm:w-full sm:max-w-md",
                         div { class: "label",
-                            span { class: "text-primary-content", "Username" }
+                            span { class: "text-base text-primary-content", "Username" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -77,7 +77,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                         }
                         if let Some(mut email) = email {
                             div { class: "label",
-                                span { class: "text-primary-content", "Email" }
+                                span { class: "text-base text-primary-content", "Email" }
                             }
                             input {
                                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -88,7 +88,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                             }
                         }
                         div { class: "label",
-                            span { class: "text-primary-content", "Password" }
+                            span { class: "text-base text-primary-content", "Password" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -99,7 +99,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                         }
                         if let Some(mut raw_url) = raw_url {
                             div { class: "label",
-                                span { class: "text-primary-content", "Server URL" }
+                                span { class: "text-base text-primary-content", "Server URL" }
                             }
                             input {
                                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -108,7 +108,11 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                 oninput: move |e| raw_url.set(e.value())
                             }
                         }
-                        button { class: "btn btn-active mt-8", onclick, "Submit" }
+                        button {
+                            class: "btn btn-active mt-8 text-base",
+                            onclick,
+                            "Submit"
+                        }
                     }
                 }
             }

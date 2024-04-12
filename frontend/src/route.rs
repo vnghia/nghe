@@ -9,6 +9,8 @@ pub enum Route {
         #[layout(Drawer)]
             #[route("/")]
             Home {},
+            #[route("/users")]
+            Users {},
         #[end_layout]
         #[route("/setup")]
         Setup {},

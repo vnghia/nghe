@@ -9,6 +9,7 @@ forced-target = "wasm32-unknown-unknown"
 [dependencies]
 anyhow = { workspace = true }
 concat-string = { workspace = true }
+itertools = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
 

@@ -16,6 +16,7 @@ concat-string = { version = "1.0.1" }
 constcat = { version = "0.5.0" }
 derivative = { version = "2.2.0" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
+itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_with = { version = "3.7.0", features = ["hex"] }
@@ -38,6 +39,7 @@ concat-string = { workspace = true }
 constcat = { workspace = true }
 derivative = { workspace = true }
 isolang = { workspace = true }
+itertools = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
@@ -64,7 +66,6 @@ futures = { version = "0.3.30" }
 futures-buffered = { version = "0.2.4" }
 hex = { version = "0.4.3" }
 ignore = { version = "0.4.22" }
-itertools = { version = "0.12.1" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.18.2" }
 lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }

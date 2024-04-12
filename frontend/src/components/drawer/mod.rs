@@ -11,6 +11,8 @@ pub fn Drawer() -> Element {
         common_state.set(None);
     };
 
+    let common_state = common_state()?;
+
     rsx! {
         div { class: "drawer lg:drawer-open",
             input {
@@ -75,14 +77,23 @@ pub fn Drawer() -> Element {
                             ul {
                                 tabindex: "0",
                                 class: "mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-300 rounded-box w-52",
+                                if common_state.role.admin_role {
+                                    li {
+                                        Link { class: "text-base", to: Route::Users {}, "Users" }
+                                    }
+                                }
                                 li {
-                                    button { onclick: onclick_logout, "Logout" }
+                                    button {
+                                        class: "text-base",
+                                        onclick: onclick_logout,
+                                        "Logout"
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                Outlet::<Route> {}
+                div { class: "w-full h-full p-4 flex", Outlet::<Route> {} }
             }
             div { class: "drawer-side",
                 label {
