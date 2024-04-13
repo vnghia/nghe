@@ -321,7 +321,7 @@ impl Infra {
                         music_folders::path.eq(&song_fs_info.music_folder_path.to_str().unwrap()),
                     )
                     .filter(songs::file_hash.eq(song_fs_info.file_hash as i64))
-                    .filter(songs::file_size.eq(song_fs_info.file_size as i64))
+                    .filter(songs::file_size.eq(song_fs_info.file_size as i32))
                     .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
                     .await
                     .unwrap()
@@ -349,7 +349,7 @@ impl Infra {
                     .select(song_cover_arts::id)
                     .filter(song_cover_arts::format.eq(file_format))
                     .filter(song_cover_arts::file_hash.eq(file_hash as i64))
-                    .filter(song_cover_arts::file_size.eq(file_size as i64))
+                    .filter(song_cover_arts::file_size.eq(file_size as i32))
                     .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
                     .await
                     .unwrap()
@@ -592,7 +592,7 @@ impl Infra {
         }
     }
 
-    pub async fn song_db_infos(&self) -> HashMap<(Uuid, u64, u64), SongDbInformation> {
+    pub async fn song_db_infos(&self) -> HashMap<(Uuid, u64, u32), SongDbInformation> {
         let song_ids = songs::table
             .select(songs::id)
             .get_results(&mut self.pool().get().await.unwrap())

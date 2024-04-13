@@ -12,11 +12,11 @@ use crate::utils::song::file_type::{to_extension, to_glob_pattern};
 pub struct ScannedMediaFile {
     pub song_absolute_path: PathBuf,
     pub song_relative_path: String,
-    pub song_file_size: u64,
+    pub song_file_size: u32,
 }
 
 impl ScannedMediaFile {
-    pub fn new<P: AsRef<Path>>(root: P, song_absolute_path: PathBuf, song_file_size: u64) -> Self {
+    pub fn new<P: AsRef<Path>>(root: P, song_absolute_path: PathBuf, song_file_size: u32) -> Self {
         let song_relative_path = song_absolute_path
             .strip_prefix(&root)
             .expect("this path should always contains the root path")
@@ -37,7 +37,8 @@ fn process_dir_entry<P: AsRef<Path>>(
         let metadata = entry.metadata()?;
         let path = entry.path();
         if metadata.is_file()
-            && let Err(e) = tx.send(ScannedMediaFile::new(root, path.to_path_buf(), metadata.len()))
+            && let Err(e) =
+                tx.send(ScannedMediaFile::new(root, path.to_path_buf(), metadata.len() as _))
         {
             tracing::error!(sending_walkdir_result = ?e);
             ignore::WalkState::Quit
@@ -135,7 +136,7 @@ mod tests {
         assert_eq!(
             media_paths
                 .iter()
-                .map(|path| std::fs::metadata(path).unwrap().len())
+                .map(|path| std::fs::metadata(path).unwrap().len() as u32)
                 .sorted()
                 .collect_vec(),
             scanned_lens.into_iter().sorted().collect_vec()
@@ -249,7 +250,7 @@ mod tests {
         assert_eq!(
             media_paths
                 .iter()
-                .map(|path| std::fs::metadata(path).unwrap().len())
+                .map(|path| std::fs::metadata(path).unwrap().len() as u32)
                 .sorted()
                 .collect_vec(),
             scanned_lens.into_iter().sorted().collect_vec()

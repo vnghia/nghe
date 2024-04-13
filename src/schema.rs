@@ -57,7 +57,7 @@ diesel::table! {
         line_values -> Array<Nullable<Text>>,
         line_starts -> Nullable<Array<Nullable<Int4>>>,
         lyric_hash -> Int8,
-        lyric_size -> Int8,
+        lyric_size -> Int4,
         external -> Bool,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
@@ -98,7 +98,7 @@ diesel::table! {
         id -> Uuid,
         format -> Text,
         file_hash -> Int8,
-        file_size -> Int8,
+        file_size -> Int4,
         upserted_at -> Timestamptz,
     }
 }
@@ -130,7 +130,7 @@ diesel::table! {
         music_folder_id -> Uuid,
         relative_path -> Text,
         file_hash -> Int8,
-        file_size -> Int8,
+        file_size -> Int4,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,

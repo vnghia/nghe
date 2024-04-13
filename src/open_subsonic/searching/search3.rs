@@ -19,12 +19,12 @@ add_axum_response!(Search3Body);
 #[derive(Debug)]
 #[cfg_attr(test, derive(Default))]
 struct SearchOffsetCount {
-    artist_count: Option<usize>,
-    artist_offset: Option<usize>,
-    album_count: Option<usize>,
-    album_offset: Option<usize>,
-    song_count: Option<usize>,
-    song_offset: Option<usize>,
+    artist_count: Option<u32>,
+    artist_offset: Option<u32>,
+    album_count: Option<u32>,
+    album_offset: Option<u32>,
+    song_count: Option<u32>,
+    song_offset: Option<u32>,
 }
 
 async fn syncing(

@@ -114,7 +114,7 @@ mod tests {
 
         let song_path = Faker.fake::<String>();
         let song_hash: i64 = rand::random();
-        let song_size: i64 = rand::random();
+        let song_size: i32 = rand::random();
 
         let song_id = insert_song(
             infra.pool(),
@@ -135,7 +135,7 @@ mod tests {
         assert_eq!(song_tag.song.name, song_db_info.tag.song.name);
         assert_eq!(song_path, song_db_info.relative_path);
         assert_eq!(song_hash as u64, song_db_info.file_hash);
-        assert_eq!(song_size as u64, song_db_info.file_size);
+        assert_eq!(song_size as u32, song_db_info.file_size);
     }
 
     #[tokio::test]
@@ -147,7 +147,7 @@ mod tests {
 
         let song_path = Faker.fake::<String>();
         let song_hash: i64 = rand::random();
-        let song_size: i64 = rand::random();
+        let song_size: i32 = rand::random();
 
         let song_id = insert_song(
             infra.pool(),
@@ -167,7 +167,7 @@ mod tests {
         let new_album_id = upsert_album(infra.pool(), (&new_song_tag.album).into()).await.unwrap();
 
         let new_song_hash: i64 = rand::random();
-        let new_song_size: i64 = rand::random();
+        let new_song_size: i32 = rand::random();
 
         update_song(
             infra.pool(),
@@ -187,6 +187,6 @@ mod tests {
         assert_eq!(new_song_tag.song.name, song_db_info.tag.song.name);
         assert_eq!(song_path, song_db_info.relative_path);
         assert_eq!(new_song_hash as u64, song_db_info.file_hash);
-        assert_eq!(new_song_size as u64, song_db_info.file_size);
+        assert_eq!(new_song_size as u32, song_db_info.file_size);
     }
 }

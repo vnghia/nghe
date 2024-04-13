@@ -91,7 +91,7 @@ impl SongInformation {
         &self,
         album_id: Uuid,
         file_hash: i64,
-        file_size: i64,
+        file_size: i32,
         cover_art_id: Option<Uuid>,
     ) -> songs::SongUpdateInformationDB<'_> {
         let (year, month, day) =
@@ -138,7 +138,7 @@ impl SongInformation {
         &'a self,
         album_id: Uuid,
         file_hash: i64,
-        file_size: i64,
+        file_size: i32,
         cover_art_id: Option<Uuid>,
         music_folder_id: Uuid,
         relative_path: &'a S,

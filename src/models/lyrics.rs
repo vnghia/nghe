@@ -14,7 +14,7 @@ pub struct UpdateLyric<'a> {
     pub line_values: Vec<Option<Cow<'a, str>>>,
     pub line_starts: Option<Vec<Option<i32>>>,
     pub lyric_hash: i64,
-    pub lyric_size: i64,
+    pub lyric_size: i32,
 }
 
 #[derive(Insertable, Identifiable)]

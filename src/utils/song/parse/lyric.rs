@@ -42,7 +42,7 @@ pub struct SongLyric {
     #[cfg_attr(test, dummy(expr = "0"))]
     pub lyric_hash: u64,
     #[cfg_attr(test, dummy(expr = "0"))]
-    pub lyric_size: u64,
+    pub lyric_size: u32,
 }
 
 impl SongLyric {

@@ -13,13 +13,13 @@ pub async fn get_song_download_info(
     pool: &DatabasePool,
     user_id: Uuid,
     song_id: Uuid,
-) -> Result<(PathBuf, u64, u64)> {
+) -> Result<(PathBuf, u64, u32)> {
     songs::table
         .inner_join(music_folders::table)
         .filter(with_permission(user_id))
         .filter(songs::id.eq(song_id))
         .select((music_folders::path, songs::relative_path, songs::file_hash, songs::file_size))
-        .first::<(String, String, i64, i64)>(&mut pool.get().await?)
+        .first::<(String, String, i64, i32)>(&mut pool.get().await?)
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Song".into()).into())

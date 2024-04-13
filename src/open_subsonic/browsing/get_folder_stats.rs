@@ -1,6 +1,5 @@
 use anyhow::Result;
 use axum::extract::State;
-use bigdecimal::{BigDecimal, ToPrimitive};
 use diesel::dsl::{count_distinct, sum, AssumeNotNull};
 use diesel::{
     helper_types, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl, Queryable,
@@ -36,7 +35,7 @@ struct FolderStats {
     user_count: i64,
     #[diesel(select_expression = sum(songs::file_size).assume_not_null())]
     #[diesel(select_expression_type = AssumeNotNull<helper_types::sum<songs::file_size>>)]
-    total_size: BigDecimal,
+    total_size: i64,
 }
 
 async fn get_folder_stats(pool: &DatabasePool) -> Result<Vec<FolderStats>> {
@@ -77,7 +76,7 @@ impl From<FolderStats> for nghe_types::browsing::get_folder_stats::FolderStats {
             album_count: value.album_count as _,
             song_count: value.song_count as _,
             user_count: value.user_count as _,
-            total_size: value.total_size.to_usize().expect("can not convert total size to usize"),
+            total_size: value.total_size as _,
         }
     }
 }

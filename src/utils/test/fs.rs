@@ -24,7 +24,7 @@ pub struct SongFsInformation {
     pub music_folder_path: PathBuf,
     pub relative_path: String,
     pub file_hash: u64,
-    pub file_size: u64,
+    pub file_size: u32,
 }
 
 impl SongFsInformation {

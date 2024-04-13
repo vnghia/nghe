@@ -11,7 +11,7 @@ lyrics (
         array_position(line_starts, null) is null
     ),
     lyric_hash bigint not null,
-    lyric_size bigint not null,
+    lyric_size integer not null,
     external bool not null,
     updated_at timestamptz not null default now(),
     scanned_at timestamptz not null default now(),

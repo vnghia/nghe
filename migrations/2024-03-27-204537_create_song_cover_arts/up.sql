@@ -4,7 +4,7 @@ song_cover_arts (
     id uuid not null default gen_random_uuid() constraint song_cover_arts_pkey primary key,
     format text not null,
     file_hash bigint not null,
-    file_size bigint not null,
+    file_size integer not null,
     upserted_at timestamptz not null default now(),
     constraint song_cover_arts_format_file_hash_file_size_key unique (
         format, file_hash, file_size

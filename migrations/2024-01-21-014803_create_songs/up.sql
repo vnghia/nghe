@@ -31,7 +31,7 @@ songs (
     music_folder_id uuid not null,
     relative_path text not null,
     file_hash bigint not null,
-    file_size bigint not null,
+    file_size integer not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     scanned_at timestamptz not null default now(),

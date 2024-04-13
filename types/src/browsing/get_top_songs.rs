@@ -6,7 +6,7 @@ use crate::id3::*;
 #[derive(Debug)]
 pub struct GetTopSongsParams {
     pub artist: String,
-    pub count: Option<usize>,
+    pub count: Option<u32>,
 }
 
 #[add_types_derive]

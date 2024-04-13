@@ -60,7 +60,7 @@ pub async fn process_path(
                 ))
                 .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
                 .returning((songs::id, songs::file_hash, songs::file_size, songs::relative_path))
-                .get_result::<(Uuid, i64, i64, String)>(&mut pool.get().await?)
+                .get_result::<(Uuid, i64, i32, String)>(&mut pool.get().await?)
                 .await
                 .optional()?
         {

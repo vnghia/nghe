@@ -22,8 +22,8 @@ pub struct GetAlbumList2Params {
     #[serde(rename = "type")]
     pub list_type: GetAlbumListType,
     #[serde(rename = "size")]
-    pub count: Option<usize>,
-    pub offset: Option<usize>,
+    pub count: Option<u32>,
+    pub offset: Option<u32>,
     #[serde(rename = "musicFolderId")]
     pub music_folder_ids: Option<Vec<Uuid>>,
     // By Year

@@ -9,11 +9,11 @@ pub struct GetFolderStatsParams {}
 #[derive(Debug)]
 pub struct FolderStats {
     pub music_folder: MusicFolderPath,
-    pub artist_count: usize,
-    pub album_count: usize,
-    pub song_count: usize,
-    pub user_count: usize,
-    pub total_size: usize,
+    pub artist_count: u32,
+    pub album_count: u32,
+    pub song_count: u32,
+    pub user_count: u32,
+    pub total_size: u64,
 }
 
 #[add_subsonic_response]

@@ -78,7 +78,7 @@ pub struct BasicSongId3Db {
     pub title: String,
     pub duration: f32,
     pub created_at: OffsetDateTime,
-    pub file_size: i64,
+    pub file_size: i32,
     pub format: String,
     pub bitrate: i32,
     pub album_id: Uuid,

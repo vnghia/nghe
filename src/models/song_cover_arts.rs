@@ -13,7 +13,7 @@ use crate::utils::fs::path::hash_size_to_path;
 pub struct NewSongCoverArt<'a> {
     pub format: Cow<'a, str>,
     pub file_hash: i64,
-    pub file_size: i64,
+    pub file_size: i32,
 }
 
 impl<'a> NewSongCoverArt<'a> {

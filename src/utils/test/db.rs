@@ -24,7 +24,7 @@ pub struct SongDbInformation {
     pub music_folder: music_folders::MusicFolder,
     pub relative_path: String,
     pub file_hash: u64,
-    pub file_size: u64,
+    pub file_size: u32,
 }
 
 impl SongDbInformation {

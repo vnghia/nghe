@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-pub fn hash_size_to_path<P: AsRef<Path>>(root_path: P, hash: u64, size: u64) -> PathBuf {
+pub fn hash_size_to_path<P: AsRef<Path>>(root_path: P, hash: u64, size: u32) -> PathBuf {
     let bytes = hash.to_le_bytes();
     // avoid putting to many files in a single directory
     let first = hex::encode(&bytes[..1]);

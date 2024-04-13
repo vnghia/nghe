@@ -27,7 +27,7 @@ async fn scrobble(pool: &DatabasePool, user_id: Uuid, params: &ScrobbleParams) -
                 // convert milliseconds to nanoseconds
                 let updated_ats: Vec<_> = times
                     .iter()
-                    .map(|t| OffsetDateTime::from_unix_timestamp_nanos((t * 1000000) as _))
+                    .map(|t| OffsetDateTime::from_unix_timestamp_nanos((*t as i128) * 1000000))
                     .try_collect()?;
                 diesel::insert_into(playbacks::table)
                     .values(
@@ -173,8 +173,8 @@ mod tests {
         infra.add_n_song(0, n_song).scan(.., None).await;
         let user_id = infra.user_id(0);
         let song_ids = infra.song_ids(..).await;
-        let start_dt = datetime!(1000-01-01 0:00 UTC);
-        let end_dt = datetime!(2000-01-01 0:00 UTC);
+        let start_dt = datetime!(2000-01-01 0:00 UTC);
+        let end_dt = datetime!(2100-01-01 0:00 UTC);
         let times = (0..n_song).map(|_| DateTimeBetween(start_dt, end_dt).fake()).collect_vec();
 
         for song_id in song_ids.iter().copied() {

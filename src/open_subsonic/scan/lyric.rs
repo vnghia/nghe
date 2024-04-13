@@ -12,12 +12,12 @@ impl SongLyric {
     pub async fn upsert_lyric(&self, pool: &DatabasePool, song_id: Uuid) -> Result<()> {
         let lyric_key = self.as_key(song_id);
         let lyric_hash = self.lyric_hash as i64;
-        let lyric_size = self.lyric_size as i64;
+        let lyric_size = self.lyric_size as i32;
 
         if let Some((lyric_db_hash, lyric_db_size)) = diesel::update(&lyric_key)
             .set(lyrics::scanned_at.eq(OffsetDateTime::now_utc()))
             .returning((lyrics::lyric_hash, lyrics::lyric_size))
-            .get_result::<(i64, i64)>(&mut pool.get().await?)
+            .get_result::<(i64, i32)>(&mut pool.get().await?)
             .await
             .optional()?
         {

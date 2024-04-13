@@ -6,7 +6,7 @@ pub struct ScrobbleParams {
     #[serde(rename = "id")]
     pub ids: Vec<Uuid>,
     #[serde(rename = "time")]
-    pub times: Option<Vec<usize>>,
+    pub times: Option<Vec<u64>>,
     pub submission: Option<bool>,
 }
 

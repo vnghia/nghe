@@ -40,7 +40,7 @@ pub struct SongUpdateInformationDB<'a> {
     pub channel_count: i16,
     // Filesystem property
     pub file_hash: i64,
-    pub file_size: i64,
+    pub file_size: i32,
     // Foreign key columns
     pub cover_art_id: Option<Uuid>,
 }
@@ -86,7 +86,7 @@ pub mod test {
         pub music_folder: music_folders::MusicFolder,
         pub relative_path: String,
         pub file_hash: i64,
-        pub file_size: i64,
+        pub file_size: i32,
         // Cover art
         pub cover_art_id: Option<Uuid>,
     }

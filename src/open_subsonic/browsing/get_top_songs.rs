@@ -18,7 +18,7 @@ async fn get_top_songs(
     pool: &DatabasePool,
     user_id: Uuid,
     artist: String,
-    count: Option<usize>,
+    count: Option<u32>,
 ) -> Result<Vec<SongId3Db>> {
     get_song_id3_db()
         .inner_join(artists::table.on(artists::id.eq(songs_artists::artist_id)))

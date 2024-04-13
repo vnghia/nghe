@@ -55,7 +55,7 @@ nghe-types = { path = "types" }
 async-trait = { version = "0.1.79" }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form"] }
-diesel = { version = "2.1.5", features = ["numeric", "time", "uuid"] }
+diesel = { version = "2.1.5", features = ["time", "uuid"] }
 diesel-async = { version = "0.4.1", features = [
   "postgres",
   "deadpool",
@@ -86,7 +86,6 @@ tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 walkdir = { version = "2.5.0" }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
-bigdecimal = "0.4.3"
 
 [dev-dependencies]
 fake = { workspace = true }
