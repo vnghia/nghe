@@ -55,20 +55,15 @@ pub fn Folder(id: Uuid) -> Element {
         }
     });
 
-    let mut toggle_idx: Signal<Option<usize>> = use_signal(Option::default);
-    if let Some(idx) = toggle_idx()
+    let mut toggle_idx: Signal<Option<(usize, bool)>> = use_signal(Option::default);
+    if let Some((idx, allow)) = toggle_idx()
         && let Some(common_state) = common_state()
         && idx < users.len()
     {
         spawn(async move {
             toggle_idx.set(None);
-
-            let (user_allow, user_id) = {
-                let binding = users.get(idx);
-                let user = binding.as_ref().unwrap();
-                (user.0, user.1.id)
-            };
-            users.get_mut(idx).as_mut().unwrap().0 = !user_allow;
+            let user_id = users.get(idx).as_ref().unwrap().1.id;
+            users.get_mut(idx).as_mut().unwrap().0 = allow;
 
             common_state
                 .send_with_common::<_, SetPermissionBody>(
@@ -76,7 +71,7 @@ pub fn Folder(id: Uuid) -> Element {
                     SetPermissionParams {
                         user_ids: vec![user_id],
                         music_folder_ids: vec![id],
-                        allow: !user_allow,
+                        allow,
                     },
                 )
                 .await
@@ -102,9 +97,9 @@ pub fn Folder(id: Uuid) -> Element {
                                     td {
                                         input {
                                             class: "rounded-btn toggle",
-                                            onclick: move |_| { toggle_idx.set(Some(idx)) },
+                                            oninput: move |e| { toggle_idx.set(Some((idx, e.value().parse().unwrap()))) },
                                             r#type: "checkbox",
-                                            checked: user.0
+                                            checked: user.0,
                                         }
                                     }
                                 }
