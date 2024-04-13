@@ -1,9 +1,8 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::dsl::{count_distinct, sum};
+use diesel::dsl::{count, count_distinct, sum};
 use diesel::{
-    BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl,
-    Queryable, SelectableHelper,
+    ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl, Queryable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
@@ -34,18 +33,18 @@ async fn get_folder_stats(pool: &DatabasePool) -> Result<Vec<FolderStats>> {
 
     get_basic_artist_id3_db()
         .inner_join(music_folders::table.on(music_folders::id.eq(songs::music_folder_id)))
-        .inner_join(
-            user_music_folder_permissions::table.on(user_music_folder_permissions::music_folder_id
-                .eq(music_folders::id)
-                .and(user_music_folder_permissions::allow)),
-        )
         .group_by(music_folders::id)
         .select((
             music_folders::MusicFolder::as_select(),
             count_distinct(artists::id),
             count_distinct(songs::album_id),
             count_distinct(songs::id),
-            count_distinct(user_music_folder_permissions::user_id),
+            user_music_folder_permissions::table
+                .filter(user_music_folder_permissions::music_folder_id.eq(music_folders::id))
+                .filter(user_music_folder_permissions::allow)
+                .select(count(user_music_folder_permissions::user_id))
+                .single_value()
+                .assume_not_null(),
             songs_total_size
                 .filter(songs_total_size.field(songs::music_folder_id).eq(music_folders::id))
                 .select(sum(songs_total_size.field(songs::file_size)))
@@ -104,6 +103,8 @@ mod tests {
 
         let mut infra =
             Infra::new().await.n_folder(n_folder).await.add_user(None).await.add_user(None).await;
+        infra.permissions(.., ..5, false).await;
+
         (0..n_folder).for_each(|i| {
             let n_song = (10..20).fake();
             infra.add_songs(
@@ -154,7 +155,7 @@ mod tests {
                     artist_count,
                     album_count,
                     song_count,
-                    user_count: 2,
+                    user_count: if i < 5 { 0 } else { 2 },
                     total_size,
                 }
             })
