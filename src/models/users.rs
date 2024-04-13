@@ -4,6 +4,7 @@ use std::marker::ConstParamTy;
 use diesel::prelude::*;
 use time::OffsetDateTime;
 pub use users::*;
+use uuid::Uuid;
 
 pub use crate::schema::users;
 
@@ -43,6 +44,7 @@ pub struct BasicUser<'a> {
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
+    pub id: Uuid,
     #[diesel(embed)]
     pub basic: BasicUser<'static>,
     pub created_at: OffsetDateTime,
@@ -94,7 +96,7 @@ impl<'a> From<&'a nghe_types::user::BasicUser> for BasicUser<'a> {
 
 impl From<User> for nghe_types::user::User {
     fn from(value: User) -> Self {
-        Self { basic: value.basic.into(), created_at: value.created_at }
+        Self { id: value.id, basic: value.basic.into(), created_at: value.created_at }
     }
 }
 

@@ -47,7 +47,7 @@ pub fn Users() -> Element {
                 .unwrap()
                 .send_with_common::<_, DeleteUserBody>(
                     "/rest/deleteUser",
-                    DeleteUserParams { username: user.basic.username },
+                    DeleteUserParams { id: user.id },
                 )
                 .await
                 .toast();
@@ -73,7 +73,7 @@ pub fn Users() -> Element {
                     }
                     tbody {
                         for (idx , user) in users.iter().enumerate() {
-                            tr { key: "{user.basic.username}",
+                            tr { key: "{user.id}",
                                 td { class: "text-base", "{user.basic.username}" }
                                 td {
                                     input {
@@ -109,7 +109,7 @@ pub fn Users() -> Element {
                                 }
                                 td { class: "text-base", "{user.created_at.date()}" }
                                 td {
-                                    if user.basic.username != common_state.common.username {
+                                    if user.id != common_state.id {
                                         button {
                                             class: "btn btn-ghost btn-circle",
                                             onclick: move |_| { delete_idx.set(Some(idx)) },

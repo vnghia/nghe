@@ -2944,6 +2944,7 @@ dependencies = [
  "serde_json",
  "strum",
  "url",
+ "uuid",
  "wasm-bindgen",
  "web-sys",
 ]

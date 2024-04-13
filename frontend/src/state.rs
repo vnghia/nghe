@@ -11,11 +11,13 @@ use nghe_types::user::Role;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use url::Url;
+use uuid::Uuid;
 
 use crate::Route;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CommonState {
+    pub id: Uuid,
     pub common: CommonParams,
     pub role: Role,
     pub server_url: Option<Url>,
