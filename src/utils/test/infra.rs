@@ -412,7 +412,7 @@ impl Infra {
         [self.song_artist_no_ids(slice.clone()), self.album_artist_no_ids(slice.clone())]
             .concat()
             .into_iter()
-            .sorted()
+            .unique()
             .collect_vec()
     }
 
