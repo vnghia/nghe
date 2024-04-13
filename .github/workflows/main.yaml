@@ -383,4 +383,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload ${{ github.ref_name }} artifact/amd64-gnu artifact/arm64-gnu artifact/amd64-musl artifact/arm64-musl artifact/amd64-darwin artifact/arm64-darwin artifact/amd64-windows artifact/frontend
+          find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
+          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip artifact/frontend.zip
