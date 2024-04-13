@@ -52,7 +52,7 @@ uuid = { workspace = true }
 nghe-proc_macros = { path = "proc_macros" }
 nghe-types = { path = "types" }
 
-async-trait = { version = "0.1.79" }
+async-trait = { version = "0.1.80" }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form"] }
 diesel = { version = "2.1.5", features = ["time", "uuid"] }
