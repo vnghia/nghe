@@ -11,6 +11,7 @@ pub use parsing::ParsingConfig;
 #[derive(Debug)]
 pub struct ServerConfig {
     pub bind_addr: SocketAddr,
+    pub frontend_dir: PathBuf,
 }
 
 pub type DatabaseConfig = raw::DatabaseConfig;
@@ -44,8 +45,11 @@ pub struct Config {
 }
 
 impl ServerConfig {
-    pub fn new(raw::ServerConfig { host, port }: raw::ServerConfig) -> Self {
-        Self { bind_addr: SocketAddr::new(host, port) }
+    pub fn new(raw::ServerConfig { host, port, frontend_dir }: raw::ServerConfig) -> Self {
+        Self {
+            bind_addr: SocketAddr::new(host, port),
+            frontend_dir: frontend_dir.canonicalize().expect("failed to canonicalize frontend dir"),
+        }
     }
 }
 

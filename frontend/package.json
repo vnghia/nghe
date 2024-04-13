@@ -2,6 +2,11 @@
   "name": "frontend",
   "version": "1.0.0",
   "devDependencies": {
-    "daisyui": "^4.10.1"
+    "daisyui": "^4.10.1",
+    "tailwindcss": "^3.4.3"
+  },
+  "scripts": {
+    "dev": "tailwindcss -i input.css -o public/tailwind.css --watch",
+    "build": "tailwindcss -i input.css -o public/tailwind.css"
   }
 }

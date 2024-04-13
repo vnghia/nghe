@@ -19,6 +19,10 @@ pub struct ServerConfig {
     pub host: IpAddr,
     #[derivative(Default(value = "3000"))]
     pub port: u16,
+    #[derivative(Default(
+        value = "std::env::current_dir().unwrap().join(\"frontend\").join(\"dist\")"
+    ))]
+    pub frontend_dir: PathBuf,
 }
 
 #[serde_as]
