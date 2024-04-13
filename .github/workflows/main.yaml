@@ -204,6 +204,7 @@ jobs:
             name=ghcr.io/${{ github.repository }}-gnu
           tags: |
             type=ref,event=pr
+            type=semver,pattern={{version}}
             type=raw,value=develop,enable={{is_default_branch}}
       - name: Build and push gnu
         uses: docker/build-push-action@v5
@@ -226,6 +227,7 @@ jobs:
             name=ghcr.io/${{ github.repository }}-musl
           tags: |
             type=ref,event=pr
+            type=semver,pattern={{version}}
             type=raw,value=develop,enable={{is_default_branch}}
       - name: Build and push musl
         uses: docker/build-push-action@v5
