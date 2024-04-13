@@ -30,7 +30,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
     } = props;
     let raw_url = server_url
         .as_ref()
-        .map(|s| use_signal(|| s().map(|url| url.to_string()).unwrap_or_default()));
+        .map(|s| use_signal(|| s().as_ref().map_or_else(Default::default, Url::to_string)));
 
     let onclick = move |_: Event<MouseData>| {
         let result: Result<(), anyhow::Error> = try {

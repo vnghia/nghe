@@ -18,33 +18,36 @@ pub fn Users() -> Element {
 
     let mut users: Signal<Vec<User>> = use_signal(Default::default);
     use_future(move || async move {
-        users.set(
-            common_state
-                .unwrap()
-                .send_with_common::<_, SubsonicGetUsersBody>("/rest/getUsers", GetUsersParams {})
-                .await
-                .toast()
-                .map(|r| {
-                    r.root
-                        .body
-                        .users
-                        .into_iter()
-                        .sorted_by(|a, b| a.basic.username.cmp(&b.basic.username))
-                        .collect()
-                })
-                .unwrap_or_default(),
-        );
+        if let Some(common_state) = common_state() {
+            users.set(
+                common_state
+                    .send_with_common::<_, SubsonicGetUsersBody>(
+                        "/rest/getUsers",
+                        GetUsersParams {},
+                    )
+                    .await
+                    .toast()
+                    .map_or_else(Default::default, |r| {
+                        r.root
+                            .body
+                            .users
+                            .into_iter()
+                            .sorted_by(|a, b| a.basic.username.cmp(&b.basic.username))
+                            .collect()
+                    }),
+            );
+        }
     });
 
     let mut delete_idx: Signal<Option<usize>> = use_signal(Option::default);
     if let Some(idx) = delete_idx()
+        && let Some(common_state) = common_state()
         && idx < users.len()
     {
         spawn(async move {
             delete_idx.set(None);
             let user = users.remove(idx);
             common_state
-                .unwrap()
                 .send_with_common::<_, DeleteUserBody>(
                     "/rest/deleteUser",
                     DeleteUserParams { id: user.id },

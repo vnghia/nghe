@@ -16,14 +16,16 @@ pub fn Folders() -> Element {
     }
 
     let get_folder_stats_fut = use_resource(move || async move {
-        common_state
-            .unwrap()
+        Ok(common_state()
+            .ok_or_else(|| anyhow::anyhow!("common state is none"))?
             .send_with_common::<_, SubsonicGetFolderStatsBody>(
                 "/rest/getFolderStats",
                 GetFolderStatsParams {},
             )
-            .await
-            .map(|r| r.root.body.folder_stats)
+            .await?
+            .root
+            .body
+            .folder_stats)
     });
 
     match &*get_folder_stats_fut.read_unchecked() {

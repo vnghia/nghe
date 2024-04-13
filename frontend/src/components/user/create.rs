@@ -25,12 +25,13 @@ pub fn CreateUser() -> Element {
     });
     let submitable = use_signal(bool::default);
 
-    if submitable() {
+    if submitable()
+        && let Some(common_state) = common_state()
+    {
         spawn(async move {
             let Role { admin_role, stream_role, download_role, share_role } = role();
 
             if common_state
-                .unwrap()
                 .send_with_common::<_, SubsonicCreateUserBody>(
                     "/rest/createUser",
                     CreateUserParams {

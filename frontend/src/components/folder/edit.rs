@@ -23,39 +23,41 @@ pub fn Folder(id: Uuid) -> Element {
 
     let mut users: Signal<Vec<(bool, BasicUserId)>> = use_signal(Default::default);
     use_future(move || async move {
-        let result: Result<_, anyhow::Error> = try {
-            let common_state = common_state.unwrap();
-            let allowed_ids = common_state
-                .send_with_common::<_, SubsonicGetAllowedUsersBody>(
-                    "/rest/getAllowedUsers",
-                    GetAllowedUsersParams { id },
-                )
-                .await?
-                .root
-                .body
-                .ids
-                .into_iter()
-                .collect::<HashSet<_>>();
-            users.set(
-                common_state
-                    .send_with_common::<_, SubsonicGetBasicUserIdsBody>(
-                        "/rest/getBasicUserIds",
-                        GetBasicUserIdsParams {},
+        if let Some(common_state) = common_state() {
+            let result: Result<_, anyhow::Error> = try {
+                let allowed_ids = common_state
+                    .send_with_common::<_, SubsonicGetAllowedUsersBody>(
+                        "/rest/getAllowedUsers",
+                        GetAllowedUsersParams { id },
                     )
                     .await?
                     .root
                     .body
-                    .basic_user_ids
+                    .ids
                     .into_iter()
-                    .map(|u| (allowed_ids.contains(&u.id), u))
-                    .collect(),
-            )
-        };
-        result.toast();
+                    .collect::<HashSet<_>>();
+                users.set(
+                    common_state
+                        .send_with_common::<_, SubsonicGetBasicUserIdsBody>(
+                            "/rest/getBasicUserIds",
+                            GetBasicUserIdsParams {},
+                        )
+                        .await?
+                        .root
+                        .body
+                        .basic_user_ids
+                        .into_iter()
+                        .map(|u| (allowed_ids.contains(&u.id), u))
+                        .collect(),
+                )
+            };
+            result.toast();
+        }
     });
 
     let mut toggle_idx: Signal<Option<usize>> = use_signal(Option::default);
     if let Some(idx) = toggle_idx()
+        && let Some(common_state) = common_state()
         && idx < users.len()
     {
         spawn(async move {
@@ -69,7 +71,6 @@ pub fn Folder(id: Uuid) -> Element {
             users.get_mut(idx).as_mut().unwrap().0 = !user_allow;
 
             common_state
-                .unwrap()
                 .send_with_common::<_, SetPermissionBody>(
                     "/rest/setPermission",
                     SetPermissionParams {
