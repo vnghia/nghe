@@ -9,6 +9,9 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  release:
+    types: [published]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -42,7 +45,7 @@ jobs:
           tool: dioxus-cli
       - name: Build frontend
         run: |
-          dx build --verbose
+          dx build --verbose ${{ (github.event_name == "release" || github.event_name == "workflow_dispatch") && "--release" || "" }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -97,16 +100,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - name: Extract target information
-        id: target
+      - name: Extract build information
+        id: build
         env:
           TARGET: ${{ matrix.platform.target }}
         run: |
           echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
           echo "arch=$(echo $TARGET | awk '{print $1}')" >> "$GITHUB_OUTPUT"
           echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
-          echo "profile=dev" >> "$GITHUB_OUTPUT"
-          echo "output-dir=debug" >> "$GITHUB_OUTPUT"
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
       - name: Increase postgres max connection
         run: |
           docker exec -i postgres bash << EOF
@@ -161,8 +164,8 @@ jobs:
 
       - name: Build and test
         run: |
-          ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.target.outputs.profile }}
-          ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.target.outputs.profile }}
+          ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+          ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -250,6 +253,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Extract build information
+        id: build
+        run: |
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
 
       - name: Install and setup postgres
         run: |
@@ -277,7 +285,13 @@ jobs:
 
       - name: Build and test
         run: |
-          cargo test --locked --target x86_64-pc-windows-msvc
+          cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amd64-windows
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.target.outputs.output-dir }}/nghe.exe
+          retention-days: 1
 
   build-macos:
     strategy:
@@ -308,6 +322,15 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - name: Extract build information
+        id: build
+        env:
+          TARGET: ${{ matrix.platform.target }}
+        run: |
+          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
+          echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
 
       - name: Install and setup postgres
         run: |
@@ -333,4 +356,10 @@ jobs:
           cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
       - name: Build and test
-        run: cargo test --locked --target ${{ matrix.platform.target }}
+        run: cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.target.outputs.docker-arch }}-${{ steps.target.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.target.outputs.output-dir }}/nghe.exe
+          retention-days: 1
