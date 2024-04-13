@@ -13,6 +13,8 @@ pub enum Route {
             Users {},
             #[route("/user/create")]
             CreateUser {},
+            #[route("/folders")]
+            Folders {},
         #[end_layout]
         #[route("/setup")]
         Setup {},

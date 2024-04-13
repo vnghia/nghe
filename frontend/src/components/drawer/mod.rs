@@ -136,6 +136,14 @@ pub fn Drawer() -> Element {
                                     li {
                                         Link { class: "text-base", to: Route::Users {}, onclick: |_| { remove_focus() }, "Users" }
                                     }
+                                    li {
+                                        Link {
+                                            class: "text-base",
+                                            to: Route::Folders {},
+                                            onclick: |_| { remove_focus() },
+                                            "Folders"
+                                        }
+                                    }
                                 }
                                 li {
                                     button {

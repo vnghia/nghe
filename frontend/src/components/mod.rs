@@ -1,5 +1,6 @@
 mod drawer;
 mod error;
+mod folder;
 mod global;
 mod home;
 mod loading;
@@ -9,6 +10,7 @@ mod user;
 
 pub use drawer::Drawer;
 pub use error::Toast;
+pub use folder::Folders;
 pub use global::{DaisyTheme, Global};
 pub use home::Home;
 pub use loading::Loading;

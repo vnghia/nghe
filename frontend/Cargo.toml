@@ -30,6 +30,7 @@ url = { version = "2.5.0", features = ["serde"] }
 serde_html_form = { version = "0.2.6" }
 wasm-bindgen = "0.2.92"
 web-sys = { version = "0.3.69", features = ["HtmlElement"] }
+readable = { version = "0.16.0", default-features = false, features = ["byte", "num"] }
 
 [build-dependencies]
 serde_json = { workspace = true }
