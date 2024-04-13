@@ -29,6 +29,7 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
+          cache-dependency-path: ${{ github.workspace }}/frontend/package-lock.json
       - name: Build tailwindcss
         working-directory: ${{ github.workspace }}/frontend
         run: |
