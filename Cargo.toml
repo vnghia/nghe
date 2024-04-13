@@ -22,7 +22,7 @@ rand = { version = "0.8.5" }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_with = { version = "3.7.0", features = ["hex"] }
 strum = { version = "0.26.2", features = ["derive"] }
-time = { version = "0.3.35", features = ["serde-human-readable", "macros"] }
+time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 uuid = { version = "1.8.0", features = ["serde"] }
 
 # Dev
