@@ -11,6 +11,7 @@ use nghe_types::scan::start_scan::ScanMode;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -63,6 +64,9 @@ async fn main() {
 }
 
 fn app(database: Database, config: Config) -> Router {
+    let serve_frontend = ServeDir::new(&config.server.frontend_dir)
+        .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
+
     Router::new()
         .merge(system::router())
         .merge(extension::router())
@@ -78,6 +82,7 @@ fn app(database: Database, config: Config) -> Router {
         .layer(
             ServiceBuilder::new().layer(TraceLayer::new_for_http()).layer(CorsLayer::permissive()),
         )
+        .fallback_service(serve_frontend)
         .with_state(database)
 }
 
