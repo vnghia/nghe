@@ -156,7 +156,7 @@ pub fn Drawer() -> Element {
                         }
                     }
                 }
-                div { class: "min-h-0 w-full p-4 flex", Outlet::<Route> {} }
+                div { class: "min-h-0 w-full flex", Outlet::<Route> {} }
             }
             div { class: "drawer-side",
                 label {

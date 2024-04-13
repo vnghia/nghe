@@ -86,23 +86,25 @@ pub fn Folder(id: Uuid) -> Element {
     if !users.is_empty() {
         rsx! {
             div { class: "w-full h-full overflow-x-auto overflow-y-auto",
-                table { class: "table table-pin-rows",
-                    thead {
-                        tr { class: "shadow bg-base-200",
-                            th { class: "text-base", "Username" }
-                            th { class: "text-base", "Allowed" }
+                div { class: "min-w-full inline-block p-10",
+                    table { class: "table table-pin-rows",
+                        thead {
+                            tr { class: "shadow bg-base-200",
+                                th { class: "text-base", "Username" }
+                                th { class: "text-base", "Allowed" }
+                            }
                         }
-                    }
-                    tbody {
-                        for (idx , user) in users.iter().enumerate() {
-                            tr { key: "{user.1.id}",
-                                td { class: "text-base", "{user.1.username}" }
-                                td {
-                                    input {
-                                        class: "rounded-btn toggle",
-                                        onclick: move |_| { toggle_idx.set(Some(idx)) },
-                                        r#type: "checkbox",
-                                        checked: user.0
+                        tbody {
+                            for (idx , user) in users.iter().enumerate() {
+                                tr { key: "{user.1.id}",
+                                    td { class: "text-base", "{user.1.username}" }
+                                    td {
+                                        input {
+                                            class: "rounded-btn toggle",
+                                            onclick: move |_| { toggle_idx.set(Some(idx)) },
+                                            r#type: "checkbox",
+                                            checked: user.0
+                                        }
                                     }
                                 }
                             }
