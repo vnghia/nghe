@@ -291,7 +291,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: amd64-windows
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe.exe
+          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe.exe
           retention-days: 1
 
   build-macos:
@@ -366,3 +366,21 @@ jobs:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
+
+  upload-release:
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-linux, build-windows, build-macos]
+    if: ${{ github.event_name == 'release' }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact for release
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/artifact/
+      - name: Upload artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.ref_name }} artifact/amd64-gnu artifact/arm64-gnu artifact/amd64-musl artifact/arm64-musl artifact/amd64-darwin artifact/arm64-darwin artifact/amd64-windows artifact/frontend
