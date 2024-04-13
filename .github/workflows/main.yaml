@@ -377,6 +377,7 @@ jobs:
       contents: write
 
     steps:
+      - uses: actions/checkout@v4
       - name: Download build artifact for release
         uses: actions/download-artifact@v4
         with:
