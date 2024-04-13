@@ -45,7 +45,7 @@ jobs:
           tool: dioxus-cli
       - name: Build frontend
         run: |
-          dx build --verbose ${{ (github.event_name == "release" || github.event_name == "workflow_dispatch") && "--release" || "" }}
+          dx build --verbose --profile ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
