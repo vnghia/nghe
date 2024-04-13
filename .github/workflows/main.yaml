@@ -285,6 +285,7 @@ jobs:
 
       - name: Build and test
         run: |
+          cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
           cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -356,7 +357,9 @@ jobs:
           cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
       - name: Build and test
-        run: cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+        run: |
+          cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+          cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
