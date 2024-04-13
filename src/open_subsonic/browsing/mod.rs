@@ -3,6 +3,7 @@ mod get_album_info2;
 mod get_artist;
 mod get_artist_info2;
 mod get_artists;
+mod get_folder_stats;
 mod get_genres;
 mod get_indexes;
 mod get_music_directory;
@@ -42,4 +43,6 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/getAlbumInfo2.view", get(get_album_info2::get_album_info2_handler))
         .route("/rest/getArtistInfo2", get(get_artist_info2::get_artist_info2_handler))
         .route("/rest/getArtistInfo2.view", get(get_artist_info2::get_artist_info2_handler))
+        .route("/rest/getFolderStats", get(get_folder_stats::get_folder_stats_handler))
+        .route("/rest/getFolderStats.view", get(get_folder_stats::get_folder_stats_handler))
 }
