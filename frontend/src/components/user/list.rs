@@ -38,7 +38,7 @@ pub fn Users() -> Element {
 
     let mut delete_idx: Signal<Option<usize>> = use_signal(Option::default);
     if let Some(idx) = delete_idx()
-        && !users.is_empty()
+        && idx < users.len()
     {
         spawn(async move {
             delete_idx.set(None);

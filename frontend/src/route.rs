@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use uuid::Uuid;
 
 use crate::components::*;
 
@@ -15,6 +16,8 @@ pub enum Route {
             CreateUser {},
             #[route("/folders")]
             Folders {},
+            #[route("/folder/:id")]
+            Folder {id: Uuid},
         #[end_layout]
         #[route("/setup")]
         Setup {},

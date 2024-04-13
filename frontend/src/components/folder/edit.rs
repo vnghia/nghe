@@ -1,0 +1,119 @@
+use std::collections::HashSet;
+
+use dioxus::prelude::*;
+use nghe_types::permission::get_allowed_users::{
+    GetAllowedUsersParams, SubsonicGetAllowedUsersBody,
+};
+use nghe_types::permission::set_permission::{SetPermissionBody, SetPermissionParams};
+use nghe_types::user::get_basic_user_ids::{GetBasicUserIdsParams, SubsonicGetBasicUserIdsBody};
+use nghe_types::user::BasicUserId;
+use uuid::Uuid;
+
+use super::super::{Loading, Toast};
+use crate::state::CommonState;
+use crate::Route;
+
+#[component]
+pub fn Folder(id: Uuid) -> Element {
+    let nav = navigator();
+    let common_state = CommonState::use_redirect();
+    if !common_state()?.role.admin_role {
+        nav.push(Route::Home {});
+    }
+
+    let mut users: Signal<Vec<(bool, BasicUserId)>> = use_signal(Default::default);
+    use_future(move || async move {
+        let result: Result<_, anyhow::Error> = try {
+            let common_state = common_state.unwrap();
+            let allowed_ids = common_state
+                .send_with_common::<_, SubsonicGetAllowedUsersBody>(
+                    "/rest/getAllowedUsers",
+                    GetAllowedUsersParams { id },
+                )
+                .await?
+                .root
+                .body
+                .ids
+                .into_iter()
+                .collect::<HashSet<_>>();
+            users.set(
+                common_state
+                    .send_with_common::<_, SubsonicGetBasicUserIdsBody>(
+                        "/rest/getBasicUserIds",
+                        GetBasicUserIdsParams {},
+                    )
+                    .await?
+                    .root
+                    .body
+                    .basic_user_ids
+                    .into_iter()
+                    .map(|u| (allowed_ids.contains(&u.id), u))
+                    .collect(),
+            )
+        };
+        result.toast();
+    });
+
+    let mut toggle_idx: Signal<Option<usize>> = use_signal(Option::default);
+    if let Some(idx) = toggle_idx()
+        && idx < users.len()
+    {
+        spawn(async move {
+            toggle_idx.set(None);
+
+            let (user_allow, user_id) = {
+                let binding = users.get(idx);
+                let user = binding.as_ref().unwrap();
+                (user.0, user.1.id)
+            };
+            users.get_mut(idx).as_mut().unwrap().0 = !user_allow;
+
+            common_state
+                .unwrap()
+                .send_with_common::<_, SetPermissionBody>(
+                    "/rest/setPermission",
+                    SetPermissionParams {
+                        user_ids: vec![user_id],
+                        music_folder_ids: vec![id],
+                        allow: !user_allow,
+                    },
+                )
+                .await
+                .toast();
+        });
+    }
+
+    if !users.is_empty() {
+        rsx! {
+            div { class: "w-full h-full overflow-x-auto overflow-y-auto",
+                table { class: "table table-pin-rows",
+                    thead {
+                        tr { class: "shadow bg-base-200",
+                            th { class: "text-base", "Username" }
+                            th { class: "text-base", "Allowed" }
+                        }
+                    }
+                    tbody {
+                        for (idx , user) in users.iter().enumerate() {
+                            tr { key: "{user.1.id}",
+                                td { class: "text-base", "{user.1.username}" }
+                                td {
+                                    input {
+                                        class: "rounded-btn toggle",
+                                        onclick: move |_| { toggle_idx.set(Some(idx)) },
+                                        r#type: "checkbox",
+                                        checked: user.0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        rsx! {
+            Loading {}
+        }
+    }
+}

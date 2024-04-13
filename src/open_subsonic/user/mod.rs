@@ -1,5 +1,6 @@
 mod create;
 mod delete;
+mod get_basic_user_ids;
 mod get_users;
 mod login;
 mod setup;
@@ -19,6 +20,8 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/getUsers.view", get(get_users::get_users_handler))
         .route("/rest/deleteUser", get(delete::delete_user_handler))
         .route("/rest/deleteUser.view", get(delete::delete_user_handler))
+        .route("/rest/getBasicUserIds", get(get_basic_user_ids::get_basic_user_ids_handler))
+        .route("/rest/getBasicUserIds.view", get(get_basic_user_ids::get_basic_user_ids_handler))
 }
 
 #[cfg(test)]

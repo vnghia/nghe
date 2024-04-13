@@ -34,6 +34,15 @@ pub struct Role {
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[cfg_attr(test, derive(Clone))]
+pub struct BasicUserId<'a> {
+    pub id: Uuid,
+    pub username: Cow<'a, str>,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable)]
+#[diesel(table_name = users)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[cfg_attr(test, derive(Clone))]
 pub struct BasicUser<'a> {
     pub username: Cow<'a, str>,
     #[diesel(embed)]
@@ -79,6 +88,12 @@ impl From<nghe_types::user::Role> for Role {
             download_role: value.download_role,
             share_role: value.share_role,
         }
+    }
+}
+
+impl<'a> From<BasicUserId<'a>> for nghe_types::user::BasicUserId {
+    fn from(value: BasicUserId<'a>) -> Self {
+        Self { id: value.id, username: value.username.into() }
     }
 }
 

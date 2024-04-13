@@ -74,6 +74,7 @@ fn app(database: Database, config: Config) -> Router {
         .merge(searching::router())
         .merge(scan::router(config.artist_index, config.parsing, config.scan, config.art))
         .merge(media_annotation::router())
+        .merge(permission::router())
         .layer(
             ServiceBuilder::new().layer(TraceLayer::new_for_http()).layer(CorsLayer::permissive()),
         )

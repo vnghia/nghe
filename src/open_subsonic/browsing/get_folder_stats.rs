@@ -2,7 +2,8 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::dsl::{count_distinct, sum};
 use diesel::{
-    ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl, Queryable, SelectableHelper,
+    BoolExpressionMethods, ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl,
+    Queryable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
@@ -34,8 +35,9 @@ async fn get_folder_stats(pool: &DatabasePool) -> Result<Vec<FolderStats>> {
     get_basic_artist_id3_db()
         .inner_join(music_folders::table.on(music_folders::id.eq(songs::music_folder_id)))
         .inner_join(
-            user_music_folder_permissions::table
-                .on(user_music_folder_permissions::music_folder_id.eq(music_folders::id)),
+            user_music_folder_permissions::table.on(user_music_folder_permissions::music_folder_id
+                .eq(music_folders::id)
+                .and(user_music_folder_permissions::allow)),
         )
         .group_by(music_folders::id)
         .select((

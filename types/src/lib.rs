@@ -9,6 +9,7 @@ pub mod extension;
 pub mod media_annotation;
 pub mod media_list;
 pub mod media_retrieval;
+pub mod permission;
 pub mod scan;
 pub mod searching;
 pub mod system;

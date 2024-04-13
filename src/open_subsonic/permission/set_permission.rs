@@ -1,11 +1,16 @@
 use anyhow::Result;
+use axum::extract::State;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
+use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use crate::models::*;
-use crate::DatabasePool;
+use crate::{Database, DatabasePool};
+
+add_common_validate!(SetPermissionParams, admin);
+add_axum_response!(SetPermissionBody);
 
 pub async fn set_permission(
     pool: &DatabasePool,
@@ -36,6 +41,20 @@ pub async fn set_permission(
         .execute(&mut pool.get().await?)
         .await?;
     Ok(())
+}
+
+pub async fn set_permission_handler(
+    State(database): State<Database>,
+    req: SetPermissionRequest,
+) -> SetPermissionJsonResponse {
+    set_permission(
+        &database.pool,
+        &req.params.user_ids,
+        &req.params.music_folder_ids,
+        req.params.allow,
+    )
+    .await?;
+    Ok(axum::Json(SetPermissionBody {}.into()))
 }
 
 #[cfg(test)]
