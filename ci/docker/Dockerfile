@@ -11,5 +11,5 @@ RUN chmod +x /artifact/nghe
 
 FROM ${BASE_IMAGE}
 COPY --from=artifact /artifact/nghe /app/nghe
-COPY --from=artifact /artifact/frontend/dist/ /app/frontend/dist/
+COPY --from=artifact /artifact/frontend/ /app/frontend/dist/
 ENTRYPOINT [ "/app/nghe" ]
