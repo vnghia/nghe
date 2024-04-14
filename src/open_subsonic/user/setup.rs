@@ -37,8 +37,6 @@ pub async fn setup_handler(
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
-
     use super::*;
     use crate::utils::test::{Infra, User};
 
@@ -46,7 +44,7 @@ mod tests {
     async fn test_setup_no_user() {
         let infra = Infra::new().await;
         let CreateUserParams { username, password, .. } = User::fake(None).into();
-        let form = Form(SetupParams { username, password, ..Faker.fake() });
+        let form = Form(SetupParams { username, password, email: Default::default() });
         assert!(setup_handler(infra.state(), form).await.is_ok());
     }
 
@@ -54,7 +52,7 @@ mod tests {
     async fn test_setup_with_user() {
         let infra = Infra::new().await.add_user(None).await;
         let CreateUserParams { username, password, .. } = User::fake(None).into();
-        let form = Form(SetupParams { username, password, ..Faker.fake() });
+        let form = Form(SetupParams { username, password, email: Default::default() });
         if let Some(err) = setup_handler(infra.state(), form).await.err() {
             assert!(matches!(
                 err.0.root_cause().downcast_ref::<OSError>().unwrap(),

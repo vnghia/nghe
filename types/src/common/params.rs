@@ -10,7 +10,7 @@ pub type MD5Token = [u8; 16];
 #[add_types_derive]
 #[derive(Clone, Derivative, PartialEq, Eq)]
 #[derivative(Debug)]
-#[cfg_attr(feature = "test", derive(Default, fake::Dummy))]
+#[cfg_attr(feature = "test", derive(Default))]
 pub struct CommonParams {
     #[serde(rename = "u")]
     pub username: String,

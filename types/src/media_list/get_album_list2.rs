@@ -1,4 +1,6 @@
-use nghe_proc_macros::{add_common_convert, add_subsonic_response, add_types_derive};
+use nghe_proc_macros::{
+    add_common_convert, add_request_types_test, add_subsonic_response, add_types_derive,
+};
 use strum::EnumIter;
 use uuid::Uuid;
 
@@ -43,3 +45,5 @@ pub struct AlbumList2 {
 pub struct GetAlbumList2Body {
     pub album_list2: AlbumList2,
 }
+
+add_request_types_test!(GetAlbumList2Params);

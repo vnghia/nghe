@@ -1,4 +1,4 @@
-use nghe_proc_macros::add_common_convert;
+use nghe_proc_macros::{add_common_convert, add_request_types_test};
 
 use crate::id::MediaTypedId;
 
@@ -7,3 +7,5 @@ use crate::id::MediaTypedId;
 pub struct GetCoverArtParams {
     pub id: MediaTypedId,
 }
+
+add_request_types_test!(GetCoverArtParams);

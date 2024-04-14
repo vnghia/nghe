@@ -32,7 +32,7 @@ pub fn add_subsonic_response(args: TokenStream, input: TokenStream) -> Result<To
         #[nghe_proc_macros::add_types_derive]
         #item_struct
 
-        #[nghe_proc_macros::add_types_derive]
+        #[nghe_proc_macros::add_types_derive(fake = false)]
         pub struct #root_ident {
             #[serde(flatten)]
             pub constant: #constant_type,
@@ -40,7 +40,7 @@ pub fn add_subsonic_response(args: TokenStream, input: TokenStream) -> Result<To
             pub body: #item_ident,
         }
 
-        #[nghe_proc_macros::add_types_derive]
+        #[nghe_proc_macros::add_types_derive(fake = false)]
         pub struct #subsonic_ident {
             #[serde(rename = "subsonic-response")]
             pub root: #root_ident

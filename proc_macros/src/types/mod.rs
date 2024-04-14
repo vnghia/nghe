@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse::Parser;
@@ -20,6 +21,12 @@ struct AddConvertTypes {
     skips: HashSet<Ident>,
     #[deluxe(default)]
     refs: HashSet<Ident>,
+}
+
+#[derive(Debug, deluxe::ParseMetaItem)]
+struct AddTypesDerive {
+    #[deluxe(default = true)]
+    fake: bool,
 }
 
 fn type_to_string(ty: &Type) -> Result<String, Error> {
@@ -44,12 +51,22 @@ fn type_is_integer(ty: &Type) -> Result<bool, Error> {
     }
 }
 
-pub fn add_types_derive(input: TokenStream) -> Result<TokenStream, Error> {
-    Ok(quote! {
-        #[derive(serde::Serialize, serde::Deserialize)]
-        #[serde(rename_all = "camelCase")]
-        #input
-    })
+pub fn add_types_derive(args: TokenStream, input: TokenStream) -> Result<TokenStream, Error> {
+    let args = deluxe::parse2::<AddTypesDerive>(args)?;
+    if args.fake {
+        Ok(quote! {
+            #[derive(serde::Serialize, serde::Deserialize)]
+            #[serde(rename_all = "camelCase")]
+            #[cfg_attr(test, derive(fake::Dummy))]
+            #input
+        })
+    } else {
+        Ok(quote! {
+            #[derive(serde::Serialize, serde::Deserialize)]
+            #[serde(rename_all = "camelCase")]
+            #input
+        })
+    }
 }
 
 pub fn add_role_fields(input: TokenStream) -> Result<TokenStream, Error> {
@@ -139,5 +156,27 @@ pub fn add_convert_types(args: TokenStream, input: TokenStream) -> Result<TokenS
         #from_impl
 
         #into_impl
+    })
+}
+
+pub fn add_request_types_test(params_type: TokenStream) -> Result<TokenStream, Error> {
+    let test_name =
+        format_ident!("test_serialize_{}", params_type.to_string().to_case(Case::Snake));
+
+    Ok(quote! {
+        #[cfg(test)]
+        mod tests {
+            use fake::{Faker, Fake};
+
+            use super::*;
+            use crate::common::params::{CommonParams, WithCommon};
+
+            #[test]
+            fn #test_name() {
+                let params: #params_type = Faker.fake();
+                let params = params.with_common(Faker.fake::<CommonParams>());
+                serde_html_form::to_string(&params).unwrap();
+            }
+        }
     })
 }

@@ -1,4 +1,6 @@
-use nghe_proc_macros::{add_common_convert, add_subsonic_response, add_types_derive};
+use nghe_proc_macros::{
+    add_common_convert, add_request_types_test, add_subsonic_response, add_types_derive,
+};
 use uuid::Uuid;
 
 use crate::id3::*;
@@ -22,3 +24,5 @@ pub struct ArtistId3WithAlbums {
 pub struct GetArtistBody {
     pub artist: ArtistId3WithAlbums,
 }
+
+add_request_types_test!(GetArtistParams);
