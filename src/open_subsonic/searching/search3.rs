@@ -167,7 +167,7 @@ pub async fn search3_handler(
 
     let search_query: SearchQueryParams = (&req.params).into();
 
-    let search_result = if search_query.query.is_empty() {
+    let search_result = if search_query.query.is_empty() || search_query.query == "\"\"" {
         sync(&database.pool, req.user_id, &req.params.music_folder_ids, search_query).await
     } else {
         full_text_search(&database.pool, req.user_id, &req.params.music_folder_ids, search_query)
