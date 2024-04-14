@@ -55,12 +55,15 @@ jobs:
           EOF
           docker restart postgres
 
-      - name: Install ffmpeg build deps
+      - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
-        run: cargo binstall cargo-vcpkg --no-confirm
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cargo-vcpkg
       - name: Build vcpkg dependencies
-        run: cargo vcpkg --verbose build --target x86_64-unknown-linux-gnu
+        run: |
+          cargo vcpkg --verbose build --target x86_64-unknown-linux-gnu
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
