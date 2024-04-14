@@ -16,7 +16,7 @@ use crate::{Database, DatabasePool, OSError};
 add_common_validate!(ScrobbleParams);
 add_axum_response!(ScrobbleBody);
 
-async fn scrobble(pool: &DatabasePool, user_id: Uuid, params: &ScrobbleParams) -> Result<()> {
+pub async fn scrobble(pool: &DatabasePool, user_id: Uuid, params: &ScrobbleParams) -> Result<()> {
     if params.submission.unwrap_or(true) {
         if let Some(ref times) = params.times {
             if params.ids.len() != times.len() {
