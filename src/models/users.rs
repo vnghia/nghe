@@ -2,12 +2,14 @@ use std::borrow::Cow;
 use std::marker::ConstParamTy;
 
 use diesel::prelude::*;
+use nghe_proc_macros::add_convert_types;
 use time::OffsetDateTime;
 pub use users::*;
 use uuid::Uuid;
 
 pub use crate::schema::users;
 
+#[add_convert_types(both = nghe_types::user::Role)]
 #[derive(
     Debug,
     Clone,
@@ -30,6 +32,7 @@ pub struct Role {
     pub share_role: bool,
 }
 
+#[add_convert_types(into = nghe_types::user::BasicUserId)]
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -39,6 +42,8 @@ pub struct BasicUserId<'a> {
     pub username: Cow<'a, str>,
 }
 
+#[add_convert_types(from = &'a nghe_types::user::BasicUser, refs(username))]
+#[add_convert_types(into = nghe_types::user::BasicUser)]
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -49,6 +54,7 @@ pub struct BasicUser<'a> {
     pub role: Role,
 }
 
+#[add_convert_types(into = nghe_types::user::User)]
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -67,52 +73,6 @@ pub struct NewUser<'a> {
     pub basic: BasicUser<'a>,
     pub password: Cow<'a, [u8]>,
     pub email: Cow<'a, str>,
-}
-
-impl From<Role> for nghe_types::user::Role {
-    fn from(value: Role) -> Self {
-        Self {
-            admin_role: value.admin_role,
-            stream_role: value.stream_role,
-            download_role: value.download_role,
-            share_role: value.share_role,
-        }
-    }
-}
-
-impl From<nghe_types::user::Role> for Role {
-    fn from(value: nghe_types::user::Role) -> Self {
-        Self {
-            admin_role: value.admin_role,
-            stream_role: value.stream_role,
-            download_role: value.download_role,
-            share_role: value.share_role,
-        }
-    }
-}
-
-impl<'a> From<BasicUserId<'a>> for nghe_types::user::BasicUserId {
-    fn from(value: BasicUserId<'a>) -> Self {
-        Self { id: value.id, username: value.username.into() }
-    }
-}
-
-impl<'a> From<BasicUser<'a>> for nghe_types::user::BasicUser {
-    fn from(value: BasicUser<'a>) -> Self {
-        Self { username: value.username.into(), role: value.role.into() }
-    }
-}
-
-impl<'a> From<&'a nghe_types::user::BasicUser> for BasicUser<'a> {
-    fn from(value: &'a nghe_types::user::BasicUser) -> Self {
-        Self { username: (&value.username).into(), role: value.role.into() }
-    }
-}
-
-impl From<User> for nghe_types::user::User {
-    fn from(value: User) -> Self {
-        Self { id: value.id, basic: value.basic.into(), created_at: value.created_at }
-    }
 }
 
 #[cfg(test)]

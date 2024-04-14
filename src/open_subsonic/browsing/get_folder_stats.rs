@@ -5,7 +5,7 @@ use diesel::{
     ExpressionMethods, JoinOnDsl, NullableExpressionMethods, QueryDsl, Queryable, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_axum_response, add_common_validate};
+use nghe_proc_macros::{add_axum_response, add_common_validate, add_convert_types};
 
 use crate::models::*;
 use crate::open_subsonic::id3::*;
@@ -14,6 +14,7 @@ use crate::{Database, DatabasePool};
 add_common_validate!(GetFolderStatsParams, admin);
 add_axum_response!(GetFolderStatsBody);
 
+#[add_convert_types(into = nghe_types::browsing::get_folder_stats::FolderStats)]
 #[derive(Debug, Queryable)]
 #[diesel(table_name = music_folders)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -70,19 +71,6 @@ pub async fn get_folder_stats_handler(
         }
         .into(),
     ))
-}
-
-impl From<FolderStats> for nghe_types::browsing::get_folder_stats::FolderStats {
-    fn from(value: FolderStats) -> Self {
-        Self {
-            music_folder: value.music_folder.into(),
-            artist_count: value.artist_count as _,
-            album_count: value.album_count as _,
-            song_count: value.song_count as _,
-            user_count: value.user_count as _,
-            total_size: value.total_size as _,
-        }
-    }
 }
 
 #[cfg(test)]

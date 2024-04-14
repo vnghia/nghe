@@ -15,7 +15,7 @@ use syn::parse::Parser;
 use syn::spanned::Spanned;
 use syn::{
     parse_macro_input, parse_quote, parse_str, Error, Expr, ExprCall, ExprPath, Field, Fields,
-    GenericParam, Ident, Item, ItemStruct, Lifetime, LifetimeParam,
+    GenericParam, Ident, Item, ItemStruct, Lifetime, LifetimeParam, Type,
 };
 
 const TYPES_CONSTANT_RESPONSE_IMPORT_PREFIX: &str = "crate::response";
@@ -60,6 +60,41 @@ fn get_caller_types_module() -> ExprPath {
             .join("::"),
     )
     .unwrap()
+}
+
+fn expr_to_string(e: &Expr) -> Result<String, Error> {
+    if let Expr::Path(p) = e {
+        Ok(p.path
+            .segments
+            .last()
+            .ok_or(Error::new(p.span(), "last path segment is missing"))?
+            .ident
+            .to_string())
+    } else {
+        Err(Error::new(e.span(), "expression should be a path"))
+    }
+}
+
+fn type_to_string(ty: &Type) -> Result<String, Error> {
+    if let Type::Path(p) = ty {
+        Ok(p.path
+            .segments
+            .last()
+            .ok_or(Error::new(p.span(), "last path segment is missing"))?
+            .ident
+            .to_string())
+    } else {
+        Err(Error::new(ty.span(), "type should be a path"))
+    }
+}
+
+fn type_is_integer(ty: &Type) -> Result<bool, Error> {
+    let ty = type_to_string(ty)?;
+    if ty.starts_with('u') || ty.starts_with('i') {
+        Ok(ty[1..].parse::<u8>().is_ok())
+    } else {
+        Ok(false)
+    }
 }
 
 #[derive(deluxe::ParseMetaItem)]
@@ -300,19 +335,8 @@ pub fn add_common_validate(input: proc_macro::TokenStream) -> proc_macro::TokenS
 
         let mut args = deluxe::parse2::<AddCommonValidate>(input.into())?
             .args
-            .into_iter()
-            .map(|e| {
-                if let Expr::Path(p) = e {
-                    Ok(p.path
-                        .segments
-                        .last()
-                        .ok_or(Error::new(p.span(), "last path segment is missing"))?
-                        .ident
-                        .to_string())
-                } else {
-                    Err(Error::new(e.span(), "expression should be a path"))
-                }
-            })
+            .iter()
+            .map(expr_to_string)
             .collect::<Result<Vec<_>, _>>()?;
 
         let item_ident = format_ident!("{}", args.remove(0));
@@ -600,6 +624,101 @@ pub fn add_role_fields(
         }
         quote! {
             #item_struct
+        }
+        .into()
+    } {
+        Ok(r) => r,
+        Err::<_, Error>(e) => e.into_compile_error().into(),
+    }
+}
+
+#[derive(Debug, deluxe::ParseMetaItem)]
+struct AddConvertTypes {
+    #[deluxe(default)]
+    from: Option<proc_macro2::TokenStream>,
+    #[deluxe(default)]
+    into: Option<proc_macro2::TokenStream>,
+    #[deluxe(default)]
+    both: Option<proc_macro2::TokenStream>,
+    #[deluxe(default)]
+    skips: HashSet<Ident>,
+    #[deluxe(default)]
+    refs: HashSet<Ident>,
+}
+
+#[proc_macro_attribute]
+pub fn add_convert_types(
+    args: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    match try {
+        let item_struct = parse_macro_input!(input as ItemStruct);
+        let item_ident = &item_struct.ident;
+        let args = deluxe::parse2::<AddConvertTypes>(args.into())?;
+
+        let params_fields = if let Fields::Named(ref fields) = item_struct.fields {
+            fields
+                .named
+                .iter()
+                .map(|f| {
+                    f.ident.as_ref().and_then(|ident| {
+                        if !args.skips.contains(ident) {
+                            if args.refs.contains(ident) {
+                                Some(quote! { #ident: (&value.#ident).into() })
+                            } else if type_is_integer(&f.ty).ok()? {
+                                Some(quote! { #ident: value.#ident as _ })
+                            } else {
+                                Some(quote! { #ident: value.#ident.into() })
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .collect::<Vec<_>>()
+        } else {
+            vec![]
+        };
+
+        let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
+
+        let from = args.from.or(args.both.clone());
+        let into = args.into.or(args.both.clone());
+
+        let from_impl = if let Some(from) = from {
+            quote! {
+                impl #impl_generics From<#from> for #item_ident #ty_generics #where_clause {
+                    fn from(value: #from) -> Self {
+                        Self {
+                            #( #params_fields ),*
+                        }
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
+        let into_impl = if let Some(into) = into {
+            quote! {
+                impl #impl_generics From<#item_ident #ty_generics> for #into #where_clause {
+                    fn from(value: #item_ident) -> Self {
+                        Self {
+                            #( #params_fields ),*
+                        }
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
+        quote! {
+            #item_struct
+
+            #from_impl
+
+            #into_impl
         }
         .into()
     } {

@@ -4,7 +4,8 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_axum_response, add_common_validate, add_count_offset, add_permission_filter,
+    add_axum_response, add_common_validate, add_convert_types, add_count_offset,
+    add_permission_filter,
 };
 use uuid::Uuid;
 
@@ -16,6 +17,7 @@ use crate::{Database, DatabasePool};
 add_common_validate!(Search3Params);
 add_axum_response!(Search3Body);
 
+#[add_convert_types(from = &Search3Params)]
 #[derive(Debug)]
 #[cfg_attr(test, derive(Default))]
 struct SearchOffsetCount {
@@ -85,19 +87,6 @@ pub async fn search3_handler(
             .await?;
 
     Ok(axum::Json(Search3Body { search_result3: search_result }.into()))
-}
-
-impl From<&Search3Params> for SearchOffsetCount {
-    fn from(value: &Search3Params) -> Self {
-        Self {
-            artist_count: value.artist_count,
-            artist_offset: value.artist_offset,
-            album_count: value.album_count,
-            album_offset: value.album_offset,
-            song_count: value.song_count,
-            song_offset: value.song_offset,
-        }
-    }
 }
 
 #[cfg(test)]
