@@ -5,11 +5,11 @@ use nghe_proc_macros::{
 use super::MusicFolderPath;
 
 #[add_common_convert]
-pub struct GetFolderStatsParams {}
+pub struct GetMusicFolderStatsParams {}
 
 #[add_types_derive]
 #[derive(Debug)]
-pub struct FolderStats {
+pub struct MusicFolderStat {
     pub music_folder: MusicFolderPath,
     pub artist_count: u32,
     pub album_count: u32,
@@ -20,8 +20,8 @@ pub struct FolderStats {
 
 #[add_subsonic_response]
 #[derive(Debug)]
-pub struct GetFolderStatsBody {
-    pub folder_stats: Vec<FolderStats>,
+pub struct GetMusicFolderStatsBody {
+    pub folder_stats: Vec<MusicFolderStat>,
 }
 
-add_request_types_test!(GetFolderStatsParams);
+add_request_types_test!(GetMusicFolderStatsParams);
