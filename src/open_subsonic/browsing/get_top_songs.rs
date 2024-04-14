@@ -21,9 +21,13 @@ async fn get_top_songs(
     count: Option<u32>,
 ) -> Result<Vec<SongId3Db>> {
     get_song_id3_db()
+        .left_join(songs_album_artists::table)
         .inner_join(
-            artists::table
-                .on(artists::id.eq(songs_artists::artist_id).and(artists::name.eq(artist))),
+            artists::table.on(artists::name.eq(artist).and(
+                artists::id
+                    .eq(songs_artists::artist_id)
+                    .or(artists::id.eq(songs_album_artists::album_artist_id)),
+            )),
         )
         .left_join(playbacks::table)
         .order(sum(playbacks::count).desc().nulls_last())
@@ -70,6 +74,23 @@ mod tests {
             0,
             (0..n_song)
                 .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
+                .collect(),
+        );
+        infra.add_n_song(0, 10).scan(.., None).await;
+
+        let top_songs = get_top_songs(infra.pool(), artist_name.into(), None).await.unwrap();
+        assert_eq!(top_songs.len(), n_song);
+    }
+
+    #[tokio::test]
+    async fn test_get_top_songs_album_artist_no_empty() {
+        let artist_name = "artist";
+        let n_song = 20_usize;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra.add_songs(
+            0,
+            (0..n_song)
+                .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
                 .collect(),
         );
         infra.add_n_song(0, 10).scan(.., None).await;
