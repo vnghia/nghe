@@ -21,7 +21,16 @@ pub struct MusicFolder {
 
 #[derive(Insertable)]
 #[diesel(table_name = music_folders)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewMusicFolder<'a> {
     pub path: Cow<'a, str>,
     pub name: Cow<'a, str>,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = music_folders)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct UpsertMusicFolder<'a> {
+    pub name: Option<Cow<'a, str>>,
+    pub path: Option<Cow<'a, str>>,
 }

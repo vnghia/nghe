@@ -1,3 +1,4 @@
+mod add_music_folder;
 mod get_music_folder_stats;
 
 use axum::routing::get;
@@ -13,4 +14,6 @@ pub fn router() -> Router<crate::Database> {
             "/rest/getMusicFolderStats.view",
             get(get_music_folder_stats::get_music_folder_stats_handler),
         )
+        .route("/rest/addMusicFolder", get(add_music_folder::add_music_folder_handler))
+        .route("/rest/addMusicFolder.view", get(add_music_folder::add_music_folder_handler))
 }

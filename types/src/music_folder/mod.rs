@@ -1,3 +1,4 @@
+pub mod add_music_folder;
 pub mod get_music_folder_stats;
 
 use nghe_proc_macros::add_types_derive;
