@@ -113,6 +113,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Increase postgres max connection
         run: |
           docker exec -i postgres bash << EOF
@@ -266,6 +267,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install and setup postgres
         run: |
@@ -343,6 +345,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install and setup postgres
         run: |
