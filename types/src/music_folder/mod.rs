@@ -1,3 +1,5 @@
+pub mod get_folder_stats;
+
 use nghe_proc_macros::add_types_derive;
 use uuid::Uuid;
 

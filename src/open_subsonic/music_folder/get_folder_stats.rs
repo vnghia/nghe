@@ -14,7 +14,7 @@ use crate::{Database, DatabasePool};
 add_common_validate!(GetFolderStatsParams, admin);
 add_axum_response!(GetFolderStatsBody);
 
-#[add_convert_types(into = nghe_types::browsing::get_folder_stats::FolderStats)]
+#[add_convert_types(into = nghe_types::music_folder::get_folder_stats::FolderStats)]
 #[derive(Debug, Queryable)]
 #[diesel(table_name = music_folders)]
 #[diesel(check_for_backend(diesel::pg::Pg))]

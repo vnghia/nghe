@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 pub use crate::schema::music_folders;
 
-#[add_convert_types(into = nghe_types::browsing::MusicFolder, skips(path))]
-#[add_convert_types(into = nghe_types::browsing::MusicFolderPath)]
+#[add_convert_types(into = nghe_types::music_folder::MusicFolder, skips(path))]
+#[add_convert_types(into = nghe_types::music_folder::MusicFolderPath)]
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = music_folders)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
