@@ -70,7 +70,7 @@ pub fn add_common_convert(input: TokenStream) -> Result<TokenStream, Error> {
         #[nghe_proc_macros::add_types_derive]
         #item_struct
 
-        #[nghe_proc_macros::add_types_derive]
+        #[nghe_proc_macros::add_types_derive(fake = false)]
         #common_item_struct
 
         impl AsRef<#common_path> for #common_item_ident<'static> {

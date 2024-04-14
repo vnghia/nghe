@@ -1,5 +1,7 @@
 use derivative::Derivative;
-use nghe_proc_macros::{add_common_convert, add_role_fields, add_subsonic_response};
+use nghe_proc_macros::{
+    add_common_convert, add_request_types_test, add_role_fields, add_subsonic_response,
+};
 use serde_with::serde_as;
 
 // TODO: use [serde(flatten)] after https://github.com/serde-rs/serde/issues/1183
@@ -18,3 +20,5 @@ pub struct CreateUserParams {
 
 #[add_subsonic_response]
 pub struct CreateUserBody {}
+
+add_request_types_test!(CreateUserParams);

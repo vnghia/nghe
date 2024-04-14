@@ -168,7 +168,7 @@ jobs:
       - name: Build and test
         run: |
           ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+          ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -294,7 +294,7 @@ jobs:
       - name: Build and test
         run: |
           cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
+          cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -370,7 +370,7 @@ jobs:
       - name: Build and test
         run: |
           cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+          cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

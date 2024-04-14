@@ -1,4 +1,4 @@
-use nghe_proc_macros::{add_common_convert, add_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_request_types_test, add_subsonic_response};
 use uuid::Uuid;
 
 use crate::id3::*;
@@ -13,3 +13,5 @@ pub struct GetSongParams {
 pub struct GetSongBody {
     pub song: SongId3,
 }
+
+add_request_types_test!(GetSongParams);

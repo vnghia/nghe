@@ -13,6 +13,7 @@ hex = { workspace = true }
 itertools = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
+serde_html_form = { workspace = true }
 strum = { workspace = true }
 uuid = { workspace = true }
 
@@ -27,10 +28,12 @@ log = { version = "0.4.21" }
 manganis = { version = "0.2.2" }
 gloo = { version = "0.11.0", features = ["net", "utils"] }
 url = { version = "2.5.0", features = ["serde"] }
-serde_html_form = { version = "0.2.6" }
 wasm-bindgen = "0.2.92"
 web-sys = { version = "0.3.69", features = ["HtmlElement"] }
-readable = { version = "0.16.0", default-features = false, features = ["byte", "num"] }
+readable = { version = "0.16.0", default-features = false, features = [
+    "byte",
+    "num",
+] }
 
 [build-dependencies]
 serde_json = { workspace = true }

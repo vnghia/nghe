@@ -20,6 +20,7 @@ isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.197", features = ["derive"] }
+serde_html_form = { version = "0.2.6" }
 serde_with = { version = "3.7.0", features = ["hex"] }
 strum = { version = "0.26.2", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
@@ -44,6 +45,7 @@ isolang = { workspace = true }
 itertools = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
+serde_html_form = { workspace = true }
 serde_with = { workspace = true }
 strum = { workspace = true }
 time = { workspace = true }

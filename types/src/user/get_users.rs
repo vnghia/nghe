@@ -1,4 +1,4 @@
-use nghe_proc_macros::{add_common_convert, add_subsonic_response};
+use nghe_proc_macros::{add_common_convert, add_request_types_test, add_subsonic_response};
 
 use super::User;
 
@@ -9,3 +9,5 @@ pub struct GetUsersParams {}
 pub struct GetUsersBody {
     pub users: Vec<User>,
 }
+
+add_request_types_test!(GetUsersParams);

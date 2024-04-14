@@ -5,7 +5,7 @@ edition = { workspace = true }
 
 [features]
 default = []
-test = ["fake", "serde_json"]
+test = []
 
 [dependencies]
 concat-string = { workspace = true }
@@ -24,9 +24,9 @@ md5 = "0.7.0"
 nghe-proc_macros = { path = "../proc_macros" }
 paste = "1.0.14"
 
-# Test
-fake = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
+[dev-dependencies]
+fake = { workspace = true }
+serde_html_form = { workspace = true }
 
 [build-dependencies]
 built = { version = "0.7.2", features = ["git2"] }

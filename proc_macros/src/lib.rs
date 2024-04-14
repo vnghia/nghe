@@ -60,8 +60,8 @@ pub fn generate_date_db(table_name: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn add_types_derive(_: TokenStream, input: TokenStream) -> TokenStream {
-    types::add_types_derive(input.into()).into_token_stream()
+pub fn add_types_derive(args: TokenStream, input: TokenStream) -> TokenStream {
+    types::add_types_derive(args.into(), input.into()).into_token_stream()
 }
 
 #[proc_macro_attribute]
@@ -72,4 +72,9 @@ pub fn add_role_fields(_: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn add_convert_types(args: TokenStream, input: TokenStream) -> TokenStream {
     types::add_convert_types(args.into(), input.into()).into_token_stream()
+}
+
+#[proc_macro]
+pub fn add_request_types_test(params_type: TokenStream) -> TokenStream {
+    types::add_request_types_test(params_type.into()).into_token_stream()
 }

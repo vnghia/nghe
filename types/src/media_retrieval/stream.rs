@@ -1,11 +1,10 @@
-use nghe_proc_macros::{add_common_convert, add_types_derive};
-use strum::AsRefStr;
+use nghe_proc_macros::{add_common_convert, add_request_types_test, add_types_derive};
+use strum::{AsRefStr, EnumIter};
 use uuid::Uuid;
 
 #[add_types_derive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, AsRefStr)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AsRefStr, EnumIter)]
 #[strum(serialize_all = "lowercase")]
-#[cfg_attr(feature = "test", derive(strum::EnumIter))]
 pub enum Format {
     Raw,
     Aac,
@@ -24,3 +23,5 @@ pub struct StreamParams {
     pub format: Option<Format>,
     pub time_offset: Option<u32>,
 }
+
+add_request_types_test!(StreamParams);

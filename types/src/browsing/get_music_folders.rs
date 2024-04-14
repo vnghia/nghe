@@ -1,4 +1,6 @@
-use nghe_proc_macros::{add_common_convert, add_subsonic_response, add_types_derive};
+use nghe_proc_macros::{
+    add_common_convert, add_request_types_test, add_subsonic_response, add_types_derive,
+};
 
 use super::MusicFolder;
 
@@ -16,3 +18,5 @@ pub struct MusicFolders {
 pub struct GetMusicFoldersBody {
     pub music_folders: MusicFolders,
 }
+
+add_request_types_test!(GetMusicFoldersParams);

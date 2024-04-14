@@ -1,6 +1,8 @@
 #![allow(clippy::too_many_arguments)]
 
 use derive_new::new;
+#[cfg(test)]
+use fake::Fake;
 use isolang::Language;
 use nghe_proc_macros::add_types_derive;
 use time::OffsetDateTime;
@@ -126,6 +128,7 @@ pub struct LyricLineId3 {
 #[add_types_derive]
 #[derive(Debug)]
 pub struct LyricId3 {
+    #[cfg_attr(test, dummy(expr = "Language::from_usize((0..=7915).fake()).unwrap()"))]
     pub lang: Language,
     pub synced: bool,
     pub line: Vec<LyricLineId3>,
