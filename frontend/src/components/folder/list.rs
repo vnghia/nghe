@@ -1,5 +1,7 @@
 use dioxus::prelude::*;
-use nghe_types::browsing::get_folder_stats::{GetFolderStatsParams, SubsonicGetFolderStatsBody};
+use nghe_types::music_folder::get_folder_stats::{
+    GetFolderStatsParams, SubsonicGetFolderStatsBody,
+};
 use readable::byte::*;
 use readable::num::*;
 
