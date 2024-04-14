@@ -1,4 +1,4 @@
-pub mod get_folder_stats;
+pub mod get_music_folder_stats;
 
 use nghe_proc_macros::add_types_derive;
 use uuid::Uuid;

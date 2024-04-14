@@ -11,15 +11,15 @@ use crate::models::*;
 use crate::open_subsonic::id3::*;
 use crate::{Database, DatabasePool};
 
-add_common_validate!(GetFolderStatsParams, admin);
-add_axum_response!(GetFolderStatsBody);
+add_common_validate!(GetMusicFolderStatsParams, admin);
+add_axum_response!(GetMusicFolderStatsBody);
 
-#[add_convert_types(into = nghe_types::music_folder::get_folder_stats::FolderStats)]
+#[add_convert_types(into = nghe_types::music_folder::get_music_folder_stats::MusicFolderStat)]
 #[derive(Debug, Queryable)]
 #[diesel(table_name = music_folders)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-struct FolderStats {
+struct MusicFolderStat {
     #[diesel(embed)]
     music_folder: music_folders::MusicFolder,
     artist_count: i64,
@@ -29,7 +29,7 @@ struct FolderStats {
     total_size: i64,
 }
 
-async fn get_folder_stats(pool: &DatabasePool) -> Result<Vec<FolderStats>> {
+async fn get_music_folder_stats(pool: &DatabasePool) -> Result<Vec<MusicFolderStat>> {
     let songs_total_size = diesel::alias!(songs as songs_total_size);
 
     get_basic_artist_id3_db()
@@ -52,21 +52,21 @@ async fn get_folder_stats(pool: &DatabasePool) -> Result<Vec<FolderStats>> {
                 .single_value()
                 .assume_not_null(),
         ))
-        .get_results::<FolderStats>(&mut pool.get().await?)
+        .get_results::<MusicFolderStat>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)
 }
 
-pub async fn get_folder_stats_handler(
+pub async fn get_music_folder_stats_handler(
     State(database): State<Database>,
-    _: GetFolderStatsRequest,
-) -> GetFolderStatsJsonResponse {
+    _: GetMusicFolderStatsRequest,
+) -> GetMusicFolderStatsJsonResponse {
     Ok(axum::Json(
-        GetFolderStatsBody {
-            folder_stats: get_folder_stats(&database.pool)
+        GetMusicFolderStatsBody {
+            folder_stats: get_music_folder_stats(&database.pool)
                 .await?
                 .into_iter()
-                .map(FolderStats::into)
+                .map(MusicFolderStat::into)
                 .collect(),
         }
         .into(),
@@ -117,7 +117,7 @@ mod tests {
         });
         infra.scan(.., None).await;
 
-        let folder_stats = get_folder_stats(infra.pool())
+        let folder_stats = get_music_folder_stats(infra.pool())
             .await
             .unwrap()
             .into_iter()
@@ -138,7 +138,7 @@ mod tests {
                 let song_count = song_fs_infos.len() as _;
                 let total_size = song_fs_infos.iter().fold(0_u32, |aac, s| aac + s.file_size) as _;
 
-                FolderStats {
+                MusicFolderStat {
                     music_folder,
                     artist_count,
                     album_count,

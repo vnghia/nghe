@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
-use nghe_types::music_folder::get_folder_stats::{
-    GetFolderStatsParams, SubsonicGetFolderStatsBody,
+use nghe_types::music_folder::get_music_folder_stats::{
+    GetMusicFolderStatsParams, SubsonicGetMusicFolderStatsBody,
 };
 use readable::byte::*;
 use readable::num::*;
@@ -20,9 +20,9 @@ pub fn Folders() -> Element {
     let get_folder_stats_fut = use_resource(move || async move {
         Ok(common_state()
             .ok_or_else(|| anyhow::anyhow!("common state is none"))?
-            .send_with_common::<_, SubsonicGetFolderStatsBody>(
+            .send_with_common::<_, SubsonicGetMusicFolderStatsBody>(
                 "/rest/getFolderStats",
-                GetFolderStatsParams {},
+                GetMusicFolderStatsParams {},
             )
             .await?
             .root
