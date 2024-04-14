@@ -8,3 +8,8 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/scrobble", get(scrobble::scrobble_handler))
         .route("/rest/scrobble.view", get(scrobble::scrobble_handler))
 }
+
+#[cfg(test)]
+pub mod test {
+    pub use super::scrobble::scrobble;
+}
