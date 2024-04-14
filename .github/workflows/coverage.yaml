@@ -43,6 +43,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: coverage
       - uses: cargo-bins/cargo-binstall@main
       - name: Increase postgres max connection
         run: |
