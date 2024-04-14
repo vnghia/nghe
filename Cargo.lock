@@ -895,6 +895,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "diesel_full_text_search"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b44a057e441a6a5d802feea2646a6730cc6df99c75b7e02857a41ea90f2b30b"
+dependencies = [
+ "diesel",
+]
+
+[[package]]
 name = "diesel_migrations"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2903,6 +2912,7 @@ dependencies = [
  "derivative",
  "diesel",
  "diesel-async",
+ "diesel_full_text_search",
  "diesel_migrations",
  "fake",
  "figment",

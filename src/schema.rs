@@ -1,6 +1,9 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     albums (id) {
         id -> Uuid,
         name -> Text,
@@ -17,10 +20,14 @@ diesel::table! {
         original_release_month -> Nullable<Int2>,
         original_release_day -> Nullable<Int2>,
         mbz_id -> Nullable<Uuid>,
+        ts -> Tsvector,
     }
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     artists (id) {
         id -> Uuid,
         name -> Text,
@@ -29,10 +36,14 @@ diesel::table! {
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,
         mbz_id -> Nullable<Uuid>,
+        ts -> Tsvector,
     }
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     configs (key) {
         key -> Text,
         text -> Nullable<Text>,
@@ -42,6 +53,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     genres (id) {
         id -> Uuid,
         value -> Text,
@@ -50,6 +64,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     lyrics (song_id, description, language, external) {
         song_id -> Uuid,
         description -> Text,
@@ -65,6 +82,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     music_folders (id) {
         id -> Uuid,
         path -> Text,
@@ -75,6 +95,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     playbacks (user_id, song_id) {
         user_id -> Uuid,
         song_id -> Uuid,
@@ -84,6 +107,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     scans (started_at) {
         started_at -> Timestamptz,
         is_scanning -> Bool,
@@ -94,6 +120,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     song_cover_arts (id) {
         id -> Uuid,
         format -> Text,
@@ -104,6 +133,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     songs (id) {
         id -> Uuid,
         title -> Text,
@@ -136,10 +168,14 @@ diesel::table! {
         scanned_at -> Timestamptz,
         cover_art_id -> Nullable<Uuid>,
         mbz_id -> Nullable<Uuid>,
+        ts -> Tsvector,
     }
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     songs_album_artists (song_id, album_artist_id) {
         song_id -> Uuid,
         album_artist_id -> Uuid,
@@ -148,6 +184,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     songs_artists (song_id, artist_id) {
         song_id -> Uuid,
         artist_id -> Uuid,
@@ -156,6 +195,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     songs_genres (song_id, genre_id) {
         song_id -> Uuid,
         genre_id -> Uuid,
@@ -164,6 +206,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     user_music_folder_permissions (user_id, music_folder_id) {
         user_id -> Uuid,
         music_folder_id -> Uuid,
@@ -172,6 +217,9 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     users (id) {
         id -> Uuid,
         username -> Text,

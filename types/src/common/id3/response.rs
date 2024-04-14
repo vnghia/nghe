@@ -78,7 +78,7 @@ pub struct SongId3 {
     pub duration: u32,
     #[serde(with = "time_serde::iso8601_datetime")]
     pub created: OffsetDateTime,
-    pub size: u64,
+    pub size: u32,
     pub suffix: String,
     pub bit_rate: u32,
     pub album_id: Uuid,

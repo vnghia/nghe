@@ -88,6 +88,7 @@ tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 walkdir = { version = "2.5.0" }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
+diesel_full_text_search = "2.1.1"
 
 [dev-dependencies]
 fake = { workspace = true }
