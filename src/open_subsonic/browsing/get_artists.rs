@@ -19,11 +19,11 @@ async fn get_indexed_artists(
     pool: &DatabasePool,
     user_id: Uuid,
     music_folder_ids: &Option<Vec<Uuid>>,
-) -> Result<Vec<(String, BasicArtistId3Db)>> {
+) -> Result<Vec<(String, ArtistId3Db)>> {
     #[add_permission_filter]
     get_basic_artist_id3_db()
-        .select((artists::index, BasicArtistId3Db::as_select()))
-        .get_results::<(String, BasicArtistId3Db)>(&mut pool.get().await?)
+        .select((artists::index, ArtistId3Db::as_select()))
+        .get_results::<(String, ArtistId3Db)>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)
 }
@@ -47,10 +47,7 @@ pub async fn get_artists(
         .into_iter()
         .into_group_map()
         .into_iter()
-        .map(|(k, v)| Index {
-            name: k,
-            artists: v.into_iter().map(BasicArtistId3Db::into).collect(),
-        })
+        .map(|(k, v)| Index { name: k, artists: v.into_iter().map(ArtistId3Db::into).collect() })
         .collect_vec();
 
     Ok(Indexes { ignored_articles, index })
@@ -87,7 +84,7 @@ mod tests {
             .await
             .unwrap()
             .into_iter()
-            .map(|(_, artist)| artist.id)
+            .map(|(_, artist)| artist.basic.id)
             .sorted()
             .collect_vec();
         assert_eq!(artist_ids, infra.artist_ids(&infra.artist_no_ids(..)).await);
@@ -114,7 +111,7 @@ mod tests {
             .await
             .unwrap()
             .into_iter()
-            .map(|(_, artist)| artist.id)
+            .map(|(_, artist)| artist.basic.id)
             .sorted()
             .collect_vec();
         assert!(artist_ids.contains(&artist_id));
@@ -141,7 +138,7 @@ mod tests {
             .await
             .unwrap()
             .into_iter()
-            .map(|(_, artist)| artist.id)
+            .map(|(_, artist)| artist.basic.id)
             .sorted()
             .collect_vec();
         assert!(artist_ids.contains(&artist_id));
@@ -169,7 +166,7 @@ mod tests {
             .await
             .unwrap()
             .into_iter()
-            .map(|(_, artist)| artist.id)
+            .map(|(_, artist)| artist.basic.id)
             .sorted()
             .collect_vec();
         assert!(artist_ids.contains(&artist_id));
@@ -205,7 +202,7 @@ mod tests {
             .await
             .unwrap()
             .into_iter()
-            .map(|(_, artist)| artist.id)
+            .map(|(_, artist)| artist.basic.id)
             .sorted()
             .collect_vec();
         assert!(!artist_ids.contains(&artist_id));

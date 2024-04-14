@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use diesel::dsl::{count_distinct, sql, sum, AssumeNotNull};
+use diesel::dsl::{count_distinct, max, sql, sum, AssumeNotNull};
 use diesel::expression::SqlLiteral;
 use diesel::{
     helper_types, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable,
@@ -94,6 +94,9 @@ pub struct BasicSongId3Db {
 pub struct SongId3Db {
     #[diesel(embed)]
     pub basic: BasicSongId3Db,
+    #[diesel(select_expression = max(albums::name).assume_not_null())]
+    #[diesel(select_expression_type = AssumeNotNull<helper_types::max<albums::name>>)]
+    pub album: String,
     #[diesel(select_expression = sql("array_agg(distinct(songs_artists.artist_id)) artist_ids"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub artist_ids: Vec<Uuid>,
@@ -244,6 +247,7 @@ impl SongId3Db {
                 .basic
                 .cover_art_id
                 .map(|v| MediaTypedId { t: Some(MediaType::Song), id: v }),
+            album: Some(self.album),
             content_type: Some(
                 mime_guess::from_ext(&self.basic.format)
                     .first_or_octet_stream()

@@ -33,7 +33,10 @@ pub type GetBasicSongId3Db = Select<songs::table, AsSelect<BasicSongId3Db, Datab
 
 pub type GetSongId3Db = Select<
     GroupBy<
-        LeftJoin<InnerJoin<GetBasicSongId3Db, songs_artists::table>, GetBasicGenreId3Db>,
+        LeftJoin<
+            InnerJoin<InnerJoin<GetBasicSongId3Db, songs_artists::table>, albums::table>,
+            GetBasicGenreId3Db,
+        >,
         songs::id,
     >,
     AsSelect<SongId3Db, DatabaseType>,
@@ -82,6 +85,7 @@ pub fn get_basic_song_id3_db() -> GetBasicSongId3Db {
 pub fn get_song_id3_db() -> GetSongId3Db {
     get_basic_song_id3_db()
         .inner_join(songs_artists::table)
+        .inner_join(albums::table)
         .left_join(get_basic_genre_id3_db())
         .group_by(songs::id)
         .select(SongId3Db::as_select())

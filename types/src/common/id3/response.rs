@@ -92,6 +92,9 @@ pub struct SongId3 {
     pub cover_art: Option<MediaTypedId>,
     #[new(default)]
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub album: Option<String>,
+    #[new(default)]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub content_type: Option<String>,
     #[new(default)]
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
