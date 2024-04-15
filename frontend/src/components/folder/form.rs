@@ -81,11 +81,32 @@ pub fn FolderForm(props: FolderFormProps) -> Element {
                         }
                         if let Some(mut allow) = allow {
                             div { class: "flex flex-row justify-center items-center gap-4 mt-4",
-                                input {
-                                    class: "checkbox btn-xs",
-                                    r#type: "checkbox",
-                                    checked: allow(),
-                                    oninput: move |e| allow.set(e.value().parse().unwrap())
+                                label { class: "swap",
+                                    input {
+                                        r#type: "checkbox",
+                                        checked: allow(),
+                                        oninput: move |e| allow.set(e.value().parse().unwrap())
+                                    }
+                                    svg {
+                                        class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                        xmlns: "http://www.w3.org/2000/svg",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            d: "m4.5 12.75 6 6 9-13.5"
+                                        }
+                                    }
+                                    svg {
+                                        class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                        xmlns: "http://www.w3.org/2000/svg",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            d: "M6 18L18 6M6 6l12 12"
+                                        }
+                                    }
                                 }
                                 div { class: "label",
                                     span { class: "text-base text-base-content", "Allow by default" }
