@@ -21,7 +21,7 @@ pub fn Folders() -> Element {
         Ok(common_state()
             .ok_or_else(|| anyhow::anyhow!("common state is none"))?
             .send_with_common::<_, SubsonicGetMusicFolderStatsBody>(
-                "/rest/getFolderStats",
+                "/rest/getMusicFolderStats",
                 GetMusicFolderStatsParams {},
             )
             .await?
