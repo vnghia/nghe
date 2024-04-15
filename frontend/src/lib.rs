@@ -7,5 +7,6 @@
 mod components;
 mod route;
 mod state;
+mod utils;
 
 pub use route::Route;
