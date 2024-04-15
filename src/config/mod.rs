@@ -16,8 +16,6 @@ pub struct ServerConfig {
 
 pub type DatabaseConfig = raw::DatabaseConfig;
 
-pub type FolderConfig = raw::FolderConfig;
-
 pub type ScanConfig = raw::ScanConfig;
 
 pub type TranscodingConfig = raw::TranscodingConfig;
@@ -36,7 +34,6 @@ pub struct Config {
     pub server: ServerConfig,
     #[derivative(Debug = "ignore")]
     pub database: DatabaseConfig,
-    pub folder: FolderConfig,
     pub artist_index: ArtistIndexConfig,
     pub parsing: ParsingConfig,
     pub scan: ScanConfig,
@@ -85,8 +82,6 @@ impl Config {
 
         let database = raw_config.database;
 
-        let folder = raw_config.folder;
-
         let artist_index = ArtistIndexConfig::new(raw_config.artist.ignored_articles);
 
         let parsing = raw_config.parsing;
@@ -97,7 +92,7 @@ impl Config {
 
         let art = ArtConfig::new(raw_config.art);
 
-        Self { server, database, folder, artist_index, parsing, scan, transcoding, art }
+        Self { server, database, artist_index, parsing, scan, transcoding, art }
     }
 }
 

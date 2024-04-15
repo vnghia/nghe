@@ -45,7 +45,7 @@ fn type_to_string(ty: &Type) -> Result<String, Error> {
 fn type_is_integer(ty: &Type) -> Result<bool, Error> {
     let ty = type_to_string(ty)?;
     if ty.starts_with('u') || ty.starts_with('i') {
-        Ok(ty[1..].parse::<u8>().is_ok())
+        Ok(&ty[1..] == "size" || ty[1..].parse::<u8>().is_ok())
     } else {
         Ok(false)
     }

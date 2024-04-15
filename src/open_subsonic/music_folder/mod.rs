@@ -2,6 +2,7 @@ mod add_music_folder;
 mod get_music_folder_stats;
 mod remove_music_folder;
 mod update_music_folder;
+mod utils;
 
 use axum::routing::get;
 use axum::Router;
@@ -28,4 +29,9 @@ pub fn router() -> Router<crate::Database> {
             "/rest/removeMusicFolder.view",
             get(remove_music_folder::remove_music_folder_handler),
         )
+}
+
+#[cfg(test)]
+pub mod test {
+    pub use super::add_music_folder::add_music_folder;
 }

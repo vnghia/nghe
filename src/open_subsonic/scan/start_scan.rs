@@ -1,12 +1,11 @@
-use std::borrow::Cow;
-
 use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_proc_macros::{add_axum_response, add_common_validate};
+use nghe_proc_macros::{add_axum_response, add_common_validate, add_convert_types};
 use time::OffsetDateTime;
+use uuid::Uuid;
 
 use super::artist::build_artist_indices;
 use super::run_scan::run_scan;
@@ -17,9 +16,9 @@ use crate::{Database, DatabasePool};
 add_common_validate!(StartScanParams, admin);
 add_axum_response!(StartScanBody);
 
-#[derive(Debug)]
-#[cfg_attr(test, derive(Clone))]
-pub struct ScanStatistic {
+#[add_convert_types(into = scans::ScanStat)]
+#[derive(Debug, Clone, Copy)]
+pub struct ScanStat {
     pub scanned_song_count: usize,
     pub upserted_song_count: usize,
     pub deleted_song_count: usize,
@@ -29,9 +28,9 @@ pub struct ScanStatistic {
     pub scan_error_count: usize,
 }
 
-pub async fn initialize_scan(pool: &DatabasePool) -> Result<OffsetDateTime> {
+pub async fn initialize_scan(pool: &DatabasePool, id: Uuid) -> Result<OffsetDateTime> {
     diesel::insert_into(scans::table)
-        .default_values()
+        .values(scans::NewScan { music_folder_id: id })
         .returning(scans::started_at)
         .get_result::<OffsetDateTime>(&mut pool.get().await?)
         .await
@@ -41,47 +40,71 @@ pub async fn initialize_scan(pool: &DatabasePool) -> Result<OffsetDateTime> {
 pub async fn finalize_scan(
     pool: &DatabasePool,
     scan_started_at: OffsetDateTime,
-    scan_result: Result<&ScanStatistic, &anyhow::Error>,
-) -> Result<()> {
-    let (scanned_count, error_message) = match scan_result {
-        Ok(r) => (r.scanned_song_count, None),
-        Err(e) => (0, Some::<Cow<'_, str>>(e.to_string().into())),
-    };
-    diesel::update(scans::table.filter(scans::started_at.eq(scan_started_at)))
-        .set(&scans::FinishScan {
-            is_scanning: false,
-            finished_at: OffsetDateTime::now_utc(),
-            scanned_count: scanned_count as _,
-            error_message,
-        })
-        .execute(&mut pool.get().await?)
-        .await?;
-    Ok(())
+    music_folder_id: Uuid,
+    scan_result: Result<ScanStat>,
+) -> Result<ScanStat> {
+    match scan_result {
+        Ok(scan_stat) => {
+            diesel::update(
+                scans::table
+                    .filter(scans::started_at.eq(scan_started_at))
+                    .filter(scans::music_folder_id.eq(music_folder_id)),
+            )
+            .set((
+                scans::ScanStat::from(scan_stat),
+                scans::is_scanning.eq(false),
+                scans::finished_at.eq(OffsetDateTime::now_utc()),
+                scans::unrecoverable.eq(false),
+            ))
+            .execute(&mut pool.get().await?)
+            .await?;
+            Ok(scan_stat)
+        }
+        r => {
+            diesel::update(
+                scans::table
+                    .filter(scans::started_at.eq(scan_started_at))
+                    .filter(scans::music_folder_id.eq(music_folder_id)),
+            )
+            .set((
+                scans::is_scanning.eq(false),
+                scans::finished_at.eq(OffsetDateTime::now_utc()),
+                scans::unrecoverable.eq(true),
+            ))
+            .execute(&mut pool.get().await?)
+            .await?;
+            r
+        }
+    }
 }
 
 pub async fn start_scan(
     pool: &DatabasePool,
-    scan_mode: ScanMode,
-    music_folders: &[music_folders::MusicFolder],
+    params: StartScanParams,
     artist_index_config: &ArtistIndexConfig,
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
     art_config: &ArtConfig,
-) -> Result<ScanStatistic> {
-    let scan_started_at = initialize_scan(pool).await?;
+) -> Result<ScanStat> {
+    let scan_started_at = initialize_scan(pool, params.id).await?;
+
     let scan_result = run_scan(
         pool,
         scan_started_at,
-        scan_mode,
-        music_folders,
+        params.mode,
+        music_folders::table
+            .filter(music_folders::id.eq(params.id))
+            .select(music_folders::MusicFolder::as_select())
+            .get_result(&mut pool.get().await?)
+            .await?,
         parsing_config,
         scan_config,
         art_config,
     )
     .await;
+
     build_artist_indices(pool, artist_index_config).await?;
-    finalize_scan(pool, scan_started_at, scan_result.as_ref()).await?;
-    scan_result
+    finalize_scan(pool, scan_started_at, params.id, scan_result).await
 }
 
 pub async fn start_scan_handler(
@@ -92,15 +115,10 @@ pub async fn start_scan_handler(
     Extension(art_config): Extension<ArtConfig>,
     req: StartScanRequest,
 ) -> StartScanJsonResponse {
-    let music_folders = music_folders::table
-        .select(music_folders::MusicFolder::as_select())
-        .get_results(&mut database.pool.get().await?)
-        .await?;
     tokio::task::spawn(async move {
         start_scan(
             &database.pool,
-            req.params.scan_mode,
-            &music_folders,
+            req.params,
             &artist_index_config,
             &parsing_config,
             &scan_config,
@@ -112,14 +130,32 @@ pub async fn start_scan_handler(
 }
 
 #[cfg(test)]
+impl std::ops::Add for ScanStat {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            scanned_song_count: self.scanned_song_count + other.scanned_song_count,
+            upserted_song_count: self.upserted_song_count + other.upserted_song_count,
+            deleted_song_count: self.deleted_song_count + other.deleted_song_count,
+            deleted_album_count: self.deleted_album_count + other.deleted_album_count,
+            deleted_artist_count: self.deleted_artist_count + other.deleted_artist_count,
+            deleted_genre_count: self.deleted_genre_count + other.deleted_genre_count,
+            scan_error_count: self.scan_error_count + other.scan_error_count,
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::test::TemporaryDb;
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_initialize_scan_twice() {
-        let temp_db = TemporaryDb::new_from_env().await;
-        initialize_scan(temp_db.pool()).await.unwrap();
-        assert!(initialize_scan(temp_db.pool()).await.is_err());
+        let infra = Infra::new().await.n_folder(1).await;
+
+        initialize_scan(infra.pool(), infra.music_folder_id(0)).await.unwrap();
+        assert!(initialize_scan(infra.pool(), infra.music_folder_id(0)).await.is_err());
     }
 }

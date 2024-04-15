@@ -36,13 +36,6 @@ pub struct DatabaseConfig {
     pub key: EncryptionKey,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct FolderConfig {
-    pub top_paths: Vec<PathBuf>,
-    pub top_names: Vec<String>,
-    pub depth_levels: Vec<usize>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct ArtistConfig {
@@ -58,9 +51,7 @@ pub struct ScanConfig {
     #[derivative(Default(value = "10"))]
     pub channel_size: usize,
     #[derivative(Default(value = "10"))]
-    pub scan_media_task_size: usize,
-    #[derivative(Default(value = "10"))]
-    pub process_path_task_size: usize,
+    pub pool_size: usize,
 }
 
 #[serde_as]
@@ -91,7 +82,6 @@ pub struct ArtConfig {
 pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
-    pub folder: FolderConfig,
     pub artist: ArtistConfig,
     pub parsing: ParsingConfig,
     pub scan: ScanConfig,
@@ -104,8 +94,6 @@ impl Config {
         Figment::new()
             .merge(Env::prefixed(constcat::concat!(SERVER_NAME, "_")).split("__"))
             .join(Serialized::default("server", ServerConfig::default()))
-            .join(Serialized::default("folder.top_names", Vec::<String>::default()))
-            .join(Serialized::default("folder.depth_levels", Vec::<usize>::default()))
             .join(Serialized::default("artist", ArtistConfig::default()))
             .join(Serialized::default("parsing", ParsingConfig::default()))
             .join(Serialized::default("scan", ScanConfig::default()))

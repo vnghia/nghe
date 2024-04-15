@@ -6,7 +6,7 @@ scans (
     finished_at timestamptz default null,
     scanned_count bigint not null default 0,
     error_message text default null,
-    check (
+    constraint scans_not_scanning_if_finished check (
         (
             is_scanning
             and finished_at is null
@@ -19,5 +19,4 @@ scans (
 );
 
 create unique index scans_is_scanning_idx on scans (is_scanning)
-where
-is_scanning;
+where is_scanning;

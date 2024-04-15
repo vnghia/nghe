@@ -1,13 +1,11 @@
 use axum::Router;
 use nghe::config::Config;
-use nghe::open_subsonic::browsing::refresh_music_folders;
 use nghe::open_subsonic::{
     bookmarks, browsing, extension, media_annotation, media_list, media_retrieval, music_folder,
     permission, scan, searching, system, user,
 };
 use nghe::Database;
 use nghe_types::constant::{SERVER_NAME, SERVER_VERSION};
-use nghe_types::scan::start_scan::ScanMode;
 use tokio::signal;
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
@@ -34,25 +32,6 @@ async fn main() {
 
     // database
     let database = Database::new(&config.database.url, config.database.key).await;
-
-    // music folders
-    let (upserted_music_folders, _) = refresh_music_folders(&database.pool, &config.folder).await;
-
-    // build permission
-    permission::build_permission(&database.pool).await.expect("can not build user permission");
-
-    // scan song
-    scan::start_scan(
-        &database.pool,
-        ScanMode::Full,
-        &upserted_music_folders,
-        &config.artist_index,
-        &config.parsing,
-        &config.scan,
-        &config.art,
-    )
-    .await
-    .expect("can not scan song");
 
     // run it
     let listener = tokio::net::TcpListener::bind(config.server.bind_addr).await.unwrap();
