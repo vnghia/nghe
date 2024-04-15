@@ -20,8 +20,8 @@ pub enum Route {
             AddFolder {},
             #[route("/folder/:id")]
             Folder {id: Uuid},
-            #[route("/folder/users/:id")]
-            FolderUsers {id: Uuid},
+            #[route("/folder/permission/:id")]
+            FolderPermission {id: Uuid},
         #[end_layout]
         #[route("/setup")]
         Setup {},

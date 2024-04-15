@@ -131,7 +131,7 @@ pub fn Folders() -> Element {
                                             }
                                         }
                                         Link {
-                                            to: Route::FolderUsers {
+                                            to: Route::FolderPermission {
                                                 id: folder_stat.music_folder.id,
                                             },
                                             button { class: "btn btn-ghost btn-xs",

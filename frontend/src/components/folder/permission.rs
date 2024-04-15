@@ -14,7 +14,7 @@ use crate::state::CommonState;
 use crate::Route;
 
 #[component]
-pub fn FolderUsers(id: Uuid) -> Element {
+pub fn FolderPermission(id: Uuid) -> Element {
     let nav = navigator();
     let common_state = CommonState::use_redirect();
     if !common_state()?.role.admin_role {
@@ -81,25 +81,52 @@ pub fn FolderUsers(id: Uuid) -> Element {
 
     if !users.is_empty() {
         rsx! {
-            div { class: "w-full h-full overflow-x-auto overflow-y-auto",
-                div { class: "min-w-full inline-block p-10",
+            div { class: "w-full h-[calc(100%-4rem)] overflow-x-auto overflow-y-auto flex justify-center items-center my-8",
+                div { class: "w-full sm:w-1/2 px-8",
                     table { class: "table table-pin-rows",
                         thead {
                             tr { class: "shadow bg-base-200",
-                                th { class: "text-base", "Username" }
-                                th { class: "text-base", "Allowed" }
+                                th { class: "text-base", "Permission" }
                             }
                         }
                         tbody {
                             for (idx , user) in users.iter().enumerate() {
                                 tr { key: "{user.1.id}",
-                                    td { class: "text-base", "{user.1.username}" }
                                     td {
-                                        input {
-                                            class: "rounded-btn checkbox",
-                                            oninput: move |e| { toggle_idx.set(Some((idx, e.value().parse().unwrap()))) },
-                                            r#type: "checkbox",
-                                            checked: user.0
+                                        "align": "left",
+                                        div { class: "flex flex-row gap-4",
+                                            label { class: "swap",
+                                                input {
+                                                    r#type: "checkbox",
+                                                    checked: user.0,
+                                                    oninput: move |e| { toggle_idx.set(Some((idx, e.value().parse().unwrap()))) }
+                                                }
+                                                svg {
+                                                    class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                                    xmlns: "http://www.w3.org/2000/svg",
+                                                    view_box: "0 0 24 24",
+                                                    path {
+                                                        stroke_linecap: "round",
+                                                        stroke_linejoin: "round",
+                                                        d: "m4.5 12.75 6 6 9-13.5"
+                                                    }
+                                                }
+                                                svg {
+                                                    class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                                    xmlns: "http://www.w3.org/2000/svg",
+                                                    view_box: "0 0 24 24",
+                                                    path {
+                                                        stroke_linecap: "round",
+                                                        stroke_linejoin: "round",
+                                                        d: "M6 18L18 6M6 6l12 12"
+                                                    }
+                                                }
+                                            }
+                                            div { class: "label",
+                                                span { class: "text-base text-base-content",
+                                                    "{user.1.username}"
+                                                }
+                                            }
                                         }
                                     }
                                 }
