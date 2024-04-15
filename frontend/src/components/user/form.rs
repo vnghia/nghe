@@ -128,15 +128,36 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                             "Admin"
                                         }
                                     }
-                                    input {
-                                        class: "checkbox btn-xs",
-                                        r#type: "checkbox",
-                                        checked: role().admin_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                admin_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().admin_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    admin_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }
@@ -146,15 +167,36 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                             "Stream"
                                         }
                                     }
-                                    input {
-                                        class: "checkbox btn-xs",
-                                        r#type: "checkbox",
-                                        checked: role().stream_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                stream_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().stream_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    stream_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }
@@ -164,15 +206,36 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                             "Download"
                                         }
                                     }
-                                    input {
-                                        class: "checkbox btn-xs",
-                                        r#type: "checkbox",
-                                        checked: role().download_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                download_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().download_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    download_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }
@@ -182,15 +245,36 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                             "Share"
                                         }
                                     }
-                                    input {
-                                        class: "checkbox btn-xs",
-                                        r#type: "checkbox",
-                                        checked: role().share_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                share_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().share_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    share_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }

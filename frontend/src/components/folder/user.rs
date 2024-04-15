@@ -99,7 +99,7 @@ pub fn FolderUsers(id: Uuid) -> Element {
                                             class: "rounded-btn checkbox",
                                             oninput: move |e| { toggle_idx.set(Some((idx, e.value().parse().unwrap()))) },
                                             r#type: "checkbox",
-                                            checked: user.0,
+                                            checked: user.0
                                         }
                                     }
                                 }

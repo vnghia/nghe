@@ -82,7 +82,7 @@ pub fn Users() -> Element {
                                             path {
                                                 stroke_linecap: "round",
                                                 stroke_linejoin: "round",
-                                                d: "M12 4.5v15m7.5-7.5h-15"
+                                                d: "M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"
                                             }
                                         }
                                     }
@@ -94,35 +94,119 @@ pub fn Users() -> Element {
                                 tr { key: "{user.id}",
                                     td { class: "text-base", "{user.basic.username}" }
                                     td { "align": "center",
-                                        input {
-                                            class: "checkbox btn-xs",
-                                            r#type: "checkbox",
-                                            checked: user.basic.role.admin_role,
-                                            disabled: true
+                                        label { class: "swap",
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: user.basic.role.admin_role,
+                                                disabled: true
+                                            }
+                                            svg {
+                                                class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "m4.5 12.75 6 6 9-13.5"
+                                                }
+                                            }
+                                            svg {
+                                                class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "M6 18L18 6M6 6l12 12"
+                                                }
+                                            }
                                         }
                                     }
                                     td { "align": "center",
-                                        input {
-                                            class: "checkbox btn-xs",
-                                            r#type: "checkbox",
-                                            checked: user.basic.role.stream_role,
-                                            disabled: true
+                                        label { class: "swap",
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: user.basic.role.stream_role,
+                                                disabled: true
+                                            }
+                                            svg {
+                                                class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "m4.5 12.75 6 6 9-13.5"
+                                                }
+                                            }
+                                            svg {
+                                                class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "M6 18L18 6M6 6l12 12"
+                                                }
+                                            }
                                         }
                                     }
                                     td { "align": "center",
-                                        input {
-                                            class: "checkbox btn-xs",
-                                            r#type: "checkbox",
-                                            checked: user.basic.role.download_role,
-                                            disabled: true
+                                        label { class: "swap",
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: user.basic.role.download_role,
+                                                disabled: true
+                                            }
+                                            svg {
+                                                class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "m4.5 12.75 6 6 9-13.5"
+                                                }
+                                            }
+                                            svg {
+                                                class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "M6 18L18 6M6 6l12 12"
+                                                }
+                                            }
                                         }
                                     }
                                     td { "align": "center",
-                                        input {
-                                            class: "checkbox btn-xs",
-                                            r#type: "checkbox",
-                                            checked: user.basic.role.share_role,
-                                            disabled: true
+                                        label { class: "swap",
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: user.basic.role.share_role,
+                                                disabled: true
+                                            }
+                                            svg {
+                                                class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "m4.5 12.75 6 6 9-13.5"
+                                                }
+                                            }
+                                            svg {
+                                                class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "M6 18L18 6M6 6l12 12"
+                                                }
+                                            }
                                         }
                                     }
                                     td { class: "text-base", "align": "center",
@@ -140,7 +224,7 @@ pub fn Users() -> Element {
                                                     path {
                                                         stroke_linecap: "round",
                                                         stroke_linejoin: "round",
-                                                        d: "M6 18L18 6M6 6l12 12"
+                                                        d: "M22 10.5h-6m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766Z"
                                                     }
                                                 }
                                             }
