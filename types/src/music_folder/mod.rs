@@ -1,5 +1,6 @@
 pub mod add_music_folder;
 pub mod get_music_folder_stats;
+pub mod remove_music_folder;
 pub mod update_music_folder;
 
 use nghe_proc_macros::add_types_derive;

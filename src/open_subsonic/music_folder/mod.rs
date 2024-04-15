@@ -1,5 +1,6 @@
 mod add_music_folder;
 mod get_music_folder_stats;
+mod remove_music_folder;
 mod update_music_folder;
 
 use axum::routing::get;
@@ -21,5 +22,10 @@ pub fn router() -> Router<crate::Database> {
         .route(
             "/rest/updateMusicFolder.view",
             get(update_music_folder::update_music_folder_handler),
+        )
+        .route("/rest/removeMusicFolder", get(remove_music_folder::remove_music_folder_handler))
+        .route(
+            "/rest/removeMusicFolder.view",
+            get(remove_music_folder::remove_music_folder_handler),
         )
 }
