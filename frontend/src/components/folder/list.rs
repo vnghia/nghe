@@ -94,8 +94,7 @@ pub fn Folders() -> Element {
                         }
                         tbody {
                             for (idx , folder_stat) in folder_stats.iter().enumerate() {
-                                tr { key: "{folder_stat.music_folder.id}",
-                                class: "my-4",
+                                tr { key: "{folder_stat.music_folder.id}", class: "my-4",
                                     td { class: "text-base", "{folder_stat.music_folder.name}" }
                                     td { class: "text-base", "{folder_stat.music_folder.path}" }
                                     td { class: "text-base", "align": "right",
@@ -120,13 +119,30 @@ pub fn Folders() -> Element {
                                             },
                                             button { class: "btn btn-ghost btn-xs",
                                                 svg {
-                                                    class: "fill-none h-6 w-6 stroke-[1.5] stroke-base-content",
+                                                    class: "fill-none h-6 w-6 stroke-[1.5] stroke-primary",
                                                     xmlns: "http://www.w3.org/2000/svg",
                                                     view_box: "0 0 24 24",
                                                     path {
                                                         stroke_linecap: "round",
                                                         stroke_linejoin: "round",
                                                         d: "M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Link {
+                                            to: Route::FolderUsers {
+                                                id: folder_stat.music_folder.id,
+                                            },
+                                            button { class: "btn btn-ghost btn-xs",
+                                                svg {
+                                                    class: "fill-none h-6 w-6 stroke-[1.5] stroke-secondary",
+                                                    xmlns: "http://www.w3.org/2000/svg",
+                                                    view_box: "0 0 24 24",
+                                                    path {
+                                                        stroke_linecap: "round",
+                                                        stroke_linejoin: "round",
+                                                        d: "M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
                                                     }
                                                 }
                                             }

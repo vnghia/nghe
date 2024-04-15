@@ -2,7 +2,8 @@ use dioxus::prelude::*;
 use nghe_types::user::create::{CreateUserParams, SubsonicCreateUserBody};
 use nghe_types::user::Role;
 
-use super::super::{Toast, UserForm};
+use super::super::Toast;
+use super::UserForm;
 use crate::state::CommonState;
 use crate::Route;
 

@@ -1,15 +1,11 @@
-use std::collections::HashSet;
-
 use dioxus::prelude::*;
-use nghe_types::permission::get_allowed_users::{
-    GetAllowedUsersParams, SubsonicGetAllowedUsersBody,
+use nghe_types::music_folder::update_music_folder::{
+    SubsonicUpdateMusicFolderBody, UpdateMusicFolderParams,
 };
-use nghe_types::permission::set_permission::{SetPermissionParams, SubsonicSetPermissionBody};
-use nghe_types::user::get_basic_user_ids::{GetBasicUserIdsParams, SubsonicGetBasicUserIdsBody};
-use nghe_types::user::BasicUserId;
 use uuid::Uuid;
 
-use super::super::{Loading, Toast};
+use super::super::Toast;
+use super::FolderForm;
 use crate::state::CommonState;
 use crate::Route;
 
@@ -21,97 +17,38 @@ pub fn Folder(id: Uuid) -> Element {
         nav.push(Route::Home {});
     }
 
-    let mut users: Signal<Vec<(bool, BasicUserId)>> = use_signal(Default::default);
-    use_future(move || async move {
-        if let Some(common_state) = common_state() {
-            let result: Result<_, anyhow::Error> = try {
-                let allowed_ids = common_state
-                    .send_with_common::<_, SubsonicGetAllowedUsersBody>(
-                        "/rest/getAllowedUsers",
-                        GetAllowedUsersParams { id },
-                    )
-                    .await?
-                    .root
-                    .body
-                    .ids
-                    .into_iter()
-                    .collect::<HashSet<_>>();
-                users.set(
-                    common_state
-                        .send_with_common::<_, SubsonicGetBasicUserIdsBody>(
-                            "/rest/getBasicUserIds",
-                            GetBasicUserIdsParams {},
-                        )
-                        .await?
-                        .root
-                        .body
-                        .basic_user_ids
-                        .into_iter()
-                        .map(|u| (allowed_ids.contains(&u.id), u))
-                        .collect(),
-                )
-            };
-            result.toast();
-        }
-    });
+    let name = use_signal(Default::default);
+    let path = use_signal(Default::default);
+    let mut submitable = use_signal(Default::default);
 
-    let mut toggle_idx: Signal<Option<(usize, bool)>> = use_signal(Option::default);
-    if let Some((idx, allow)) = toggle_idx()
+    if submitable()
         && let Some(common_state) = common_state()
-        && idx < users.len()
     {
         spawn(async move {
-            toggle_idx.set(None);
-            let user_id = users.get(idx).as_ref().unwrap().1.id;
-            users.get_mut(idx).as_mut().unwrap().0 = allow;
-
-            common_state
-                .send_with_common::<_, SubsonicSetPermissionBody>(
-                    "/rest/setPermission",
-                    SetPermissionParams {
-                        user_ids: vec![user_id],
-                        music_folder_ids: vec![id],
-                        allow,
-                    },
+            if common_state
+                .send_with_common::<_, SubsonicUpdateMusicFolderBody>(
+                    "/rest/updateMusicFolder",
+                    UpdateMusicFolderParams { id, name: name(), path: path() },
                 )
                 .await
-                .toast();
+                .map_err(anyhow::Error::from)
+                .toast()
+                .is_some()
+            {
+                nav.push(Route::Folders {});
+            } else {
+                submitable.set(false);
+            }
         });
     }
 
-    if !users.is_empty() {
-        rsx! {
-            div { class: "w-full h-full overflow-x-auto overflow-y-auto",
-                div { class: "min-w-full inline-block p-10",
-                    table { class: "table table-pin-rows",
-                        thead {
-                            tr { class: "shadow bg-base-200",
-                                th { class: "text-base", "Username" }
-                                th { class: "text-base", "Allowed" }
-                            }
-                        }
-                        tbody {
-                            for (idx , user) in users.iter().enumerate() {
-                                tr { key: "{user.1.id}",
-                                    td { class: "text-base", "{user.1.username}" }
-                                    td {
-                                        input {
-                                            class: "rounded-btn checkbox",
-                                            oninput: move |e| { toggle_idx.set(Some((idx, e.value().parse().unwrap()))) },
-                                            r#type: "checkbox",
-                                            checked: user.0,
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        rsx! {
-            Loading {}
+    rsx! {
+        FolderForm {
+            title: "Update music folder",
+            name,
+            path,
+            allow_empty: true,
+            submitable
         }
     }
 }

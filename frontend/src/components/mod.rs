@@ -10,7 +10,7 @@ mod user;
 
 pub use drawer::Drawer;
 pub use error::Toast;
-pub use folder::{AddFolder, Folder, Folders};
+pub use folder::{AddFolder, Folder, FolderUsers, Folders};
 pub use global::{DaisyTheme, Global};
 pub use home::Home;
 pub use loading::Loading;
