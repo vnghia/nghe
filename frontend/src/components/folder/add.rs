@@ -64,10 +64,10 @@ pub fn AddFolder() -> Element {
                 }
             }
             div { class: "mt-8 sm:mx-auto sm:w-full sm:max-w-md",
-                div { class: "bg-primary rounded-box py-8 px-6 shadow",
+                div { class: "bg-base-300 rounded-box py-8 px-6 shadow",
                     div { class: "form-control sm:mx-auto sm:w-full sm:max-w-md",
                         div { class: "label",
-                            span { class: "text-base text-primary-content", "Name" }
+                            span { class: "text-base text-base-content", "Name" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -77,7 +77,7 @@ pub fn AddFolder() -> Element {
                             oninput: move |e| name.set(e.value())
                         }
                         div { class: "label",
-                            span { class: "text-base text-primary-content", "Path" }
+                            span { class: "text-base text-base-content", "Path" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -86,17 +86,19 @@ pub fn AddFolder() -> Element {
                             autocomplete: "path",
                             oninput: move |e| path.set(e.value())
                         }
-                        div { class: "label",
-                            span { class: "text-base text-primary-content", "Allow by default" }
-                        }
-                        input {
-                            class: "rounded-btn checkbox",
-                            r#type: "checkbox",
-                            checked: allow(),
-                            oninput: move |e| allow.set(e.value().parse().unwrap())
+                        div { class: "flex flex-row justify-center items-center gap-4 mt-4",
+                            input {
+                                class: "checkbox btn-xs",
+                                r#type: "checkbox",
+                                checked: allow(),
+                                oninput: move |e| allow.set(e.value().parse().unwrap())
+                            }
+                            div { class: "label",
+                                span { class: "text-base text-base-content", "Allow by default" }
+                            }
                         }
                         button {
-                            class: "btn btn-active mt-8 text-base btn-accent text-accent-content",
+                            class: "btn mt-4 btn-accent btn-outline",
                             onclick,
                             "Submit"
                         }

@@ -64,47 +64,61 @@ pub fn Folders() -> Element {
 
     if !folder_stats.is_empty() {
         rsx! {
-            div { class: "w-full h-full overflow-x-auto overflow-y-auto",
-                div { class: "min-w-full inline-block p-10",
+            div { class: "w-full h-[calc(100%-4rem)] overflow-x-auto overflow-y-auto my-8",
+                div { class: "min-w-full inline-block px-8",
                     table { class: "table table-pin-rows",
                         thead {
                             tr { class: "shadow bg-base-200",
-                                th { class: "text-base", "Name" }
-                                th { class: "text-base", "Path" }
-                                th { class: "text-base", "Artist count" }
-                                th { class: "text-base", "Album count" }
-                                th { class: "text-base", "Song count" }
-                                th { class: "text-base", "User count" }
-                                th { class: "text-base", "Total size" }
-                                th { class: "text-base", "Action" }
+                                th { class: "text-base", "align": "center", "Name" }
+                                th { class: "text-base", "align": "center", "Path" }
+                                th { class: "text-base", "align": "center", "Artist" }
+                                th { class: "text-base", "align": "center", "Album" }
+                                th { class: "text-base", "align": "center", "Song" }
+                                th { class: "text-base", "align": "center", "User" }
+                                th { class: "text-base", "align": "center", "Size" }
+                                th { class: "text-base", "align": "center",
+                                    Link { class: "btn btn-ghost btn-xs", to: Route::AddFolder {},
+                                        svg {
+                                            class: "fill-none h-6 w-6 stroke-2 stroke-accent",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M12 4.5v15m7.5-7.5h-15"
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         tbody {
-                            for (idx, folder_stat) in folder_stats.iter().enumerate() {
+                            for (idx , folder_stat) in folder_stats.iter().enumerate() {
                                 tr { key: "{folder_stat.music_folder.id}",
+                                class: "my-4",
                                     td { class: "text-base", "{folder_stat.music_folder.name}" }
                                     td { class: "text-base", "{folder_stat.music_folder.path}" }
-                                    td { class: "text-base",
+                                    td { class: "text-base", "align": "right",
                                         "{Unsigned::from(folder_stat.artist_count)}"
                                     }
-                                    td { class: "text-base",
+                                    td { class: "text-base", "align": "right",
                                         "{Unsigned::from(folder_stat.album_count)}"
                                     }
-                                    td { class: "text-base",
+                                    td { class: "text-base", "align": "right",
                                         "{Unsigned::from(folder_stat.song_count)}"
                                     }
-                                    td { class: "text-base",
+                                    td { class: "text-base", "align": "right",
                                         "{Unsigned::from(folder_stat.user_count)}"
                                     }
-                                    td { class: "text-base",
+                                    td { class: "text-base", "align": "right",
                                         "{Byte::from(folder_stat.total_size)}"
                                     }
-                                    td {
+                                    td { "align": "center",
                                         Link {
                                             to: Route::Folder {
                                                 id: folder_stat.music_folder.id,
                                             },
-                                            button { class: "btn btn-ghost btn-circle",
+                                            button { class: "btn btn-ghost btn-xs",
                                                 svg {
                                                     class: "fill-none h-6 w-6 stroke-[1.5] stroke-base-content",
                                                     xmlns: "http://www.w3.org/2000/svg",
@@ -118,7 +132,7 @@ pub fn Folders() -> Element {
                                             }
                                         }
                                         button {
-                                            class: "btn btn-ghost btn-circle",
+                                            class: "btn btn-ghost btn-xs",
                                             onclick: move |_| { remove_idx.set(Some(idx)) },
                                             svg {
                                                 class: "fill-none h-6 w-6 stroke-2 stroke-error",
@@ -129,26 +143,6 @@ pub fn Folders() -> Element {
                                                     stroke_linejoin: "round",
                                                     d: "M6 18L18 6M6 6l12 12"
                                                 }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        tfoot {
-                            tr {
-                                th { colspan: "8", "align": "center",
-                                    Link { class: "btn btn-circle", to: Route::AddFolder {},
-                                        svg {
-                                            class: "fill-none h-6 w-6 stroke-2 stroke-base-content",
-                                            xmlns: "http://www.w3.org/2000/svg",
-                                            view_box: "0 0 24 24",
-                                            stroke: "currentColor",
-                                            transform: "rotate(45)",
-                                            path {
-                                                stroke_linecap: "round",
-                                                stroke_linejoin: "round",
-                                                d: "M6 18L18 6M6 6l12 12"
                                             }
                                         }
                                     }
