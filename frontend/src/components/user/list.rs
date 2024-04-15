@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use itertools::Itertools;
-use nghe_types::user::delete::{DeleteUserBody, DeleteUserParams};
+use nghe_types::user::delete::{DeleteUserParams, SubsonicDeleteUserBody};
 use nghe_types::user::get_users::{GetUsersParams, SubsonicGetUsersBody};
 use nghe_types::user::User;
 
@@ -48,7 +48,7 @@ pub fn Users() -> Element {
             delete_idx.set(None);
             let user = users.remove(idx);
             common_state
-                .send_with_common::<_, DeleteUserBody>(
+                .send_with_common::<_, SubsonicDeleteUserBody>(
                     "/rest/deleteUser",
                     DeleteUserParams { id: user.id },
                 )

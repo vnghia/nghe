@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use nghe_types::permission::get_allowed_users::{
     GetAllowedUsersParams, SubsonicGetAllowedUsersBody,
 };
-use nghe_types::permission::set_permission::{SetPermissionBody, SetPermissionParams};
+use nghe_types::permission::set_permission::{SetPermissionParams, SubsonicSetPermissionBody};
 use nghe_types::user::get_basic_user_ids::{GetBasicUserIdsParams, SubsonicGetBasicUserIdsBody};
 use nghe_types::user::BasicUserId;
 use uuid::Uuid;
@@ -66,7 +66,7 @@ pub fn Folder(id: Uuid) -> Element {
             users.get_mut(idx).as_mut().unwrap().0 = allow;
 
             common_state
-                .send_with_common::<_, SetPermissionBody>(
+                .send_with_common::<_, SubsonicSetPermissionBody>(
                     "/rest/setPermission",
                     SetPermissionParams {
                         user_ids: vec![user_id],
