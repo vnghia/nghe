@@ -2,6 +2,7 @@ mod add_music_folder;
 mod get_music_folder_stats;
 mod remove_music_folder;
 mod update_music_folder;
+mod utils;
 
 use axum::routing::get;
 use axum::Router;

@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
+use super::utils::check_dir;
 use crate::models::*;
 use crate::open_subsonic::permission::set_permission;
 use crate::{Database, DatabasePool};
@@ -21,13 +22,7 @@ pub async fn add_music_folder(
     let id = diesel::insert_into(music_folders::table)
         .values(music_folders::UpsertMusicFolder {
             name: Some(name.into()),
-            path: Some(
-                tokio::fs::canonicalize(path)
-                    .await?
-                    .to_str()
-                    .expect("non utf-8 path encountered")
-                    .into(),
-            ),
+            path: Some(check_dir(path).await?.to_str().expect("non utf-8 path encountered").into()),
         })
         .returning(music_folders::id)
         .get_result::<Uuid>(&mut pool.get().await?)

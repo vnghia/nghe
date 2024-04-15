@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
+use super::utils::check_dir;
 use crate::models::*;
 use crate::{Database, DatabasePool};
 
@@ -19,7 +20,7 @@ pub async fn update_music_folder(
 ) -> Result<()> {
     let path = if let Some(ref path) = path {
         Some(
-            tokio::fs::canonicalize(path)
+            check_dir(path)
                 .await?
                 .into_os_string()
                 .into_string()
