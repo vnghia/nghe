@@ -29,7 +29,10 @@ manganis = { version = "0.2.2" }
 gloo = { version = "0.11.0", features = ["net", "utils"] }
 url = { version = "2.5.0", features = ["serde"] }
 wasm-bindgen = "0.2.92"
-web-sys = { version = "0.3.69", features = ["HtmlElement"] }
+web-sys = { version = "0.3.69", features = [
+    "HtmlDialogElement",
+    "HtmlElement",
+] }
 readable = { version = "0.16.0", default-features = false, features = [
     "byte",
     "num",

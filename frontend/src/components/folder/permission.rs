@@ -92,8 +92,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
                         tbody {
                             for (idx , user) in users.iter().enumerate() {
                                 tr { key: "{user.1.id}",
-                                    td {
-                                        "align": "left",
+                                    td { "align": "left",
                                         div { class: "flex flex-row gap-4",
                                             label { class: "swap",
                                                 input {

@@ -6,11 +6,13 @@ use nghe_types::music_folder::get_music_folder_stats::{
 use nghe_types::music_folder::remove_music_folder::{
     RemoveMusicFolderParams, SubsonicRemoveMusicFolderBody,
 };
+use nghe_types::scan::start_scan::{ScanMode, StartScanParams, SubsonicStartScanBody};
 use readable::byte::*;
 use readable::num::*;
 
 use super::super::Toast;
 use crate::state::CommonState;
+use crate::utils::show_modal;
 use crate::Route;
 
 #[component]
@@ -43,6 +45,33 @@ pub fn Folders() -> Element {
             );
         }
     });
+
+    let mut scan_idx: Signal<Option<usize>> = use_signal(Default::default);
+    let mut scan_mode: Signal<Option<ScanMode>> = use_signal(Default::default);
+    if let Some(idx) = scan_idx()
+        && let Some(mode) = scan_mode()
+        && let Some(common_state) = common_state()
+        && idx < folder_stats.len()
+    {
+        spawn(async move {
+            scan_idx.set(None);
+            scan_mode.set(None);
+            common_state
+                .send_with_common::<_, SubsonicStartScanBody>(
+                    "/rest/startScan",
+                    StartScanParams {
+                        id: folder_stats
+                            .get(idx)
+                            .expect("folder stat should not be none")
+                            .music_folder
+                            .id,
+                        mode,
+                    },
+                )
+                .await
+                .toast();
+        });
+    }
 
     let mut remove_idx: Signal<Option<usize>> = use_signal(Option::default);
     if let Some(idx) = remove_idx()
@@ -112,13 +141,30 @@ pub fn Folders() -> Element {
                                     "{Byte::from(folder_stat.total_size)}"
                                 }
                                 td { "align": "center",
+                                    button {
+                                        class: "btn btn-ghost btn-xs",
+                                        onclick: move |_| {
+                                            scan_idx.set(Some(idx));
+                                            show_modal("scan-dialog").toast();
+                                        },
+                                        svg {
+                                            class: "fill-none h-6 w-6 stroke-2 stroke-primary",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                                            }
+                                        }
+                                    }
                                     Link {
                                         to: Route::Folder {
                                             id: folder_stat.music_folder.id,
                                         },
                                         button { class: "btn btn-ghost btn-xs",
                                             svg {
-                                                class: "fill-none h-6 w-6 stroke-[1.5] stroke-primary",
+                                                class: "fill-none h-6 w-6 stroke-2 stroke-primary",
                                                 xmlns: "http://www.w3.org/2000/svg",
                                                 view_box: "0 0 24 24",
                                                 path {
@@ -135,7 +181,7 @@ pub fn Folders() -> Element {
                                         },
                                         button { class: "btn btn-ghost btn-xs",
                                             svg {
-                                                class: "fill-none h-6 w-6 stroke-[1.5] stroke-secondary",
+                                                class: "fill-none h-6 w-6 stroke-2 stroke-secondary",
                                                 xmlns: "http://www.w3.org/2000/svg",
                                                 view_box: "0 0 24 24",
                                                 path {
@@ -162,6 +208,47 @@ pub fn Folders() -> Element {
                                     }
                                 }
                             }
+                        }
+                    }
+                    dialog { id: "scan-dialog", class: "modal",
+                        form {
+                            class: "modal-box bg-base-100 flex gap-4 justify-center w-min",
+                            method: "dialog",
+                            div { class: "tooltip", "data-tip": "Full",
+                                button {
+                                    class: "btn btn-square btn-lg",
+                                    onclick: move |_| scan_mode.set(Some(ScanMode::Full)),
+                                    svg {
+                                        class: "fill-none h-6 w-6 stroke-2 stroke-accent",
+                                        xmlns: "http://www.w3.org/2000/svg",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            d: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                                        }
+                                    }
+                                }
+                            }
+                            div { class: "tooltip", "data-tip": "Force",
+                                button {
+                                    class: "btn btn-square btn-lg",
+                                    onclick: move |_| scan_mode.set(Some(ScanMode::Force)),
+                                    svg {
+                                        class: "fill-none h-6 w-6 stroke-2 stroke-error",
+                                        xmlns: "http://www.w3.org/2000/svg",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            d: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        form { class: "modal-backdrop", method: "dialog",
+                            button {}
                         }
                     }
                 }
