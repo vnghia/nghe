@@ -148,8 +148,6 @@ mod tests {
             .await;
 
         let album_id = upsert_album(infra.pool(), album_name.into()).await.unwrap();
-        let album_media: crate::utils::song::MediaDateMbz = album_name.into();
-        println!("{:?}", album_media);
         let album_id3 =
             get_album_and_song_ids(infra.pool(), infra.user_id(0), album_id).await.unwrap().0;
         let artist_ids = get_artist_ids(infra.pool(), infra.user_id(0), album_id).await;

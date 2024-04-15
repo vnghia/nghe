@@ -29,3 +29,8 @@ pub fn router() -> Router<crate::Database> {
             get(remove_music_folder::remove_music_folder_handler),
         )
 }
+
+#[cfg(test)]
+pub mod test {
+    pub use super::add_music_folder::add_music_folder;
+}

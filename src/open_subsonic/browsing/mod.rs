@@ -9,11 +9,9 @@ mod get_music_directory;
 mod get_music_folders;
 mod get_song;
 mod get_top_songs;
-mod refresh_music_folders;
 
 use axum::routing::get;
 use axum::Router;
-pub use refresh_music_folders::refresh_music_folders;
 
 pub fn router() -> Router<crate::Database> {
     Router::new()

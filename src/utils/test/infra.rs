@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::ops::Add;
 use std::path::Path;
 use std::slice::SliceIndex;
 use std::str::FromStr;
@@ -14,19 +15,19 @@ use futures::stream::{self, StreamExt};
 use isolang::Language;
 use itertools::Itertools;
 use nghe_types::params::CommonParams;
-use nghe_types::scan::start_scan::ScanMode;
+use nghe_types::scan::start_scan::{ScanMode, StartScanParams};
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
 use super::db::SongDbInformation;
 use super::fs::SongFsInformation;
 use super::{picture, random, TemporaryDb, TemporaryFs, User};
-use crate::config::{ArtistIndexConfig, FolderConfig, ScanConfig};
+use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
-use crate::open_subsonic::browsing::refresh_music_folders;
+use crate::open_subsonic::music_folder::test::add_music_folder;
 use crate::open_subsonic::permission::set_permission;
-use crate::open_subsonic::scan::{start_scan, ScanStatistic};
+use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
 use crate::utils::song::test::SongTag;
@@ -61,18 +62,16 @@ impl Infra {
         if !self.music_folders.is_empty() {
             panic!("n_folder should be called only once")
         } else {
-            let music_folder_paths =
-                (0..n_folder).map(|_| self.fs.create_dir(Faker.fake::<String>())).collect_vec();
-            let (upserted_folders, _) = refresh_music_folders(
-                self.pool(),
-                &FolderConfig {
-                    top_paths: music_folder_paths,
-                    top_names: vec![],
-                    depth_levels: vec![],
-                },
-            )
-            .await;
-            self.music_folders = upserted_folders;
+            for _ in 0..n_folder {
+                let pathbuf = self.fs.create_dir(Faker.fake::<String>());
+
+                let name = pathbuf.file_stem().unwrap().to_os_string().into_string().unwrap();
+                let path = pathbuf.into_os_string().into_string().unwrap();
+                let id = add_music_folder(self.pool(), &name, &path, true).await.unwrap();
+
+                self.music_folders.push(music_folders::MusicFolder { id, name, path });
+            }
+
             self.song_fs_infos_vec = vec![vec![]; n_folder];
             self
         }
@@ -115,21 +114,28 @@ impl Infra {
             .await
     }
 
-    pub async fn scan<S>(&self, slice: S, scan_mode: Option<ScanMode>) -> ScanStatistic
+    pub async fn scan<S>(&self, slice: S, scan_mode: Option<ScanMode>) -> ScanStat
     where
         S: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
-        start_scan(
-            self.pool(),
-            scan_mode.unwrap_or(ScanMode::Full),
-            self.music_folders[slice].as_ref(),
-            &ArtistIndexConfig::default(),
-            &self.fs.parsing_config,
-            &ScanConfig::default(),
-            &self.fs.art_config,
-        )
-        .await
-        .unwrap()
+        stream::iter(self.music_folder_ids(slice))
+            .then(move |id| async move {
+                start_scan(
+                    self.pool(),
+                    StartScanParams { id, mode: scan_mode.unwrap_or(ScanMode::Full) },
+                    &ArtistIndexConfig::default(),
+                    &self.fs.parsing_config,
+                    &ScanConfig::default(),
+                    &self.fs.art_config,
+                )
+                .await
+                .unwrap()
+            })
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .reduce(ScanStat::add)
+            .unwrap()
     }
 
     pub fn add_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {

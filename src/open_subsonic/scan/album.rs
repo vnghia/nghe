@@ -96,7 +96,6 @@ mod tests {
             albums::AlbumNoId { name: "album1".into(), mbz_id: None, ..Default::default() };
         let album_no_id2 =
             albums::AlbumNoId { name: "album1".into(), mbz_id: None, ..Default::default() };
-        println!("{:?} {:?}", &album_no_id1, &album_no_id2);
 
         let album_id1 = upsert_album(temp_db.pool(), album_no_id1).await.unwrap();
         let album_id2 = upsert_album(temp_db.pool(), album_no_id2).await.unwrap();

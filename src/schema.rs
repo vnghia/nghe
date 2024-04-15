@@ -110,12 +110,19 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
-    scans (started_at) {
+    scans (started_at, music_folder_id) {
         started_at -> Timestamptz,
         is_scanning -> Bool,
         finished_at -> Nullable<Timestamptz>,
-        scanned_count -> Int8,
-        error_message -> Nullable<Text>,
+        music_folder_id -> Uuid,
+        scanned_song_count -> Int8,
+        upserted_song_count -> Int8,
+        deleted_song_count -> Int8,
+        deleted_album_count -> Int8,
+        deleted_artist_count -> Int8,
+        deleted_genre_count -> Int8,
+        scan_error_count -> Int8,
+        unrecoverable -> Nullable<Bool>,
     }
 }
 
@@ -237,6 +244,7 @@ diesel::table! {
 diesel::joinable!(lyrics -> songs (song_id));
 diesel::joinable!(playbacks -> songs (song_id));
 diesel::joinable!(playbacks -> users (user_id));
+diesel::joinable!(scans -> music_folders (music_folder_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
 diesel::joinable!(songs -> song_cover_arts (cover_art_id));
