@@ -96,7 +96,7 @@ pub fn Folder(id: Uuid) -> Element {
                                     td { class: "text-base", "{user.1.username}" }
                                     td {
                                         input {
-                                            class: "rounded-btn toggle",
+                                            class: "rounded-btn checkbox",
                                             oninput: move |e| { toggle_idx.set(Some((idx, e.value().parse().unwrap()))) },
                                             r#type: "checkbox",
                                             checked: user.0,

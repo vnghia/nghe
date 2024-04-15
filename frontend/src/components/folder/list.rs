@@ -92,6 +92,26 @@ pub fn Folders() -> Element {
                                     }
                                 }
                             }
+                            tfoot {
+                                tr {
+                                    th { colspan: "8", "align": "center",
+                                        Link { class: "btn btn-circle", to: Route::AddFolder {},
+                                            svg {
+                                                class: "fill-none h-6 w-6 stroke-2 stroke-base-content",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                stroke: "currentColor",
+                                                transform: "rotate(45)",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "M6 18L18 6M6 6l12 12"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

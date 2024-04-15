@@ -23,7 +23,7 @@ pub fn CreateUser() -> Element {
         download_role: true,
         share_role: true,
     });
-    let submitable = use_signal(bool::default);
+    let mut submitable = use_signal(bool::default);
 
     if submitable()
         && let Some(common_state) = common_state()
@@ -50,7 +50,9 @@ pub fn CreateUser() -> Element {
                 .is_some()
             {
                 nav.push(Route::Users {});
-            };
+            } else {
+                submitable.set(false);
+            }
         });
     }
 
