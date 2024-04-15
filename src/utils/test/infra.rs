@@ -63,7 +63,7 @@ impl Infra {
             panic!("n_folder should be called only once")
         } else {
             for _ in 0..n_folder {
-                let pathbuf = self.fs.create_dir(Faker.fake::<String>());
+                let pathbuf = self.fs.create_dir(Faker.fake::<String>()).canonicalize().unwrap();
 
                 let name = pathbuf.file_stem().unwrap().to_os_string().into_string().unwrap();
                 let path = pathbuf.into_os_string().into_string().unwrap();
