@@ -49,7 +49,7 @@ pub fn CreateUser() -> Element {
                 .toast()
                 .is_some()
             {
-                nav.go_back();
+                nav.push(Route::Users {});
             };
         });
     }
