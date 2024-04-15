@@ -61,62 +61,77 @@ pub fn Users() -> Element {
 
     if !users.is_empty() {
         rsx! {
-            div { class: "w-full h-full overflow-x-auto overflow-y-auto",
-                div { class: "min-w-full inline-block p-10",
+            div { class: "w-full h-[calc(100%-4rem)] overflow-x-auto overflow-y-auto my-8",
+                div { class: "min-w-full inline-block px-8",
                     table { class: "table table-pin-rows",
                         thead {
                             tr { class: "shadow bg-base-200",
-                                th { class: "text-base", "Username" }
+                                th { class: "text-base", "align": "center", "Username" }
 
-                                th { class: "text-base", "Admin role" }
-                                th { class: "text-base", "Stream role" }
-                                th { class: "text-base", "Download role" }
-                                th { class: "text-base", "Share role" }
-                                th { class: "text-base", "Created at" }
-                                th { class: "text-base", "Action" }
+                                th { class: "text-base", "align": "center", "Admin" }
+                                th { class: "text-base", "align": "center", "Stream" }
+                                th { class: "text-base", "align": "center", "Download" }
+                                th { class: "text-base", "align": "center", "Share" }
+                                th { class: "text-base", "align": "center", "Created at" }
+                                th { class: "text-base", "align": "center",
+                                    Link { class: "btn btn-ghost btn-xs", to: Route::CreateUser {},
+                                        svg {
+                                            class: "fill-none h-6 w-6 stroke-2 stroke-accent",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M12 4.5v15m7.5-7.5h-15"
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         tbody {
                             for (idx , user) in users.iter().enumerate() {
                                 tr { key: "{user.id}",
                                     td { class: "text-base", "{user.basic.username}" }
-                                    td {
+                                    td { "align": "center",
                                         input {
-                                            class: "rounded-badge checkbox",
+                                            class: "checkbox btn-xs",
                                             r#type: "checkbox",
                                             checked: user.basic.role.admin_role,
                                             disabled: true
                                         }
                                     }
-                                    td {
+                                    td { "align": "center",
                                         input {
-                                            class: "rounded-badge checkbox",
+                                            class: "checkbox btn-xs",
                                             r#type: "checkbox",
                                             checked: user.basic.role.stream_role,
                                             disabled: true
                                         }
                                     }
-                                    td {
+                                    td { "align": "center",
                                         input {
-                                            class: "rounded-badge checkbox",
+                                            class: "checkbox btn-xs",
                                             r#type: "checkbox",
                                             checked: user.basic.role.download_role,
                                             disabled: true
                                         }
                                     }
-                                    td {
+                                    td { "align": "center",
                                         input {
-                                            class: "rounded-badge checkbox",
+                                            class: "checkbox btn-xs",
                                             r#type: "checkbox",
                                             checked: user.basic.role.share_role,
                                             disabled: true
                                         }
                                     }
-                                    td { class: "text-base", "{user.created_at.date()}" }
-                                    td {
+                                    td { class: "text-base", "align": "center",
+                                        "{user.created_at.date()}"
+                                    }
+                                    td { "align": "center",
                                         if user.id != common_state.id {
                                             button {
-                                                class: "btn btn-ghost btn-circle",
+                                                class: "btn btn-ghost btn-xs",
                                                 onclick: move |_| { delete_idx.set(Some(idx)) },
                                                 svg {
                                                     class: "fill-none h-6 w-6 stroke-2 stroke-error",
@@ -128,26 +143,6 @@ pub fn Users() -> Element {
                                                         d: "M6 18L18 6M6 6l12 12"
                                                     }
                                                 }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        tfoot {
-                            tr {
-                                th { colspan: "7", "align": "center",
-                                    Link { class: "btn btn-circle", to: Route::CreateUser {},
-                                        svg {
-                                            class: "fill-none h-6 w-6 stroke-2 stroke-base-content",
-                                            xmlns: "http://www.w3.org/2000/svg",
-                                            view_box: "0 0 24 24",
-                                            stroke: "currentColor",
-                                            transform: "rotate(45)",
-                                            path {
-                                                stroke_linecap: "round",
-                                                stroke_linejoin: "round",
-                                                d: "M6 18L18 6M6 6l12 12"
                                             }
                                         }
                                     }

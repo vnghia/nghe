@@ -75,10 +75,10 @@ pub fn UserForm(props: UserFormProps) -> Element {
                 }
             }
             div { class: "mt-8 sm:mx-auto sm:w-full sm:max-w-md",
-                div { class: "bg-primary rounded-box py-8 px-6 shadow",
+                div { class: "bg-base-300 rounded-box py-8 px-6 shadow",
                     div { class: "form-control sm:mx-auto sm:w-full sm:max-w-md",
                         div { class: "label",
-                            span { class: "text-base text-primary-content", "Username" }
+                            span { class: "text-base text-base-content", "Username" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -89,7 +89,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                         }
                         if let Some(mut email) = email {
                             div { class: "label",
-                                span { class: "text-base text-primary-content", "Email" }
+                                span { class: "text-base text-base-content", "Email" }
                             }
                             input {
                                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -100,7 +100,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                             }
                         }
                         div { class: "label",
-                            span { class: "text-base text-primary-content", "Password" }
+                            span { class: "text-base text-base-content", "Password" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -111,7 +111,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                         }
                         if let Some(mut raw_url) = raw_url {
                             div { class: "label",
-                                span { class: "text-base text-primary-content", "Server URL" }
+                                span { class: "text-base text-base-content", "Server URL" }
                             }
                             input {
                                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -124,12 +124,12 @@ pub fn UserForm(props: UserFormProps) -> Element {
                             div { class: "flex flex-row justify-center items-center",
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Admin"
                                         }
                                     }
                                     input {
-                                        class: "toggle",
+                                        class: "checkbox btn-xs",
                                         r#type: "checkbox",
                                         checked: role().admin_role,
                                         oninput: move |e| {
@@ -142,12 +142,12 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                 }
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Stream"
                                         }
                                     }
                                     input {
-                                        class: "toggle",
+                                        class: "checkbox btn-xs",
                                         r#type: "checkbox",
                                         checked: role().stream_role,
                                         oninput: move |e| {
@@ -160,12 +160,12 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                 }
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Download"
                                         }
                                     }
                                     input {
-                                        class: "toggle",
+                                        class: "checkbox btn-xs",
                                         r#type: "checkbox",
                                         checked: role().download_role,
                                         oninput: move |e| {
@@ -178,12 +178,12 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                 }
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Share"
                                         }
                                     }
                                     input {
-                                        class: "toggle",
+                                        class: "checkbox btn-xs",
                                         r#type: "checkbox",
                                         checked: role().share_role,
                                         oninput: move |e| {
@@ -197,7 +197,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                             }
                         }
                         button {
-                            class: "btn btn-active mt-8 text-base btn-accent text-accent-content",
+                            class: "btn mt-8 btn-accent btn-outline",
                             onclick,
                             "Submit"
                         }
