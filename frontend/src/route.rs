@@ -16,8 +16,12 @@ pub enum Route {
             CreateUser {},
             #[route("/folders")]
             Folders {},
+            #[route("/folder/add")]
+            AddFolder {},
             #[route("/folder/:id")]
             Folder {id: Uuid},
+            #[route("/folder/permission/:id")]
+            FolderPermission {id: Uuid},
         #[end_layout]
         #[route("/setup")]
         Setup {},

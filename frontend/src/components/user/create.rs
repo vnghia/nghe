@@ -2,7 +2,8 @@ use dioxus::prelude::*;
 use nghe_types::user::create::{CreateUserParams, SubsonicCreateUserBody};
 use nghe_types::user::Role;
 
-use super::super::{Toast, UserForm};
+use super::super::Toast;
+use super::UserForm;
 use crate::state::CommonState;
 use crate::Route;
 
@@ -23,7 +24,7 @@ pub fn CreateUser() -> Element {
         download_role: true,
         share_role: true,
     });
-    let submitable = use_signal(bool::default);
+    let mut submitable = use_signal(bool::default);
 
     if submitable()
         && let Some(common_state) = common_state()
@@ -49,8 +50,10 @@ pub fn CreateUser() -> Element {
                 .toast()
                 .is_some()
             {
-                nav.go_back();
-            };
+                nav.push(Route::Users {});
+            } else {
+                submitable.set(false);
+            }
         });
     }
 

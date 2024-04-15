@@ -75,10 +75,10 @@ pub fn UserForm(props: UserFormProps) -> Element {
                 }
             }
             div { class: "mt-8 sm:mx-auto sm:w-full sm:max-w-md",
-                div { class: "bg-primary rounded-box py-8 px-6 shadow",
+                div { class: "bg-base-300 rounded-box py-8 px-6 shadow",
                     div { class: "form-control sm:mx-auto sm:w-full sm:max-w-md",
                         div { class: "label",
-                            span { class: "text-base text-primary-content", "Username" }
+                            span { class: "text-base text-base-content", "Username" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -89,7 +89,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                         }
                         if let Some(mut email) = email {
                             div { class: "label",
-                                span { class: "text-base text-primary-content", "Email" }
+                                span { class: "text-base text-base-content", "Email" }
                             }
                             input {
                                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -100,7 +100,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                             }
                         }
                         div { class: "label",
-                            span { class: "text-base text-primary-content", "Password" }
+                            span { class: "text-base text-base-content", "Password" }
                         }
                         input {
                             class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -111,7 +111,7 @@ pub fn UserForm(props: UserFormProps) -> Element {
                         }
                         if let Some(mut raw_url) = raw_url {
                             div { class: "label",
-                                span { class: "text-base text-primary-content", "Server URL" }
+                                span { class: "text-base text-base-content", "Server URL" }
                             }
                             input {
                                 class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
@@ -124,80 +124,164 @@ pub fn UserForm(props: UserFormProps) -> Element {
                             div { class: "flex flex-row justify-center items-center",
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Admin"
                                         }
                                     }
-                                    input {
-                                        class: "toggle",
-                                        r#type: "checkbox",
-                                        checked: role().admin_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                admin_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().admin_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    admin_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Stream"
                                         }
                                     }
-                                    input {
-                                        class: "toggle",
-                                        r#type: "checkbox",
-                                        checked: role().stream_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                stream_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().stream_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    stream_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Download"
                                         }
                                     }
-                                    input {
-                                        class: "toggle",
-                                        r#type: "checkbox",
-                                        checked: role().download_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                download_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().download_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    download_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }
                                 div { class: "grow flex flex-col justify-center items-center",
                                     div { class: "label",
-                                        span { class: "text-base text-primary-content",
+                                        span { class: "text-base text-base-content",
                                             "Share"
                                         }
                                     }
-                                    input {
-                                        class: "toggle",
-                                        r#type: "checkbox",
-                                        checked: role().share_role,
-                                        oninput: move |e| {
-                                            role.set(Role {
-                                                share_role: e.value().parse().unwrap(),
-                                                ..role()
-                                            })
+                                    label { class: "swap",
+                                        input {
+                                            r#type: "checkbox",
+                                            checked: role().share_role,
+                                            oninput: move |e| {
+                                                role.set(Role {
+                                                    share_role: e.value().parse().unwrap(),
+                                                    ..role()
+                                                })
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-on fill-none h-6 w-6 stroke-2 stroke-success",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "m4.5 12.75 6 6 9-13.5"
+                                            }
+                                        }
+                                        svg {
+                                            class: "swap-off fill-none h-6 w-6 stroke-2 stroke-error",
+                                            xmlns: "http://www.w3.org/2000/svg",
+                                            view_box: "0 0 24 24",
+                                            path {
+                                                stroke_linecap: "round",
+                                                stroke_linejoin: "round",
+                                                d: "M6 18L18 6M6 6l12 12"
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                         button {
-                            class: "btn btn-active mt-8 text-base btn-accent text-accent-content",
+                            class: "btn mt-8 btn-accent btn-outline",
                             onclick,
                             "Submit"
                         }

@@ -67,7 +67,7 @@ pub fn Drawer() -> Element {
                     div { class: "navbar-end",
                         div { class: "dropdown dropdown-end",
                             div {
-                                class: "btn btn-ghost btn-circle flex justify-center items-center",
+                                class: "btn btn-ghost flex justify-center items-center",
                                 tabindex: "0",
                                 role: "button",
                                 svg {
@@ -100,7 +100,7 @@ pub fn Drawer() -> Element {
                                 }
                             }
                         }
-                        button { class: "btn btn-ghost btn-circle",
+                        button { class: "btn btn-ghost",
                             svg {
                                 class: "fill-none w-6 h-6 stroke-base-content stroke-2",
                                 xmlns: "http://www.w3.org/2000/svg",
@@ -114,7 +114,7 @@ pub fn Drawer() -> Element {
                         }
                         div { class: "dropdown dropdown-end",
                             div {
-                                class: "btn btn-ghost btn-circle flex justify-center items-center",
+                                class: "btn btn-ghost flex justify-center items-center",
                                 tabindex: "0",
                                 role: "button",
                                 svg {

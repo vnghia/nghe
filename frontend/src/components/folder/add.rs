@@ -1,8 +1,7 @@
 use dioxus::prelude::*;
-use nghe_types::music_folder::update_music_folder::{
-    SubsonicUpdateMusicFolderBody, UpdateMusicFolderParams,
+use nghe_types::music_folder::add_music_folder::{
+    AddMusicFolderParams, SubsonicAddMusicFolderBody,
 };
-use uuid::Uuid;
 
 use super::super::Toast;
 use super::FolderForm;
@@ -10,15 +9,16 @@ use crate::state::CommonState;
 use crate::Route;
 
 #[component]
-pub fn Folder(id: Uuid) -> Element {
+pub fn AddFolder() -> Element {
     let nav = navigator();
     let common_state = CommonState::use_redirect();
     if !common_state()?.role.admin_role {
         nav.push(Route::Home {});
     }
 
-    let name = use_signal(Default::default);
-    let path = use_signal(Default::default);
+    let name: Signal<Option<String>> = use_signal(Default::default);
+    let path: Signal<Option<String>> = use_signal(Default::default);
+    let allow = use_signal(|| true);
     let mut submitable = use_signal(Default::default);
 
     if submitable()
@@ -26,9 +26,13 @@ pub fn Folder(id: Uuid) -> Element {
     {
         spawn(async move {
             if common_state
-                .send_with_common::<_, SubsonicUpdateMusicFolderBody>(
-                    "/rest/updateMusicFolder",
-                    UpdateMusicFolderParams { id, name: name(), path: path() },
+                .send_with_common::<_, SubsonicAddMusicFolderBody>(
+                    "/rest/addMusicFolder",
+                    AddMusicFolderParams {
+                        name: name().expect("name should not be none"),
+                        path: path().expect("path should not be none"),
+                        permission: allow(),
+                    },
                 )
                 .await
                 .map_err(anyhow::Error::from)
@@ -44,10 +48,11 @@ pub fn Folder(id: Uuid) -> Element {
 
     rsx! {
         FolderForm {
-            title: "Update music folder",
+            title: "Add music folder",
             name,
             path,
-            allow_empty: true,
+            allow: Some(allow),
+            allow_empty: false,
             submitable
         }
     }
