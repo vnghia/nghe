@@ -12,6 +12,41 @@ An implementation of OpenSubsonic API in Rust
 - Bridging with `ffmpeg c api` for in-memory transcoding and smooth stream experience. Most common formats (opus, mp3, acc, wav, etc) are supported. Does not required any manual configuration beforehand, just `maxBitRate` and `format` in the request parameters are enough.
 - Synchoronized lyrics from external `lrc` files.
 
+## Getting started
+
+The easiest way for getting started is using docker. Below is a `docker-compose.yaml` example. A random hex key can be generated using `openssl rand -hex 16`.
+
+```yaml
+services:
+  nghe:
+    image: ghcr.io/vnghia/nghe-musl:0.3.0
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      NGHE_DATABASE__URL: postgres://postgres:postgres@db:5432/postgres
+      NGHE_DATABASE__KEY: a20eb15ac92cabfd96b81fb154b16357
+    volumes:
+      - /your-music-folder/:/data/music/:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+```
+
+The minimum required postgres version is 15. Alternatively, you can also download corresponding binary with your OS and the frontend package in the release section.
+
+Once the server is running, go to `[your-server-url]/setup` to setup a first admin account. After that, login and go to the folders menu on the right side of the screen. You can add a new music folder from there, hit the scan button, choose one scan mode (more detail in [scan process](#scan-process)) and start using the server while your media files are being scanned.
+
 ## Configuration
 
 All configurations can be set by environment variable with a `NGHE_` prefix and a `__` between each level of inheritance. For example, the config `database.url` is correspondent to `NGHE_DATABASE__URL`.
@@ -96,7 +131,7 @@ You can set track/disc number and total by three ways below:
 
 ### Scan
 
-Scan process has two main threads, one thread (**the walking thread**) will be responsible for walking directories in the filesystem and send back the result to the second thread (**the parsing thread**), who is responsible for parsing each file and updating information in the database.
+Scan process has two main threads, one thread (**the walking thread**) will be responsible for walking directories in the filesystem and send back the result to the second thread (**the parsing thread**), who is responsible for parsing each file and updating information in the database. More in [scan process](#scan-process).
 
 You should tweak this carefully to find the optimized value for your system. Sometimes, running concurrently is not the fastest option.
 
@@ -118,6 +153,45 @@ You should tweak this carefully to find the optimized value for your system. Som
 |  Subkey   | Meaning                               | Default value           | Note                                                                           |
 | :-------: | :------------------------------------ | :---------------------- | :----------------------------------------------------------------------------- |
 | song_path | The directory to save song cover arts | `$TMPDIR/nghe/art/song` | Set `null` or a non-absolute path to completely disable song cover art extract |
+
+## Scan process
+
+### How a song is uniquely identified ?
+
+A song is uniquely identified either by:
+
+- Its music folder and relative path (to its music folder).
+- Its music folder, hash and size. It means that you can not have duplicated songs in the same music folder. If a duplicated songs is detected, the path will be updated to the latest encountered path. It allows you to move freely your songs in the same music folder, only its path will be updated in the database.
+
+Duplication on two different music folders are is allowed and will be treated as two seperate songs.
+
+### Scan mode
+
+#### Full
+
+As describe above, if an already identified song is scanned (by checking relative path, hash and size), the scanning process will just mark the file as scanned and skip that file. In the end of the scanning process, all old songs and related informations (artists/albums/genres/etc) inside that music folder that are not scanned will be deleted.
+
+#### Force
+
+Same as full but will try parsing the file regardless if it is identified or not. This mode is useful if there are new metadata that added into the scanning process.
+
+### How an artist is uniquely identified ?
+
+An artist is uniquely identified either by:
+
+- Their musicbrainz id
+- Their name if their musicbrainz id is empty.
+
+If you have duplicated artists shown in your client, you should check for the corresponding musicbrainz id field.
+
+### How an album is uniquely identified ?
+
+An album is uniquely identified either by:
+
+- Their musicbrainz id
+- Their name, date, release date, original release date if their musicbrainz id is empty.
+
+If you have duplicated albums shown in your client, you should check for the corresponding musicbrainz id and date fields.
 
 ## Music folders
 
