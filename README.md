@@ -10,6 +10,7 @@ An implementation of OpenSubsonic API in Rust
 - Well-defined permission model with music folders.
 - Multi-platform, runs on macOS, Linux and Windows. Docker images are also provided.
 - Bridging with `ffmpeg c api` for in-memory transcoding and smooth stream experience. Most common formats (opus, mp3, acc, wav, etc) are supported. Does not required any manual configuration beforehand, just `maxBitRate` and `format` in the request parameters are enough.
+- Synchoronized lyrics from external `lrc` files.
 
 ## Configuration
 
