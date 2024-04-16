@@ -1475,9 +1475,9 @@ dependencies = [
 
 [[package]]
 name = "figment"
-version = "0.10.16"
+version = "0.10.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdefe49ed1057d124dc81a0681c30dd07de56ad96e32adc7b64e8f28eaab31c4"
+checksum = "752eb150770d6f51eb24d60e3ff84a2c24ccc5e5b3b0f550917ce5ec77c13fe4"
 dependencies = [
  "atomic 0.6.0",
  "pear",
