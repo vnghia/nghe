@@ -2,6 +2,34 @@
 
 An implementation of OpenSubsonic API in Rust
 
+- [Nghe](#nghe)
+  - [Features](#features)
+  - [Getting started](#getting-started)
+  - [Client](#client)
+  - [Configuration](#configuration)
+    - [Server](#server)
+    - [Database](#database)
+    - [Artist](#artist)
+    - [Parsing](#parsing)
+      - [Song](#song)
+      - [Album](#album)
+      - [Id3v2](#id3v2)
+      - [Number and total](#number-and-total)
+    - [Scan](#scan)
+    - [Transcoding](#transcoding)
+    - [Art](#art)
+  - [Scan process](#scan-process)
+    - [How a song is uniquely identified ?](#how-a-song-is-uniquely-identified--)
+    - [Scan mode](#scan-mode)
+      - [Full](#full)
+      - [Force](#force)
+    - [How an artist is uniquely identified ?](#how-an-artist-is-uniquely-identified--)
+    - [How an album is uniquely identified ?](#how-an-album-is-uniquely-identified--)
+  - [Permission model](#permission-model)
+    - [Access to a song-level resource](#access-to-a-song-level-resource)
+    - [Access to an artist or album level resource](#access-to-an-artist-or-album-level-resource)
+  - [Roadmap](#roadmap)
+
 ## Features
 
 - Written in Rust with performance in-mind.
