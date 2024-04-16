@@ -116,10 +116,8 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Increase postgres max connection
         run: |
-          docker exec -i postgres bash << EOF
-            sed -i -e 's/max_connections = 100/max_connections = 1000/' /var/lib/postgresql/data/postgresql.conf
-            sed -i -e 's/shared_buffers = 128MB/shared_buffers = 2GB/' /var/lib/postgresql/data/postgresql.conf
-          EOF
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
           docker restart postgres
 
       - name: Setup arm64 environment
@@ -278,8 +276,8 @@ jobs:
           echo $env:PGPASSWORD > pwfile
           pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
           pgsql\bin\pg_ctl start
-          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = 1000"
-          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2GB'"
+          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
           pgsql\bin\pg_ctl restart
           echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
           echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
@@ -356,8 +354,8 @@ jobs:
           export PGDATA="$RUNNER_TEMP/pgdata"
           initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
           pg_ctl start
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = 1000"
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2GB'"
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
           pg_ctl restart
 
       - name: Install vcpkg build deps

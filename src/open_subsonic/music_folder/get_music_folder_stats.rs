@@ -102,8 +102,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_folder_stats() {
         let n_folder = 10_usize;
-        let artists = fake::vec![String; 10..20];
-        let album = fake::vec![String; 30..40];
+        let artists = fake::vec![String; 5..10];
+        let album = fake::vec![String; 5..10];
+
+        let mut thread_rng = rand::thread_rng();
 
         let mut infra =
             Infra::new().await.n_folder(n_folder).await.add_user(None).await.add_user(None).await;
@@ -134,26 +136,22 @@ mod tests {
 
         (0..n_folder).for_each(|i| {
             if i < n_folder - 1 {
-                let n_song = (10..20).fake();
+                let n_song = (5..10).fake();
                 infra.add_songs(
                     i,
                     (0..n_song)
                         .map(|_| SongTag {
                             artists: artists
-                                .choose_multiple(&mut rand::thread_rng(), (1..2).fake())
+                                .choose_multiple(&mut thread_rng, (1..2).fake())
                                 .cloned()
                                 .map(String::into)
                                 .collect(),
                             album_artists: artists
-                                .choose_multiple(&mut rand::thread_rng(), (1..2).fake())
+                                .choose_multiple(&mut thread_rng, (1..2).fake())
                                 .cloned()
                                 .map(String::into)
                                 .collect(),
-                            album: album
-                                .choose(&mut rand::thread_rng())
-                                .unwrap()
-                                .to_string()
-                                .into(),
+                            album: album.choose(&mut thread_rng).unwrap().to_string().into(),
                             ..Faker.fake()
                         })
                         .collect(),
