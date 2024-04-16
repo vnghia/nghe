@@ -52,6 +52,7 @@ impl From<User> for CreateUserParams {
             stream_role: basic.role.stream_role,
             download_role: basic.role.download_role,
             share_role: basic.role.share_role,
+            allow: true,
         }
     }
 }
