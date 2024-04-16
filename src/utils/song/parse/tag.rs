@@ -229,7 +229,7 @@ pub mod test {
         fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &Faker, rng: &mut R) -> Self {
             let date: time::Date = Fake::fake_with_rng(&Faker, rng);
             let year = if Fake::fake_with_rng(&Faker, rng) {
-                Some(date.year().min(9999).max(0) as _)
+                Some(date.year().clamp(0, 9999) as _)
             } else {
                 None
             };

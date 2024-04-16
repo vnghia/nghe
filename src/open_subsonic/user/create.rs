@@ -1,6 +1,5 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
@@ -54,18 +53,13 @@ pub async fn create_user(
         .get_result::<Uuid>(&mut pool.get().await?)
         .await?;
 
-    let music_folder_ids = music_folders::table
-        .select(music_folders::id)
-        .get_results::<Uuid>(&mut pool.get().await?)
-        .await?;
-    set_permission(pool, &[user_id], &music_folder_ids, true).await?;
-
+    set_permission(pool, Some(user_id), None, true).await?;
     Ok(user_id)
 }
 
 #[cfg(test)]
 mod tests {
-    use diesel::ExpressionMethods;
+    use diesel::{ExpressionMethods, QueryDsl};
     use itertools::Itertools;
 
     use super::*;
