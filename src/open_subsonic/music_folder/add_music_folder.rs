@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::utils::check_dir;
 use crate::models::*;
-use crate::open_subsonic::permission::set_permission;
+use crate::open_subsonic::permission::add_permission;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(AddMusicFolderParams, admin);
@@ -16,7 +16,7 @@ pub async fn add_music_folder(
     pool: &DatabasePool,
     name: &str,
     path: &str,
-    permission: bool,
+    allow: bool,
 ) -> Result<Uuid> {
     let id = diesel::insert_into(music_folders::table)
         .values(music_folders::UpsertMusicFolder {
@@ -27,7 +27,9 @@ pub async fn add_music_folder(
         .get_result::<Uuid>(&mut pool.get().await?)
         .await?;
 
-    set_permission(pool, None, Some(id), permission).await?;
+    if allow {
+        add_permission(pool, None, Some(id)).await?;
+    }
     Ok(id)
 }
 
@@ -35,14 +37,12 @@ pub async fn add_music_folder_handler(
     State(database): State<Database>,
     req: AddMusicFolderRequest,
 ) -> AddMusicFolderJsonResponse {
-    add_music_folder(&database.pool, &req.params.name, &req.params.path, req.params.permission)
-        .await?;
+    add_music_folder(&database.pool, &req.params.name, &req.params.path, req.params.allow).await?;
     Ok(axum::Json(AddMusicFolderBody {}.into()))
 }
 
 #[cfg(test)]
 mod tests {
-    use diesel::dsl::not;
     use diesel::{ExpressionMethods, QueryDsl};
 
     use super::*;
@@ -56,7 +56,6 @@ mod tests {
         let id =
             add_music_folder(infra.pool(), "folder1", path.to_str().unwrap(), true).await.unwrap();
         let count = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::allow)
             .filter(user_music_folder_permissions::music_folder_id.eq(id))
             .count()
             .get_result::<i64>(&mut infra.pool().get().await.unwrap())
@@ -68,12 +67,11 @@ mod tests {
         let id =
             add_music_folder(infra.pool(), "folder2", path.to_str().unwrap(), false).await.unwrap();
         let count = user_music_folder_permissions::table
-            .filter(not(user_music_folder_permissions::allow))
             .filter(user_music_folder_permissions::music_folder_id.eq(id))
             .count()
             .get_result::<i64>(&mut infra.pool().get().await.unwrap())
             .await
             .unwrap();
-        assert_eq!(count, 2);
+        assert_eq!(count, 0);
     }
 }

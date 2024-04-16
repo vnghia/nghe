@@ -26,7 +26,7 @@ use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::music_folder::test::add_music_folder;
-use crate::open_subsonic::permission::set_permission;
+use crate::open_subsonic::permission::{add_permission, remove_permission};
 use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
@@ -92,7 +92,11 @@ impl Infra {
             .into_iter()
             .cartesian_product(self.music_folder_ids(music_folder_slice))
         {
-            set_permission(self.pool(), Some(user_id), Some(music_folder_id), allow).await.unwrap();
+            if allow {
+                add_permission(self.pool(), Some(user_id), Some(music_folder_id)).await.unwrap();
+            } else {
+                remove_permission(self.pool(), Some(user_id), Some(music_folder_id)).await.unwrap();
+            }
         }
         self
     }

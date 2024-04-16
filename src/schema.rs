@@ -219,7 +219,6 @@ diesel::table! {
     user_music_folder_permissions (user_id, music_folder_id) {
         user_id -> Uuid,
         music_folder_id -> Uuid,
-        allow -> Bool,
     }
 }
 

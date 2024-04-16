@@ -58,7 +58,6 @@ async fn get_music_folder_stats(pool: &DatabasePool) -> Result<Vec<MusicFolderSt
                 .assume_not_null(),
             user_music_folder_permissions::table
                 .filter(user_music_folder_permissions::music_folder_id.eq(music_folders::id))
-                .filter(user_music_folder_permissions::allow)
                 .select(count(user_music_folder_permissions::user_id))
                 .single_value()
                 .assume_not_null(),

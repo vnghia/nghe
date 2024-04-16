@@ -17,7 +17,6 @@ pub async fn get_music_folders_handler(
         .inner_join(user_music_folder_permissions::table)
         .select(music_folders::MusicFolder::as_select())
         .filter(user_music_folder_permissions::user_id.eq(req.user_id))
-        .filter(user_music_folder_permissions::allow)
         .load(&mut database.pool.get().await?)
         .await?
         .into_iter()

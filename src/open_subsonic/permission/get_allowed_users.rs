@@ -15,7 +15,6 @@ pub async fn get_allowed_users(pool: &DatabasePool, id: Uuid) -> Result<Vec<Uuid
     users::table
         .inner_join(user_music_folder_permissions::table)
         .filter(user_music_folder_permissions::music_folder_id.eq(id))
-        .filter(user_music_folder_permissions::allow)
         .select(users::id)
         .get_results::<Uuid>(&mut pool.get().await?)
         .await

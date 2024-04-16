@@ -1,5 +1,5 @@
 use anyhow::Result;
-use diesel::dsl::{exists, not, select};
+use diesel::dsl::count;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
@@ -13,14 +13,13 @@ pub async fn check_permission(
     music_folder_ids: &Option<Vec<Uuid>>,
 ) -> Result<()> {
     if let Some(music_folder_ids) = music_folder_ids.as_ref()
-        && !select(not(exists(
-            user_music_folder_permissions::table
-                .filter(user_music_folder_permissions::user_id.eq(user_id))
-                .filter(user_music_folder_permissions::music_folder_id.eq_any(music_folder_ids))
-                .filter(not(user_music_folder_permissions::allow)),
-        )))
-        .get_result::<bool>(&mut pool.get().await?)
-        .await?
+        && user_music_folder_permissions::table
+            .select(count(user_music_folder_permissions::music_folder_id))
+            .filter(user_music_folder_permissions::user_id.eq(user_id))
+            .filter(user_music_folder_permissions::music_folder_id.eq_any(music_folder_ids))
+            .get_result::<i64>(&mut pool.get().await?)
+            .await?
+            != music_folder_ids.len() as i64
     {
         anyhow::bail!(OSError::Forbidden("access to these music folders".into()))
     } else {
