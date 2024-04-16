@@ -99,7 +99,7 @@ mod tests {
     use crate::utils::song::test::SongTag;
     use crate::utils::test::Infra;
 
-    #[tokio::test]
+    #[tokio::test(timeout = "5m")]
     async fn test_get_folder_stats() {
         let n_folder = 10_usize;
         let artists = fake::vec![String; 10..20];

@@ -50,8 +50,8 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Increase postgres max connection
         run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '2000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '4096MB'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
           docker restart postgres
 
       - name: Install vcpkg build deps
