@@ -255,6 +255,14 @@ The same thing holds true for albums. For example, if an album has 2 songs in 2 
 - User with permission on folder1 will only see the first cover art.
 - User with permission on folder2 will only see the second cover art.
 
+### Nested music folder
+
+Nested music folders are allowed and each folder will be treated as a separate unrelated folder.
+
+### Configuration
+
+Permission configuration can be found in the folders menu of the frontend.
+
 ## Roadmap
 
 - More compatible with Opensubsonic API.
