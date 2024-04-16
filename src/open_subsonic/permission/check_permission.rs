@@ -49,7 +49,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_permission_deny() {
         let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
-        infra.only_permissions(.., 1.., true).await;
+        infra.remove_permission(None, None).await.add_permissions(.., 1..).await;
         assert!(matches!(
             check_permission(infra.pool(), infra.user_id(0), &Some(infra.music_folder_ids(..)))
                 .await

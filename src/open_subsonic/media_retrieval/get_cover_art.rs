@@ -205,7 +205,7 @@ mod tests {
             )
             .scan(.., None)
             .await;
-        infra.permissions(.., 1.., false).await;
+        infra.remove_permissions(.., 1..).await;
 
         let album_id = upsert_album(infra.pool(), album_name.into()).await.unwrap();
         assert!(
@@ -250,7 +250,7 @@ mod tests {
             )
             .scan(.., None)
             .await;
-        infra.permissions(.., 1.., false).await;
+        infra.remove_permissions(.., 1..).await;
 
         let album_id = upsert_album(infra.pool(), album_name.into()).await.unwrap();
         let download_bytes = to_bytes(

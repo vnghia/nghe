@@ -61,3 +61,87 @@ pub async fn remove_permission_handler(
     remove_permission(&database.pool, req.params.user_id, req.params.music_folder_id).await?;
     Ok(axum::Json(RemovePermissionBody {}.into()))
 }
+
+#[cfg(test)]
+mod tests {
+    use diesel::QueryDsl;
+
+    use super::*;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_remove_permission() {
+        let infra = Infra::new().await.add_user_allow(None, true).await.add_folder(true).await;
+
+        let count = user_music_folder_permissions::table
+            .count()
+            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
+
+        remove_permission(infra.pool(), Some(infra.user_id(0)), Some(infra.music_folder_id(0)))
+            .await
+            .unwrap();
+        let count = user_music_folder_permissions::table
+            .count()
+            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_remove_user_id() {
+        let infra = Infra::new()
+            .await
+            .add_user_allow(None, true)
+            .await
+            .add_folder(true)
+            .await
+            .add_folder(true)
+            .await;
+
+        let count = user_music_folder_permissions::table
+            .count()
+            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(count, 2);
+
+        remove_permission(infra.pool(), Some(infra.user_id(0)), None).await.unwrap();
+        let count = user_music_folder_permissions::table
+            .count()
+            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_remove_music_folder_id() {
+        let infra = Infra::new()
+            .await
+            .add_user_allow(None, true)
+            .await
+            .add_user_allow(None, true)
+            .await
+            .add_folder(true)
+            .await;
+
+        let count = user_music_folder_permissions::table
+            .count()
+            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(count, 2);
+
+        remove_permission(infra.pool(), None, Some(infra.music_folder_id(0))).await.unwrap();
+        let count = user_music_folder_permissions::table
+            .count()
+            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+}

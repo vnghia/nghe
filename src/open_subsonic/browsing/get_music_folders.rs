@@ -64,7 +64,7 @@ mod tests {
     #[tokio::test]
     async fn test_deny_some() {
         let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
-        infra.permissions(.., 1.., false).await;
+        infra.remove_permissions(.., 1..).await;
 
         let results = get_music_folders_handler(
             infra.state(),

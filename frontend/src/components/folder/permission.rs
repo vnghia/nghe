@@ -1,10 +1,13 @@
 use std::collections::HashSet;
 
 use dioxus::prelude::*;
+use nghe_types::permission::add_permission::{AddPermissionParams, SubsonicAddPermissionBody};
 use nghe_types::permission::get_allowed_users::{
     GetAllowedUsersParams, SubsonicGetAllowedUsersBody,
 };
-use nghe_types::permission::set_permission::{SetPermissionParams, SubsonicSetPermissionBody};
+use nghe_types::permission::remove_permission::{
+    RemovePermissionParams, SubsonicRemovePermissionBody,
+};
 use nghe_types::user::get_basic_user_ids::{GetBasicUserIdsParams, SubsonicGetBasicUserIdsBody};
 use nghe_types::user::BasicUserId;
 use uuid::Uuid;
@@ -65,17 +68,26 @@ pub fn FolderPermission(id: Uuid) -> Element {
             let user_id = users.get(idx).as_ref().unwrap().1.id;
             users.get_mut(idx).as_mut().unwrap().0 = allow;
 
-            common_state
-                .send_with_common::<_, SubsonicSetPermissionBody>(
-                    "/rest/setPermission",
-                    SetPermissionParams {
-                        user_id: Some(user_id),
-                        music_folder_id: Some(id),
-                        allow,
-                    },
-                )
-                .await
-                .toast();
+            if allow {
+                common_state
+                    .send_with_common::<_, SubsonicAddPermissionBody>(
+                        "/rest/addPermission",
+                        AddPermissionParams { user_id: Some(user_id), music_folder_id: Some(id) },
+                    )
+                    .await
+                    .toast();
+            } else {
+                common_state
+                    .send_with_common::<_, SubsonicRemovePermissionBody>(
+                        "/rest/addPermission",
+                        RemovePermissionParams {
+                            user_id: Some(user_id),
+                            music_folder_id: Some(id),
+                        },
+                    )
+                    .await
+                    .toast();
+            }
         });
     }
 

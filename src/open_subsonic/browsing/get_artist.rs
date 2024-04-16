@@ -188,7 +188,7 @@ mod tests {
         let artist_id =
             upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
         let music_folder_idx = rand::thread_rng().gen_range(0..infra.music_folders.len());
-        infra.only_permissions(.., music_folder_idx..=music_folder_idx, true).await;
+        infra.remove_permission(None, None).await.add_permission(None, music_folder_idx).await;
 
         let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
@@ -221,7 +221,7 @@ mod tests {
             )
             .scan(.., None)
             .await;
-        infra.only_permissions(.., ..n_scan_folder, true).await;
+        infra.remove_permission(None, None).await.add_permissions(.., ..n_scan_folder).await;
 
         let artist_id =
             upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
@@ -264,7 +264,7 @@ mod tests {
             )
             .scan(.., None)
             .await;
-        infra.only_permissions(.., ..2, true).await;
+        infra.remove_permission(None, None).await.add_permissions(.., ..2).await;
 
         let basic_albums = get_basic_albums(
             infra.pool(),

@@ -41,7 +41,7 @@ mod tests {
     async fn test_get_song_download_info_deny() {
         let mut infra = Infra::new().await.n_folder(2).await.add_user(None).await;
         infra.add_n_song(0, 1).add_n_song(1, 1).scan(.., None).await;
-        infra.only_permissions(.., 1.., true).await;
+        infra.remove_permission(None, None).await.add_permissions(.., 1..).await;
         assert!(matches!(
             get_song_download_info(infra.pool(), infra.user_id(0), infra.song_ids(..1).await[0])
                 .await

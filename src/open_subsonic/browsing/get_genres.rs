@@ -92,7 +92,7 @@ mod tests {
             );
         });
         infra.scan(.., None).await;
-        infra.permissions(.., 1.., false).await;
+        infra.remove_permissions(.., 1..).await;
 
         let genre_db_values = get_genre_values(infra.pool(), infra.user_id(0)).await;
         assert_eq!(genre_db_values, vec!["genre1".to_string()]);
@@ -118,7 +118,7 @@ mod tests {
             get_genres(infra.pool(), infra.user_id(0)).await.unwrap()[0].song_count;
         assert_eq!(genre_song_count as usize, 2 * n_song);
 
-        infra.permissions(.., 1.., false).await;
+        infra.remove_permissions(.., 1..).await;
         let genre_song_count =
             get_genres(infra.pool(), infra.user_id(0)).await.unwrap()[0].song_count;
         assert_eq!(genre_song_count as usize, n_song);

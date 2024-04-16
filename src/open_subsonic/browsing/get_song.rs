@@ -79,7 +79,7 @@ mod tests {
     async fn test_get_song_id3_deny_music_folders() {
         let mut infra = Infra::new().await.n_folder(2).await.add_user(None).await;
         infra.add_n_song(0, 1).add_n_song(1, 1).scan(.., None).await;
-        infra.only_permissions(.., ..1, true).await;
+        infra.remove_permission(None, None).await.add_permissions(.., 0..1).await;
 
         let song_id = infra.song_ids(1..).await.remove(0);
         assert!(matches!(

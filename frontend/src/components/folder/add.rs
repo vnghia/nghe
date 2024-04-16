@@ -31,7 +31,7 @@ pub fn AddFolder() -> Element {
                     AddMusicFolderParams {
                         name: name().expect("name should not be none"),
                         path: path().expect("path should not be none"),
-                        permission: allow(),
+                        allow: allow(),
                     },
                 )
                 .await

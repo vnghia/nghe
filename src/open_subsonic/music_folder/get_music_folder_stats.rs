@@ -131,7 +131,7 @@ mod tests {
             .collect_vec();
         assert_eq!(folder_stats, folder_fs_stats);
 
-        infra.permissions(.., ..5, false).await;
+        infra.remove_permissions(.., ..5).await;
 
         (0..n_folder).for_each(|i| {
             if i < n_folder - 1 {
