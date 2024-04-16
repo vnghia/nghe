@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 #[add_common_convert]
 pub struct SetPermissionParams {
-    pub user_ids: Vec<Uuid>,
-    pub music_folder_ids: Vec<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub music_folder_id: Option<Uuid>,
     pub allow: bool,
 }
 

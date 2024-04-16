@@ -87,14 +87,13 @@ impl Infra {
         SU: SliceIndex<[User], Output = [User]>,
         SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
-        set_permission(
-            self.pool(),
-            &self.user_ids(user_slice),
-            &self.music_folder_ids(music_folder_slice),
-            allow,
-        )
-        .await
-        .unwrap();
+        for (user_id, music_folder_id) in self
+            .user_ids(user_slice)
+            .into_iter()
+            .cartesian_product(self.music_folder_ids(music_folder_slice))
+        {
+            set_permission(self.pool(), Some(user_id), Some(music_folder_id), allow).await.unwrap();
+        }
         self
     }
 

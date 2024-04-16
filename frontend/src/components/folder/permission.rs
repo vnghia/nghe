@@ -69,8 +69,8 @@ pub fn FolderPermission(id: Uuid) -> Element {
                 .send_with_common::<_, SubsonicSetPermissionBody>(
                     "/rest/setPermission",
                     SetPermissionParams {
-                        user_ids: vec![user_id],
-                        music_folder_ids: vec![id],
+                        user_id: Some(user_id),
+                        music_folder_id: Some(id),
                         allow,
                     },
                 )

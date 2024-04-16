@@ -1,6 +1,5 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
@@ -28,10 +27,7 @@ pub async fn add_music_folder(
         .get_result::<Uuid>(&mut pool.get().await?)
         .await?;
 
-    let user_ids =
-        users::table.select(users::id).get_results::<Uuid>(&mut pool.get().await?).await?;
-    set_permission(pool, &user_ids, &[id], permission).await?;
-
+    set_permission(pool, None, Some(id), permission).await?;
     Ok(id)
 }
 
@@ -47,7 +43,7 @@ pub async fn add_music_folder_handler(
 #[cfg(test)]
 mod tests {
     use diesel::dsl::not;
-    use diesel::ExpressionMethods;
+    use diesel::{ExpressionMethods, QueryDsl};
 
     use super::*;
     use crate::utils::test::Infra;
