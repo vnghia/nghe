@@ -28,6 +28,7 @@ pub async fn setup_handler(
                 stream_role: true,
                 download_role: true,
                 share_role: true,
+                allow: true,
             },
         )
         .await?;

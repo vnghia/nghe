@@ -24,6 +24,7 @@ pub fn CreateUser() -> Element {
         download_role: true,
         share_role: true,
     });
+    let allow = use_signal(|| true);
     let mut submitable = use_signal(bool::default);
 
     if submitable()
@@ -43,6 +44,7 @@ pub fn CreateUser() -> Element {
                         stream_role,
                         download_role,
                         share_role,
+                        allow: allow(),
                     },
                 )
                 .await
@@ -65,6 +67,7 @@ pub fn CreateUser() -> Element {
             email,
             role,
             submitable,
+            allow,
             grow_full_screen: false
         }
     }

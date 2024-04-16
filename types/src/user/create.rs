@@ -16,6 +16,7 @@ pub struct CreateUserParams {
     #[serde_as(as = "serde_with::hex::Hex")]
     pub password: Vec<u8>,
     pub email: String,
+    pub allow: bool,
 }
 
 #[add_subsonic_response]

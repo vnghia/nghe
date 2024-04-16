@@ -32,6 +32,7 @@ pub async fn create_user(
         stream_role,
         download_role,
         share_role,
+        allow,
     } = params;
     let password = encrypt_password(key, hex::decode(password)?);
 
@@ -53,7 +54,7 @@ pub async fn create_user(
         .get_result::<Uuid>(&mut pool.get().await?)
         .await?;
 
-    set_permission(pool, Some(user_id), None, true).await?;
+    set_permission(pool, Some(user_id), None, *allow).await?;
     Ok(user_id)
 }
 
@@ -75,6 +76,7 @@ mod tests {
         let results = user_music_folder_permissions::table
             .select(user_music_folder_permissions::music_folder_id)
             .filter(user_music_folder_permissions::user_id.eq(user_id))
+            .filter(user_music_folder_permissions::allow)
             .load::<Uuid>(&mut infra.pool().get().await.unwrap())
             .await
             .unwrap()
@@ -82,5 +84,30 @@ mod tests {
             .sorted()
             .collect_vec();
         assert_eq!(infra.music_folder_ids(..), results);
+    }
+
+    #[tokio::test]
+    async fn test_create_user_with_no_music_folders() {
+        let infra = Infra::new().await.n_folder(2).await;
+
+        // should re-trigger the refreshing of music folders
+        let user_id = create_user(
+            infra.database(),
+            &CreateUserParams { allow: false, ..User::fake(None).into() },
+        )
+        .await
+        .unwrap();
+
+        let results = user_music_folder_permissions::table
+            .select(user_music_folder_permissions::music_folder_id)
+            .filter(user_music_folder_permissions::user_id.eq(user_id))
+            .filter(user_music_folder_permissions::allow)
+            .load::<Uuid>(&mut infra.pool().get().await.unwrap())
+            .await
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec();
+        assert!(results.is_empty());
     }
 }
