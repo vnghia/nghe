@@ -50,11 +50,9 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
       - name: Increase postgres max connection
         run: |
-          docker exec -i postgres bash << EOF
-            sed -i -e 's/max_connections = 100/max_connections = 1000/' /var/lib/postgresql/data/postgresql.conf
-            sed -i -e 's/shared_buffers = 128MB/shared_buffers = 2GB/' /var/lib/postgresql/data/postgresql.conf
-          EOF
-          docker restart postgres
+          docker exec postgres psql -U postgres -d postgres "ALTER SYSTEM SET max_connections = '2000'";
+          docker exec postgres psql -U postgres -d postgres "ALTER SYSTEM SET shared_buffers = '4096MB'";
+          docker exec postgres psql -U postgres -d postgres "SELECT pg_reload_conf()";
 
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
