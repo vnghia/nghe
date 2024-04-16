@@ -47,6 +47,10 @@ The minimum required postgres version is 15. Alternatively, you can also downloa
 
 Once the server is running, go to `[your-server-url]/setup` to setup a first admin account. After that, login and go to the folders menu on the right side of the screen. You can add a new music folder from there, hit the scan button, choose one scan mode (more detail in [scan process](#scan-process)) and start using the server while your media files are being scanned.
 
+## Client
+
+This server works best with [Symfonium](https://symfonium.app/) and [Airsonic](https://airsonic.netlify.app) since they support multiple values well enough.
+
 ## Configuration
 
 All configurations can be set by environment variable with a `NGHE_` prefix and a `__` between each level of inheritance. For example, the config `database.url` is correspondent to `NGHE_DATABASE__URL`.
@@ -115,7 +119,12 @@ Some fields in this table are not official and usually used to distinguish betwe
 
 #### Id3v2
 
-In additional to those configurations above, `id3v2` also has below configuration.
+Id3v2 key is treated as two different ways depending on its length:
+
+- If you supply a 3 or 4 characters string, it will be treated as a frame id. For example TIT2.
+- Otherwise, it will be treated as an user text key in the frame TXXX. For example "MusicBrainz Release Track Id".
+
+In additional to those configurations above, id3v2 also has below configuration.
 
 |  Subkey   | Meaning                                  | Default value | Note                                                                                                             |
 | :-------: | :--------------------------------------- | :------------ | :--------------------------------------------------------------------------------------------------------------- |
@@ -193,6 +202,34 @@ An album is uniquely identified either by:
 
 If you have duplicated albums shown in your client, you should check for the corresponding musicbrainz id and date fields.
 
-## Music folders
+## Permission model
 
-The server accepts multiple music folders and the admin can set permission of these music folders for each user / folder. If there is an artist / album has songs in several music folders, user will only get what are inside their allowed music folders.
+As describe in [scan process](#scan-process), songs are tied to a specific music folder but artists and albums are globally identified. There will be two scenarios.
+
+### Access to a song-level resource
+
+In this case, user is either allowed or denied depending on their allowed music folders. Song-level resource is the song itself, the lyrics, the cover art.
+
+### Access to an artist or album level resource
+
+In this case, user will only see a combination of allowed song-level resources, not the whole thing.
+
+For example, if an artist has **10** songs in **folder1** and **20** songs in **folder2**:
+
+- User with permission on both folders will see that artist has 30 songs.
+- User with permission on folder1 will only see first 10 songs.
+- User with permission on folder2 will only see last 20 songs.
+- User with no permission on both folder will not see the artist in the first place and get a not found error if they are trying to access it by manully specifying the id.
+
+The same thing holds true for albums. For example, if an album has 2 songs in 2 folders with different cover arts:
+
+- User with permission on both folders will see the first cover art sorted by the smallest disc number and track number (track 1 disc 1 of the album).
+- User with permission on folder1 will only see the first cover art.
+- User with permission on folder2 will only see the second cover art.
+
+## Roadmap
+
+- More compatible with Opensubsonic API.
+- Fully-feature frontend.
+- SQL playlist builder.
+- Possibly integrating local machine learning model (like how Immich is doing with image/videos).
