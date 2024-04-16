@@ -116,9 +116,9 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Increase postgres max connection
         run: |
-          docker exec postgres psql -U postgres -d postgres "ALTER SYSTEM SET max_connections = '2000'";
-          docker exec postgres psql -U postgres -d postgres "ALTER SYSTEM SET shared_buffers = '4096MB'";
-          docker exec postgres psql -U postgres -d postgres "SELECT pg_reload_conf()";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '2000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '4096MB'";
+          docker restart postgres
 
       - name: Setup arm64 environment
         run: |
@@ -278,7 +278,7 @@ jobs:
           pgsql\bin\pg_ctl start
           pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '2000'"
           pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '4096MB'"
-          pgsql\bin\psql -U postgres -d postgres -c "SELECT pg_reload_conf()"
+          pgsql\bin\pg_ctl restart
           echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
           echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
           echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
@@ -356,7 +356,7 @@ jobs:
           pg_ctl start
           psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '2000'"
           psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '4096MB'"
-          psql -U postgres -d postgres -c "SELECT pg_reload_conf()"
+          pg_ctl restart
 
       - name: Install vcpkg build deps
         run: brew install nasm
