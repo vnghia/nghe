@@ -304,8 +304,10 @@ jobs:
           nat: |
             "5432": "5432"
           prepare: |
+            set -euxo pipefail
             pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client
             rm -rf /usr/bin/make
+            ln -s /usr/local/bin/gmake /usr/bin/make
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
             make --version
