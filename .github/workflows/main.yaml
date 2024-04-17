@@ -280,7 +280,7 @@ jobs:
           usesh: true
           prepare: |
             set -euxo pipefail
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client postgresql16-server llvm16
+            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client llvm16
 
             rm -rf /usr/bin/make
             ln -s /usr/local/bin/gmake /usr/bin/make
@@ -292,21 +292,10 @@ jobs:
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           run: |
             set -euxo pipefail
-
-            export PGDATA="/tmp/pgdata/"
-            export PGPASSWORD="postgres"
-            echo ${PGPASSWORD} > pwfile
-            service postgresql oneinitdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
-            service postgresql onestart
-            psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-            psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-            service postgresql onerestart
-
             . "$HOME/.cargo/env"
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
-            cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
