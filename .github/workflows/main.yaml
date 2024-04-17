@@ -292,7 +292,9 @@ jobs:
             python3 --version
 
             export PGDATA="/tmp/pgdata"
-            initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
+            export PGPASSWORD="postgres"
+            echo $PGPASSWORD > pwfile
+            initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
             pg_ctl start
             psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
             psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
