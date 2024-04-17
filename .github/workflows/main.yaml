@@ -256,18 +256,26 @@ jobs:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Extract build information
+        id: build
+        run: |
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+
       - name: Build and test
         uses: vmactions/freebsd-vm@v1
         with:
           envs: "ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
           prepare: |
-            pkg install -y curl
+            pkg install -y curl git
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           run: |
             . "$HOME/.cargo/env"
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target x86_64-unknown-freebsd
+            cargo build --locked --target x86_64-unknown-freebsd --profile ${{ steps.build.outputs.profile }}
+            cargo test --locked --target x86_64-unknown-freebsd --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
 
   # build-windows:
   #   runs-on: windows-latest
