@@ -265,6 +265,8 @@ jobs:
             pkg install -y curl
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           run: |
+            . "$HOME/.cargo/env"
+            cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target x86_64-unknown-freebsd
 
   # build-windows:
