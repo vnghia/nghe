@@ -79,7 +79,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
             } else {
                 common_state
                     .send_with_common::<_, SubsonicRemovePermissionBody>(
-                        "/rest/addPermission",
+                        "/rest/removePermission",
                         RemovePermissionParams {
                             user_id: Some(user_id),
                             music_folder_id: Some(id),
