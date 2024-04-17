@@ -268,7 +268,7 @@ jobs:
           envs: "ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
           prepare: |
-            pkg install -y git curl zip unzip tar
+            pkg install -y git curl zip unzip
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           run: |
             set -euxo pipefail
