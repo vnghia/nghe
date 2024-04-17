@@ -247,6 +247,8 @@ jobs:
 
   build-freebsd:
     runs-on: ubuntu-latest
+    env:
+      TARGET: x86_64-unknown-freebsd
 
     steps:
       - uses: actions/checkout@v4
@@ -259,8 +261,16 @@ jobs:
       - name: Extract build information
         id: build
         run: |
+          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
           echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
           echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ steps.build.outputs.target }}-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and test
         uses: vmactions/freebsd-vm@v1
@@ -268,20 +278,18 @@ jobs:
           envs: "ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
           prepare: |
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm
+            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake
+            sudo rm -rf /usr/bin/make
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           run: |
+            set -euxo pipefail
             . "$HOME/.cargo/env"
             cargo install cargo-vcpkg
-            cargo vcpkg --verbose build --target x86_64-unknown-freebsd || true
-            cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/ffmpeg/build-x64-freebsd-release-rel-out.log
-            cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/ffmpeg/build-x64-freebsd-release-rel-err.log
-            cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/ffmpeg/x64-freebsd-release-rel/ffbuild/config.mak
-            exit
-            cargo build --locked --target x86_64-unknown-freebsd --profile ${{ steps.build.outputs.profile }}
-            cargo test --locked --target x86_64-unknown-freebsd --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
+            cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
+            cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
+            cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
 
   # build-windows:
   #   runs-on: windows-latest
