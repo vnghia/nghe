@@ -250,22 +250,6 @@ jobs:
     env:
       TARGET: x86_64-unknown-freebsd
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST_AUTH_METHOD: md5
-          POSTGRES_INITDB_ARGS: --auth-host=md5
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --name postgres
-        ports:
-          - 5432:5432
-
     steps:
       - uses: actions/checkout@v4
       - name: Export GitHub Actions cache environment variables
@@ -290,27 +274,30 @@ jobs:
         with:
           key: ${{ steps.build.outputs.target }}-${{ steps.build.outputs.profile }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Increase postgres max connection
-        run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-          docker restart postgres
 
       - name: Build and test
         uses: vmactions/freebsd-vm@v1
         with:
           envs: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
-          nat: |
-            "5432": "5432"
           prepare: |
             set -euxo pipefail
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client llvm16
+            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client postgresql16-server llvm16
+
             rm -rf /usr/bin/make
             ln -s /usr/local/bin/gmake /usr/bin/make
+            make --version
+
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
-            make --version
+
+            export PGDATA="/tmp/pgdata"
+            initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
+            pg_ctl start
+            psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+            psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
+            pg_ctl restart
+
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           run: |
             set -euxo pipefail
