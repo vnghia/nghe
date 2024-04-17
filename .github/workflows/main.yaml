@@ -268,7 +268,7 @@ jobs:
           envs: "ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
           prepare: |
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python3.11 nasm
+            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
