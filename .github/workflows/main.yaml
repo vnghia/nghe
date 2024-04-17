@@ -276,9 +276,10 @@ jobs:
             . "$HOME/.cargo/env"
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target x86_64-unknown-freebsd || true
-            cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/ffmpeg/build-x64-freebsd-release-rel-config.log
             cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/ffmpeg/build-x64-freebsd-release-rel-out.log
             cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/ffmpeg/build-x64-freebsd-release-rel-err.log
+            cat /home/runner/work/nghe/nghe/target/vcpkg/buildtrees/ffmpeg/x64-freebsd-release-rel/ffbuild/config.mak
+            exit
             cargo build --locked --target x86_64-unknown-freebsd --profile ${{ steps.build.outputs.profile }}
             cargo test --locked --target x86_64-unknown-freebsd --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
 
