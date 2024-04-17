@@ -289,6 +289,10 @@ jobs:
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
 
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          run: |
+            set -euxo pipefail
+
             export PGDATA="/tmp/pgdata/"
             export PGPASSWORD="postgres"
             echo ${PGPASSWORD} > pwfile
@@ -298,9 +302,6 @@ jobs:
             psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
             service postgresql onerestart
 
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          run: |
-            set -euxo pipefail
             . "$HOME/.cargo/env"
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
