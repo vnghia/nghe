@@ -1,6 +1,7 @@
 mod album;
 mod artist;
 mod genre;
+mod get_scan_status;
 mod lyric;
 mod run_scan;
 mod song;
@@ -21,6 +22,8 @@ pub fn router(
     Router::new()
         .route("/rest/startScan", get(start_scan::start_scan_handler))
         .route("/rest/startScan.view", get(start_scan::start_scan_handler))
+        .route("/rest/getScanStatus", get(get_scan_status::get_scan_status_handler))
+        .route("/rest/getScanStatus.view", get(get_scan_status::get_scan_status_handler))
         .layer(Extension(artist_index_config))
         .layer(Extension(parsing_config))
         .layer(Extension(scan_config))
