@@ -301,19 +301,17 @@ jobs:
         with:
           envs: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
-          sync: sshfs
           nat: |
             "5432": "5432"
           prepare: |
             set -euxo pipefail
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client llvm16
+            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client
             rm -rf /usr/bin/make
             ln -s /usr/local/bin/gmake /usr/bin/make
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
             make --version
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            git config --global --add safe.directory '*'
           run: |
             set -euxo pipefail
             . "$HOME/.cargo/env"
