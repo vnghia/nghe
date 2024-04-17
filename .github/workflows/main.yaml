@@ -313,6 +313,7 @@ jobs:
             python3 --version
             make --version
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            git config --global --add safe.directory '*'
           run: |
             set -euxo pipefail
             . "$HOME/.cargo/env"
