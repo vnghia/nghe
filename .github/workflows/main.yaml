@@ -59,14 +59,14 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - target: x86_64-unknown-linux-gnu
-            command: cargo
-          - target: aarch64-unknown-linux-gnu
-            command: cross
-          - target: x86_64-unknown-linux-musl
-            command: cross
-          - target: aarch64-unknown-linux-musl
-            command: cross
+          # - target: x86_64-unknown-linux-gnu
+          #   command: cargo
+          # - target: aarch64-unknown-linux-gnu
+          #   command: cross
+          # - target: x86_64-unknown-linux-musl
+          #   command: cross
+          # - target: aarch64-unknown-linux-musl
+          #   command: cross
           - target: x86_64-unknown-freebsd
             command: cross
 
@@ -177,226 +177,226 @@ jobs:
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
 
-  build-docker:
-    runs-on: ubuntu-latest
-    needs: [build-frontend, build-linux]
-    if: ${{ vars.BUILD_DOCKER != '' }}
+  # build-docker:
+  #   runs-on: ubuntu-latest
+  #   needs: [build-frontend, build-linux]
+  #   if: ${{ vars.BUILD_DOCKER != '' }}
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download build artifact for docker
-        uses: actions/download-artifact@v4
-        with:
-          path: ${{ github.workspace }}/artifact/
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Download build artifact for docker
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: ${{ github.workspace }}/artifact/
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #     - name: Login to Docker Hub
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ghcr.io
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v3
 
-      # GNU
-      - name: Extract metadata for Docker gnu
-        id: meta-gnu
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            name=ghcr.io/${{ github.repository }}-gnu
-          tags: |
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=raw,value=develop,enable={{is_default_branch}}
-      - name: Build and push gnu
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ci/docker/Dockerfile
-          build-args: |
-            BASE_IMAGE=debian:12.5-slim
-            TARGET_ENV=gnu
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta-gnu.outputs.tags }}
+  #     # GNU
+  #     - name: Extract metadata for Docker gnu
+  #       id: meta-gnu
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: |
+  #           name=ghcr.io/${{ github.repository }}-gnu
+  #         tags: |
+  #           type=ref,event=pr
+  #           type=semver,pattern={{version}}
+  #           type=raw,value=develop,enable={{is_default_branch}}
+  #     - name: Build and push gnu
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         context: .
+  #         file: ci/docker/Dockerfile
+  #         build-args: |
+  #           BASE_IMAGE=debian:12.5-slim
+  #           TARGET_ENV=gnu
+  #         platforms: linux/amd64,linux/arm64
+  #         push: true
+  #         tags: ${{ steps.meta-gnu.outputs.tags }}
 
-      # Musl
-      - name: Extract metadata for Docker musl
-        id: meta-musl
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            name=ghcr.io/${{ github.repository }}-musl
-          tags: |
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=raw,value=develop,enable={{is_default_branch}}
-      - name: Build and push musl
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ci/docker/Dockerfile
-          build-args: |
-            BASE_IMAGE=alpine:3.19.1
-            TARGET_ENV=musl
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta-musl.outputs.tags }}
+  #     # Musl
+  #     - name: Extract metadata for Docker musl
+  #       id: meta-musl
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: |
+  #           name=ghcr.io/${{ github.repository }}-musl
+  #         tags: |
+  #           type=ref,event=pr
+  #           type=semver,pattern={{version}}
+  #           type=raw,value=develop,enable={{is_default_branch}}
+  #     - name: Build and push musl
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         context: .
+  #         file: ci/docker/Dockerfile
+  #         build-args: |
+  #           BASE_IMAGE=alpine:3.19.1
+  #           TARGET_ENV=musl
+  #         platforms: linux/amd64,linux/arm64
+  #         push: true
+  #         tags: ${{ steps.meta-musl.outputs.tags }}
 
-  build-windows:
-    runs-on: windows-latest
+  # build-windows:
+  #   runs-on: windows-latest
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - name: Extract build information
-        id: build
-        run: |
-          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
-          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{ env.RUST_TOOLCHAIN }}
+  #     - name: Extract build information
+  #       id: build
+  #       run: |
+  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
+  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
+  #         save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Install and setup postgres
-        run: |
-          curl https://get.enterprisedb.com/postgresql/postgresql-16.2-1-windows-x64-binaries.zip --output postgresql.zip
-          7z x postgresql.zip
-          $env:PGDATA = "$PWD\pgsql\data"
-          $env:PGPASSWORD = "postgres"
-          echo $env:PGPASSWORD > pwfile
-          pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
-          pgsql\bin\pg_ctl start
-          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-          pgsql\bin\pg_ctl restart
-          echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
-          echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
-          echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
+  #     - name: Install and setup postgres
+  #       run: |
+  #         curl https://get.enterprisedb.com/postgresql/postgresql-16.2-1-windows-x64-binaries.zip --output postgresql.zip
+  #         7z x postgresql.zip
+  #         $env:PGDATA = "$PWD\pgsql\data"
+  #         $env:PGPASSWORD = "postgres"
+  #         echo $env:PGPASSWORD > pwfile
+  #         pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
+  #         pgsql\bin\pg_ctl start
+  #         pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+  #         pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
+  #         pgsql\bin\pg_ctl restart
+  #         echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
+  #         echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
+  #         echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
 
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v1
-        with:
-          tool: cargo-vcpkg
-      - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
+  #     - name: Install cargo-vcpkg
+  #       uses: taiki-e/cache-cargo-install-action@v1
+  #       with:
+  #         tool: cargo-vcpkg
+  #     - name: Build vcpkg dependencies
+  #       run: |
+  #         cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
 
-      - name: Build and test
-        run: |
-          cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: amd64-windows
-          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe.exe
-          retention-days: 1
+  #     - name: Build and test
+  #       run: |
+  #         cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
+  #         cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
+  #     - name: Upload build artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: amd64-windows
+  #         path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe.exe
+  #         retention-days: 1
 
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - target: x86_64-apple-darwin
-            os: macos-13
-            vcpkg-target: x64-osx-release
-          - target: aarch64-apple-darwin
-            os: macos-14
-            vcpkg-target: arm64-osx-release
+  # build-macos:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       platform:
+  #         - target: x86_64-apple-darwin
+  #           os: macos-13
+  #           vcpkg-target: x64-osx-release
+  #         - target: aarch64-apple-darwin
+  #           os: macos-14
+  #           vcpkg-target: arm64-osx-release
 
-    runs-on: ${{ matrix.platform.os }}
+  #   runs-on: ${{ matrix.platform.os }}
 
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+  #   env:
+  #     HOMEBREW_NO_AUTO_UPDATE: 1
+  #     HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - name: Extract build information
-        id: build
-        env:
-          TARGET: ${{ matrix.platform.target }}
-        run: |
-          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-          echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
-          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
-          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{ env.RUST_TOOLCHAIN }}
+  #     - name: Extract build information
+  #       id: build
+  #       env:
+  #         TARGET: ${{ matrix.platform.target }}
+  #       run: |
+  #         echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
+  #         echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
+  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+  #         save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Install and setup postgres
-        run: |
-          brew uninstall --force postgresql
-          brew uninstall --force postgresql@14
-          brew install postgresql@16
-          brew link postgresql@16
-          export PGDATA="$RUNNER_TEMP/pgdata"
-          initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
-          pg_ctl start
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-          pg_ctl restart
+  #     - name: Install and setup postgres
+  #       run: |
+  #         brew uninstall --force postgresql
+  #         brew uninstall --force postgresql@14
+  #         brew install postgresql@16
+  #         brew link postgresql@16
+  #         export PGDATA="$RUNNER_TEMP/pgdata"
+  #         initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
+  #         pg_ctl start
+  #         psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+  #         psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
+  #         pg_ctl restart
 
-      - name: Install vcpkg build deps
-        run: brew install nasm
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v1
-        with:
-          tool: cargo-vcpkg
-      - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+  #     - name: Install vcpkg build deps
+  #       run: brew install nasm
+  #     - name: Install cargo-vcpkg
+  #       uses: taiki-e/cache-cargo-install-action@v1
+  #       with:
+  #         tool: cargo-vcpkg
+  #     - name: Build vcpkg dependencies
+  #       run: |
+  #         cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
-      - name: Build and test
-        run: |
-          cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
-          retention-days: 1
+  #     - name: Build and test
+  #       run: |
+  #         cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+  #         cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
+  #     - name: Upload build artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+  #         path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
+  #         retention-days: 1
 
-  upload-release:
-    runs-on: ubuntu-latest
-    needs: [build-frontend, build-linux, build-windows, build-macos]
-    if: ${{ github.event_name == 'release' }}
-    permissions:
-      contents: write
+  # upload-release:
+  #   runs-on: ubuntu-latest
+  #   needs: [build-frontend, build-linux, build-windows, build-macos]
+  #   if: ${{ github.event_name == 'release' }}
+  #   permissions:
+  #     contents: write
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download build artifact for release
-        uses: actions/download-artifact@v4
-        with:
-          path: ${{ github.workspace }}/artifact/
-      - name: Upload artifact
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
-          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip artifact/frontend.zip
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Download build artifact for release
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: ${{ github.workspace }}/artifact/
+  #     - name: Upload artifact
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       run: |
+  #         find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
+  #         gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip artifact/frontend.zip
