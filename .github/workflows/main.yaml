@@ -277,6 +277,9 @@ jobs:
       - name: Extract build information
         id: build
         run: |
+          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
+          echo "arch=$(echo $TARGET | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
           echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
           echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
           echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
@@ -310,6 +313,12 @@ jobs:
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
             cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe
+          retention-days: 1
 
   # build-windows:
   #   runs-on: windows-latest
