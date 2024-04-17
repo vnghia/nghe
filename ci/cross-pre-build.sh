@@ -6,9 +6,8 @@ if [[ "$CROSS_TARGET" == "aarch64-unknown-linux-gnu" ]]; then
   apt-get update && apt-get --assume-yes install libpq-dev:$CROSS_DEB_ARCH \
     libclang-10-dev
 elif [[ "$CROSS_TARGET" == "x86_64-unknown-freebsd" ]]; then
-  apt-get update && apt-get --assume-yes install libclang-10-dev
   # Issue: https://github.com/cross-rs/cross/issues/1367
-  mkdir -p /usr/local/x86_64-unknown-freebsd/usr &&
-    ln -s ../include /usr/local/x86_64-unknown-freebsd/usr/include &&
-    ln -s ../lib /usr/local/x86_64-unknown-freebsd/usr/lib
+  mkdir -p /usr/local/x86_64-unknown-freebsd12/usr &&
+    ln -s ../include /usr/local/x86_64-unknown-freebsd12/usr/include &&
+    ln -s ../lib /usr/local/x86_64-unknown-freebsd12/usr/lib
 fi
