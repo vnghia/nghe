@@ -294,11 +294,11 @@ jobs:
             export PGDATA="/tmp/pgdata/"
             export PGPASSWORD="postgres"
             echo ${PGPASSWORD} > pwfile
-            initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
-            pg_ctl start
+            service postgresql initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
+            service postgresql start
             psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
             psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-            pg_ctl restart
+            service postgresql restart
 
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           run: |
