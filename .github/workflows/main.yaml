@@ -301,6 +301,7 @@ jobs:
         with:
           envs: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
+          sync: sshfs
           nat: |
             "5432": "5432"
           prepare: |
