@@ -290,6 +290,11 @@ jobs:
         with:
           key: ${{ steps.build.outputs.target }}-${{ steps.build.outputs.profile }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Increase postgres max connection
+        run: |
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+          docker restart postgres
 
       - name: Build and test
         uses: vmactions/freebsd-vm@v1
@@ -300,7 +305,7 @@ jobs:
             "5432": "5432"
           prepare: |
             pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client
-            sudo rm -rf /usr/bin/make
+            rm -rf /usr/bin/make
             ln -s /usr/local/bin/gmake /usr/local/bin/make
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
