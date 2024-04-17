@@ -54,141 +54,128 @@ jobs:
           path: ${{ github.workspace }}/frontend/dist/
           retention-days: 1
 
-  build-linux:
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          # - target: x86_64-unknown-linux-gnu
-          #   command: cargo
-          # - target: aarch64-unknown-linux-gnu
-          #   command: cross
-          # - target: x86_64-unknown-linux-musl
-          #   command: cross
-          # - target: aarch64-unknown-linux-musl
-          #   command: cross
-          - target: x86_64-unknown-freebsd
-            command: cross
+  # build-linux:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       platform:
+  #         - target: x86_64-unknown-linux-gnu
+  #           command: cargo
+  #         - target: aarch64-unknown-linux-gnu
+  #           command: cross
+  #         - target: x86_64-unknown-linux-musl
+  #           command: cross
+  #         - target: aarch64-unknown-linux-musl
+  #           command: cross
+  #         - target: x86_64-unknown-freebsd
+  #           command: cross
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    env:
-      CROSS_CONTAINER_OPTS: "--network=host"
+  #   env:
+  #     CROSS_CONTAINER_OPTS: "--network=host"
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST_AUTH_METHOD: md5
-          POSTGRES_INITDB_ARGS: --auth-host=md5
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --name postgres
-        ports:
-          - 5432:5432
+  #   services:
+  #     postgres:
+  #       image: postgres:16
+  #       env:
+  #         POSTGRES_PASSWORD: postgres
+  #         POSTGRES_HOST_AUTH_METHOD: md5
+  #         POSTGRES_INITDB_ARGS: --auth-host=md5
+  #       options: >-
+  #         --health-cmd pg_isready
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #         --name postgres
+  #       ports:
+  #         - 5432:5432
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - name: Extract build information
-        id: build
-        env:
-          TARGET: ${{ matrix.platform.target }}
-        run: |
-          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-          echo "arch=$(echo $TARGET | awk '{print $1}')" >> "$GITHUB_OUTPUT"
-          echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
-          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
-          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Increase postgres max connection
-        run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-          docker restart postgres
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{ env.RUST_TOOLCHAIN }}
+  #     - name: Extract build information
+  #       id: build
+  #       env:
+  #         TARGET: ${{ matrix.platform.target }}
+  #       run: |
+  #         echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
+  #         echo "arch=$(echo $TARGET | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+  #         echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
+  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+  #         save-if: ${{ github.ref == 'refs/heads/main' }}
+  #     - name: Increase postgres max connection
+  #       run: |
+  #         docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+  #         docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+  #         docker restart postgres
 
-      - name: Setup arm64 environment
-        run: |
-          sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
-          aarch64-linux-gnu-pkg-config --version
-        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
+  #     - name: Setup arm64 environment
+  #       run: |
+  #         sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+  #         sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
+  #         aarch64-linux-gnu-pkg-config --version
+  #       if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
 
-      - name: Setup x64 musl environment
-        run: |
-          sudo apt install --assume-yes musl-tools
-          sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/x86_64-linux-musl-pkg-config
-          x86_64-linux-musl-pkg-config --version
-        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-musl' }}
+  #     - name: Setup x64 musl environment
+  #       run: |
+  #         sudo apt install --assume-yes musl-tools
+  #         sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/x86_64-linux-musl-pkg-config
+  #         x86_64-linux-musl-pkg-config --version
+  #       if: ${{ matrix.platform.target == 'x86_64-unknown-linux-musl' }}
 
-      # TODO: Rename binary after https://github.com/microsoft/vcpkg/issues/36094 is fixed
-      - name: Setup arm64 musl environment
-        run: |
-          wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/aarch64-linux-musl-cross.linux.tgz -O - | tar -xz
-          sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ /usr/bin/aarch64-linux-gnu-g++
-          sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc /usr/bin/aarch64-linux-gnu-gcc
-          aarch64-linux-gnu-gcc --version
-          aarch64-linux-gnu-g++ --version
-          sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
-          aarch64-linux-gnu-pkg-config --version
-        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
+  #     # TODO: Rename binary after https://github.com/microsoft/vcpkg/issues/36094 is fixed
+  #     - name: Setup arm64 musl environment
+  #       run: |
+  #         wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/aarch64-linux-musl-cross.linux.tgz -O - | tar -xz
+  #         sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ /usr/bin/aarch64-linux-gnu-g++
+  #         sudo ln -s ${{ github.workspace }}/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc /usr/bin/aarch64-linux-gnu-gcc
+  #         aarch64-linux-gnu-gcc --version
+  #         aarch64-linux-gnu-g++ --version
+  #         sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
+  #         aarch64-linux-gnu-pkg-config --version
+  #       if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
 
-      - name: Setup x64 freebsd environment
-        run: |
-          cd /tmp/
-          wget http://ftp.plusline.de/FreeBSD/releases/amd64/13.2-RELEASE/base.txz
-          mkdir -p /opt/cross-freebsd-13
-          cd /opt/cross-freebsd-13
-          tar -xf /tmp/base.txz ./lib/ ./usr/lib/ ./usr/include/
-          cd /opt/cross-freebsd-13/usr/lib
-          find . -xtype l|xargs ls -l|grep ' /lib/' | awk '{print "ln -sf /opt/cross-freebsd-13"$11 " " $9}' | /bin/sh
-          ln -s libc++.a /opt/cross-freebsd-13/usr/lib/libstdc++.a
-          ln -s libc++.so /opt/cross-freebsd-13/usr/lib/libstdc++.so
-        if: ${{ matrix.platform.target == 'x86_64-unknown-freebsd' }}
+  #     - name: Install vcpkg build deps
+  #       run: sudo apt-get --assume-yes install nasm
+  #     - name: Install cargo-vcpkg
+  #       uses: taiki-e/cache-cargo-install-action@v1
+  #       with:
+  #         tool: cargo-vcpkg
+  #     - name: Build vcpkg dependencies
+  #       run: |
+  #         cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
 
-      - name: Install vcpkg build deps
-        run: sudo apt-get --assume-yes install nasm
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v1
-        with:
-          tool: cargo-vcpkg
-      - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+  #     - name: Install cross
+  #       if: ${{ matrix.platform.command == 'cross' }}
+  #       uses: taiki-e/cache-cargo-install-action@v1
+  #       with:
+  #         tool: cross
+  #         git: https://github.com/cross-rs/cross
+  #         rev: 085092c
 
-      - name: Install cross
-        if: ${{ matrix.platform.command == 'cross' }}
-        uses: taiki-e/cache-cargo-install-action@v1
-        with:
-          tool: cross
-          git: https://github.com/cross-rs/cross
-          rev: 085092c
-
-      - name: Build and test
-        run: |
-          ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
-          retention-days: 1
+  #     - name: Build and test
+  #       run: |
+  #         ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+  #         ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} -p nghe -p nghe-types
+  #     - name: Upload build artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+  #         path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
+  #         retention-days: 1
 
   # build-docker:
   #   runs-on: ubuntu-latest
@@ -257,6 +244,29 @@ jobs:
   #         platforms: linux/amd64,linux/arm64
   #         push: true
   #         tags: ${{ steps.meta-musl.outputs.tags }}
+
+  build-freebsd:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Build and test
+        id: test
+        uses: vmactions/freebsd-vm@v1
+        with:
+          envs: "ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
+          usesh: true
+          prepare: |
+            pkg install -y curl
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y
+          run: |
+            cargo vcpkg --verbose build --target x86_64-unknown-freebsd
 
   # build-windows:
   #   runs-on: windows-latest

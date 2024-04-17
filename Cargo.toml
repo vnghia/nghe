@@ -134,9 +134,7 @@ aarch64-unknown-linux-gnu = { triplet = "arm64-linux-release" }
 x86_64-unknown-linux-musl = { triplet = "x64-linux-musl-release" }
 aarch64-unknown-linux-musl = { triplet = "arm64-linux-musl-release" }
 
-x86_64-unknown-freebsd = { triplet = "x64-freebsd-release", dependencies = [
-  "ffmpeg[avcodec,avfilter,avformat,avresample,opus,soxr,swresample,vorbis]",
-] }
+x86_64-unknown-freebsd = { triplet = "x64-freebsd-release" }
 
 x86_64-apple-darwin = { triplet = "x64-osx-release" }
 aarch64-apple-darwin = { triplet = "arm64-osx-release" }
