@@ -278,7 +278,7 @@ jobs:
           usesh: true
           prepare: |
             set -euxo pipefail
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client llvm16
+            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake llvm16
 
             rm -rf /usr/bin/make
             ln -s /usr/local/bin/gmake /usr/bin/make
