@@ -1,76 +1,76 @@
-# name: Coverage
+name: Coverage
 
-# on:
-#   push:
-#     branches: ["main"]
-#   pull_request:
-#     branches: ["main"]
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
-# env:
-#   CARGO_TERM_COLOR: always
-#   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-#   RUST_TOOLCHAIN: nightly-2024-03-22
+env:
+  CARGO_TERM_COLOR: always
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  RUST_TOOLCHAIN: nightly-2024-03-22
 
-# jobs:
-#   coverage:
-#     runs-on: ubuntu-latest
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
 
-#     env:
-#       DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+    env:
+      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
 
-#     services:
-#       postgres:
-#         image: postgres:16
-#         env:
-#           POSTGRES_PASSWORD: postgres
-#         options: >-
-#           --health-cmd pg_isready
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
-#           --name postgres
-#         ports:
-#           - 5432:5432
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name postgres
+        ports:
+          - 5432:5432
 
-#     steps:
-#       - uses: actions/checkout@v4
-#       - name: Export GitHub Actions cache environment variables
-#         uses: actions/github-script@v7
-#         with:
-#           script: |
-#             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-#             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-#       - uses: dtolnay/rust-toolchain@master
-#         with:
-#           toolchain: ${{ env.RUST_TOOLCHAIN }}
-#       - uses: Swatinem/rust-cache@v2
-#         with:
-#           key: coverage
-#           save-if: ${{ github.ref == 'refs/heads/main' }}
-#       - uses: cargo-bins/cargo-binstall@main
-#       - name: Increase postgres max connection
-#         run: |
-#           docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-#           docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-#           docker restart postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: coverage
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Increase postgres max connection
+        run: |
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+          docker restart postgres
 
-#       - name: Install vcpkg build deps
-#         run: sudo apt-get --assume-yes install nasm
-#       - name: Install cargo-vcpkg
-#         uses: taiki-e/cache-cargo-install-action@v1
-#         with:
-#           tool: cargo-vcpkg
-#       - name: Build vcpkg dependencies
-#         run: |
-#           cargo vcpkg --verbose build --target x86_64-unknown-linux-gnu
+      - name: Install vcpkg build deps
+        run: sudo apt-get --assume-yes install nasm
+      - name: Install cargo-vcpkg
+        uses: taiki-e/cache-cargo-install-action@v1
+        with:
+          tool: cargo-vcpkg
+      - name: Build vcpkg dependencies
+        run: |
+          cargo vcpkg --verbose build --target x86_64-unknown-linux-gnu
 
-#       - name: Install cargo-llvm-cov
-#         uses: taiki-e/install-action@cargo-llvm-cov
-#       - name: Generate code coverage
-#         run: cargo llvm-cov --all-features --workspace --exclude nghe-frontend --codecov --output-path codecov.json
-#       - name: Upload coverage to Codecov
-#         uses: codecov/codecov-action@v4
-#         with:
-#           token: ${{ secrets.CODECOV_TOKEN }}
-#           files: codecov.json
-#           fail_ci_if_error: true
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Generate code coverage
+        run: cargo llvm-cov --all-features --workspace --exclude nghe-frontend --codecov --output-path codecov.json
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: codecov.json
+          fail_ci_if_error: true
