@@ -194,7 +194,7 @@ mod tests {
             );
         });
         infra.scan(.., None).await;
-        infra.only_permissions(.., 0..2, true).await;
+        infra.remove_permission(None, None).await.add_permissions(.., 0..2).await;
 
         let artist_id =
             upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
@@ -217,7 +217,7 @@ mod tests {
             infra.add_n_song(i, n_song);
         });
         infra.scan(.., None).await;
-        infra.only_permissions(.., 0..2, true).await;
+        infra.remove_permission(None, None).await.add_permissions(.., 0..2).await;
 
         assert!(get_artists(infra.pool(), infra.user_id(0), &None).await.is_ok());
         assert!(matches!(

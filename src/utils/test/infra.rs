@@ -26,7 +26,7 @@ use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::music_folder::test::add_music_folder;
-use crate::open_subsonic::permission::set_permission;
+use crate::open_subsonic::permission::{add_permission, remove_permission};
 use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
@@ -49,40 +49,52 @@ impl Infra {
         Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
     }
 
-    pub async fn add_user(mut self, role: Option<users::Role>) -> Self {
-        self.users.push(User::fake(role).create(self.database()).await);
-        let user_index = self.users.len() - 1;
-        if !self.music_folders.is_empty() {
-            self.permissions(user_index..=user_index, .., true).await;
-        }
+    pub async fn add_user(self, role: Option<users::Role>) -> Self {
+        self.add_user_allow(role, true).await
+    }
+
+    pub async fn add_user_allow(mut self, role: Option<users::Role>, allow: bool) -> Self {
+        self.users.push(User::fake(role).create(self.database(), allow).await);
+        self
+    }
+
+    pub async fn add_folder(mut self, allow: bool) -> Self {
+        let pathbuf = self.fs.create_dir(Faker.fake::<String>()).canonicalize().unwrap();
+
+        let name = pathbuf.file_stem().unwrap().to_os_string().into_string().unwrap();
+        let path = pathbuf.into_os_string().into_string().unwrap();
+        let id = add_music_folder(self.pool(), &name, &path, allow).await.unwrap();
+
+        self.music_folders.push(music_folders::MusicFolder { id, name, path });
+        self.song_fs_infos_vec.push(vec![]);
+
         self
     }
 
     pub async fn n_folder(mut self, n_folder: usize) -> Self {
-        if !self.music_folders.is_empty() {
-            panic!("n_folder should be called only once")
-        } else {
-            for _ in 0..n_folder {
-                let pathbuf = self.fs.create_dir(Faker.fake::<String>()).canonicalize().unwrap();
-
-                let name = pathbuf.file_stem().unwrap().to_os_string().into_string().unwrap();
-                let path = pathbuf.into_os_string().into_string().unwrap();
-                let id = add_music_folder(self.pool(), &name, &path, true).await.unwrap();
-
-                self.music_folders.push(music_folders::MusicFolder { id, name, path });
-            }
-
-            self.song_fs_infos_vec = vec![vec![]; n_folder];
-            self
+        for _ in 0..n_folder {
+            self = self.add_folder(true).await;
         }
+
+        self
     }
 
-    pub async fn permissions<SU, SM>(
+    pub async fn add_permission<U: Into<Option<usize>>, M: Into<Option<usize>>>(
         &self,
-        user_slice: SU,
-        music_folder_slice: SM,
-        allow: bool,
-    ) -> &Self
+        user_idx: U,
+        music_folder_idx: M,
+    ) -> &Self {
+        add_permission(
+            self.pool(),
+            user_idx.into().map(|i| self.user_id(i)),
+            music_folder_idx.into().map(|i| self.music_folder_id(i)),
+        )
+        .await
+        .unwrap();
+        self
+    }
+
+    pub async fn add_permissions<SU, SM>(&self, user_slice: SU, music_folder_slice: SM) -> &Self
     where
         SU: SliceIndex<[User], Output = [User]>,
         SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
@@ -92,25 +104,39 @@ impl Infra {
             .into_iter()
             .cartesian_product(self.music_folder_ids(music_folder_slice))
         {
-            set_permission(self.pool(), Some(user_id), Some(music_folder_id), allow).await.unwrap();
+            add_permission(self.pool(), Some(user_id), Some(music_folder_id)).await.unwrap();
         }
         self
     }
 
-    pub async fn only_permissions<SU, SM>(
+    pub async fn remove_permission<U: Into<Option<usize>>, M: Into<Option<usize>>>(
         &self,
-        user_slice: SU,
-        music_folder_slice: SM,
-        allow: bool,
-    ) -> &Self
+        user_idx: U,
+        music_folder_idx: M,
+    ) -> &Self {
+        remove_permission(
+            self.pool(),
+            user_idx.into().map(|i| self.user_id(i)),
+            music_folder_idx.into().map(|i| self.music_folder_id(i)),
+        )
+        .await
+        .unwrap();
+        self
+    }
+
+    pub async fn remove_permissions<SU, SM>(&self, user_slice: SU, music_folder_slice: SM) -> &Self
     where
-        SU: SliceIndex<[User], Output = [User]> + Clone,
+        SU: SliceIndex<[User], Output = [User]>,
         SM: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
-        self.permissions(user_slice.clone(), .., !allow)
-            .await
-            .permissions(user_slice, music_folder_slice, allow)
-            .await
+        for (user_id, music_folder_id) in self
+            .user_ids(user_slice)
+            .into_iter()
+            .cartesian_product(self.music_folder_ids(music_folder_slice))
+        {
+            remove_permission(self.pool(), Some(user_id), Some(music_folder_id)).await.unwrap();
+        }
+        self
     }
 
     pub async fn scan<S>(&self, slice: S, scan_mode: Option<ScanMode>) -> ScanStat

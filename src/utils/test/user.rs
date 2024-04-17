@@ -27,8 +27,8 @@ impl User {
         }
     }
 
-    pub async fn create(self, db: &Database) -> Self {
-        let id = create_user(db, &self.clone().into()).await.unwrap();
+    pub async fn create(self, db: &Database, allow: bool) -> Self {
+        let id = create_user(db, &CreateUserParams { allow, ..self.clone().into() }).await.unwrap();
         Self { id, ..self }
     }
 }

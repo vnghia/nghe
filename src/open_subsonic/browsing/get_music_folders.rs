@@ -17,7 +17,6 @@ pub async fn get_music_folders_handler(
         .inner_join(user_music_folder_permissions::table)
         .select(music_folders::MusicFolder::as_select())
         .filter(user_music_folder_permissions::user_id.eq(req.user_id))
-        .filter(user_music_folder_permissions::allow)
         .load(&mut database.pool.get().await?)
         .await?
         .into_iter()
@@ -65,7 +64,7 @@ mod tests {
     #[tokio::test]
     async fn test_deny_some() {
         let infra = Infra::new().await.n_folder(2).await.add_user(None).await;
-        infra.permissions(.., 1.., false).await;
+        infra.remove_permissions(.., 1..).await;
 
         let results = get_music_folders_handler(
             infra.state(),

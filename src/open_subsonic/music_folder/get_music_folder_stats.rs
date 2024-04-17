@@ -58,7 +58,6 @@ async fn get_music_folder_stats(pool: &DatabasePool) -> Result<Vec<MusicFolderSt
                 .assume_not_null(),
             user_music_folder_permissions::table
                 .filter(user_music_folder_permissions::music_folder_id.eq(music_folders::id))
-                .filter(user_music_folder_permissions::allow)
                 .select(count(user_music_folder_permissions::user_id))
                 .single_value()
                 .assume_not_null(),
@@ -132,7 +131,7 @@ mod tests {
             .collect_vec();
         assert_eq!(folder_stats, folder_fs_stats);
 
-        infra.permissions(.., ..5, false).await;
+        infra.remove_permissions(.., ..5).await;
 
         (0..n_folder).for_each(|i| {
             if i < n_folder - 1 {

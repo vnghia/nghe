@@ -4,7 +4,7 @@ use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
-use super::super::permission::set_permission;
+use super::super::permission::add_permission;
 use crate::models::*;
 use crate::utils::password::encrypt_password;
 use crate::Database;
@@ -54,7 +54,9 @@ pub async fn create_user(
         .get_result::<Uuid>(&mut pool.get().await?)
         .await?;
 
-    set_permission(pool, Some(user_id), None, *allow).await?;
+    if *allow {
+        add_permission(pool, Some(user_id), None).await?;
+    }
     Ok(user_id)
 }
 
@@ -76,7 +78,6 @@ mod tests {
         let results = user_music_folder_permissions::table
             .select(user_music_folder_permissions::music_folder_id)
             .filter(user_music_folder_permissions::user_id.eq(user_id))
-            .filter(user_music_folder_permissions::allow)
             .load::<Uuid>(&mut infra.pool().get().await.unwrap())
             .await
             .unwrap()
@@ -101,7 +102,6 @@ mod tests {
         let results = user_music_folder_permissions::table
             .select(user_music_folder_permissions::music_folder_id)
             .filter(user_music_folder_permissions::user_id.eq(user_id))
-            .filter(user_music_folder_permissions::allow)
             .load::<Uuid>(&mut infra.pool().get().await.unwrap())
             .await
             .unwrap()
