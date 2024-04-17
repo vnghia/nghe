@@ -68,7 +68,7 @@ jobs:
           # - target: aarch64-unknown-linux-musl
           #   command: cross
           - target: x86_64-unknown-freebsd
-            command: cargo
+            command: cross
 
     runs-on: ubuntu-latest
 
@@ -147,12 +147,6 @@ jobs:
           sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
           aarch64-linux-gnu-pkg-config --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
-
-      # - name: Setup x64 freebsd environment
-      #   run: |
-      #     sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/x86_64-freebsd-pkg-config
-      #     x86_64-freebsd-pkg-config --version
-      #   if: ${{ matrix.platform.target == 'x86_64-unknown-freebsd' }}
 
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
