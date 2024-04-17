@@ -148,6 +148,19 @@ jobs:
           aarch64-linux-gnu-pkg-config --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-musl' }}
 
+      - name: Setup x64 freebsd environment
+        run: |
+          cd /tmp/
+          wget http://ftp.plusline.de/FreeBSD/releases/amd64/13.2-RELEASE/base.txz
+          mkdir -p /opt/cross-freebsd-13
+          cd /opt/cross-freebsd-13
+          tar -xf /tmp/base.txz ./lib/ ./usr/lib/ ./usr/include/
+          cd /opt/cross-freebsd-13/usr/lib
+          find . -xtype l|xargs ls -l|grep ' /lib/' | awk '{print "ln -sf /opt/cross-freebsd-13"$11 " " $9}' | /bin/sh
+          ln -s libc++.a /opt/cross-freebsd-13/usr/lib/libstdc++.a
+          ln -s libc++.so /opt/cross-freebsd-13/usr/lib/libstdc++.so
+        if: ${{ matrix.platform.target == 'x86_64-unknown-freebsd' }}
+
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
