@@ -291,9 +291,9 @@ jobs:
             ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
 
-            export PGDATA="/tmp/pgdata"
+            export PGDATA="/tmp/pgdata/"
             export PGPASSWORD="postgres"
-            echo $PGPASSWORD > pwfile
+            echo ${PGPASSWORD} > pwfile
             initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
             pg_ctl start
             psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
