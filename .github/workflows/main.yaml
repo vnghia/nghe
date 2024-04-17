@@ -296,11 +296,13 @@ jobs:
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
+            mv ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe ${{ github.workspace }}/nghe
+            rm -rf target
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe
+          path: ${{ github.workspace }}/nghe
           retention-days: 1
 
   build-windows:
