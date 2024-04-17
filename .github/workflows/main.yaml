@@ -250,6 +250,22 @@ jobs:
     env:
       TARGET: x86_64-unknown-freebsd
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: md5
+          POSTGRES_INITDB_ARGS: --auth-host=md5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name postgres
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v4
       - name: Export GitHub Actions cache environment variables
@@ -275,8 +291,10 @@ jobs:
       - name: Build and test
         uses: vmactions/freebsd-vm@v1
         with:
-          envs: "ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
+          envs: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           usesh: true
+          nat: |
+            "5432": "5432"
           prepare: |
             pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake postgresql16-client
             sudo rm -rf /usr/bin/make
