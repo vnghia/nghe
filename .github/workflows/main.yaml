@@ -271,6 +271,48 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/games
+          sudo rm -rf /usr/local/sqlpackage
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/local/share/edge_driver
+          sudo rm -rf /usr/local/share/gecko_driver
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/share/chromedriver-linux64
+          sudo rm -rf /usr/local/share/vcpkg
+          sudo rm -rf /usr/local/lib/python*
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /opt/mssql-tools
+          sudo rm -rf /etc/skel
+          sudo rm -rf /usr/share/vim
+          sudo rm -rf /usr/share/postgresql
+          sudo rm -rf /usr/share/man
+          sudo rm -rf /usr/share/apache-maven-*
+          sudo rm -rf /usr/share/R
+          sudo rm -rf /usr/share/alsa
+          sudo rm -rf /usr/share/miniconda
+          sudo rm -rf /usr/share/grub
+          sudo rm -rf /usr/share/gradle-*
+          sudo rm -rf /usr/share/locale
+          sudo rm -rf /usr/share/texinfo
+          sudo rm -rf /usr/share/kotlinc
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/doc
+          sudo rm -rf /usr/share/az_9.3.0
+          sudo rm -rf /usr/share/sbt
+          sudo rm -rf /usr/share/ri
+          sudo rm -rf /usr/share/icons
+          sudo rm -rf /usr/share/java
+          sudo rm -rf /usr/share/fonts
+          sudo rm -rf /usr/lib/google-cloud-sdk
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /usr/lib/mono
+          sudo rm -rf /usr/lib/R
+          sudo rm -rf /usr/lib/postgresql
+          sudo rm -rf /usr/lib/heroku
+          sudo rm -rf /usr/lib/gcc
           sudo docker image prune --all --force
 
       - uses: actions/checkout@v4
