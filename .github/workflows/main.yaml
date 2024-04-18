@@ -302,21 +302,9 @@ jobs:
           environment_variables: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           shell: "bash"
           cpu_count: 4
-          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.2/freebsd-12.4-arm64.qcow2
+          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.4/freebsd-14.0-x86-64.qcow2
           run: |
-            set -euxo pipefail
-
-            sudo pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake llvm16
-
-            sudo rm -rf /usr/bin/make
-            sudo ln -s /usr/local/bin/gmake /usr/bin/make
-            make --version
-
-            sudo ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
-            python3 --version
-
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-            . "$HOME/.cargo/env"
+            . "/root/.cargo/env"
 
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
