@@ -248,7 +248,39 @@ jobs:
     env:
       TARGET: x86_64-unknown-freebsd
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: md5
+          POSTGRES_INITDB_ARGS: --auth-host=md5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name postgres
+        ports:
+          - 5432:5432
+
     steps:
+      - name: Remove unused packages
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/share/edge_driver
+          sudo rm -rf /usr/local/share/gecko_driver
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/share/chromedriver-linux64
+          sudo rm -rf /usr/local/share/vcpkg
+          sudo rm -rf /usr/local/lib/python*
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo rm -rf /usr/local/julia*
+          sudo docker image prune --all --force
+
       - uses: actions/checkout@v4
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
@@ -270,37 +302,37 @@ jobs:
         with:
           key: ${{ steps.build.outputs.target }}-${{ steps.build.outputs.profile }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Increase postgres max connection
+        run: |
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+          docker restart postgres
 
       - name: Build and test
-        uses: vmactions/freebsd-vm@v1
+        uses: cross-platform-actions/action@v0.24.0
+        env:
+          DATABASE_URL: "postgres://postgres:postgres@10.0.2.2:5432/postgres"
         with:
-          envs: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
-          usesh: true
-          prepare: |
-            set -euxo pipefail
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake llvm16
-
-            rm -rf /usr/bin/make
-            ln -s /usr/local/bin/gmake /usr/bin/make
-            make --version
-
-            ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
-            python3 --version
-
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          operating_system: freebsd
+          version: "14.0"
+          environment_variables: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
+          shell: "bash"
+          cpu_count: 4
+          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.7/freebsd-14.0-x86-64.qcow2
           run: |
-            set -euxo pipefail
-            . "$HOME/.cargo/env"
+            sudo chown -R $(id -u):$(id -g) /root/
+            export PATH="/root/.cargo/bin/:$PATH"
+
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
+
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
-            mv ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe ${{ github.workspace }}/nghe
-            rm -rf target
+            cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: amd64-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/nghe
+          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
 
   build-windows:
