@@ -305,7 +305,7 @@ jobs:
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.4/freebsd-14.0-x86-64.qcow2
           run: |
             sudo chown -R $(id -u):$(id -g) /root/
-            export PATH="/root/.cargo/bin:$PATH"
+            export PATH="/root/.cargo/bin/:$PATH"
 
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
