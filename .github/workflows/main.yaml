@@ -284,11 +284,11 @@ jobs:
 
             sudo pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake llvm16
 
-            rm -rf /usr/bin/make
-            ln -s /usr/local/bin/gmake /usr/bin/make
+            sudo rm -rf /usr/bin/make
+            sudo ln -s /usr/local/bin/gmake /usr/bin/make
             make --version
 
-            ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
+            sudo ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
             python3 --version
 
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
