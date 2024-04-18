@@ -24,6 +24,7 @@ serde_html_form = { version = "0.2.6" }
 serde_with = { version = "3.7.0", features = ["hex"] }
 strum = { version = "0.26.2", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
+tracing = { version = "0.1.40" }
 uuid = { version = "1.8.0", features = ["serde"] }
 
 # Dev
@@ -49,6 +50,7 @@ serde_html_form = { workspace = true }
 serde_with = { workspace = true }
 strum = { workspace = true }
 time = { workspace = true }
+tracing = { workspace = true }
 uuid = { workspace = true }
 
 nghe-proc_macros = { path = "proc_macros" }
@@ -85,7 +87,6 @@ tokio-postgres = { version = "0.7.10" }
 tokio-util = { version = "0.7.10", features = ["io"] }
 tower = { version = "0.4.13", features = ["util"] }
 tower-http = { version = "0.5.2", features = ["cors", "fs", "trace"] }
-tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
 
