@@ -268,6 +268,7 @@ jobs:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
         with:
+          build-mount-path: /home/runner/
           remove-dotnet: true
           remove-android: true
           remove-haskell: true
