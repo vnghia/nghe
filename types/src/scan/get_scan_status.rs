@@ -13,17 +13,24 @@ pub struct GetScanStatusParams {
 }
 
 #[add_types_derive]
+#[derive(Debug, Clone, Copy)]
 pub struct ScanStatus {
     #[serde(with = "time_serde::iso8601_datetime")]
     pub started_at: OffsetDateTime,
-    #[serde(with = "time_serde::iso8601_datetime_option")]
+    #[serde(
+        with = "time_serde::iso8601_datetime_option",
+        skip_serializing_if = "Option::is_none",
+        default
+    )]
     pub finished_at: Option<OffsetDateTime>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub unrecoverable: Option<bool>,
 }
 
 #[add_subsonic_response]
 pub struct GetScanStatusBody {
-    pub status: Option<ScanStatus>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub scan: Option<ScanStatus>,
 }
 
 add_request_types_test!(GetScanStatusParams);

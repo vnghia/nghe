@@ -30,7 +30,7 @@ pub async fn get_scan_status_handler(
 ) -> GetScanStatusJsonResponse {
     Ok(axum::Json(
         GetScanStatusBody {
-            status: get_scan_status(&database.pool, req.params.id)
+            scan: get_scan_status(&database.pool, req.params.id)
                 .await?
                 .map(scans::ScanStatus::into),
         }

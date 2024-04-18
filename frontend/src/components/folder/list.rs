@@ -1,19 +1,42 @@
+use anyhow::Result;
 use dioxus::prelude::*;
-use itertools::Itertools;
-use nghe_types::music_folder::get_music_folder_stats::{
-    GetMusicFolderStatsParams, MusicFolderStat, SubsonicGetMusicFolderStatsBody,
+use nghe_types::music_folder::get_music_folder_ids::{
+    GetMusicFolderIdsParams, SubsonicGetMusicFolderIdsBody,
+};
+use nghe_types::music_folder::get_music_folder_stat::{
+    GetMusicFolderStatParams, MusicFolderStat, SubsonicGetMusicFolderStatBody,
 };
 use nghe_types::music_folder::remove_music_folder::{
     RemoveMusicFolderParams, SubsonicRemoveMusicFolderBody,
 };
+use nghe_types::scan::get_scan_status::{
+    GetScanStatusParams, ScanStatus, SubsonicGetScanStatusBody,
+};
 use nghe_types::scan::start_scan::{ScanMode, StartScanParams, SubsonicStartScanBody};
 use readable::byte::*;
 use readable::num::*;
+use uuid::Uuid;
 
 use super::super::Toast;
 use crate::state::CommonState;
-use crate::utils::show_modal;
+use crate::utils::modal::show_modal;
+use crate::utils::time::DATETIME_FORMAT;
 use crate::Route;
+
+struct Folder {
+    pub stat: MusicFolderStat,
+    pub scan: Option<ScanStatus>,
+}
+
+async fn get_scan_status(common_state: &CommonState, id: Uuid) -> Result<Option<ScanStatus>> {
+    common_state
+        .send_with_common::<_, SubsonicGetScanStatusBody>(
+            "/rest/getScanStatus",
+            GetScanStatusParams { id },
+        )
+        .await
+        .map(|r| r.root.body.scan)
+}
 
 #[component]
 pub fn Folders() -> Element {
@@ -23,26 +46,37 @@ pub fn Folders() -> Element {
         nav.push(Route::Home {});
     }
 
-    let mut folder_stats: Signal<Vec<MusicFolderStat>> = use_signal(Default::default);
+    let mut folders: Signal<Vec<Folder>> = use_signal(Default::default);
     use_future(move || async move {
         if let Some(common_state) = common_state() {
-            folder_stats.set(
-                common_state
-                    .send_with_common::<_, SubsonicGetMusicFolderStatsBody>(
-                        "/rest/getMusicFolderStats",
-                        GetMusicFolderStatsParams {},
-                    )
-                    .await
-                    .toast()
-                    .map_or_else(Default::default, |r| {
-                        r.root
+            let ids = common_state
+                .send_with_common::<_, SubsonicGetMusicFolderIdsBody>(
+                    "/rest/getMusicFolderIds",
+                    GetMusicFolderIdsParams {},
+                )
+                .await
+                .toast()
+                .map_or_else(Default::default, |r| r.root.body.ids);
+
+            for id in ids {
+                let result: Result<()> = try {
+                    folders.push(Folder {
+                        stat: common_state
+                            .send_with_common::<_, SubsonicGetMusicFolderStatBody>(
+                                "/rest/getMusicFolderStat",
+                                GetMusicFolderStatParams { id },
+                            )
+                            .await?
+                            .root
                             .body
-                            .folder_stats
-                            .into_iter()
-                            .sorted_by(|a, b| a.music_folder.name.cmp(&b.music_folder.name))
-                            .collect()
-                    }),
-            );
+                            .stat,
+                        scan: get_scan_status(&common_state, id).await?,
+                    })
+                };
+                if result.toast().is_none() {
+                    break;
+                }
+            }
         }
     });
 
@@ -51,7 +85,7 @@ pub fn Folders() -> Element {
     if let Some(idx) = scan_idx()
         && let Some(mode) = scan_mode()
         && let Some(common_state) = common_state()
-        && idx < folder_stats.len()
+        && idx < folders.len()
     {
         spawn(async move {
             scan_idx.set(None);
@@ -60,9 +94,10 @@ pub fn Folders() -> Element {
                 .send_with_common::<_, SubsonicStartScanBody>(
                     "/rest/startScan",
                     StartScanParams {
-                        id: folder_stats
+                        id: folders
                             .get(idx)
                             .expect("folder stat should not be none")
+                            .stat
                             .music_folder
                             .id,
                         mode,
@@ -76,15 +111,15 @@ pub fn Folders() -> Element {
     let mut remove_idx: Signal<Option<usize>> = use_signal(Option::default);
     if let Some(idx) = remove_idx()
         && let Some(common_state) = common_state()
-        && idx < folder_stats.len()
+        && idx < folders.len()
     {
         spawn(async move {
             remove_idx.set(None);
-            let folder_stat = folder_stats.remove(idx);
+            let folder = folders.remove(idx);
             common_state
                 .send_with_common::<_, SubsonicRemoveMusicFolderBody>(
                     "/rest/removeMusicFolder",
-                    RemoveMusicFolderParams { id: folder_stat.music_folder.id },
+                    RemoveMusicFolderParams { id: folder.stat.music_folder.id },
                 )
                 .await
                 .toast();
@@ -121,46 +156,63 @@ pub fn Folders() -> Element {
                         }
                     }
                     tbody {
-                        for (idx , folder_stat) in folder_stats.iter().enumerate() {
-                            tr { key: "{folder_stat.music_folder.id}", class: "my-4",
-                                td { class: "text-base", "{folder_stat.music_folder.name}" }
-                                td { class: "text-base", "{folder_stat.music_folder.path}" }
+                        for (idx , folder) in folders.iter().enumerate() {
+                            tr { key: "{folder.stat.music_folder.id}",
+                                td { class: "text-base", "{folder.stat.music_folder.name}" }
+                                td { class: "text-base", "{folder.stat.music_folder.path}" }
                                 td { class: "text-base", "align": "right",
-                                    "{Unsigned::from(folder_stat.artist_count)}"
+                                    "{Unsigned::from(folder.stat.artist_count)}"
                                 }
                                 td { class: "text-base", "align": "right",
-                                    "{Unsigned::from(folder_stat.album_count)}"
+                                    "{Unsigned::from(folder.stat.album_count)}"
                                 }
                                 td { class: "text-base", "align": "right",
-                                    "{Unsigned::from(folder_stat.song_count)}"
+                                    "{Unsigned::from(folder.stat.song_count)}"
                                 }
                                 td { class: "text-base", "align": "right",
-                                    "{Unsigned::from(folder_stat.user_count)}"
+                                    "{Unsigned::from(folder.stat.user_count)}"
                                 }
                                 td { class: "text-base", "align": "right",
-                                    "{Byte::from(folder_stat.total_size)}"
+                                    "{Byte::from(folder.stat.total_size)}"
                                 }
-                                td { "align": "center",
-                                    button {
-                                        class: "btn btn-ghost btn-xs",
-                                        onclick: move |_| {
-                                            scan_idx.set(Some(idx));
-                                            show_modal("scan-dialog").toast();
-                                        },
-                                        svg {
-                                            class: "fill-none h-6 w-6 stroke-2 stroke-primary",
-                                            xmlns: "http://www.w3.org/2000/svg",
-                                            view_box: "0 0 24 24",
-                                            path {
-                                                stroke_linecap: "round",
-                                                stroke_linejoin: "round",
-                                                d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                                td {
+                                    class: "whitespace-nowrap",
+                                    "align": "center",
+                                    if folder.scan.is_some_and(|status| status.finished_at.is_none()) {
+                                        button { class: "btn btn-ghost btn-xs",
+                                            svg {
+                                                class: "fill-none h-6 w-6 stroke-2 stroke-error",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        button {
+                                            class: "btn btn-ghost btn-xs",
+                                            onclick: move |_| {
+                                                scan_idx.set(Some(idx));
+                                                show_modal("scan-dialog").toast();
+                                            },
+                                            svg {
+                                                class: "fill-none h-6 w-6 stroke-2 stroke-primary",
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                view_box: "0 0 24 24",
+                                                path {
+                                                    stroke_linecap: "round",
+                                                    stroke_linejoin: "round",
+                                                    d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                                                }
                                             }
                                         }
                                     }
                                     Link {
                                         to: Route::Folder {
-                                            id: folder_stat.music_folder.id,
+                                            id: folder.stat.music_folder.id,
                                         },
                                         button { class: "btn btn-ghost btn-xs",
                                             svg {
@@ -177,7 +229,7 @@ pub fn Folders() -> Element {
                                     }
                                     Link {
                                         to: Route::FolderPermission {
-                                            id: folder_stat.music_folder.id,
+                                            id: folder.stat.music_folder.id,
                                         },
                                         button { class: "btn btn-ghost btn-xs",
                                             svg {
@@ -204,6 +256,18 @@ pub fn Folders() -> Element {
                                                 stroke_linejoin: "round",
                                                 d: "M15 13.5H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
                                             }
+                                        }
+                                    }
+                                    br {}
+                                    span { class: "badge badge-ghost",
+                                        if let Some(status) = folder.scan {
+                                            if let Some(finished_at) = status.finished_at {
+                                                "Last scan at: {finished_at.format(DATETIME_FORMAT).unwrap()}"
+                                            } else {
+                                                "Scan started at: {status.started_at.format(DATETIME_FORMAT).unwrap()}"
+                                            }
+                                        } else {
+                                            "No scan yet"
                                         }
                                     }
                                 }
