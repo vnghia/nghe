@@ -302,7 +302,7 @@ jobs:
           environment_variables: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           shell: "bash"
           cpu_count: 4
-          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.7/freebsd-14.0-x86-64.qcow2
+          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.8/freebsd-14.0-x86-64.qcow2
           run: |
             sudo chown -R $(id -u):$(id -g) /root/
             export PATH="/root/.cargo/bin/:$PATH"
