@@ -304,7 +304,8 @@ jobs:
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.4/freebsd-14.0-x86-64.qcow2
           run: |
-            . "/root/.cargo/env"
+            sudo chmod 777 /root/.cargo/
+            . /root/.cargo/env
 
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
