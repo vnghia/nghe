@@ -282,7 +282,7 @@ jobs:
           run: |
             set -euxo pipefail
 
-            pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake llvm16
+            sudo pkg install -y git curl zip unzip cmake ninja pkgconf bash python311 nasm gmake llvm16
 
             rm -rf /usr/bin/make
             ln -s /usr/local/bin/gmake /usr/bin/make
