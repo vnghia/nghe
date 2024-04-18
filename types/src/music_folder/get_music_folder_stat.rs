@@ -1,11 +1,14 @@
 use nghe_proc_macros::{
     add_common_convert, add_request_types_test, add_subsonic_response, add_types_derive,
 };
+use uuid::Uuid;
 
 use super::MusicFolderPath;
 
 #[add_common_convert]
-pub struct GetMusicFolderStatsParams {}
+pub struct GetMusicFolderStatParams {
+    pub id: Uuid,
+}
 
 #[add_types_derive]
 #[derive(Debug)]
@@ -20,8 +23,8 @@ pub struct MusicFolderStat {
 
 #[add_subsonic_response]
 #[derive(Debug)]
-pub struct GetMusicFolderStatsBody {
-    pub folder_stats: Vec<MusicFolderStat>,
+pub struct GetMusicFolderStatBody {
+    pub stat: MusicFolderStat,
 }
 
-add_request_types_test!(GetMusicFolderStatsParams);
+add_request_types_test!(GetMusicFolderStatParams);

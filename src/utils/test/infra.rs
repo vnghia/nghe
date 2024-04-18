@@ -27,6 +27,7 @@ use crate::database::EncryptionKey;
 use crate::models::*;
 use crate::open_subsonic::music_folder::test::add_music_folder;
 use crate::open_subsonic::permission::{add_permission, remove_permission};
+use crate::open_subsonic::scan::test::initialize_scan;
 use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
@@ -147,6 +148,7 @@ impl Infra {
             .then(move |id| async move {
                 start_scan(
                     self.pool(),
+                    initialize_scan(self.pool(), id).await.unwrap(),
                     StartScanParams { id, mode: scan_mode.unwrap_or(ScanMode::Full) },
                     &ArtistIndexConfig::default(),
                     &self.fs.parsing_config,

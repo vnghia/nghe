@@ -311,7 +311,9 @@ pub fn UserForm(props: UserFormProps) -> Element {
                                         }
                                     }
                                     div { class: "label",
-                                        span { class: "text-base text-base-content", "Allow by default" }
+                                        span { class: "text-base text-base-content",
+                                            "Allow by default"
+                                        }
                                     }
                                 }
                             }

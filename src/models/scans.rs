@@ -1,5 +1,7 @@
 use diesel::prelude::*;
+use nghe_proc_macros::add_convert_types;
 pub use scans::*;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 pub use crate::schema::scans;
@@ -22,4 +24,14 @@ pub struct ScanStat {
     pub deleted_artist_count: i64,
     pub deleted_genre_count: i64,
     pub scan_error_count: i64,
+}
+
+#[add_convert_types(into = nghe_types::scan::get_scan_status::ScanStatus)]
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = scans)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ScanStatus {
+    pub started_at: OffsetDateTime,
+    pub finished_at: Option<OffsetDateTime>,
+    pub unrecoverable: Option<bool>,
 }

@@ -8,6 +8,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::artist::build_artist_indices;
+use super::get_scan_status::get_scan_status;
 use super::run_scan::run_scan;
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
@@ -80,14 +81,13 @@ pub async fn finalize_scan(
 
 pub async fn start_scan(
     pool: &DatabasePool,
+    scan_started_at: OffsetDateTime,
     params: StartScanParams,
     artist_index_config: &ArtistIndexConfig,
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
     art_config: &ArtConfig,
 ) -> Result<ScanStat> {
-    let scan_started_at = initialize_scan(pool, params.id).await?;
-
     let scan_result = run_scan(
         pool,
         scan_started_at,
@@ -115,9 +115,14 @@ pub async fn start_scan_handler(
     Extension(art_config): Extension<ArtConfig>,
     req: StartScanRequest,
 ) -> StartScanJsonResponse {
+    let id = req.params.id;
+    let pool = database.pool.clone();
+    let scan_started_at = initialize_scan(&pool, id).await?;
+
     tokio::task::spawn(async move {
         start_scan(
-            &database.pool,
+            &pool,
+            scan_started_at,
             req.params,
             &artist_index_config,
             &parsing_config,
@@ -126,7 +131,13 @@ pub async fn start_scan_handler(
         )
         .await
     });
-    Ok(axum::Json(StartScanBody {}.into()))
+
+    Ok(axum::Json(
+        StartScanBody {
+            scan: get_scan_status(&database.pool, id).await?.map(scans::ScanStatus::into),
+        }
+        .into(),
+    ))
 }
 
 #[cfg(test)]

@@ -204,6 +204,8 @@ pub async fn run_scan(
     scan_config: &ScanConfig,
     art_config: &ArtConfig,
 ) -> Result<ScanStat> {
+    tracing::info!("start scanning and parsing");
+
     let music_folder_id = music_folder.id;
 
     let mut scanned_song_count: usize = 0;
@@ -327,6 +329,7 @@ pub async fn run_scan(
         .execute(&mut pool.get().await?)
         .await?;
 
+    tracing::info!("finish scanning and parsing");
     Ok(ScanStat {
         scanned_song_count,
         upserted_song_count,

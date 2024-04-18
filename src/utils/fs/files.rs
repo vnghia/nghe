@@ -60,7 +60,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug>(
     tx: Sender<ScannedMediaFile>,
     scan_parallel: bool,
 ) {
-    tracing::debug!("start scanning");
+    tracing::info!("start scanning media files");
 
     let types = match try {
         let mut types = TypesBuilder::new();
@@ -92,7 +92,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug>(
         }
     }
 
-    tracing::debug!("finish scanning");
+    tracing::info!("finish scanning media files");
 }
 
 #[cfg(test)]

@@ -1,5 +1,6 @@
 pub mod add_music_folder;
-pub mod get_music_folder_stats;
+pub mod get_music_folder_ids;
+pub mod get_music_folder_stat;
 pub mod remove_music_folder;
 pub mod update_music_folder;
 
