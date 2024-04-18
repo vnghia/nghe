@@ -3,6 +3,8 @@ use nghe_proc_macros::{
 };
 use uuid::Uuid;
 
+use super::get_scan_status::ScanStatus;
+
 #[add_types_derive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ScanMode {
@@ -18,6 +20,8 @@ pub struct StartScanParams {
 }
 
 #[add_subsonic_response]
-pub struct StartScanBody {}
+pub struct StartScanBody {
+    pub scan: Option<ScanStatus>,
+}
 
 add_request_types_test!(StartScanParams);

@@ -90,21 +90,19 @@ pub fn Folders() -> Element {
         spawn(async move {
             scan_idx.set(None);
             scan_mode.set(None);
-            common_state
-                .send_with_common::<_, SubsonicStartScanBody>(
-                    "/rest/startScan",
-                    StartScanParams {
-                        id: folders
-                            .get(idx)
-                            .expect("folder stat should not be none")
-                            .stat
-                            .music_folder
-                            .id,
-                        mode,
-                    },
-                )
-                .await
-                .toast();
+            let result: Result<()> = try {
+                let id = folders.get(idx).expect("folder should not be none").stat.music_folder.id;
+                folders.get_mut(idx).expect("folder stat should not be none").scan = common_state
+                    .send_with_common::<_, SubsonicStartScanBody>(
+                        "/rest/startScan",
+                        StartScanParams { id, mode },
+                    )
+                    .await?
+                    .root
+                    .body
+                    .scan;
+            };
+            result.toast();
         });
     }
 

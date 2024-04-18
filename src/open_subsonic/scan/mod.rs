@@ -34,4 +34,5 @@ pub fn router(
 pub mod test {
     pub use super::album::upsert_album;
     pub use super::artist::upsert_artists;
+    pub use super::start_scan::initialize_scan;
 }
