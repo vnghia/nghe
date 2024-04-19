@@ -34,26 +34,13 @@ async fn get_album_and_song_ids(
         .ok_or_else(|| OSError::NotFound("Album".into()).into())
 }
 
-async fn get_songs(
-    pool: &DatabasePool,
-    user_id: Uuid,
-    song_ids: &[Uuid],
-) -> Result<Vec<SongId3Db>> {
-    get_song_id3_db()
-        .filter(with_permission(user_id))
-        .filter(songs::id.eq_any(song_ids))
-        .get_results::<SongId3Db>(&mut pool.get().await?)
-        .await
-        .map_err(anyhow::Error::from)
-}
-
 pub async fn get_album(
     pool: &DatabasePool,
     user_id: Uuid,
     album_id: Uuid,
 ) -> Result<AlbumId3WithSongs> {
     let (album, song_ids) = get_album_and_song_ids(pool, user_id, album_id).await?;
-    let songs = get_songs(pool, user_id, &song_ids).await?;
+    let songs = get_songs(pool, &song_ids).await?;
 
     Ok(AlbumId3WithSongs {
         album: album.into(pool).await?,

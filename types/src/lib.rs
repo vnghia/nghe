@@ -11,6 +11,7 @@ pub mod media_list;
 pub mod media_retrieval;
 pub mod music_folder;
 pub mod permission;
+pub mod playlists;
 pub mod scan;
 pub mod searching;
 pub mod system;
