@@ -2,7 +2,7 @@
 members = ["frontend", "proc_macros", "types"]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.6.0"
 edition = "2021"
 
 [package]
