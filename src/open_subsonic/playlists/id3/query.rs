@@ -1,6 +1,5 @@
-use diesel;
 use diesel::dsl::{AsSelect, GroupBy, InnerJoin, Select};
-use diesel::{QueryDsl, SelectableHelper};
+use diesel::{self, QueryDsl, SelectableHelper};
 
 use super::db::PlaylistId3Db;
 use crate::models::*;

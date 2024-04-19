@@ -2,7 +2,6 @@ use anyhow::Result;
 use diesel::dsl::sql;
 use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use itertools::Itertools;
 use uuid::Uuid;
 
 use super::id3::*;
@@ -20,7 +19,10 @@ pub async fn get_playlist_and_songs(
         .filter(playlists::id.eq(playlist_id))
         .select((
             PlaylistId3Db::as_select(),
-            sql::<sql_types::Array<sql_types::Uuid>>("array_agg(distinct(songs.id)) song_ids"),
+            sql::<sql_types::Array<sql_types::Uuid>>(
+                "array_agg(playlists_songs.song_id order by playlists_songs.created_at asc) \
+                 song_ids",
+            ),
         ))
         .first::<(PlaylistId3Db, Vec<Uuid>)>(&mut pool.get().await?)
         .await
@@ -28,17 +30,14 @@ pub async fn get_playlist_and_songs(
         .ok_or_else(|| OSError::NotFound("Playlist".into()).into())
 }
 
-pub async fn add_songs(pool: &DatabasePool, playlist_id: Uuid, song_ids: &[Uuid]) -> Result<usize> {
-    diesel::insert_into(playlists_songs::table)
-        .values(
-            song_ids
-                .iter()
-                .copied()
-                .map(|song_id| playlists_songs::AddSong { playlist_id, song_id })
-                .collect_vec(),
-        )
-        .on_conflict_do_nothing()
-        .execute(&mut pool.get().await?)
-        .await
-        .map_err(anyhow::Error::from)
+pub async fn add_songs(pool: &DatabasePool, playlist_id: Uuid, song_ids: &[Uuid]) -> Result<()> {
+    // To ensure the insert order of these songs.
+    for song_id in song_ids.iter().copied() {
+        diesel::insert_into(playlists_songs::table)
+            .values(playlists_songs::AddSong { playlist_id, song_id })
+            .on_conflict_do_nothing()
+            .execute(&mut pool.get().await?)
+            .await?;
+    }
+    Ok(())
 }

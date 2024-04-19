@@ -11,11 +11,19 @@ use crate::open_subsonic::common::sql::greatest::HelperType as Greatest;
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = playlists)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct PlaylistId3Db {
+pub struct BasicPlaylistId3Db {
     pub id: Uuid,
     pub name: String,
     pub public: bool,
     pub created_at: OffsetDateTime,
+}
+
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = playlists)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct PlaylistId3Db {
+    #[diesel(embed)]
+    pub basic: BasicPlaylistId3Db,
     #[diesel(select_expression =
         greatest(max(playlists_songs::created_at).assume_not_null(), playlists::updated_at)
     )]
@@ -34,13 +42,19 @@ pub struct PlaylistId3Db {
     pub duration: f32,
 }
 
+impl From<BasicPlaylistId3Db> for PlaylistId3Db {
+    fn from(value: BasicPlaylistId3Db) -> Self {
+        Self { updated_at: value.created_at, basic: value, song_count: 0, duration: 0_f32 }
+    }
+}
+
 impl From<PlaylistId3Db> for PlaylistId3 {
     fn from(value: PlaylistId3Db) -> Self {
         Self {
-            id: value.id,
-            name: value.name,
-            public: value.public,
-            created: value.created_at,
+            id: value.basic.id,
+            name: value.basic.name,
+            public: value.basic.public,
+            created: value.basic.created_at,
             changed: value.updated_at,
             song_count: value.song_count as _,
             duration: value.duration as _,
