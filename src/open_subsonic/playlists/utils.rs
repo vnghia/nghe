@@ -1,6 +1,5 @@
 use anyhow::Result;
-use diesel::dsl::sql;
-use diesel::{sql_types, ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
@@ -9,22 +8,15 @@ use crate::models::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::{DatabasePool, OSError};
 
-pub async fn get_playlist_and_songs(
+pub async fn get_playlist_id3_with_song_ids(
     pool: &DatabasePool,
     user_id: Uuid,
     playlist_id: Uuid,
-) -> Result<(PlaylistId3Db, Vec<Uuid>)> {
-    get_playlist_id3_db()
+) -> Result<PlaylistId3WithSongIdsDb> {
+    get_playlist_id3_with_song_ids_db()
         .filter(with_permission(user_id))
         .filter(playlists::id.eq(playlist_id))
-        .select((
-            PlaylistId3Db::as_select(),
-            sql::<sql_types::Array<sql_types::Uuid>>(
-                "array_agg(playlists_songs.song_id order by playlists_songs.created_at asc) \
-                 song_ids",
-            ),
-        ))
-        .first::<(PlaylistId3Db, Vec<Uuid>)>(&mut pool.get().await?)
+        .first(&mut pool.get().await?)
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Playlist".into()).into())
