@@ -256,7 +256,6 @@ mod tests {
             .unwrap();
         assert_eq!(update_count, artist_update_index_ids.len());
 
-        let current_time = time::OffsetDateTime::now_utc();
         build_artist_indexes(temp_db.pool(), &artist_index_config).await.unwrap();
         assert_artist_indexes(
             temp_db.pool(),
