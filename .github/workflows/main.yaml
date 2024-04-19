@@ -244,6 +244,13 @@ jobs:
           tags: ${{ steps.meta-musl.outputs.tags }}
 
   build-freebsd:
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "14.0"
+          - "13.2"
+
     runs-on: ubuntu-latest
     env:
       TARGET: x86_64-unknown-freebsd
@@ -300,7 +307,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ steps.build.outputs.target }}-${{ steps.build.outputs.profile }}
+          key: ${{ steps.build.outputs.target }}-${{ matrix.version }}-${{ steps.build.outputs.profile }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Increase postgres max connection
         run: |
@@ -314,11 +321,11 @@ jobs:
           DATABASE_URL: "postgres://postgres:postgres@10.0.2.2:5432/postgres"
         with:
           operating_system: freebsd
-          version: "14.0"
+          version: ${{ matrix.version }}
           environment_variables: "DATABASE_URL ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN"
           shell: "bash"
           cpu_count: 4
-          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.7/freebsd-14.0-x86-64.qcow2
+          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.9/freebsd-${{ matrix.version }}-x86-64.qcow2
           run: |
             sudo chown -R $(id -u):$(id -g) /root/
             export PATH="/root/.cargo/bin/:$PATH"
@@ -331,7 +338,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amd64-${{ steps.build.outputs.env }}
+          name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
           path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
 
@@ -490,4 +497,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
-          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip artifact/frontend.zip
+          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.0.zip artifact/amd64-freebsd-13.2.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip artifact/frontend.zip
