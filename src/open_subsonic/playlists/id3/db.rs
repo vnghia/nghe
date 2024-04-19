@@ -16,6 +16,7 @@ use crate::DatabasePool;
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = playlists)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct BasicPlaylistId3Db {
     pub id: Uuid,
     pub name: String,
@@ -26,6 +27,7 @@ pub struct BasicPlaylistId3Db {
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = playlists)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct PlaylistId3Db {
     #[diesel(embed)]
     pub basic: BasicPlaylistId3Db,
