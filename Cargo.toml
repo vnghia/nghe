@@ -59,7 +59,7 @@ nghe-types = { path = "types" }
 async-trait = { version = "0.1.80" }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form"] }
-diesel = { version = "2.1.5", features = ["time", "uuid"] }
+diesel = { version = "2.1.6", features = ["time", "uuid"] }
 diesel-async = { version = "0.4.1", features = [
   "postgres",
   "deadpool",
@@ -106,7 +106,7 @@ url = "2.5.0"
 uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
 
 [target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
-diesel = { version = "2.1.5", features = ["postgres"] }
+diesel = { version = "2.1.6", features = ["postgres"] }
 
 [profile.release]
 opt-level = 3
