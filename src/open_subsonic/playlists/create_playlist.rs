@@ -3,7 +3,6 @@ use axum::extract::State;
 use diesel::SelectableHelper;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
-use nghe_types::playlists::create_playlist::CreatePlaylistParams;
 use uuid::Uuid;
 
 use super::id3::*;
