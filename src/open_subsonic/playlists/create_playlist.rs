@@ -2,16 +2,13 @@ use anyhow::Result;
 use axum::extract::State;
 use diesel::SelectableHelper;
 use diesel_async::RunQueryDsl;
-use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use nghe_types::playlists::create_playlist::CreatePlaylistParams;
-use nghe_types::playlists::id3::*;
 use uuid::Uuid;
 
 use super::id3::*;
-use super::utils::{add_songs, get_playlist_and_songs};
+use super::utils::{add_songs, get_playlist_id3_with_song_ids};
 use crate::models::*;
-use crate::open_subsonic::id3::*;
 use crate::{Database, DatabasePool, OSError};
 
 add_common_validate!(CreatePlaylistParams);
@@ -21,18 +18,16 @@ pub async fn create_playlist(
     pool: &DatabasePool,
     user_id: Uuid,
     CreatePlaylistParams { name, playlist_id, song_ids }: &CreatePlaylistParams,
-) -> Result<(PlaylistId3Db, Vec<Uuid>)> {
+) -> Result<PlaylistId3WithSongIdsDb> {
     let playlist_id = if let Some(name) = name.as_ref() {
         if song_ids.is_empty() {
-            return Ok((
-                diesel::insert_into(playlists::table)
-                    .values(playlists::NewPlaylist { name: name.into() })
-                    .returning(BasicPlaylistId3Db::as_select())
-                    .get_result::<BasicPlaylistId3Db>(&mut pool.get().await?)
-                    .await?
-                    .into(),
-                vec![],
-            ));
+            return diesel::insert_into(playlists::table)
+                .values(playlists::NewPlaylist { name: name.into() })
+                .returning(BasicPlaylistId3Db::as_select())
+                .get_result::<BasicPlaylistId3Db>(&mut pool.get().await?)
+                .await
+                .map(BasicPlaylistId3Db::into)
+                .map_err(anyhow::Error::from);
         } else {
             let playlist_id = diesel::insert_into(playlists::table)
                 .values(playlists::NewPlaylist { name: name.into() })
@@ -58,27 +53,19 @@ pub async fn create_playlist(
     if !song_ids.is_empty() {
         add_songs(pool, playlist_id, song_ids).await?;
     }
-    get_playlist_and_songs(pool, user_id, playlist_id).await
+    get_playlist_id3_with_song_ids(pool, user_id, playlist_id).await
 }
 
 pub async fn create_playlist_handler(
     State(database): State<Database>,
     req: CreatePlaylistRequest,
 ) -> CreatePlaylistJsonResponse {
-    let pool = &database.pool;
-
-    let (playlist, song_ids) = create_playlist(pool, req.user_id, &req.params).await?;
-    let songs = get_songs(pool, &song_ids).await?;
-
     Ok(axum::Json(
         CreatePlaylistBody {
-            playlist: PlaylistId3WithSongs {
-                playlist: playlist.into(),
-                songs: stream::iter(songs)
-                    .then(|v| async move { v.into(pool).await })
-                    .try_collect()
-                    .await?,
-            },
+            playlist: create_playlist(&database.pool, req.user_id, &req.params)
+                .await?
+                .into(&database.pool)
+                .await?,
         }
         .into(),
     ))
@@ -96,7 +83,7 @@ mod tests {
         let playlist_name = "playlist";
 
         let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
-        let (playlist, song_ids) = create_playlist(
+        let PlaylistId3WithSongIdsDb { playlist, song_ids } = create_playlist(
             infra.pool(),
             infra.user_id(0),
             &CreatePlaylistParams {
@@ -126,7 +113,7 @@ mod tests {
         let mut song_fs_ids = infra.song_ids(..).await;
         song_fs_ids.shuffle(&mut rand::thread_rng());
 
-        let (playlist, song_ids) = create_playlist(
+        let PlaylistId3WithSongIdsDb { playlist, song_ids } = create_playlist(
             infra.pool(),
             infra.user_id(0),
             &CreatePlaylistParams {
@@ -166,11 +153,11 @@ mod tests {
         )
         .await
         .unwrap()
-        .0
+        .playlist
         .basic
         .id;
 
-        let (playlist, song_ids) = create_playlist(
+        let PlaylistId3WithSongIdsDb { playlist, song_ids } = create_playlist(
             infra.pool(),
             infra.user_id(0),
             &CreatePlaylistParams {
