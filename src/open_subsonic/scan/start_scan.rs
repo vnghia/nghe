@@ -7,7 +7,7 @@ use nghe_proc_macros::{add_axum_response, add_common_validate, add_convert_types
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::artist::build_artist_indices;
+use super::artist::build_artist_indexes;
 use super::get_scan_status::get_scan_status;
 use super::run_scan::run_scan;
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
@@ -103,7 +103,7 @@ pub async fn start_scan(
     )
     .await;
 
-    build_artist_indices(pool, artist_index_config).await?;
+    build_artist_indexes(pool, artist_index_config).await?;
     finalize_scan(pool, scan_started_at, params.id, scan_result).await
 }
 

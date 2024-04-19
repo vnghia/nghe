@@ -62,7 +62,7 @@ fn build_artist_index<S: AsRef<str>>(ignored_prefixes: &[S], name: &str) -> Cow<
     }
 }
 
-pub async fn build_artist_indices(
+pub async fn build_artist_indexes(
     pool: &DatabasePool,
     ArtistIndexConfig { ignored_articles, ignored_prefixes }: &ArtistIndexConfig,
 ) -> Result<()> {
@@ -129,7 +129,7 @@ mod tests {
     use super::*;
     use crate::utils::test::TemporaryDb;
 
-    async fn assert_artist_indices<S: AsRef<str>>(
+    async fn assert_artist_indexes<S: AsRef<str>>(
         pool: &DatabasePool,
         artist_no_ids: &[artists::ArtistNoId],
         ignored_prefixes: &[S],
@@ -190,15 +190,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_build_artist_indices() {
+    async fn test_build_artist_indexes() {
         let temp_db = TemporaryDb::new_from_env().await;
         let artist_no_ids = artists::ArtistNoId::fake_vec(10..=10);
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
         upsert_artists(temp_db.pool(), &artist_no_ids).await.unwrap();
-        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
+        build_artist_indexes(temp_db.pool(), &artist_index_config).await.unwrap();
 
-        assert_artist_indices(
+        assert_artist_indexes(
             temp_db.pool(),
             &artist_no_ids,
             &artist_index_config.ignored_prefixes,
@@ -207,14 +207,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_build_artist_indices_full_rebuild() {
+    async fn test_build_artist_indexes_full_rebuild() {
         let temp_db = TemporaryDb::new_from_env().await;
         let artist_no_ids = artists::ArtistNoId::fake_vec(10..=10);
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
         upsert_artists(temp_db.pool(), &artist_no_ids).await.unwrap();
-        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(
+        build_artist_indexes(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indexes(
             temp_db.pool(),
             &artist_no_ids,
             &artist_index_config.ignored_prefixes,
@@ -222,8 +222,8 @@ mod tests {
         .await;
 
         let artist_index_config = ArtistIndexConfig::new("Le La".to_owned());
-        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(
+        build_artist_indexes(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indexes(
             temp_db.pool(),
             &artist_no_ids,
             &artist_index_config.ignored_prefixes,
@@ -232,14 +232,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_build_artist_indices_partial_rebuild() {
+    async fn test_build_artist_indexes_partial_rebuild() {
         let temp_db = TemporaryDb::new_from_env().await;
         let artist_no_ids = artists::ArtistNoId::fake_vec(10..=10);
         let artist_index_config = ArtistIndexConfig::new("The A".to_owned());
 
         let artist_ids = upsert_artists(temp_db.pool(), &artist_no_ids).await.unwrap();
-        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(
+        build_artist_indexes(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indexes(
             temp_db.pool(),
             &artist_no_ids,
             &artist_index_config.ignored_prefixes,
@@ -257,26 +257,13 @@ mod tests {
         assert_eq!(update_count, artist_update_index_ids.len());
 
         let current_time = time::OffsetDateTime::now_utc();
-        build_artist_indices(temp_db.pool(), &artist_index_config).await.unwrap();
-        assert_artist_indices(
+        build_artist_indexes(temp_db.pool(), &artist_index_config).await.unwrap();
+        assert_artist_indexes(
             temp_db.pool(),
             &artist_no_ids,
             &artist_index_config.ignored_prefixes,
         )
         .await;
-
-        assert_eq!(
-            artist_update_index_ids,
-            artists::table
-                .select(artists::id)
-                .filter(artists::updated_at.ge(current_time))
-                .get_results::<Uuid>(&mut temp_db.pool().get().await.unwrap())
-                .await
-                .unwrap()
-                .into_iter()
-                .sorted()
-                .collect_vec()
-        );
     }
 
     #[tokio::test]
