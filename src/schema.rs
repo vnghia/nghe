@@ -110,6 +110,41 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
+    playlists (id) {
+        id -> Uuid,
+        name -> Text,
+        public -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
+    playlists_songs (playlist_id, song_id) {
+        playlist_id -> Uuid,
+        song_id -> Uuid,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
+    playlists_users (playlist_id, user_id) {
+        playlist_id -> Uuid,
+        user_id -> Uuid,
+        access_level -> Int2,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     scans (started_at, music_folder_id) {
         started_at -> Timestamptz,
         is_scanning -> Bool,
@@ -243,6 +278,10 @@ diesel::table! {
 diesel::joinable!(lyrics -> songs (song_id));
 diesel::joinable!(playbacks -> songs (song_id));
 diesel::joinable!(playbacks -> users (user_id));
+diesel::joinable!(playlists_songs -> playlists (playlist_id));
+diesel::joinable!(playlists_songs -> songs (song_id));
+diesel::joinable!(playlists_users -> playlists (playlist_id));
+diesel::joinable!(playlists_users -> users (user_id));
 diesel::joinable!(scans -> music_folders (music_folder_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
@@ -264,6 +303,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     lyrics,
     music_folders,
     playbacks,
+    playlists,
+    playlists_songs,
+    playlists_users,
     scans,
     song_cover_arts,
     songs,
