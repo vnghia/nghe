@@ -20,6 +20,7 @@ use crate::DatabasePool;
 pub struct BasicPlaylistId3Db {
     pub id: Uuid,
     pub name: String,
+    pub comment: Option<String>,
     pub public: bool,
     pub created_at: OffsetDateTime,
 }
@@ -67,6 +68,7 @@ impl From<PlaylistId3Db> for PlaylistId3 {
         Self {
             id: value.basic.id,
             name: value.basic.name,
+            comment: value.basic.comment,
             public: value.basic.public,
             created: value.basic.created_at,
             changed: value.updated_at,

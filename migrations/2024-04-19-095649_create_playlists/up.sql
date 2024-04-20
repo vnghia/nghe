@@ -2,6 +2,7 @@
 create table playlists (
     id uuid not null default gen_random_uuid() constraint playlists_pkey primary key,
     name text not null,
+    comment text default null,
     public boolean not null default false,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
