@@ -138,6 +138,14 @@ mod tests {
         )
         .await
         .unwrap();
+        check_access_level(
+            infra.pool(),
+            playlist.basic.id,
+            infra.user_id(0),
+            playlists_users::AccessLevel::Admin,
+        )
+        .await
+        .unwrap();
 
         assert_eq!(playlist.basic.name, playlist_name);
         assert!(!playlist.basic.public);

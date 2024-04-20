@@ -60,3 +60,117 @@ pub async fn add_songs(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use nghe_types::playlists::create_playlist::CreatePlaylistParams;
+
+    use super::super::create_playlist::create_playlist;
+    use super::*;
+    use crate::open_subsonic::playlists::add_playlist_user::add_playlist_user;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_check_access_level() {
+        let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
+        let playlist_id = create_playlist(
+            infra.pool(),
+            infra.user_id(0),
+            &CreatePlaylistParams {
+                name: Some("playlist".into()),
+                playlist_id: None,
+                song_ids: vec![],
+            },
+        )
+        .await
+        .unwrap()
+        .playlist
+        .basic
+        .id;
+
+        check_access_level(
+            infra.pool(),
+            playlist_id,
+            infra.user_id(0),
+            playlists_users::AccessLevel::Admin,
+        )
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_check_access_level_not_found() {
+        let infra =
+            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(true).await;
+        let playlist_id = create_playlist(
+            infra.pool(),
+            infra.user_id(0),
+            &CreatePlaylistParams {
+                name: Some("playlist".into()),
+                playlist_id: None,
+                song_ids: vec![],
+            },
+        )
+        .await
+        .unwrap()
+        .playlist
+        .basic
+        .id;
+
+        assert!(
+            check_access_level(
+                infra.pool(),
+                playlist_id,
+                infra.user_id(1),
+                playlists_users::AccessLevel::Read,
+            )
+            .await
+            .is_err()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_check_access_level_deny() {
+        let infra =
+            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(true).await;
+        let playlist_id = create_playlist(
+            infra.pool(),
+            infra.user_id(0),
+            &CreatePlaylistParams {
+                name: Some("playlist".into()),
+                playlist_id: None,
+                song_ids: vec![],
+            },
+        )
+        .await
+        .unwrap()
+        .playlist
+        .basic
+        .id;
+
+        add_playlist_user(
+            infra.pool(),
+            infra.user_id(0),
+            playlist_id,
+            infra.user_id(1),
+            playlists_users::AccessLevel::Read,
+        )
+        .await
+        .unwrap();
+
+        assert!(matches!(
+            check_access_level(
+                infra.pool(),
+                playlist_id,
+                infra.user_id(1),
+                playlists_users::AccessLevel::Write,
+            )
+            .await
+            .unwrap_err()
+            .root_cause()
+            .downcast_ref::<OSError>()
+            .unwrap(),
+            OSError::Forbidden(_)
+        ));
+    }
+}
