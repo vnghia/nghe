@@ -1,3 +1,4 @@
+mod add_playlist_user;
 mod create_playlist;
 mod get_playlist;
 mod get_playlists;
@@ -15,4 +16,6 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/getPlaylists.view", get(get_playlists::get_playlists_handler))
         .route("/rest/getPlaylist", get(get_playlist::get_playlist_handler))
         .route("/rest/getPlaylist.view", get(get_playlist::get_playlist_handler))
+        .route("/rest/addPlaylistUser", get(add_playlist_user::add_playlist_user_handler))
+        .route("/rest/addPlaylistUser.view", get(add_playlist_user::add_playlist_user_handler))
 }
