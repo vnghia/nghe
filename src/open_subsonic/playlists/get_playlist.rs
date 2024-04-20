@@ -4,7 +4,7 @@ use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use super::id3::*;
-use super::utils::{check_access_level, get_playlist_id3_with_song_ids};
+use super::utils::{check_access_level, get_playlist_id3_with_song_ids_unchecked};
 use crate::models::*;
 use crate::{Database, DatabasePool};
 
@@ -18,7 +18,7 @@ pub async fn get_playlist(
 ) -> Result<PlaylistId3WithSongIdsDb> {
     check_access_level(pool, playlist_id, user_id, playlists_users::AccessLevel::Read).await?;
 
-    get_playlist_id3_with_song_ids(pool, user_id, playlist_id).await
+    get_playlist_id3_with_song_ids_unchecked(pool, user_id, playlist_id).await
 }
 
 pub async fn get_playlist_handler(

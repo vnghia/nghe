@@ -28,7 +28,23 @@ pub async fn check_access_level(
     }
 }
 
-pub async fn get_playlist_id3_with_song_ids(
+pub async fn add_playlist_user_unchecked(
+    pool: &DatabasePool,
+    playlist_id: Uuid,
+    user_id: Uuid,
+    access_level: playlists_users::AccessLevel,
+) -> Result<()> {
+    diesel::insert_into(playlists_users::table)
+        .values(playlists_users::AddUser { playlist_id, user_id, access_level })
+        .on_conflict((playlists_users::playlist_id, playlists_users::user_id))
+        .do_update()
+        .set(playlists_users::access_level.eq(access_level))
+        .execute(&mut pool.get().await?)
+        .await?;
+    Ok(())
+}
+
+pub async fn get_playlist_id3_with_song_ids_unchecked(
     pool: &DatabasePool,
     user_id: Uuid,
     playlist_id: Uuid,
