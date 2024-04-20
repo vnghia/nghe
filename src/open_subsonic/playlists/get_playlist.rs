@@ -16,7 +16,7 @@ pub async fn get_playlist(
     user_id: Uuid,
     playlist_id: Uuid,
 ) -> Result<PlaylistId3WithSongIdsDb> {
-    check_access_level(pool, user_id, playlists_users::AccessLevel::Read).await?;
+    check_access_level(pool, playlist_id, user_id, playlists_users::AccessLevel::Read).await?;
 
     get_playlist_id3_with_song_ids(pool, user_id, playlist_id).await
 }

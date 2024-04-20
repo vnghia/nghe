@@ -5,7 +5,6 @@ use diesel::prelude::*;
 use diesel::serialize::{Output, ToSql};
 use diesel::sql_types::Int2;
 use diesel::{deserialize, serialize};
-use nghe_proc_macros::add_convert_types;
 pub use playlists_users::*;
 use strum::FromRepr;
 use uuid::Uuid;
@@ -23,7 +22,6 @@ pub enum AccessLevel {
     Admin = 3,
 }
 
-#[add_convert_types(from = nghe_types::playlists::add_playlist_user::AddPlaylistUserParams)]
 #[derive(Insertable)]
 #[diesel(table_name = playlists_users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]

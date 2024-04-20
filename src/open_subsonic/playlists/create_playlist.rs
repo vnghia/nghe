@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
+use super::add_playlist_user::add_playlist_user_unchecked;
 use super::id3::*;
 use super::utils::{add_songs, get_playlist_id3_with_song_ids};
 use crate::models::*;
@@ -20,27 +21,32 @@ pub async fn create_playlist(
 ) -> Result<PlaylistId3WithSongIdsDb> {
     let playlist_id = if let Some(name) = name.as_ref() {
         if song_ids.is_empty() {
-            return diesel::insert_into(playlists::table)
+            let playlist = diesel::insert_into(playlists::table)
                 .values(playlists::NewPlaylist { name: name.into() })
                 .returning(BasicPlaylistId3Db::as_select())
                 .get_result::<BasicPlaylistId3Db>(&mut pool.get().await?)
-                .await
-                .map(BasicPlaylistId3Db::into)
-                .map_err(anyhow::Error::from);
+                .await?;
+            add_playlist_user_unchecked(
+                pool,
+                playlist.id,
+                user_id,
+                playlists_users::AccessLevel::Admin,
+            )
+            .await?;
+            return Ok(playlist.into());
         } else {
             let playlist_id = diesel::insert_into(playlists::table)
                 .values(playlists::NewPlaylist { name: name.into() })
                 .returning(playlists::id)
                 .get_result::<Uuid>(&mut pool.get().await?)
                 .await?;
-            diesel::insert_into(playlists_users::table)
-                .values(playlists_users::AddUser {
-                    playlist_id,
-                    user_id,
-                    access_level: playlists_users::AccessLevel::Admin,
-                })
-                .execute(&mut pool.get().await?)
-                .await?;
+            add_playlist_user_unchecked(
+                pool,
+                playlist_id,
+                user_id,
+                playlists_users::AccessLevel::Admin,
+            )
+            .await?;
             playlist_id
         }
     } else {
@@ -75,6 +81,7 @@ mod tests {
     use rand::seq::SliceRandom;
 
     use super::*;
+    use crate::open_subsonic::playlists::utils::check_access_level;
     use crate::utils::test::Infra;
 
     #[tokio::test]
@@ -90,6 +97,14 @@ mod tests {
                 playlist_id: None,
                 song_ids: vec![],
             },
+        )
+        .await
+        .unwrap();
+        check_access_level(
+            infra.pool(),
+            playlist.basic.id,
+            infra.user_id(0),
+            playlists_users::AccessLevel::Admin,
         )
         .await
         .unwrap();

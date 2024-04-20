@@ -10,10 +10,12 @@ use crate::{DatabasePool, OSError};
 
 pub async fn check_access_level(
     pool: &DatabasePool,
+    playlist_id: Uuid,
     user_id: Uuid,
     minimum_level: playlists_users::AccessLevel,
 ) -> Result<()> {
     if playlists_users::table
+        .filter(playlists_users::playlist_id.eq(playlist_id))
         .filter(playlists_users::user_id.eq(user_id))
         .select(playlists_users::access_level)
         .get_result::<playlists_users::AccessLevel>(&mut pool.get().await?)
@@ -46,7 +48,7 @@ pub async fn add_songs(
     playlist_id: Uuid,
     song_ids: &[Uuid],
 ) -> Result<()> {
-    check_access_level(pool, user_id, playlists_users::AccessLevel::Write).await?;
+    check_access_level(pool, playlist_id, user_id, playlists_users::AccessLevel::Write).await?;
 
     // To ensure the insert order of these songs.
     for song_id in song_ids.iter().copied() {
