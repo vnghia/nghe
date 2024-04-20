@@ -5,9 +5,10 @@ use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
-use super::add_playlist_user::add_playlist_user_unchecked;
 use super::id3::*;
-use super::utils::{add_songs, get_playlist_id3_with_song_ids};
+use super::utils::{
+    add_playlist_user_unchecked, add_songs, get_playlist_id3_with_song_ids_unchecked,
+};
 use crate::models::*;
 use crate::{Database, DatabasePool, OSError};
 
@@ -58,7 +59,7 @@ pub async fn create_playlist(
     if !song_ids.is_empty() {
         add_songs(pool, user_id, playlist_id, song_ids).await?;
     }
-    get_playlist_id3_with_song_ids(pool, user_id, playlist_id).await
+    get_playlist_id3_with_song_ids_unchecked(pool, user_id, playlist_id).await
 }
 
 pub async fn create_playlist_handler(

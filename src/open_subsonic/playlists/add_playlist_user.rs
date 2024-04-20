@@ -1,33 +1,15 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::ExpressionMethods;
-use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use nghe_types::playlists::add_playlist_user::AddPlaylistUserParams;
 use uuid::Uuid;
 
-use super::utils::check_access_level;
+use super::utils::{add_playlist_user_unchecked, check_access_level};
 use crate::models::*;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(AddPlaylistUserParams);
 add_axum_response!(AddPlaylistUserBody);
-
-pub async fn add_playlist_user_unchecked(
-    pool: &DatabasePool,
-    playlist_id: Uuid,
-    user_id: Uuid,
-    access_level: playlists_users::AccessLevel,
-) -> Result<()> {
-    diesel::insert_into(playlists_users::table)
-        .values(playlists_users::AddUser { playlist_id, user_id, access_level })
-        .on_conflict((playlists_users::playlist_id, playlists_users::user_id))
-        .do_update()
-        .set(playlists_users::access_level.eq(access_level))
-        .execute(&mut pool.get().await?)
-        .await?;
-    Ok(())
-}
 
 pub async fn add_playlist_user(
     pool: &DatabasePool,

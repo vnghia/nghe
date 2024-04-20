@@ -1,12 +1,13 @@
 use anyhow::Result;
 use axum::extract::State;
-use diesel::{ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use uuid::Uuid;
 
 use super::id3::*;
 use crate::models::*;
+use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(GetPlaylistsParams);
@@ -14,6 +15,11 @@ add_axum_response!(GetPlaylistsBody);
 
 pub async fn get_playlists(pool: &DatabasePool, user_id: Uuid) -> Result<Vec<PlaylistId3Db>> {
     get_playlist_id3_db()
+        .inner_join(
+            playlists_users::table
+                .on(playlists_users::playlist_id.eq(playlists_songs::playlist_id)),
+        )
+        .filter(with_permission(user_id))
         .filter(playlists_users::user_id.eq(user_id))
         .get_results(&mut pool.get().await?)
         .await
@@ -91,5 +97,35 @@ mod tests {
                 db_playlists.into_iter().sorted_by_key(|p| p.basic.id).collect_vec()
             );
         }
+    }
+
+    #[tokio::test]
+    async fn test_get_playlists_partial() {
+        let n_song = 10_usize;
+        let n_diff = 3_usize;
+
+        let playlist_name = "playlist";
+
+        let mut infra = Infra::new().await.add_user(None).await.n_folder(2).await;
+        infra.add_n_song(0, n_song + n_diff).add_n_song(1, n_song - n_diff).scan(.., None).await;
+        infra.remove_permission(None, 1).await;
+
+        create_playlist(
+            infra.pool(),
+            infra.user_id(0),
+            &CreatePlaylistParams {
+                name: Some(playlist_name.into()),
+                playlist_id: None,
+                song_ids: infra.song_ids(..).await,
+            },
+        )
+        .await
+        .unwrap();
+
+        let playlist = get_playlists(infra.pool(), infra.user_id(0)).await.unwrap().remove(0);
+
+        assert_eq!(playlist.basic.name, playlist_name);
+        assert!(!playlist.basic.public);
+        assert_eq!(playlist.song_count, infra.song_ids(..1).await.len() as i64);
     }
 }

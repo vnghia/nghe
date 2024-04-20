@@ -113,6 +113,7 @@ diesel::table! {
     playlists (id) {
         id -> Uuid,
         name -> Text,
+        comment -> Nullable<Text>,
         public -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,

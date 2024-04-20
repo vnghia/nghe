@@ -9,6 +9,8 @@ use crate::id3::SongId3;
 pub struct PlaylistId3 {
     pub id: Uuid,
     pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub comment: Option<String>,
     pub public: bool,
     pub created: OffsetDateTime,
     pub changed: OffsetDateTime,
