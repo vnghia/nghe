@@ -46,6 +46,38 @@ mod tests {
     use crate::utils::test::Infra;
 
     #[tokio::test]
+    async fn test_get_empty_playlist() {
+        let playlist_name = "playlist";
+
+        let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
+
+        let playlist_id = create_playlist(
+            infra.pool(),
+            infra.user_id(0),
+            &CreatePlaylistParams {
+                name: Some(playlist_name.into()),
+                playlist_id: None,
+                song_ids: None,
+            },
+        )
+        .await
+        .unwrap()
+        .playlist
+        .basic
+        .id;
+
+        let PlaylistId3WithSongIdsDb { playlist, song_ids } =
+            get_playlist(infra.pool(), infra.user_id(0), playlist_id).await.unwrap();
+
+        assert_eq!(playlist.basic.name, playlist_name);
+        assert!(!playlist.basic.public);
+        assert_eq!(playlist.duration, 0_f32);
+        assert_eq!(playlist.song_count, 0);
+
+        assert!(song_ids.is_empty());
+    }
+
+    #[tokio::test]
     async fn test_get_playlist() {
         let n_song = 10_usize;
         let playlist_name = "playlist";

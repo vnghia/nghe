@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 use super::id3::*;
 use crate::models::*;
-use crate::open_subsonic::permission::with_permission;
 use crate::{DatabasePool, OSError};
 
 pub async fn check_access_level(
@@ -49,8 +48,7 @@ pub async fn get_playlist_id3_with_song_ids_unchecked(
     playlist_id: Uuid,
     user_id: Uuid,
 ) -> Result<PlaylistId3WithSongIdsDb> {
-    get_playlist_id3_with_song_ids_db()
-        .filter(with_permission(user_id))
+    get_playlist_id3_with_song_ids_db(user_id)
         .filter(playlists::id.eq(playlist_id))
         .first(&mut pool.get().await?)
         .await

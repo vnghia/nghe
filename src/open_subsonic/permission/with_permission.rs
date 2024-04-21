@@ -4,9 +4,7 @@ use uuid::Uuid;
 
 use crate::models::*;
 
-pub fn with_permission(
-    user_id: Uuid,
-) -> exists<
+pub type WithPermission = exists<
     Filter<
         Filter<
             user_music_folder_permissions::table,
@@ -14,7 +12,9 @@ pub fn with_permission(
         >,
         Eq<user_music_folder_permissions::music_folder_id, songs::music_folder_id>,
     >,
-> {
+>;
+
+pub fn with_permission(user_id: Uuid) -> WithPermission {
     exists(
         user_music_folder_permissions::table
             .filter(user_music_folder_permissions::user_id.eq(user_id))
