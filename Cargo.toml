@@ -94,8 +94,6 @@ xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
 fake = { workspace = true }
 serde_json = { workspace = true }
 
-nghe-types = { path = "types", features = ["test"] }
-
 http-body-util = { version = "0.1.1" }
 image = { version = "0.25.1", default-features = false, features = [
   "jpeg",

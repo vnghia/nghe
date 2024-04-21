@@ -7,7 +7,6 @@ use crate::id3::*;
 
 #[add_common_convert]
 #[derive(Debug)]
-#[cfg_attr(feature = "test", derive(Default))]
 pub struct Search3Params {
     pub query: String,
     pub artist_count: Option<u32>,

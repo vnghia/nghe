@@ -4,7 +4,6 @@ use serde_with::serde_as;
 #[serde_as]
 #[add_types_derive]
 #[derive(Debug)]
-#[cfg_attr(feature = "test", derive(Default))]
 pub struct SetupParams {
     pub username: String,
     #[serde_as(as = "serde_with::hex::Hex")]

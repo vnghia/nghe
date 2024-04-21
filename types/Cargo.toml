@@ -3,10 +3,6 @@ name = "nghe-types"
 version = { workspace = true }
 edition = { workspace = true }
 
-[features]
-default = []
-test = []
-
 [dependencies]
 concat-string = { workspace = true }
 constcat = { workspace = true }

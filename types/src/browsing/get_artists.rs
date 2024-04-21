@@ -13,7 +13,7 @@ pub struct GetArtistsParams {
 }
 
 #[add_types_derive]
-#[cfg_attr(feature = "test", derive(Debug))]
+#[derive(Debug)]
 pub struct Index {
     pub name: String,
     #[serde(rename = "artist")]
@@ -21,7 +21,7 @@ pub struct Index {
 }
 
 #[add_types_derive]
-#[cfg_attr(feature = "test", derive(Debug))]
+#[derive(Debug)]
 pub struct Indexes {
     pub ignored_articles: String,
     pub index: Vec<Index>,
