@@ -7,19 +7,14 @@ use uuid::Uuid;
 
 use super::id3::*;
 use crate::models::*;
-use crate::open_subsonic::permission::with_permission;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(GetPlaylistsParams);
 add_axum_response!(GetPlaylistsBody);
 
 pub async fn get_playlists(pool: &DatabasePool, user_id: Uuid) -> Result<Vec<PlaylistId3Db>> {
-    get_playlist_id3_db()
-        .inner_join(
-            playlists_users::table
-                .on(playlists_users::playlist_id.eq(playlists_songs::playlist_id)),
-        )
-        .filter(with_permission(user_id))
+    get_playlist_id3_db(user_id)
+        .inner_join(playlists_users::table.on(playlists_users::playlist_id.eq(playlists::id)))
         .filter(playlists_users::user_id.eq(user_id))
         .get_results(&mut pool.get().await?)
         .await
@@ -60,6 +55,23 @@ mod tests {
         let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
         let playlists = get_playlists(infra.pool(), infra.user_id(0)).await.unwrap();
         assert!(playlists.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_playlists_empty_song() {
+        let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
+
+        create_playlist(
+            infra.pool(),
+            infra.user_id(0),
+            &CreatePlaylistParams { name: Some(Faker.fake()), playlist_id: None, song_ids: None },
+        )
+        .await
+        .unwrap();
+
+        let playlist = get_playlists(infra.pool(), infra.user_id(0)).await.unwrap().remove(0);
+        assert_eq!(playlist.song_count, 0);
+        assert_eq!(playlist.duration, 0_f32);
     }
 
     #[tokio::test]

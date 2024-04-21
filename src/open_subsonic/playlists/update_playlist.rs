@@ -147,7 +147,6 @@ mod tests {
                 .await
                 .unwrap()
                 .song_ids;
-
         assert_eq!(song_fs_ids, song_ids);
     }
 
@@ -187,7 +186,6 @@ mod tests {
                 .await
                 .unwrap()
                 .song_ids;
-
         assert_eq!(song_fs_ids, song_ids);
     }
 
