@@ -1,7 +1,5 @@
 use dioxus::prelude::*;
-use nghe_types::music_folder::add_music_folder::{
-    AddMusicFolderParams, SubsonicAddMusicFolderBody,
-};
+use nghe_types::music_folder::add_music_folder::{AddMusicFolderBody, AddMusicFolderParams};
 
 use super::super::Toast;
 use super::FolderForm;
@@ -26,7 +24,7 @@ pub fn AddFolder() -> Element {
     {
         spawn(async move {
             if common_state
-                .send_with_common::<_, SubsonicAddMusicFolderBody>(
+                .send_with_common::<_, AddMusicFolderBody>(
                     "/rest/addMusicFolder",
                     AddMusicFolderParams {
                         name: name().expect("name should not be none"),

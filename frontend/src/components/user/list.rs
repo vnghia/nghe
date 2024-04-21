@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use itertools::Itertools;
-use nghe_types::user::delete_user::{DeleteUserParams, SubsonicDeleteUserBody};
-use nghe_types::user::get_users::{GetUsersParams, SubsonicGetUsersBody};
+use nghe_types::user::delete_user::{DeleteUserBody, DeleteUserParams};
+use nghe_types::user::get_users::{GetUsersBody, GetUsersParams};
 use nghe_types::user::User;
 
 use super::super::{Loading, Toast};
@@ -21,16 +21,11 @@ pub fn Users() -> Element {
         if let Some(common_state) = common_state() {
             users.set(
                 common_state
-                    .send_with_common::<_, SubsonicGetUsersBody>(
-                        "/rest/getUsers",
-                        GetUsersParams {},
-                    )
+                    .send_with_common::<_, GetUsersBody>("/rest/getUsers", GetUsersParams {})
                     .await
                     .toast()
                     .map_or_else(Default::default, |r| {
-                        r.root
-                            .body
-                            .users
+                        r.users
                             .into_iter()
                             .sorted_by(|a, b| a.basic.username.cmp(&b.basic.username))
                             .collect()
@@ -48,7 +43,7 @@ pub fn Users() -> Element {
             delete_idx.set(None);
             let user = users.remove(idx);
             common_state
-                .send_with_common::<_, SubsonicDeleteUserBody>(
+                .send_with_common::<_, DeleteUserBody>(
                     "/rest/deleteUser",
                     DeleteUserParams { id: user.id },
                 )

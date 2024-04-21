@@ -49,6 +49,26 @@ pub struct ErrorConstantResponse {
     constant: ConstantResponse,
 }
 
+#[add_types_derive(fake = false)]
+pub struct RootResponse<C, B> {
+    #[serde(flatten)]
+    pub constant: C,
+    #[serde(flatten)]
+    pub body: B,
+}
+
+#[add_types_derive(fake = false)]
+pub struct SubsonicResponse<C, B> {
+    #[serde(rename = "subsonic-response")]
+    pub root: RootResponse<C, B>,
+}
+
+impl<C: Default, B> From<B> for SubsonicResponse<C, B> {
+    fn from(body: B) -> Self {
+        Self { root: RootResponse { constant: Default::default(), body } }
+    }
+}
+
 emit_constant_serialize!(open_subsonic_version, str, constant::OPEN_SUBSONIC_VERSION);
 emit_constant_serialize!(server_type, str, constant::SERVER_NAME);
 emit_constant_serialize!(server_version, str, constant::SERVER_VERSION);

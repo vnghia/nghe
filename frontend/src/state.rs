@@ -5,8 +5,9 @@ use concat_string::concat_string;
 use dioxus::prelude::*;
 use dioxus_sdk::storage::{use_synced_storage, LocalStorage};
 use gloo::net::http::{Request, Response};
-use nghe_types::error::SubsonicErrorBody;
+use nghe_types::error::ErrorSubsonicResponse;
 use nghe_types::params::{CommonParams, WithCommon};
+use nghe_types::response::{SubsonicResponse, SuccessConstantResponse};
 use nghe_types::user::Role;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -34,7 +35,7 @@ impl ResponseError for Response {
         if self.ok() {
             Ok(self)
         } else {
-            let error = self.json::<SubsonicErrorBody>().await?.root.body.error;
+            let error = self.json::<ErrorSubsonicResponse>().await?.root.body.error;
             Err(anyhow::anyhow!("Opensubsonic error \"{}\" ({})", error.message, error.code))
         }
     }
@@ -74,28 +75,28 @@ impl CommonState {
     pub async fn send_with_common<
         'common,
         P: WithCommon<'common, Out = impl Serialize>,
-        R: DeserializeOwned,
+        B: DeserializeOwned,
     >(
         &'common self,
         url: &'static str,
         params: P,
-    ) -> Result<R> {
+    ) -> Result<B> {
         Self::send_with_query(&self.server_url, url, &self.build_url_with_common(params)).await
     }
 
-    pub async fn send<P: Serialize, R: DeserializeOwned>(
+    pub async fn send<P: Serialize, B: DeserializeOwned>(
         server_url: &Option<Url>,
         url: &'static str,
         params: P,
-    ) -> Result<R> {
+    ) -> Result<B> {
         Self::send_with_query(server_url, url, &Self::build_url(params)).await
     }
 
-    async fn send_with_query<R: DeserializeOwned>(
+    async fn send_with_query<B: DeserializeOwned>(
         server_url: &Option<Url>,
         url: &'static str,
         query: &str,
-    ) -> Result<R> {
+    ) -> Result<B> {
         Request::get(&concat_string!(
             server_url
                 .as_ref()
@@ -114,8 +115,9 @@ impl CommonState {
         .await?
         .error_for_status()
         .await?
-        .json::<R>()
+        .json::<SubsonicResponse<SuccessConstantResponse, B>>()
         .await
+        .map(|r| r.root.body)
         .map_err(anyhow::Error::from)
     }
 }

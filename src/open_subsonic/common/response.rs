@@ -10,7 +10,7 @@ mod tests {
         add_axum_response!(TestBody);
 
         assert_eq!(
-            to_value(Into::<SubsonicTestBody>::into(TestBody {})).unwrap(),
+            to_value(Into::<TestSubsonicResponse>::into(TestBody {})).unwrap(),
             json!({
                 "subsonic-response": {
                     "status": "ok",
@@ -33,7 +33,7 @@ mod tests {
         let a = 10;
 
         assert_eq!(
-            to_value(Into::<SubsonicTestBody>::into(TestBody { a })).unwrap(),
+            to_value(Into::<TestSubsonicResponse>::into(TestBody { a })).unwrap(),
             json!({
                 "subsonic-response": {
                     "a": a,
@@ -57,7 +57,7 @@ mod tests {
         let camel_case = 10;
 
         assert_eq!(
-            to_value(Into::<SubsonicTestBody>::into(TestBody { camel_case })).unwrap(),
+            to_value(Into::<TestSubsonicResponse>::into(TestBody { camel_case })).unwrap(),
             json!({
                 "subsonic-response": {
                     "camelCase": camel_case,
@@ -78,7 +78,7 @@ mod tests {
         add_axum_response!(TestBody);
 
         assert_eq!(
-            to_value(Into::<SubsonicTestBody>::into(TestBody {})).unwrap(),
+            to_value(Into::<TestSubsonicResponse>::into(TestBody {})).unwrap(),
             json!({
                 "subsonic-response": {
                     "status": "failed",
@@ -101,7 +101,7 @@ mod tests {
         let a = 10;
 
         assert_eq!(
-            to_value(Into::<SubsonicTestBody>::into(TestBody { a })).unwrap(),
+            to_value(Into::<TestSubsonicResponse>::into(TestBody { a })).unwrap(),
             json!({
                 "subsonic-response": {
                     "a": a,

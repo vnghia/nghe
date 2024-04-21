@@ -1,14 +1,10 @@
 use std::collections::HashSet;
 
 use dioxus::prelude::*;
-use nghe_types::permission::add_permission::{AddPermissionParams, SubsonicAddPermissionBody};
-use nghe_types::permission::get_allowed_users::{
-    GetAllowedUsersParams, SubsonicGetAllowedUsersBody,
-};
-use nghe_types::permission::remove_permission::{
-    RemovePermissionParams, SubsonicRemovePermissionBody,
-};
-use nghe_types::user::get_basic_user_ids::{GetBasicUserIdsParams, SubsonicGetBasicUserIdsBody};
+use nghe_types::permission::add_permission::{AddPermissionBody, AddPermissionParams};
+use nghe_types::permission::get_allowed_users::{GetAllowedUsersBody, GetAllowedUsersParams};
+use nghe_types::permission::remove_permission::{RemovePermissionBody, RemovePermissionParams};
+use nghe_types::user::get_basic_user_ids::{GetBasicUserIdsBody, GetBasicUserIdsParams};
 use nghe_types::user::BasicUserId;
 use uuid::Uuid;
 
@@ -29,25 +25,21 @@ pub fn FolderPermission(id: Uuid) -> Element {
         if let Some(common_state) = common_state() {
             let result: Result<_, anyhow::Error> = try {
                 let allowed_ids = common_state
-                    .send_with_common::<_, SubsonicGetAllowedUsersBody>(
+                    .send_with_common::<_, GetAllowedUsersBody>(
                         "/rest/getAllowedUsers",
                         GetAllowedUsersParams { id },
                     )
                     .await?
-                    .root
-                    .body
                     .ids
                     .into_iter()
                     .collect::<HashSet<_>>();
                 users.set(
                     common_state
-                        .send_with_common::<_, SubsonicGetBasicUserIdsBody>(
+                        .send_with_common::<_, GetBasicUserIdsBody>(
                             "/rest/getBasicUserIds",
                             GetBasicUserIdsParams {},
                         )
                         .await?
-                        .root
-                        .body
                         .basic_user_ids
                         .into_iter()
                         .map(|u| (allowed_ids.contains(&u.id), u))
@@ -70,7 +62,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
 
             if allow {
                 common_state
-                    .send_with_common::<_, SubsonicAddPermissionBody>(
+                    .send_with_common::<_, AddPermissionBody>(
                         "/rest/addPermission",
                         AddPermissionParams { user_id: Some(user_id), music_folder_id: Some(id) },
                     )
@@ -78,7 +70,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
                     .toast();
             } else {
                 common_state
-                    .send_with_common::<_, SubsonicRemovePermissionBody>(
+                    .send_with_common::<_, RemovePermissionBody>(
                         "/rest/removePermission",
                         RemovePermissionParams {
                             user_id: Some(user_id),
