@@ -9,9 +9,9 @@ pub struct UpdatePlaylistParams {
     pub comment: Option<String>,
     pub public: Option<bool>,
     #[serde(rename = "songIdToAdd")]
-    pub song_ids_to_add: Vec<Uuid>,
+    pub song_ids_to_add: Option<Vec<Uuid>>,
     #[serde(rename = "songIndexToRemove")]
-    pub song_indexes_to_remove: Vec<u32>,
+    pub song_indexes_to_remove: Option<Vec<u32>>,
 }
 
 #[add_subsonic_response]

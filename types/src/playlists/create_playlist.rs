@@ -9,7 +9,7 @@ pub struct CreatePlaylistParams {
     pub name: Option<String>,
     pub playlist_id: Option<Uuid>,
     #[serde(rename = "songId")]
-    pub song_ids: Vec<Uuid>,
+    pub song_ids: Option<Vec<Uuid>>,
 }
 
 #[add_subsonic_response]

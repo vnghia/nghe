@@ -95,7 +95,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: vec![],
+                song_ids: None,
             },
         )
         .await
@@ -124,7 +124,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: vec![],
+                song_ids: None,
             },
         )
         .await
@@ -155,7 +155,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: vec![],
+                song_ids: None,
             },
         )
         .await

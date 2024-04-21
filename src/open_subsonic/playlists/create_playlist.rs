@@ -21,7 +21,7 @@ pub async fn create_playlist(
     CreatePlaylistParams { name, playlist_id, song_ids }: &CreatePlaylistParams,
 ) -> Result<PlaylistId3WithSongIdsDb> {
     let playlist_id = if let Some(name) = name.as_ref() {
-        if song_ids.is_empty() {
+        if song_ids.is_none() {
             let playlist = diesel::insert_into(playlists::table)
                 .values(playlists::NewPlaylist { name: name.into() })
                 .returning(BasicPlaylistId3Db::as_select())
@@ -56,7 +56,7 @@ pub async fn create_playlist(
         })?
     };
 
-    if !song_ids.is_empty() {
+    if let Some(song_ids) = song_ids {
         add_songs(pool, playlist_id, user_id, song_ids).await?;
     }
     get_playlist_id3_with_song_ids_unchecked(pool, playlist_id, user_id).await
@@ -96,7 +96,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: vec![],
+                song_ids: None,
             },
         )
         .await
@@ -134,7 +134,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: song_fs_ids.clone(),
+                song_ids: Some(song_fs_ids.clone()),
             },
         )
         .await
@@ -171,7 +171,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: song_fs_ids[..5].to_vec(),
+                song_ids: Some(song_fs_ids[..5].to_vec()),
             },
         )
         .await
@@ -186,7 +186,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: None,
                 playlist_id: Some(playlist_id),
-                song_ids: song_fs_ids[5..].to_vec(),
+                song_ids: Some(song_fs_ids[5..].to_vec()),
             },
         )
         .await
@@ -214,7 +214,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: song_fs_ids[..5].to_vec(),
+                song_ids: Some(song_fs_ids[..5].to_vec()),
             },
         )
         .await
@@ -230,7 +230,7 @@ mod tests {
                 &CreatePlaylistParams {
                     name: None,
                     playlist_id: Some(playlist_id),
-                    song_ids: song_fs_ids[5..].to_vec(),
+                    song_ids: Some(song_fs_ids[5..].to_vec()),
                 },
             )
             .await

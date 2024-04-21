@@ -54,7 +54,7 @@ async fn update_playlist(
     }
 
     // removing before adding so we don't accidentally remove newly added songs.
-    if !song_indexes_to_remove.is_empty() {
+    if let Some(song_indexes_to_remove) = song_indexes_to_remove {
         delete_by_indexes_unchecked(
             pool,
             playlist_id,
@@ -64,7 +64,7 @@ async fn update_playlist(
         .await?
     }
 
-    if !song_ids_to_add.is_empty() {
+    if let Some(song_ids_to_add) = song_ids_to_add {
         add_songs(pool, playlist_id, user_id, &song_ids_to_add).await?;
     }
 
@@ -98,7 +98,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: vec![],
+                song_ids: None,
             },
         )
         .await
@@ -127,7 +127,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: song_fs_ids.clone(),
+                song_ids: Some(song_fs_ids.clone()),
             },
         )
         .await
@@ -165,7 +165,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: infra.song_ids(..).await,
+                song_ids: Some(infra.song_ids(..).await),
             },
         )
         .await
@@ -205,7 +205,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: infra.song_ids(..).await,
+                song_ids: Some(infra.song_ids(..).await),
             },
         )
         .await
@@ -225,8 +225,8 @@ mod tests {
                 name: Some(new_name.into()),
                 comment: Some(new_comment.into()),
                 public: Some(true),
-                song_ids_to_add: vec![],
-                song_indexes_to_remove: vec![],
+                song_ids_to_add: None,
+                song_indexes_to_remove: None,
             },
         )
         .await
@@ -257,7 +257,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: infra.song_ids(..).await,
+                song_ids: Some(infra.song_ids(..).await),
             },
         )
         .await
@@ -276,8 +276,8 @@ mod tests {
                 name: None,
                 comment: Some(new_comment.into()),
                 public: None,
-                song_ids_to_add: vec![],
-                song_indexes_to_remove: vec![],
+                song_ids_to_add: None,
+                song_indexes_to_remove: None,
             },
         )
         .await
@@ -299,8 +299,8 @@ mod tests {
                 name: None,
                 comment: Some(Default::default()),
                 public: None,
-                song_ids_to_add: vec![],
-                song_indexes_to_remove: vec![],
+                song_ids_to_add: None,
+                song_indexes_to_remove: None,
             },
         )
         .await
@@ -330,7 +330,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: song_fs_ids[..5].to_vec(),
+                song_ids: Some(song_fs_ids[..5].to_vec()),
             },
         )
         .await
@@ -347,8 +347,8 @@ mod tests {
                 name: None,
                 comment: None,
                 public: None,
-                song_ids_to_add: song_fs_ids[5..].to_vec(),
-                song_indexes_to_remove: vec![],
+                song_ids_to_add: Some(song_fs_ids[5..].to_vec()),
+                song_indexes_to_remove: None,
             },
         )
         .await
@@ -377,7 +377,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: song_fs_ids.clone(),
+                song_ids: Some(song_fs_ids.clone()),
             },
         )
         .await
@@ -394,8 +394,8 @@ mod tests {
                 name: None,
                 comment: None,
                 public: None,
-                song_ids_to_add: vec![],
-                song_indexes_to_remove: vec![1, 10],
+                song_ids_to_add: None,
+                song_indexes_to_remove: Some(vec![1, 10]),
             },
         )
         .await
@@ -427,7 +427,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some("playlist".into()),
                 playlist_id: None,
-                song_ids: song_fs_ids[..5].to_vec(),
+                song_ids: Some(song_fs_ids[..5].to_vec()),
             },
         )
         .await
@@ -444,8 +444,8 @@ mod tests {
                 name: None,
                 comment: None,
                 public: None,
-                song_ids_to_add: song_fs_ids[5..].to_vec(),
-                song_indexes_to_remove: vec![1, 2, 7],
+                song_ids_to_add: Some(song_fs_ids[5..].to_vec()),
+                song_indexes_to_remove: Some(vec![1, 2, 7]),
             },
         )
         .await

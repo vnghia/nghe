@@ -80,10 +80,12 @@ mod tests {
                         &CreatePlaylistParams {
                             name: Some(Faker.fake()),
                             playlist_id: None,
-                            song_ids: song_fs_ids
-                                .choose_multiple(&mut rand::thread_rng(), (2..4).fake())
-                                .copied()
-                                .collect(),
+                            song_ids: Some(
+                                song_fs_ids
+                                    .choose_multiple(&mut rand::thread_rng(), (2..4).fake())
+                                    .copied()
+                                    .collect(),
+                            ),
                         },
                     )
                     .await
@@ -116,7 +118,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: infra.song_ids(..).await,
+                song_ids: Some(infra.song_ids(..).await),
             },
         )
         .await
