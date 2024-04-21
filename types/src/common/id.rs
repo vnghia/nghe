@@ -8,8 +8,7 @@ use uuid::Uuid;
 pub const TYPED_ID_SEPARATOR: char = ':';
 pub const TYPED_ID_STR: &str = TYPED_ID_SEPARATOR.as_ascii().unwrap().as_str();
 
-#[derive(Debug, Default, Clone, Copy, AsRefStr, EnumString)]
-#[cfg_attr(feature = "test", derive(PartialEq, Eq))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, AsRefStr, EnumString)]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub enum MediaType {
     #[strum(serialize = "ar")]
@@ -21,8 +20,7 @@ pub enum MediaType {
     Song,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
-#[cfg_attr(feature = "test", derive(PartialEq, Eq))]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub struct TypedId<T> {
     pub t: Option<T>,
