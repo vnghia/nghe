@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use nghe_types::music_folder::update_music_folder::{
-    SubsonicUpdateMusicFolderBody, UpdateMusicFolderParams,
+    UpdateMusicFolderBody, UpdateMusicFolderParams,
 };
 use uuid::Uuid;
 
@@ -26,7 +26,7 @@ pub fn Folder(id: Uuid) -> Element {
     {
         spawn(async move {
             if common_state
-                .send_with_common::<_, SubsonicUpdateMusicFolderBody>(
+                .send_with_common::<_, UpdateMusicFolderBody>(
                     "/rest/updateMusicFolder",
                     UpdateMusicFolderParams { id, name: name(), path: path() },
                 )

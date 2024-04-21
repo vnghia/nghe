@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use nghe_types::params::{to_password_token, CommonParams};
-use nghe_types::user::login::{LoginBody, LoginParams, SubsonicLoginBody};
+use nghe_types::user::login::{LoginBody, LoginParams};
 use rand::distributions::{Alphanumeric, DistString};
 use url::Url;
 
@@ -33,10 +33,8 @@ pub fn Login() -> Element {
                     role: Default::default(),
                 };
                 let LoginBody { id, role } = common_state_inner
-                    .send_with_common::<_, SubsonicLoginBody>("/rest/login", LoginParams {})
-                    .await?
-                    .root
-                    .body;
+                    .send_with_common::<_, LoginBody>("/rest/login", LoginParams {})
+                    .await?;
 
                 common_state.set(Some(CommonState { id, role, ..common_state_inner }));
             };

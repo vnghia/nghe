@@ -1,18 +1,16 @@
 use anyhow::Result;
 use dioxus::prelude::*;
 use nghe_types::music_folder::get_music_folder_ids::{
-    GetMusicFolderIdsParams, SubsonicGetMusicFolderIdsBody,
+    GetMusicFolderIdsBody, GetMusicFolderIdsParams,
 };
 use nghe_types::music_folder::get_music_folder_stat::{
-    GetMusicFolderStatParams, MusicFolderStat, SubsonicGetMusicFolderStatBody,
+    GetMusicFolderStatBody, GetMusicFolderStatParams, MusicFolderStat,
 };
 use nghe_types::music_folder::remove_music_folder::{
-    RemoveMusicFolderParams, SubsonicRemoveMusicFolderBody,
+    RemoveMusicFolderBody, RemoveMusicFolderParams,
 };
-use nghe_types::scan::get_scan_status::{
-    GetScanStatusParams, ScanStatus, SubsonicGetScanStatusBody,
-};
-use nghe_types::scan::start_scan::{ScanMode, StartScanParams, SubsonicStartScanBody};
+use nghe_types::scan::get_scan_status::{GetScanStatusBody, GetScanStatusParams, ScanStatus};
+use nghe_types::scan::start_scan::{ScanMode, StartScanBody, StartScanParams};
 use readable::byte::*;
 use readable::num::*;
 use uuid::Uuid;
@@ -30,12 +28,9 @@ struct Folder {
 
 async fn get_scan_status(common_state: &CommonState, id: Uuid) -> Result<Option<ScanStatus>> {
     common_state
-        .send_with_common::<_, SubsonicGetScanStatusBody>(
-            "/rest/getScanStatus",
-            GetScanStatusParams { id },
-        )
+        .send_with_common::<_, GetScanStatusBody>("/rest/getScanStatus", GetScanStatusParams { id })
         .await
-        .map(|r| r.root.body.scan)
+        .map(|r| r.scan)
 }
 
 #[component]
@@ -50,25 +45,23 @@ pub fn Folders() -> Element {
     use_future(move || async move {
         if let Some(common_state) = common_state() {
             let ids = common_state
-                .send_with_common::<_, SubsonicGetMusicFolderIdsBody>(
+                .send_with_common::<_, GetMusicFolderIdsBody>(
                     "/rest/getMusicFolderIds",
                     GetMusicFolderIdsParams {},
                 )
                 .await
                 .toast()
-                .map_or_else(Default::default, |r| r.root.body.ids);
+                .map_or_else(Default::default, |r| r.ids);
 
             for id in ids {
                 let result: Result<()> = try {
                     folders.push(Folder {
                         stat: common_state
-                            .send_with_common::<_, SubsonicGetMusicFolderStatBody>(
+                            .send_with_common::<_, GetMusicFolderStatBody>(
                                 "/rest/getMusicFolderStat",
                                 GetMusicFolderStatParams { id },
                             )
                             .await?
-                            .root
-                            .body
                             .stat,
                         scan: get_scan_status(&common_state, id).await?,
                     })
@@ -93,13 +86,11 @@ pub fn Folders() -> Element {
             let result: Result<()> = try {
                 let id = folders.get(idx).expect("folder should not be none").stat.music_folder.id;
                 folders.get_mut(idx).expect("folder stat should not be none").scan = common_state
-                    .send_with_common::<_, SubsonicStartScanBody>(
+                    .send_with_common::<_, StartScanBody>(
                         "/rest/startScan",
                         StartScanParams { id, mode },
                     )
                     .await?
-                    .root
-                    .body
                     .scan;
             };
             result.toast();
@@ -115,7 +106,7 @@ pub fn Folders() -> Element {
             remove_idx.set(None);
             let folder = folders.remove(idx);
             common_state
-                .send_with_common::<_, SubsonicRemoveMusicFolderBody>(
+                .send_with_common::<_, RemoveMusicFolderBody>(
                     "/rest/removeMusicFolder",
                     RemoveMusicFolderParams { id: folder.stat.music_folder.id },
                 )

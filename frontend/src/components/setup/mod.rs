@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use nghe_types::user::setup::{SetupParams, SubsonicSetupBody};
+use nghe_types::user::setup::{SetupBody, SetupParams};
 use url::Url;
 
 use super::{Toast, UserForm};
@@ -21,7 +21,7 @@ pub fn Setup() -> Element {
             let result: Result<_, anyhow::Error> = try {
                 let server_url = server_url();
 
-                CommonState::send::<_, SubsonicSetupBody>(
+                CommonState::send::<_, SetupBody>(
                     &server_url,
                     "rest/setup",
                     SetupParams {

@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use nghe_types::user::create_user::{CreateUserParams, SubsonicCreateUserBody};
+use nghe_types::user::create_user::{CreateUserBody, CreateUserParams};
 use nghe_types::user::Role;
 
 use super::super::Toast;
@@ -34,7 +34,7 @@ pub fn CreateUser() -> Element {
             let Role { admin_role, stream_role, download_role, share_role } = role();
 
             if common_state
-                .send_with_common::<_, SubsonicCreateUserBody>(
+                .send_with_common::<_, CreateUserBody>(
                     "/rest/createUser",
                     CreateUserParams {
                         username: username(),
