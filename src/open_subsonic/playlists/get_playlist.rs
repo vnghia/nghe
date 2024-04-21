@@ -61,7 +61,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: song_fs_ids.clone(),
+                song_ids: Some(song_fs_ids.clone()),
             },
         )
         .await
@@ -95,7 +95,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: infra.song_ids(..).await,
+                song_ids: Some(infra.song_ids(..).await),
             },
         )
         .await
@@ -129,7 +129,7 @@ mod tests {
             &CreatePlaylistParams {
                 name: Some(playlist_name.into()),
                 playlist_id: None,
-                song_ids: infra.song_ids(..).await,
+                song_ids: Some(infra.song_ids(..).await),
             },
         )
         .await
