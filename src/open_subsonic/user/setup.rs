@@ -3,9 +3,9 @@ use axum::Form;
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::add_axum_response;
-use nghe_types::user::create::CreateUserParams;
+use nghe_types::user::create_user::CreateUserParams;
 
-use super::create::create_user;
+use super::create_user::create_user;
 use crate::models::*;
 use crate::{Database, OSError};
 

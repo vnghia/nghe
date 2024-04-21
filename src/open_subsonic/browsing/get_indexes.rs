@@ -9,7 +9,7 @@ use crate::Database;
 add_common_validate!(GetIndexesParams);
 add_axum_response!(GetIndexesBody);
 
-pub async fn get_indexed_handler(
+pub async fn get_indexes_handler(
     State(database): State<Database>,
     req: GetIndexesRequest,
 ) -> GetIndexesJsonResponse {

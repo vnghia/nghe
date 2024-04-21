@@ -6,8 +6,10 @@
 mod db;
 mod request;
 mod response;
+mod router;
 mod types;
 mod utils;
+
 use proc_macro::TokenStream;
 use utils::*;
 
@@ -77,4 +79,9 @@ pub fn add_convert_types(args: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn add_request_types_test(params_type: TokenStream) -> TokenStream {
     types::add_request_types_test(params_type.into()).into_token_stream()
+}
+
+#[proc_macro]
+pub fn build_router(input: TokenStream) -> TokenStream {
+    router::build_router(input.into()).into_token_stream()
 }

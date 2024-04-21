@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use nghe_types::user::create::{CreateUserParams, SubsonicCreateUserBody};
+use nghe_types::user::create_user::{CreateUserParams, SubsonicCreateUserBody};
 use nghe_types::user::Role;
 
 use super::super::Toast;

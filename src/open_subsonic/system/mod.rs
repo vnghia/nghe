@@ -1,10 +1,5 @@
 mod ping;
 
-use axum::routing::get;
-use axum::Router;
-
-pub fn router() -> Router<crate::Database> {
-    Router::new()
-        .route("/rest/ping", get(ping::ping_handler))
-        .route("/rest/ping.view", get(ping::ping_handler))
+pub fn router() -> axum::Router<crate::Database> {
+    nghe_proc_macros::build_router!(ping)
 }

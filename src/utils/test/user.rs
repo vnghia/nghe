@@ -1,7 +1,7 @@
 use fake::faker::internet::en::*;
 use fake::{Fake, Faker};
 use nghe_types::params::{to_password_token, CommonParams};
-use nghe_types::user::create::CreateUserParams;
+use nghe_types::user::create_user::CreateUserParams;
 use uuid::Uuid;
 
 use crate::models::*;
