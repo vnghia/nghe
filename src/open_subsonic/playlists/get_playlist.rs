@@ -11,14 +11,14 @@ use crate::{Database, DatabasePool};
 add_common_validate!(GetPlaylistParams);
 add_axum_response!(GetPlaylistBody);
 
-pub async fn get_playlist(
+async fn get_playlist(
     pool: &DatabasePool,
     user_id: Uuid,
     playlist_id: Uuid,
 ) -> Result<PlaylistId3WithSongIdsDb> {
     check_access_level(pool, playlist_id, user_id, playlists_users::AccessLevel::Read).await?;
 
-    get_playlist_id3_with_song_ids_unchecked(pool, user_id, playlist_id).await
+    get_playlist_id3_with_song_ids_unchecked(pool, playlist_id, user_id).await
 }
 
 pub async fn get_playlist_handler(

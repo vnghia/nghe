@@ -46,8 +46,8 @@ pub async fn add_playlist_user_unchecked(
 
 pub async fn get_playlist_id3_with_song_ids_unchecked(
     pool: &DatabasePool,
-    user_id: Uuid,
     playlist_id: Uuid,
+    user_id: Uuid,
 ) -> Result<PlaylistId3WithSongIdsDb> {
     get_playlist_id3_with_song_ids_db()
         .filter(with_permission(user_id))
@@ -60,8 +60,8 @@ pub async fn get_playlist_id3_with_song_ids_unchecked(
 
 pub async fn add_songs(
     pool: &DatabasePool,
-    user_id: Uuid,
     playlist_id: Uuid,
+    user_id: Uuid,
     song_ids: &[Uuid],
 ) -> Result<()> {
     check_access_level(pool, playlist_id, user_id, playlists_users::AccessLevel::Write).await?;

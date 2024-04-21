@@ -57,9 +57,9 @@ pub async fn create_playlist(
     };
 
     if !song_ids.is_empty() {
-        add_songs(pool, user_id, playlist_id, song_ids).await?;
+        add_songs(pool, playlist_id, user_id, song_ids).await?;
     }
-    get_playlist_id3_with_song_ids_unchecked(pool, user_id, playlist_id).await
+    get_playlist_id3_with_song_ids_unchecked(pool, playlist_id, user_id).await
 }
 
 pub async fn create_playlist_handler(

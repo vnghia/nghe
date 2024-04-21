@@ -3,6 +3,7 @@ mod create_playlist;
 mod get_playlist;
 mod get_playlists;
 mod id3;
+mod update_playlist;
 mod utils;
 
 use axum::routing::get;
@@ -18,4 +19,6 @@ pub fn router() -> Router<crate::Database> {
         .route("/rest/getPlaylist.view", get(get_playlist::get_playlist_handler))
         .route("/rest/addPlaylistUser", get(add_playlist_user::add_playlist_user_handler))
         .route("/rest/addPlaylistUser.view", get(add_playlist_user::add_playlist_user_handler))
+        .route("/rest/updatePlaylist", get(update_playlist::update_playlist_handler))
+        .route("/rest/updatePlaylist.view", get(update_playlist::update_playlist_handler))
 }
