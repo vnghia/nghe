@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use anyhow::Result;
 use axum::extract::{FromRef, FromRequest, Request};
+use axum::http::Method;
 use axum_extra::extract::Form;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
@@ -52,6 +53,7 @@ pub struct ValidatedForm<R, P, const REQUIRED_ROLE: users::Role> {
 impl<R, P, const REQUIRED_ROLE: users::Role, S> FromRequest<S>
     for ValidatedForm<R, P, REQUIRED_ROLE>
 where
+    P: DeserializeOwned + Send,
     R: DeserializeOwned + Send + Sync + AsRef<CommonParams> + Into<P>,
     Database: FromRef<S>,
     S: Send + Sync,
@@ -59,25 +61,45 @@ where
     type Rejection = ServerError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(request_params) = Form::<R>::from_request(req, state)
-            .await
-            .map_err(std::convert::Into::<OSError>::into)?;
-        let database = Database::from_ref(state);
-        let (user_id, user_role) = validate::<_, REQUIRED_ROLE>(&database, &request_params).await?;
-        Ok(ValidatedForm {
-            params: request_params.into(),
-            user_id,
-            user_role,
-            phantom: PhantomData,
-        })
+        let (user_id, user_role, params) = match *req.method() {
+            Method::GET => {
+                let Form(params) = Form::<R>::from_request(req, state)
+                    .await
+                    .map_err(std::convert::Into::<OSError>::into)?;
+                let database = Database::from_ref(state);
+                let (user_id, user_role) = validate::<_, REQUIRED_ROLE>(&database, &params).await?;
+                (user_id, user_role, params.into())
+            }
+            Method::POST => {
+                let common: CommonParams =
+                    serde_html_form::from_str(req.uri().query().ok_or_else(|| {
+                        OSError::InvalidParameter("authentication params are missing".into())
+                    })?)
+                    .map_err(|_| {
+                        OSError::InvalidParameter("authentication params are incorrect".into())
+                    })?;
+                let Form(params) = Form::<P>::from_request(req, state)
+                    .await
+                    .map_err(std::convert::Into::<OSError>::into)?;
+                let database = Database::from_ref(state);
+                let (user_id, user_role) = validate::<_, REQUIRED_ROLE>(&database, &common).await?;
+                (user_id, user_role, params)
+            }
+            _ => unreachable!("method is not allowed"),
+        };
+
+        Ok(ValidatedForm { params, user_id, user_role, phantom: PhantomData })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use axum::body::Body;
+    use axum::http::uri;
+    use concat_string::concat_string;
     use fake::faker::internet::en::*;
-    use fake::Fake;
-    use nghe_proc_macros::add_common_convert;
+    use fake::{Fake, Faker};
+    use nghe_proc_macros::{add_common_convert, add_common_validate};
     use nghe_types::params::{to_password_token, WithCommon};
 
     use super::*;
@@ -85,6 +107,14 @@ mod tests {
 
     #[add_common_convert]
     struct TestParams {}
+
+    #[add_common_convert]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct TestWithArgsParams {
+        arg1: i32,
+        arg2: String,
+    }
+    add_common_validate!(TestWithArgsParams);
 
     #[tokio::test]
     async fn test_validate_success() {
@@ -177,5 +207,57 @@ mod tests {
             .unwrap(),
             OSError::Forbidden(_)
         ));
+    }
+
+    #[tokio::test]
+    async fn test_from_request_get() {
+        let infra = Infra::new().await.add_user(None).await;
+        let params = TestWithArgsParams { ..Faker.fake() };
+
+        let req = Request::builder()
+            .method("GET")
+            .uri(
+                uri::Builder::new()
+                    .path_and_query(concat_string!(
+                        "/rest?",
+                        serde_html_form::to_string(
+                            params.clone().with_common(infra.to_common_params(0)),
+                        )
+                        .unwrap()
+                    ))
+                    .build()
+                    .unwrap(),
+            )
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            TestWithArgsRequest::from_request(req, &infra.state()).await.unwrap().params,
+            params
+        )
+    }
+
+    #[tokio::test]
+    async fn test_from_request_post() {
+        let infra = Infra::new().await.add_user(None).await;
+        let params = TestWithArgsParams { ..Faker.fake() };
+
+        let req: axum::http::Request<Body> = Request::builder()
+            .method("POST")
+            .header("content-type", "application/x-www-form-urlencoded")
+            .uri(
+                uri::Builder::new()
+                    .path_and_query(concat_string!(
+                        "/rest?",
+                        serde_html_form::to_string(infra.to_common_params(0)).unwrap()
+                    ))
+                    .build()
+                    .unwrap(),
+            )
+            .body(Body::from(serde_html_form::to_string(params.clone()).unwrap()))
+            .unwrap();
+        assert_eq!(
+            TestWithArgsRequest::from_request(req, &infra.state()).await.unwrap().params,
+            params
+        );
     }
 }

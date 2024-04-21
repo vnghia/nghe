@@ -32,6 +32,12 @@ pub fn to_password_token<P: AsRef<[u8]>, S: AsRef<[u8]>>(password: P, salt: S) -
     md5::compute(data).into()
 }
 
+impl AsRef<CommonParams> for &CommonParams {
+    fn as_ref(&self) -> &CommonParams {
+        self
+    }
+}
+
 impl From<CommonParams> for Cow<'static, CommonParams> {
     fn from(value: CommonParams) -> Self {
         Cow::Owned(value)
