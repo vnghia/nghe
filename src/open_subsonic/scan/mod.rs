@@ -7,8 +7,7 @@ mod run_scan;
 mod song;
 mod start_scan;
 
-use axum::routing::get;
-use axum::{Extension, Router};
+use axum::Extension;
 pub use start_scan::{start_scan, ScanStat};
 
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
@@ -18,12 +17,8 @@ pub fn router(
     parsing_config: ParsingConfig,
     scan_config: ScanConfig,
     art_config: ArtConfig,
-) -> Router<crate::Database> {
-    Router::new()
-        .route("/rest/startScan", get(start_scan::start_scan_handler))
-        .route("/rest/startScan.view", get(start_scan::start_scan_handler))
-        .route("/rest/getScanStatus", get(get_scan_status::get_scan_status_handler))
-        .route("/rest/getScanStatus.view", get(get_scan_status::get_scan_status_handler))
+) -> axum::Router<crate::Database> {
+    nghe_proc_macros::build_router!(start_scan, get_scan_status)
         .layer(Extension(artist_index_config))
         .layer(Extension(parsing_config))
         .layer(Extension(scan_config))

@@ -1,10 +1,5 @@
 pub mod search3;
 
-use axum::routing::get;
-use axum::Router;
-
-pub fn router() -> Router<crate::Database> {
-    Router::new()
-        .route("/rest/search3", get(search3::search3_handler))
-        .route("/rest/search3.view", get(search3::search3_handler))
+pub fn router() -> axum::Router<crate::Database> {
+    nghe_proc_macros::build_router!(search3)
 }

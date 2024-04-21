@@ -10,34 +10,18 @@ mod get_music_folders;
 mod get_song;
 mod get_top_songs;
 
-use axum::routing::get;
-use axum::Router;
-
-pub fn router() -> Router<crate::Database> {
-    Router::new()
-        .route("/rest/getMusicFolders", get(get_music_folders::get_music_folders_handler))
-        .route("/rest/getMusicFolders.view", get(get_music_folders::get_music_folders_handler))
-        .route("/rest/getArtists", get(get_artists::get_artists_handler))
-        .route("/rest/getArtists.view", get(get_artists::get_artists_handler))
-        .route("/rest/getArtist", get(get_artist::get_artist_handler))
-        .route("/rest/getArtist.view", get(get_artist::get_artist_handler))
-        .route("/rest/getAlbum", get(get_album::get_album_handler))
-        .route("/rest/getAlbum.view", get(get_album::get_album_handler))
-        .route("/rest/getSong", get(get_song::get_song_handler))
-        .route("/rest/getSong.view", get(get_song::get_song_handler))
-        .route("/rest/getIndexes", get(get_indexes::get_indexed_handler))
-        .route("/rest/getIndexes.view", get(get_indexes::get_indexed_handler))
-        .route("/rest/getMusicDirectory", get(get_music_directory::get_music_directory_handler))
-        .route(
-            "/rest/getMusicDirectory.view",
-            get(get_music_directory::get_music_directory_handler),
-        )
-        .route("/rest/getGenres", get(get_genres::get_genres_handler))
-        .route("/rest/getGenres.view", get(get_genres::get_genres_handler))
-        .route("/rest/getTopSongs", get(get_top_songs::get_top_songs_handler))
-        .route("/rest/getTopSongs.view", get(get_top_songs::get_top_songs_handler))
-        .route("/rest/getAlbumInfo2", get(get_album_info2::get_album_info2_handler))
-        .route("/rest/getAlbumInfo2.view", get(get_album_info2::get_album_info2_handler))
-        .route("/rest/getArtistInfo2", get(get_artist_info2::get_artist_info2_handler))
-        .route("/rest/getArtistInfo2.view", get(get_artist_info2::get_artist_info2_handler))
+pub fn router() -> axum::Router<crate::Database> {
+    nghe_proc_macros::build_router!(
+        get_music_folders,
+        get_artists,
+        get_artist,
+        get_album,
+        get_song,
+        get_indexes,
+        get_music_directory,
+        get_genres,
+        get_top_songs,
+        get_album_info2,
+        get_artist_info2
+    )
 }

@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 use itertools::Itertools;
-use nghe_types::user::delete::{DeleteUserParams, SubsonicDeleteUserBody};
+use nghe_types::user::delete_user::{DeleteUserParams, SubsonicDeleteUserBody};
 use nghe_types::user::get_users::{GetUsersParams, SubsonicGetUsersBody};
 use nghe_types::user::User;
 
