@@ -7,11 +7,10 @@ use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
     add_axum_response, add_common_validate, add_count_offset, add_permission_filter,
 };
-use nghe_types::id3::*;
 use uuid::Uuid;
 
 use crate::models::*;
-use crate::open_subsonic::common::sql;
+use crate::open_subsonic::common::sql::random;
 use crate::open_subsonic::id3::*;
 use crate::open_subsonic::permission::check_permission;
 use crate::{Database, DatabasePool, OSError};
@@ -22,19 +21,29 @@ add_axum_response!(GetAlbumList2Body);
 pub async fn get_album_list2(
     pool: &DatabasePool,
     user_id: Uuid,
-    GetAlbumList2Params {
-      list_type, count, offset, music_folder_ids, from_year, to_year, genre
-    }: GetAlbumList2Params,
-) -> Result<Vec<AlbumId3>> {
-    let albums = match list_type {
+    params: GetAlbumList2Params,
+) -> Result<Vec<AlbumId3Db>> {
+    let GetAlbumList2Params {
+        list_type,
+        count,
+        offset,
+        music_folder_ids,
+        from_year,
+        to_year,
+        genre,
+    } = params;
+
+    check_permission(pool, user_id, &music_folder_ids).await?;
+
+    match list_type {
         GetAlbumListType::Random =>
         {
             #[add_permission_filter]
             #[add_count_offset]
             get_album_id3_db()
-                .order(sql::random())
+                .order(random())
                 .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                .await?
+                .await
         }
         GetAlbumListType::Newest =>
         {
@@ -43,7 +52,7 @@ pub async fn get_album_list2(
             get_album_id3_db()
                 .order(albums::created_at.desc())
                 .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                .await?
+                .await
         }
         GetAlbumListType::Frequent =>
         {
@@ -54,7 +63,7 @@ pub async fn get_album_list2(
                 .filter(playbacks::user_id.eq(user_id))
                 .order(sum(playbacks::count).desc())
                 .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                .await?
+                .await
         }
         GetAlbumListType::Recent =>
         {
@@ -65,7 +74,7 @@ pub async fn get_album_list2(
                 .filter(playbacks::user_id.eq(user_id))
                 .order(max(playbacks::updated_at).desc())
                 .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                .await?
+                .await
         }
         GetAlbumListType::ByYear => {
             let from_year = from_year.ok_or_else(|| {
@@ -83,7 +92,7 @@ pub async fn get_album_list2(
                     .filter(albums::year.le(to_year))
                     .order(albums::year.asc())
                     .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                    .await?
+                    .await
             } else {
                 #[add_permission_filter]
                 #[add_count_offset]
@@ -93,7 +102,7 @@ pub async fn get_album_list2(
                     .filter(albums::year.ge(to_year))
                     .order(albums::year.desc())
                     .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                    .await?
+                    .await
             }
         }
         GetAlbumListType::ByGenre => {
@@ -106,7 +115,7 @@ pub async fn get_album_list2(
                 .filter(genres::value.eq(&genre))
                 .order(albums::name.asc())
                 .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                .await?
+                .await
         }
         GetAlbumListType::AlphabeticalByName =>
         {
@@ -115,23 +124,24 @@ pub async fn get_album_list2(
             get_album_id3_db()
                 .order(albums::name.asc())
                 .get_results::<AlbumId3Db>(&mut pool.get().await?)
-                .await?
+                .await
         }
-    };
-
-    stream::iter(albums).then(|v| async move { v.into(pool).await }).try_collect().await
+    }
+    .map_err(anyhow::Error::from)
 }
 
 pub async fn get_album_list2_handler(
     State(database): State<Database>,
     req: GetAlbumList2Request,
 ) -> GetAlbumList2JsonResponse {
-    check_permission(&database.pool, req.user_id, &req.params.music_folder_ids).await?;
-
+    let pool = &database.pool;
     Ok(axum::Json(
         GetAlbumList2Body {
             album_list2: AlbumList2 {
-                album: get_album_list2(&database.pool, req.user_id, req.params).await?,
+                album: stream::iter(get_album_list2(pool, req.user_id, req.params).await?)
+                    .then(|v| async move { v.into(pool).await })
+                    .try_collect()
+                    .await?,
             },
         }
         .into(),
