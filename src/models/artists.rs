@@ -7,9 +7,9 @@ use uuid::Uuid;
 pub use crate::schema::artists;
 
 #[derive(Debug, Insertable, Queryable, Selectable)]
-#[cfg_attr(test, derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord))]
 #[diesel(table_name = artists)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
+#[cfg_attr(test, derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord))]
 pub struct NewArtist<'a> {
     pub name: Cow<'a, str>,
     pub mbz_id: Option<Uuid>,

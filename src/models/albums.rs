@@ -11,6 +11,7 @@ generate_date_db!(albums);
 
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = albums)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 #[cfg_attr(test, derive(Clone, Default, Hash, PartialEq, Eq, PartialOrd, Ord))]
 pub struct NewAlbum<'a> {
     pub name: Cow<'a, str>,

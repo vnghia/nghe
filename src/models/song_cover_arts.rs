@@ -10,6 +10,7 @@ use crate::utils::fs::path::hash_size_to_path;
 
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = song_cover_arts)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct NewSongCoverArt<'a> {
     pub format: Cow<'a, str>,
     pub file_hash: i64,
