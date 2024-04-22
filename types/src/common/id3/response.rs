@@ -81,6 +81,10 @@ pub struct SongId3 {
     pub size: u32,
     pub suffix: String,
     pub bit_rate: u32,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub bit_depth: Option<u8>,
+    pub sampling_rate: u32,
+    pub channel_count: u8,
     pub album_id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub year: Option<u16>,

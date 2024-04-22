@@ -36,6 +36,7 @@ pub struct SongUpdateInformationDB<'a> {
     pub format: Cow<'a, str>,
     pub duration: f32,
     pub bitrate: i32,
+    pub bit_depth: Option<i16>,
     pub sample_rate: i32,
     pub channel_count: i16,
     // Filesystem property

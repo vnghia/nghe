@@ -212,6 +212,7 @@ diesel::table! {
         cover_art_id -> Nullable<Uuid>,
         mbz_id -> Nullable<Uuid>,
         ts -> Tsvector,
+        bit_depth -> Nullable<Int2>,
     }
 }
 
