@@ -34,18 +34,3 @@ pub struct UpsertMusicFolder<'a> {
     pub name: Option<Cow<'a, str>>,
     pub path: Option<Cow<'a, str>>,
 }
-
-#[add_convert_types(into = nghe_types::music_folder::get_music_folder_stat::MusicFolderStat)]
-#[derive(Debug, Queryable)]
-#[diesel(table_name = music_folders)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-#[cfg_attr(test, derive(PartialEq, Eq))]
-pub struct MusicFolderStat {
-    #[diesel(embed)]
-    pub music_folder: MusicFolder,
-    pub artist_count: i64,
-    pub album_count: i64,
-    pub song_count: i64,
-    pub user_count: i64,
-    pub total_size: i64,
-}
