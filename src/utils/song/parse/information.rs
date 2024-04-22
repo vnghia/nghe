@@ -74,6 +74,7 @@ impl SongInformation {
             bitrate: file_property
                 .audio_bitrate()
                 .ok_or_else(|| OSError::NotFound("Audio bitrate".into()))?,
+            bit_depth: file_property.bit_depth(),
             sample_rate: file_property
                 .sample_rate()
                 .ok_or_else(|| OSError::NotFound("Sample rate".into()))?,
@@ -126,6 +127,7 @@ impl SongInformation {
             format: to_extension(&self.property.format).into(),
             duration: self.property.duration,
             bitrate: self.property.bitrate as _,
+            bit_depth: self.property.bit_depth.map(|i| i as _),
             sample_rate: self.property.sample_rate as _,
             channel_count: self.property.channel_count as _,
             // Filesystem property
