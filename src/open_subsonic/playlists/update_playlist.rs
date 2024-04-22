@@ -107,7 +107,7 @@ mod tests {
         .basic
         .id;
 
-        delete_by_indexes_unchecked(infra.pool(), playlist_id, infra.user_id(0), &[1])
+        delete_by_indexes_unchecked(infra.pool(), playlist_id, infra.user_id(0), &[0])
             .await
             .unwrap();
     }
@@ -136,7 +136,7 @@ mod tests {
         .basic
         .id;
 
-        delete_by_indexes_unchecked(infra.pool(), playlist_id, infra.user_id(0), &[1, 5])
+        delete_by_indexes_unchecked(infra.pool(), playlist_id, infra.user_id(0), &[0, 4])
             .await
             .unwrap();
         song_fs_ids.remove(4);
@@ -173,7 +173,7 @@ mod tests {
         .basic
         .id;
 
-        delete_by_indexes_unchecked(infra.pool(), playlist_id, infra.user_id(0), &[1, 5, 15])
+        delete_by_indexes_unchecked(infra.pool(), playlist_id, infra.user_id(0), &[0, 4, 14])
             .await
             .unwrap();
 
@@ -393,7 +393,7 @@ mod tests {
                 comment: None,
                 public: None,
                 song_ids_to_add: None,
-                song_indexes_to_remove: Some(vec![1, 10]),
+                song_indexes_to_remove: Some(vec![0, 9]),
             },
         )
         .await
@@ -443,7 +443,7 @@ mod tests {
                 comment: None,
                 public: None,
                 song_ids_to_add: Some(song_fs_ids[5..].to_vec()),
-                song_indexes_to_remove: Some(vec![1, 2, 7]),
+                song_indexes_to_remove: Some(vec![0, 1, 6]),
             },
         )
         .await

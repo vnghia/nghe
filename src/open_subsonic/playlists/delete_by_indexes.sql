@@ -9,7 +9,7 @@ where playlists_songs.playlist_id = $1 and playlists_songs.song_id = any(
                     partition by ps.playlist_id
                     order by
                         ps.created_at asc
-                ) as pos
+                ) - 1 as pos
             from
             (
                 playlists_songs as ps
