@@ -9,7 +9,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-  RUST_TOOLCHAIN: nightly-2024-03-22
+  RUST_TOOLCHAIN: nightly-2024-04-21
 
 jobs:
   coverage:
