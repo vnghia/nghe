@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 
 use concat_string::concat_string;
 use fake::{Fake, Faker};
-use lofty::{FileType, TagExt, TagType, TaggedFileExt};
+use lofty::config::WriteOptions;
+use lofty::file::{FileType, TaggedFileExt};
+use lofty::tag::{TagExt, TagType};
 use nghe_types::constant::SERVER_NAME;
 use rand::seq::SliceRandom;
 use tempfile::{Builder, TempDir};
@@ -35,6 +37,8 @@ impl SongFsInformation {
 
 pub struct TemporaryFs {
     root: TempDir,
+    write_option: WriteOptions,
+
     pub parsing_config: ParsingConfig,
     pub transcoding_config: TranscodingConfig,
     pub art_config: ArtConfig,
@@ -45,6 +49,8 @@ impl TemporaryFs {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
         let root = Builder::new().prefix(SERVER_NAME).tempdir().unwrap();
+        let write_option = WriteOptions::new().remove_others(true);
+
         let parsing_config = ParsingConfig::default();
         let transcoding_config = TranscodingConfig {
             cache_path: Some(root.path().canonicalize().unwrap().join("transcoding-cache")),
@@ -53,7 +59,7 @@ impl TemporaryFs {
         let art_config = ArtConfig {
             song_path: Some(root.path().canonicalize().unwrap().join("art-song-path")),
         };
-        Self { root, parsing_config, transcoding_config, art_config }
+        Self { root, write_option, parsing_config, transcoding_config, art_config }
     }
 
     fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
@@ -123,13 +129,13 @@ impl TemporaryFs {
             TagType::Id3v2 => {
                 song_tag
                     .into_id3v2(&self.parsing_config.id3v2)
-                    .save_to_path(&path)
+                    .save_to_path(&path, self.write_option)
                     .expect("can not write tag to media file");
             }
             TagType::VorbisComments => {
                 song_tag
                     .into_vorbis_comments(&self.parsing_config.vorbis)
-                    .save_to_path(&path)
+                    .save_to_path(&path, self.write_option)
                     .expect("can not write tag to media file");
             }
             _ => unreachable!("media tag type not supported"),

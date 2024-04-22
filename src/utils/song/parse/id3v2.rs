@@ -5,7 +5,7 @@ use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
 use lofty::id3::v2::{FrameId, FrameValue, Id3v2Tag, Id3v2Version};
-use lofty::Picture;
+use lofty::picture::Picture;
 use uuid::Uuid;
 
 use super::common::{parse_track_and_disc, to_artist_no_ids};

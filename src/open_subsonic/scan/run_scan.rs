@@ -6,7 +6,7 @@ use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryD
 use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use futures_buffered::FuturesUnorderedBounded;
-use lofty::FileType;
+use lofty::file::FileType;
 use nghe_types::scan::start_scan::ScanMode;
 use tracing::{instrument, Instrument};
 use uuid::Uuid;

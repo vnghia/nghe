@@ -2,9 +2,11 @@ use std::io::{Read, Seek};
 
 use anyhow::Result;
 use itertools::Itertools;
+use lofty::config::{ParseOptions, ParsingMode};
+use lofty::file::{AudioFile, FileType};
 use lofty::flac::FlacFile;
 use lofty::mpeg::MpegFile;
-use lofty::{AudioFile, FileProperties, FileType, ParseOptions, ParsingMode};
+use lofty::properties::FileProperties;
 use tracing::instrument;
 use uuid::Uuid;
 

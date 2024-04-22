@@ -98,6 +98,7 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug>(
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
+    use lofty::file::FileType;
 
     use super::*;
     use crate::utils::song::file_type::to_extensions;
@@ -183,7 +184,7 @@ mod tests {
         .into_iter()
         .filter_map(|path| {
             let path = fs.create_file(path);
-            let ext = lofty::FileType::from_path(&path);
+            let ext = FileType::from_path(&path);
             if let Some(ext) = ext {
                 if SONG_FILE_TYPES.contains(&ext) { Some(path) } else { None }
             } else {

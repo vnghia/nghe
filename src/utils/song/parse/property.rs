@@ -1,4 +1,4 @@
-use lofty::FileType;
+use lofty::file::FileType;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(derivative::Derivative))]

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use concat_string::concat_string;
-use lofty::FileType;
+use lofty::file::FileType;
 
 use crate::utils::song::file_type::to_extension;
 
