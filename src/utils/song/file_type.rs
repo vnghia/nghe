@@ -1,5 +1,6 @@
 use itertools::Itertools;
-use lofty::{FileType, MimeType};
+use lofty::file::FileType;
+use lofty::picture::MimeType;
 
 pub const SONG_FILE_TYPES: [FileType; 2] = [FileType::Flac, FileType::Mpeg];
 

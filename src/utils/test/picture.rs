@@ -4,7 +4,7 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use image::{ImageFormat, Rgb, RgbImage};
-use lofty::Picture;
+use lofty::picture::Picture;
 use uuid::Uuid;
 
 use crate::config::ArtConfig;

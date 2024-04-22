@@ -4,7 +4,7 @@ use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
 use lofty::ogg::{OggPictureStorage, VorbisComments};
-use lofty::Picture;
+use lofty::picture::Picture;
 use uuid::Uuid;
 
 use super::common::{parse_track_and_disc, to_artist_no_ids};

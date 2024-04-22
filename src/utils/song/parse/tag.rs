@@ -4,7 +4,7 @@ pub use fake::{Dummy, Fake};
 use isolang::Language;
 #[cfg(test)]
 pub use itertools::Itertools;
-use lofty::Picture;
+use lofty::picture::Picture;
 use time::macros::format_description;
 use tracing::instrument;
 use uuid::Uuid;

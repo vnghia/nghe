@@ -5,7 +5,7 @@ use concat_string::concat_string;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use lofty::Picture;
+use lofty::picture::Picture;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
