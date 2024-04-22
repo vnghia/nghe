@@ -89,6 +89,7 @@ tower = { version = "0.4.13", features = ["util"] }
 tower-http = { version = "0.5.2", features = ["cors", "fs", "trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
+unicode-normalization = "0.1.23"
 
 [dev-dependencies]
 fake = { workspace = true }

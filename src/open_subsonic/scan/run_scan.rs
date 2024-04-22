@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 use std::io::Cursor;
 
 use anyhow::Result;
@@ -24,7 +26,15 @@ use crate::utils::song::{SongInformation, SongLyric};
 use crate::DatabasePool;
 
 #[instrument(
-    skip(pool, scan_mode, song_absolute_path, song_file_size, parsing_config, art_config),
+    skip(
+        pool,
+        scan_mode,
+        song_absolute_path,
+        song_file_size,
+        ignored_prefixes,
+        parsing_config,
+        art_config
+    ),
     ret(level = "trace"),
     err
 )]
@@ -34,6 +44,7 @@ pub async fn process_path(
     scan_mode: ScanMode,
     music_folder_id: Uuid,
     ScannedMediaFile { song_absolute_path, song_relative_path, song_file_size }: ScannedMediaFile,
+    ignored_prefixes: &[String],
     parsing_config: &ParsingConfig,
     art_config: &ArtConfig,
 ) -> Result<bool> {
@@ -107,7 +118,7 @@ pub async fn process_path(
 
     let song_tag = &song_information.tag;
 
-    let artist_ids = upsert_artists(pool, &song_tag.artists).await?;
+    let artist_ids = upsert_artists(pool, ignored_prefixes, &song_tag.artists).await?;
     let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
 
     let cover_art_id = if let Some(ref picture) = song_tag.picture
@@ -149,7 +160,8 @@ pub async fn process_path(
     // if there are no album artists,
     // we assume that they are the same as artists.
     if !song_tag.album_artists.is_empty() {
-        let album_artist_ids = upsert_artists(pool, &song_tag.album_artists).await?;
+        let album_artist_ids =
+            upsert_artists(pool, ignored_prefixes, &song_tag.album_artists).await?;
         upsert_song_album_artists(pool, song_id, &album_artist_ids).await?;
     } else {
         upsert_song_album_artists(pool, song_id, &artist_ids).await?;
@@ -194,12 +206,13 @@ pub async fn process_path(
     Ok(true)
 }
 
-#[instrument(skip(pool, parsing_config, scan_config, art_config), ret, err)]
+#[instrument(skip(pool, ignored_prefixes, parsing_config, scan_config, art_config), ret, err)]
 pub async fn run_scan(
     pool: &DatabasePool,
     scan_started_at: time::OffsetDateTime,
     scan_mode: ScanMode,
     music_folder: music_folders::MusicFolder,
+    ignored_prefixes: &[String],
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
     art_config: &ArtConfig,
@@ -239,6 +252,7 @@ pub async fn run_scan(
         scanned_song_count += 1;
 
         let pool = pool.clone();
+        let ignored_prefixes = ignored_prefixes.to_vec();
         let parsing_config = parsing_config.clone();
         let art_config = art_config.clone();
 
@@ -251,6 +265,7 @@ pub async fn run_scan(
                     scan_mode,
                     music_folder_id,
                     scanned_media_file,
+                    &ignored_prefixes,
                     &parsing_config,
                     &art_config,
                 )
