@@ -144,7 +144,7 @@ impl Infra {
     where
         S: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
-        stream::iter(self.music_folder_ids(slice))
+        let result = stream::iter(self.music_folder_ids(slice))
             .then(move |id| async move {
                 start_scan(
                     self.pool(),
@@ -162,7 +162,12 @@ impl Infra {
             .await
             .into_iter()
             .reduce(ScanStat::add)
-            .unwrap()
+            .unwrap();
+
+        // Postgres timestamp resolution is microsecond.
+        // So we wait for 10 microseconds to make sure that there is no overlap scans.
+        tokio::time::sleep(std::time::Duration::from_micros(10)).await;
+        result
     }
 
     pub fn add_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
