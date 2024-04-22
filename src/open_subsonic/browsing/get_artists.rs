@@ -106,7 +106,7 @@ mod tests {
             .await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
@@ -133,7 +133,7 @@ mod tests {
             .await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
@@ -161,7 +161,7 @@ mod tests {
         infra.scan(.., None).await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()
@@ -197,7 +197,7 @@ mod tests {
         infra.remove_permission(None, None).await.add_permissions(.., 0..2).await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
             .unwrap()

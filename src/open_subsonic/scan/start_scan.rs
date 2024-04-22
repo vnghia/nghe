@@ -7,7 +7,7 @@ use nghe_proc_macros::{add_axum_response, add_common_validate, add_convert_types
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::artist::build_artist_indexes;
+use super::artist::insert_ignored_articles_config;
 use super::get_scan_status::get_scan_status;
 use super::run_scan::run_scan;
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
@@ -97,13 +97,14 @@ pub async fn start_scan(
             .select(music_folders::MusicFolder::as_select())
             .get_result(&mut pool.get().await?)
             .await?,
+        &artist_index_config.ignored_prefixes,
         parsing_config,
         scan_config,
         art_config,
     )
     .await;
 
-    build_artist_indexes(pool, artist_index_config).await?;
+    insert_ignored_articles_config(pool, &artist_index_config.ignored_articles).await?;
     finalize_scan(pool, scan_started_at, params.id, scan_result).await
 }
 

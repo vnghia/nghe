@@ -15,7 +15,23 @@ pub struct NewArtist<'a> {
     pub mbz_id: Option<Uuid>,
 }
 
+#[derive(Debug, Insertable)]
+#[diesel(table_name = artists)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[cfg_attr(test, derive(Clone, Hash, PartialEq, Eq, PartialOrd, Ord))]
+pub struct NewArtistWithIndex<'a> {
+    #[diesel(embed)]
+    pub new_artist: NewArtist<'a>,
+    pub index: Cow<'a, str>,
+}
+
 pub type ArtistNoId = NewArtist<'static>;
+
+impl<'a> From<&'a ArtistNoId> for NewArtist<'a> {
+    fn from(value: &'a ArtistNoId) -> Self {
+        NewArtist { name: value.name.as_ref().into(), mbz_id: value.mbz_id }
+    }
+}
 
 impl From<(String, Option<Uuid>)> for ArtistNoId {
     fn from(value: (String, Option<Uuid>)) -> Self {

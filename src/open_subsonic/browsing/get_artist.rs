@@ -98,7 +98,7 @@ mod tests {
             .await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
@@ -125,7 +125,7 @@ mod tests {
             .await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
@@ -157,7 +157,7 @@ mod tests {
             .await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
             .await
             .unwrap()
@@ -186,7 +186,7 @@ mod tests {
         infra.scan(.., None).await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         let music_folder_idx = rand::thread_rng().gen_range(0..infra.music_folders.len());
         infra.remove_permission(None, None).await.add_permission(None, music_folder_idx).await;
 
@@ -224,7 +224,7 @@ mod tests {
         infra.remove_permission(None, None).await.add_permissions(.., ..n_scan_folder).await;
 
         let artist_id =
-            upsert_artists(infra.pool(), &[artist_name.into()]).await.unwrap().remove(0);
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
         assert!(matches!(
             get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
                 .await
