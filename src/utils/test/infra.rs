@@ -148,9 +148,9 @@ impl Infra {
             .then(move |id| async move {
                 let scan_started_at = initialize_scan(self.pool(), id).await.unwrap();
                 // Postgres timestamp resolution is microsecond.
-                // So we wait for 100 microseconds to make sure that there is no overlap scans.
+                // So we wait for 10 milliseconds to make sure that there is no overlap scans.
                 if cfg!(target_os = "freebsd") {
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
                 }
                 start_scan(
                     self.pool(),
@@ -170,7 +170,7 @@ impl Infra {
             .reduce(ScanStat::add)
             .unwrap();
         if cfg!(target_os = "freebsd") {
-            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(1)).await;
         }
         result
     }
