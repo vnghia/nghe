@@ -146,9 +146,15 @@ impl Infra {
     {
         let result = stream::iter(self.music_folder_ids(slice))
             .then(move |id| async move {
+                let scan_started_at = initialize_scan(self.pool(), id).await.unwrap();
+                // Postgres timestamp resolution is microsecond.
+                // So we wait for a moment to make sure that there is no overlap scans.
+                if cfg!(target_os = "freebsd") {
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                }
                 start_scan(
                     self.pool(),
-                    initialize_scan(self.pool(), id).await.unwrap(),
+                    scan_started_at,
                     StartScanParams { id, mode: scan_mode.unwrap_or(ScanMode::Full) },
                     &ArtistIndexConfig::default(),
                     &self.fs.parsing_config,
@@ -163,10 +169,9 @@ impl Infra {
             .into_iter()
             .reduce(ScanStat::add)
             .unwrap();
-
-        // Postgres timestamp resolution is microsecond.
-        // So we wait for 10 microseconds to make sure that there is no overlap scans.
-        tokio::time::sleep(std::time::Duration::from_micros(10)).await;
+        if cfg!(target_os = "freebsd") {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        }
         result
     }
 

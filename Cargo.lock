@@ -2903,7 +2903,7 @@ dependencies = [
 
 [[package]]
 name = "nghe"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2960,7 +2960,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-frontend"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anyhow",
  "concat-string",
@@ -2990,7 +2990,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-proc_macros"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "concat-string",
  "convert_case",
@@ -3002,7 +3002,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-types"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "built",
  "concat-string",
