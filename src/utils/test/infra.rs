@@ -144,11 +144,17 @@ impl Infra {
     where
         S: SliceIndex<[music_folders::MusicFolder], Output = [music_folders::MusicFolder]>,
     {
-        let result = stream::iter(self.music_folder_ids(slice))
+        stream::iter(self.music_folder_ids(slice))
             .then(move |id| async move {
+                let scan_started_at = initialize_scan(self.pool(), id).await.unwrap();
+                // Postgres timestamp resolution is microsecond.
+                // So we wait for 100 microseconds to make sure that there is no overlap scans.
+                if cfg!(target_os = "freebsd") {
+                    tokio::time::sleep(std::time::Duration::from_micros(100)).await;
+                }
                 start_scan(
                     self.pool(),
-                    initialize_scan(self.pool(), id).await.unwrap(),
+                    scan_started_at,
                     StartScanParams { id, mode: scan_mode.unwrap_or(ScanMode::Full) },
                     &ArtistIndexConfig::default(),
                     &self.fs.parsing_config,
@@ -162,14 +168,7 @@ impl Infra {
             .await
             .into_iter()
             .reduce(ScanStat::add)
-            .unwrap();
-
-        // Postgres timestamp resolution is microsecond.
-        // So we wait for 10 microseconds to make sure that there is no overlap scans.
-        if cfg!(target_os = "freebsd") {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
-        result
+            .unwrap()
     }
 
     pub fn add_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
