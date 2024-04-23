@@ -167,7 +167,7 @@ impl Infra {
         // Postgres timestamp resolution is microsecond.
         // So we wait for 10 microseconds to make sure that there is no overlap scans.
         if cfg!(target_os = "freebsd") {
-            tokio::time::sleep(std::time::Duration::from_micros(100)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         } else {
             tokio::time::sleep(std::time::Duration::from_micros(10)).await;
         }
