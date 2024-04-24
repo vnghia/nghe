@@ -169,7 +169,7 @@ jobs:
           ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
           ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
-          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || null }}
+          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -470,7 +470,7 @@ jobs:
           cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
           cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
-          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || null }}
+          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
