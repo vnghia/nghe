@@ -20,22 +20,34 @@ pub async fn upsert_artists(
     stream::iter(artist_no_ids)
         .then(|artist_no_id| async move {
             let index = compute_artist_index(ignored_prefixes, &artist_no_id.name)?;
+            let new_artist = artists::NewArtistWithIndex {
+                new_artist: artist_no_id.into(),
+                index: index.as_ref().into(),
+            };
+
             if artist_no_id.mbz_id.is_some() {
                 diesel::insert_into(artists::table)
-                    .values(artists::NewArtistWithIndex { new_artist: artist_no_id.into(), index })
+                    .values(new_artist)
                     .on_conflict(artists::mbz_id)
                     .do_update()
-                    .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
+                    .set((
+                        artists::name.eq(artist_no_id.name.as_ref()),
+                        artists::index.eq(index.as_ref()),
+                        artists::scanned_at.eq(time::OffsetDateTime::now_utc()),
+                    ))
                     .returning(artists::id)
                     .get_result::<Uuid>(&mut pool.get().await.map_err(anyhow::Error::from)?)
                     .await
             } else {
                 diesel::insert_into(artists::table)
-                    .values(artists::NewArtistWithIndex { new_artist: artist_no_id.into(), index })
+                    .values(new_artist)
                     .on_conflict(artists::name)
                     .filter_target(artists::mbz_id.is_null())
                     .do_update()
-                    .set(artists::scanned_at.eq(time::OffsetDateTime::now_utc()))
+                    .set((
+                        artists::index.eq(index.as_ref()),
+                        artists::scanned_at.eq(time::OffsetDateTime::now_utc()),
+                    ))
                     .returning(artists::id)
                     .get_result::<Uuid>(&mut pool.get().await.map_err(anyhow::Error::from)?)
                     .await
@@ -196,6 +208,7 @@ mod tests {
         let mbz_id = Some(Faker.fake());
         let artist_no_id1 = artists::ArtistNoId { mbz_id, ..Faker.fake() };
         let artist_no_id2 = artists::ArtistNoId { mbz_id, ..Faker.fake() };
+        let artist_name = artist_no_id2.name.to_string();
         let artist_index_config = ArtistIndexConfig::default();
 
         let artist_id1 =
@@ -210,6 +223,15 @@ mod tests {
                 .remove(0);
         // Because they share the same mbz id
         assert_eq!(artist_id1, artist_id2);
+
+        // Last scanned name is updated
+        let artist_name_db = artists::table
+            .filter(artists::id.eq(artist_id2))
+            .select(artists::name)
+            .get_result::<String>(&mut temp_db.pool().get().await.unwrap())
+            .await
+            .unwrap();
+        assert_eq!(artist_name_db, artist_name);
     }
 
     #[tokio::test]
