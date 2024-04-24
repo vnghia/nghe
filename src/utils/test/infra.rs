@@ -49,8 +49,12 @@ impl Infra {
     pub async fn new() -> Self {
         let db = TemporaryDb::new_from_env().await;
         let fs = TemporaryFs::default();
-        let lastfm_client =
-            if cfg!(lastfm_env) { Some(lastfm_client::Client::new_from_env()) } else { None };
+
+        #[cfg(lastfm_env)]
+        let lastfm_client = Some(lastfm_client::Client::new_from_env());
+        #[cfg(not(lastfm_env))]
+        let lastfm_client = None;
+
         Self {
             db,
             fs,
