@@ -1,5 +1,11 @@
 [workspace]
-members = ["frontend", "proc_macros", "types"]
+members = [
+  "frontend",
+  "lastfm-client",
+  "lastfm-proc-macros",
+  "proc_macros",
+  "types",
+]
 
 [workspace.package]
 version = "0.7.2"
@@ -26,6 +32,13 @@ strum = { version = "0.26.2", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }
 uuid = { version = "1.8.0", features = ["serde"] }
+reqwest = { version = "0.12.4", default-features = false, features = [
+  "rustls-tls",
+  "json",
+  "http2",
+] }
+thiserror = { version = "1.0.59" }
+tokio = { version = "1.37.0", features = ["full"] }
 url = { version = "2.5.0" }
 
 # Dev
@@ -50,7 +63,9 @@ serde = { workspace = true }
 serde_html_form = { workspace = true }
 serde_with = { workspace = true }
 strum = { workspace = true }
+thiserror = { workspace = true }
 time = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 
@@ -82,8 +97,6 @@ rayon = { version = "1.10.0" }
 rsmpeg = { git = "https://github.com/vnghia/rsmpeg.git", rev = "e34a83a", features = [
   "link_system_ffmpeg",
 ] }
-thiserror = { version = "1.0.59" }
-tokio = { version = "1.37.0", features = ["full"] }
 tokio-postgres = { version = "0.7.10" }
 tokio-util = { version = "0.7.10", features = ["io"] }
 tower = { version = "0.4.13", features = ["util"] }
