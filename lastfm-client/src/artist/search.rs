@@ -44,7 +44,10 @@ mod tests {
         assert_eq!(artists.len(), 1);
         let artist = artists.remove(0);
         assert_eq!(artist.name, "Cher");
-        assert_eq!(artist.mbid, Uuid::parse_str("bfcc6d75-a6a5-4bc6-8282-47aec8531818").unwrap());
+        assert_eq!(
+            artist.mbid.unwrap(),
+            Uuid::parse_str("bfcc6d75-a6a5-4bc6-8282-47aec8531818").unwrap()
+        );
         assert_eq!(artist.url, "https://www.last.fm/music/Cher");
         assert_eq!(artist.images.len(), 5);
     }
