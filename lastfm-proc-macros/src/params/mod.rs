@@ -30,12 +30,14 @@ fn get_method_path() -> String {
 pub fn add_method_name(input: TokenStream) -> Result<TokenStream, Error> {
     let item_struct: ItemStruct = syn::parse2(input)?;
     let item_ident = &item_struct.ident;
+    let (impl_generics, ty_generics, where_clause) = item_struct.generics.split_for_impl();
+
     let method_name = get_method_path().to_case(Case::Flat);
     let method_name_trait =
         parse_str::<ExprPath>(&concat_string!(COMMON_PARAMS_IMPORT_PREFIX, "::MethodName"))?;
 
     Ok(quote! {
-        impl #method_name_trait for #item_ident {
+        impl #impl_generics #method_name_trait for #item_ident #ty_generics #where_clause {
             fn method_name() -> &'static str {
                 #method_name
             }

@@ -22,6 +22,8 @@ pub type TranscodingConfig = raw::TranscodingConfig;
 
 pub type ArtConfig = raw::ArtConfig;
 
+pub type LastFmConfig = raw::LastFmConfig;
+
 #[derive(Debug, Clone)]
 pub struct ArtistIndexConfig {
     pub ignored_articles: String,
@@ -39,6 +41,7 @@ pub struct Config {
     pub scan: ScanConfig,
     pub transcoding: TranscodingConfig,
     pub art: ArtConfig,
+    pub lastfm: LastFmConfig,
 }
 
 impl ServerConfig {
@@ -92,7 +95,9 @@ impl Config {
 
         let art = ArtConfig::new(raw_config.art);
 
-        Self { server, database, artist_index, parsing, scan, transcoding, art }
+        let lastfm = raw_config.lastfm;
+
+        Self { server, database, artist_index, parsing, scan, transcoding, art, lastfm }
     }
 }
 

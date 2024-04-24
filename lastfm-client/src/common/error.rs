@@ -5,7 +5,7 @@ use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, Deserialize_repr, Display, PartialEq, Eq)]
 #[repr(u8)]
-pub enum LastFmErrorCode {
+pub enum LastfmErrorCode {
     InvalidService = 2,
     InvalidMethod = 3,
     AuthenticationFailed = 4,
@@ -37,15 +37,15 @@ pub enum LastFmErrorCode {
 #[derive(Debug, Deserialize, Error)]
 #[error("Lastfm error {code}: {message}")]
 #[cfg_attr(test, derive(PartialEq, Eq))]
-pub struct LastFmError {
-    pub code: LastFmErrorCode,
+pub struct LastfmError {
+    pub code: LastfmErrorCode,
     pub message: String,
 }
 
 #[derive(Debug, Error)]
 pub enum ClientError {
     #[error(transparent)]
-    LastFm(#[from] LastFmError),
+    LastFm(#[from] LastfmError),
 
     #[error(transparent)]
     Http(#[from] reqwest::Error),

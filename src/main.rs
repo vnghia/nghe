@@ -46,6 +46,8 @@ fn app(database: Database, config: Config) -> Router {
     let serve_frontend = ServeDir::new(&config.server.frontend_dir)
         .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
 
+    let lastfm_client = config.lastfm.key.map(lastfm_client::Client::new);
+
     Router::new()
         .merge(system::router())
         .merge(extension::router())
@@ -55,7 +57,13 @@ fn app(database: Database, config: Config) -> Router {
         .merge(media_list::router())
         .merge(bookmarks::router())
         .merge(searching::router())
-        .merge(scan::router(config.artist_index, config.parsing, config.scan, config.art))
+        .merge(scan::router(
+            config.artist_index,
+            config.parsing,
+            config.scan,
+            config.art,
+            lastfm_client,
+        ))
         .merge(media_annotation::router())
         .merge(permission::router())
         .merge(music_folder::router())

@@ -15,13 +15,7 @@ pub async fn get_album_info2_handler(
         GetAlbumInfo2Body {
             album_info: AlbumInfo {
                 notes: None,
-                info: InfoId3 {
-                    music_brainz_id: None,
-                    last_fm_url: None,
-                    small_image_url: None,
-                    medium_image_url: None,
-                    large_image_url: None,
-                },
+                info: InfoId3 { music_brainz_id: None, last_fm_url: None },
             },
         }
         .into(),

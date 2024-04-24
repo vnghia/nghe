@@ -17,12 +17,14 @@ pub fn router(
     parsing_config: ParsingConfig,
     scan_config: ScanConfig,
     art_config: ArtConfig,
+    lastfm_client: Option<lastfm_client::Client>,
 ) -> axum::Router<crate::Database> {
     nghe_proc_macros::build_router!(start_scan, get_scan_status)
         .layer(Extension(artist_index_config))
         .layer(Extension(parsing_config))
         .layer(Extension(scan_config))
         .layer(Extension(art_config))
+        .layer(Extension(lastfm_client))
 }
 
 #[cfg(test)]

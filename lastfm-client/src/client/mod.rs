@@ -4,8 +4,9 @@ use serde::Serialize;
 
 use crate::error::ClientError;
 use crate::params::MethodName;
-use crate::response::LastFmResponse;
+use crate::response::LastfmResponse;
 
+#[derive(Clone)]
 pub struct Client {
     client: reqwest::Client,
     key: String,
@@ -20,6 +21,11 @@ impl Client {
 
     pub fn new_with_client(client: reqwest::Client, key: String) -> Self {
         Self { client, key }
+    }
+
+    #[cfg(lastfm_env)]
+    pub fn new_from_env() -> Self {
+        Self::new(env!("LASTFM_KEY").to_string())
     }
 
     fn to_query_str<P: Serialize + MethodName>(&self, params: &P) -> Result<String, ClientError> {
@@ -48,20 +54,9 @@ impl Client {
             .send()
             .await?
             .error_for_status()?
-            .json::<LastFmResponse<R>>()
+            .json::<LastfmResponse<R>>()
             .await?
             .into()
-    }
-}
-
-#[cfg(all(test, lastfm_env))]
-mod test {
-    use super::*;
-
-    impl Client {
-        pub fn new_from_env() -> Self {
-            Self::new(env!("LASTFM_KEY").to_string())
-        }
     }
 }
 

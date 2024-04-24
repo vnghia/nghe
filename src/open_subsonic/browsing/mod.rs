@@ -25,3 +25,8 @@ pub fn router() -> axum::Router<crate::Database> {
         get_artist_info2
     )
 }
+
+#[cfg(test)]
+pub mod test {
+    pub use super::get_artist_info2::get_artist_info2;
+}

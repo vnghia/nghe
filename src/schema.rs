@@ -37,6 +37,9 @@ diesel::table! {
         scanned_at -> Timestamptz,
         mbz_id -> Nullable<Uuid>,
         ts -> Tsvector,
+        lastfm_url -> Nullable<Text>,
+        lastfm_mbz_id -> Nullable<Uuid>,
+        lastfm_biography -> Nullable<Text>,
     }
 }
 
