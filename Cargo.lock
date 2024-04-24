@@ -2612,6 +2612,7 @@ dependencies = [
  "serde_html_form",
  "serde_json",
  "serde_repr",
+ "serde_with",
  "strum",
  "thiserror",
  "tokio",
