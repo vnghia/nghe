@@ -1,13 +1,11 @@
 pub mod asset;
-pub mod db;
-pub mod fs;
+mod db;
+mod fs;
 pub mod http;
-pub mod infra;
+mod infra;
 pub mod picture;
 pub mod random;
-pub mod user;
+mod user;
 
-pub use db::TemporaryDb;
-pub use fs::TemporaryFs;
 pub use infra::Infra;
 pub use user::User;

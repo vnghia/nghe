@@ -26,6 +26,7 @@ strum = { version = "0.26.2", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }
 uuid = { version = "1.8.0", features = ["serde"] }
+url = { version = "2.5.0" }
 
 # Dev
 serde_json = { version = "1.0.116" }
@@ -88,12 +89,13 @@ tokio-util = { version = "0.7.10", features = ["io"] }
 tower = { version = "0.4.13", features = ["util"] }
 tower-http = { version = "0.5.2", features = ["cors", "fs", "trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+unicode-normalization = { version = "0.1.23" }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
-unicode-normalization = "0.1.23"
 
 [dev-dependencies]
 fake = { workspace = true }
 serde_json = { workspace = true }
+url = { workspace = true }
 
 http-body-util = { version = "0.1.1" }
 image = { version = "0.25.1", default-features = false, features = [
@@ -101,7 +103,6 @@ image = { version = "0.25.1", default-features = false, features = [
   "png",
 ] }
 tempfile = "3.10.1"
-url = "2.5.0"
 uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
 
 [target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]

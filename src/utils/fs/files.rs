@@ -102,11 +102,11 @@ mod tests {
 
     use super::*;
     use crate::utils::song::file_type::to_extensions;
-    use crate::utils::test::fs::TemporaryFs;
+    use crate::utils::test::Infra;
 
-    async fn wrap_scan_media_file(fs: &TemporaryFs, scan_parallel: bool) -> Vec<ScannedMediaFile> {
+    async fn wrap_scan_media_file(infra: &Infra, scan_parallel: bool) -> Vec<ScannedMediaFile> {
         let (tx, rx) = flume::bounded(100);
-        let root_path = fs.root_path().to_path_buf();
+        let root_path = infra.fs.root_path().to_path_buf();
 
         let scan_thread =
             tokio::task::spawn_blocking(move || scan_media_files(&root_path, tx, scan_parallel));
@@ -121,14 +121,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_no_filter() {
-        let fs = TemporaryFs::default();
+        let infra = Infra::new().await;
 
-        let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
+        let media_paths = Infra::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
-            .map(|path| fs.create_file(path))
+            .map(|path| infra.fs.create_file(path))
             .collect_vec();
 
-        let scanned_results = wrap_scan_media_file(&fs, false).await;
+        let scanned_results = wrap_scan_media_file(&infra, false).await;
         let scanned_lens =
             scanned_results.iter().cloned().map(|result| result.song_file_size).collect_vec();
         let scanned_paths =
@@ -150,14 +150,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_relative_path() {
-        let fs = TemporaryFs::default();
+        let infra = Infra::new().await;
 
-        let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
+        let media_paths = Infra::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
-            .map(|path| fs.create_file(path).strip_prefix(fs.root_path()).unwrap().to_path_buf())
+            .map(|path| {
+                infra.fs.create_file(path).strip_prefix(infra.fs.root_path()).unwrap().to_path_buf()
+            })
             .collect_vec();
 
-        let scanned_paths = wrap_scan_media_file(&fs, false)
+        let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
             .iter()
             .cloned()
@@ -172,18 +174,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_filter_extension() {
-        let fs = TemporaryFs::default();
+        let infra = Infra::new().await;
 
         let supported_extensions = to_extensions();
 
-        let media_paths = TemporaryFs::create_random_relative_paths(
+        let media_paths = Infra::create_random_relative_paths(
             50,
             3,
             &[supported_extensions.as_slice(), &["txt", "rs"]].concat(),
         )
         .into_iter()
         .filter_map(|path| {
-            let path = fs.create_file(path);
+            let path = infra.fs.create_file(path);
             let ext = FileType::from_path(&path);
             if let Some(ext) = ext {
                 if SONG_FILE_TYPES.contains(&ext) { Some(path) } else { None }
@@ -193,7 +195,7 @@ mod tests {
         })
         .collect_vec();
 
-        let scanned_paths = wrap_scan_media_file(&fs, false)
+        let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
             .into_iter()
             .map(|result| result.song_absolute_path)
@@ -207,21 +209,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_filter_dir() {
-        let fs = TemporaryFs::default();
+        let infra = Infra::new().await;
 
-        let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
+        let media_paths = Infra::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
             .filter_map(|path| {
                 if rand::random::<bool>() {
-                    Some(fs.create_file(&path))
+                    Some(infra.fs.create_file(&path))
                 } else {
-                    fs.create_dir(&path);
+                    infra.fs.create_dir(&path);
                     None
                 }
             })
             .collect_vec();
 
-        let scanned_paths = wrap_scan_media_file(&fs, false)
+        let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
             .into_iter()
             .map(|result| result.song_absolute_path)
@@ -235,14 +237,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_scan_media_files_parallel() {
-        let fs = TemporaryFs::default();
+        let infra = Infra::new().await;
 
-        let media_paths = TemporaryFs::create_random_relative_paths(50, 3, &to_extensions())
+        let media_paths = Infra::create_random_relative_paths(50, 3, &to_extensions())
             .into_iter()
-            .map(|path| fs.create_file(path))
+            .map(|path| infra.fs.create_file(path))
             .collect_vec();
 
-        let scanned_results = wrap_scan_media_file(&fs, true).await;
+        let scanned_results = wrap_scan_media_file(&infra, true).await;
         let scanned_lens =
             scanned_results.iter().cloned().map(|result| result.song_file_size).collect_vec();
         let scanned_paths =

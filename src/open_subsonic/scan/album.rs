@@ -74,31 +74,31 @@ mod tests {
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::utils::test::TemporaryDb;
+    use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_upsert_album_mbz_id() {
-        let temp_db = TemporaryDb::new_from_env().await;
+        let infra = Infra::new().await;
         let mbz_id = Some(Faker.fake());
         let album_no_id1 = albums::AlbumNoId { mbz_id, ..Faker.fake() };
         let album_no_id2 = albums::AlbumNoId { mbz_id, ..Faker.fake() };
 
-        let album_id1 = upsert_album(temp_db.pool(), album_no_id1).await.unwrap();
-        let album_id2 = upsert_album(temp_db.pool(), album_no_id2).await.unwrap();
+        let album_id1 = upsert_album(infra.pool(), album_no_id1).await.unwrap();
+        let album_id2 = upsert_album(infra.pool(), album_no_id2).await.unwrap();
         // Because they share the same mbz id
         assert_eq!(album_id1, album_id2);
     }
 
     #[tokio::test]
     async fn test_upsert_album_unique() {
-        let temp_db = TemporaryDb::new_from_env().await;
+        let infra = Infra::new().await;
         let album_no_id1 =
             albums::AlbumNoId { name: "album1".into(), mbz_id: None, ..Default::default() };
         let album_no_id2 =
             albums::AlbumNoId { name: "album1".into(), mbz_id: None, ..Default::default() };
 
-        let album_id1 = upsert_album(temp_db.pool(), album_no_id1).await.unwrap();
-        let album_id2 = upsert_album(temp_db.pool(), album_no_id2).await.unwrap();
+        let album_id1 = upsert_album(infra.pool(), album_no_id1).await.unwrap();
+        let album_id2 = upsert_album(infra.pool(), album_no_id2).await.unwrap();
         // Because they share the same property and mbz id is null.
         assert_eq!(album_id1, album_id2);
 
@@ -112,8 +112,8 @@ mod tests {
             mbz_id: Some(Faker.fake()),
             ..Default::default()
         };
-        let album_id1 = upsert_album(temp_db.pool(), album_no_id1).await.unwrap();
-        let album_id2 = upsert_album(temp_db.pool(), album_no_id2).await.unwrap();
+        let album_id1 = upsert_album(infra.pool(), album_no_id1).await.unwrap();
+        let album_id2 = upsert_album(infra.pool(), album_no_id2).await.unwrap();
         // Because they share the same property but their mbz ids are different.
         assert_ne!(album_id1, album_id2);
     }

@@ -117,7 +117,7 @@ mod tests {
     use itertools::Itertools;
 
     use super::*;
-    use crate::utils::test::TemporaryDb;
+    use crate::utils::test::Infra;
 
     async fn assert_artist_indexes<S: AsRef<str>>(
         pool: &DatabasePool,
@@ -187,24 +187,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_artist_indexes() {
-        let temp_db = TemporaryDb::new_from_env().await;
+        let infra = Infra::new().await;
         let artist_no_ids = artists::ArtistNoId::fake_vec(10..=10);
         let artist_index_config = ArtistIndexConfig::default();
 
-        upsert_artists(temp_db.pool(), &artist_index_config.ignored_prefixes, &artist_no_ids)
+        upsert_artists(infra.pool(), &artist_index_config.ignored_prefixes, &artist_no_ids)
             .await
             .unwrap();
-        assert_artist_indexes(
-            temp_db.pool(),
-            &artist_no_ids,
-            &artist_index_config.ignored_prefixes,
-        )
-        .await;
+        assert_artist_indexes(infra.pool(), &artist_no_ids, &artist_index_config.ignored_prefixes)
+            .await;
     }
 
     #[tokio::test]
     async fn test_upsert_artist_mbz_id() {
-        let temp_db = TemporaryDb::new_from_env().await;
+        let infra = Infra::new().await;
         let mbz_id = Some(Faker.fake());
         let artist_no_id1 = artists::ArtistNoId { mbz_id, ..Faker.fake() };
         let artist_no_id2 = artists::ArtistNoId { mbz_id, ..Faker.fake() };
@@ -212,12 +208,12 @@ mod tests {
         let artist_index_config = ArtistIndexConfig::default();
 
         let artist_id1 =
-            upsert_artists(temp_db.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id1])
+            upsert_artists(infra.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id1])
                 .await
                 .unwrap()
                 .remove(0);
         let artist_id2 =
-            upsert_artists(temp_db.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id2])
+            upsert_artists(infra.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id2])
                 .await
                 .unwrap()
                 .remove(0);
@@ -228,7 +224,7 @@ mod tests {
         let artist_name_db = artists::table
             .filter(artists::id.eq(artist_id2))
             .select(artists::name)
-            .get_result::<String>(&mut temp_db.pool().get().await.unwrap())
+            .get_result::<String>(&mut infra.pool().get().await.unwrap())
             .await
             .unwrap();
         assert_eq!(artist_name_db, artist_name);
@@ -236,18 +232,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_upsert_artist_name() {
-        let temp_db = TemporaryDb::new_from_env().await;
+        let infra = Infra::new().await;
         let artist_no_id1 = artists::ArtistNoId { name: "alias1".into(), mbz_id: None };
         let artist_no_id2 = artists::ArtistNoId { name: "alias1".into(), mbz_id: None };
         let artist_index_config = ArtistIndexConfig::default();
 
         let artist_id1 =
-            upsert_artists(temp_db.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id1])
+            upsert_artists(infra.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id1])
                 .await
                 .unwrap()
                 .remove(0);
         let artist_id2 =
-            upsert_artists(temp_db.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id2])
+            upsert_artists(infra.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id2])
                 .await
                 .unwrap()
                 .remove(0);
@@ -259,12 +255,12 @@ mod tests {
         let artist_no_id2 =
             artists::ArtistNoId { name: "alias2".into(), mbz_id: Some(Faker.fake()) };
         let artist_id1 =
-            upsert_artists(temp_db.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id1])
+            upsert_artists(infra.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id1])
                 .await
                 .unwrap()
                 .remove(0);
         let artist_id2 =
-            upsert_artists(temp_db.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id2])
+            upsert_artists(infra.pool(), &artist_index_config.ignored_prefixes, &[artist_no_id2])
                 .await
                 .unwrap()
                 .remove(0);

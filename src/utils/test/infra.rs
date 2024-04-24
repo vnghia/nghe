@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::ffi::OsStr;
 use std::ops::Add;
 use std::path::Path;
 use std::slice::SliceIndex;
@@ -19,9 +20,9 @@ use nghe_types::scan::start_scan::{ScanMode, StartScanParams};
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
 
-use super::db::SongDbInformation;
-use super::fs::SongFsInformation;
-use super::{picture, random, TemporaryDb, TemporaryFs, User};
+use super::db::{SongDbInformation, TemporaryDb};
+use super::fs::{SongFsInformation, TemporaryFs};
+use super::{picture, random, User};
 use crate::config::{ArtistIndexConfig, ScanConfig};
 use crate::database::EncryptionKey;
 use crate::models::*;
@@ -316,6 +317,14 @@ impl Infra {
 
     pub fn state(&self) -> State<Database> {
         self.db.state()
+    }
+
+    pub fn create_random_relative_paths<OS: AsRef<OsStr>>(
+        n_path: usize,
+        max_depth: usize,
+        extensions: &[OS],
+    ) -> Vec<String> {
+        TemporaryFs::create_random_relative_paths(n_path, max_depth, extensions)
     }
 
     pub fn user_id(&self, index: usize) -> Uuid {
