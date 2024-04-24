@@ -175,6 +175,7 @@ impl Infra {
                     &self.fs.parsing_config,
                     &ScanConfig::default(),
                     &self.fs.art_config,
+                    &None,
                 )
                 .await
                 .unwrap()

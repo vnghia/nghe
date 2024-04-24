@@ -12,6 +12,7 @@ use super::get_scan_status::get_scan_status;
 use super::run_scan::run_scan;
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
+use crate::open_subsonic::lastfm::scan_artist_lastfm_info::scan_artist_lastfm_info;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(StartScanParams, admin);
@@ -87,6 +88,7 @@ pub async fn start_scan(
     parsing_config: &ParsingConfig,
     scan_config: &ScanConfig,
     art_config: &ArtConfig,
+    lastfm_client: &Option<lastfm_client::Client>,
 ) -> Result<ScanStat> {
     let scan_result = run_scan(
         pool,
@@ -105,6 +107,10 @@ pub async fn start_scan(
     .await;
 
     insert_ignored_articles_config(pool, &artist_index_config.ignored_articles).await?;
+    if let Some(client) = lastfm_client {
+        scan_artist_lastfm_info(pool, client, Some(scan_started_at)).await?;
+    }
+
     finalize_scan(pool, scan_started_at, params.id, scan_result).await
 }
 
@@ -114,6 +120,7 @@ pub async fn start_scan_handler(
     Extension(parsing_config): Extension<ParsingConfig>,
     Extension(scan_config): Extension<ScanConfig>,
     Extension(art_config): Extension<ArtConfig>,
+    Extension(lastfm_client): Extension<Option<lastfm_client::Client>>,
     req: StartScanRequest,
 ) -> StartScanJsonResponse {
     let id = req.params.id;
@@ -129,6 +136,7 @@ pub async fn start_scan_handler(
             &parsing_config,
             &scan_config,
             &art_config,
+            &lastfm_client,
         )
         .await
     });
