@@ -36,6 +36,7 @@ pub struct ArtistId3Db {
     #[diesel(select_expression_type = count_distinct<songs::album_id>)]
     pub album_count: i64,
     pub mbz_id: Option<Uuid>,
+    pub cover_art_id: Option<Uuid>,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -157,6 +158,7 @@ impl From<ArtistId3Db> for ArtistId3 {
             name: value.basic.no_id.name.into_owned(),
             album_count: Some(value.album_count as _),
             music_brainz_id: value.mbz_id,
+            cover_art: value.cover_art_id.map(|id| MediaTypedId { t: Some(MediaType::Aritst), id }),
         }
     }
 }
