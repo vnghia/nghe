@@ -113,9 +113,9 @@ pub async fn start_scan(
         scan_artist_lastfm_info(pool, client, Some(scan_started_at)).await?;
     }
     if let Some(client) = spotify_client
-        && let Some(ref artist_art_path) = art_config.artist_path
+        && let Some(ref artist_art_dir) = art_config.artist_dir
     {
-        scan_artist_spotify_image(pool, artist_art_path, client, Some(scan_started_at)).await?;
+        scan_artist_spotify_image(pool, artist_art_dir, client, Some(scan_started_at)).await?;
     }
 
     finalize_scan(pool, scan_started_at, params.id, scan_result).await

@@ -63,7 +63,7 @@ fn app(database: Database, config: Config) -> Router {
         .merge(media_list::router())
         .merge(bookmarks::router())
         .merge(searching::router())
-        .merge(spotify::router(config.art.artist_path.clone(), spotify_client.clone()))
+        .merge(spotify::router(config.art.artist_dir.clone(), spotify_client.clone()))
         .merge(scan::router(
             config.artist_index,
             config.parsing,

@@ -75,12 +75,12 @@ pub struct ArtConfig {
         value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"artist\"))"
     ))]
     #[serde_as(deserialize_as = "DefaultOnNull")]
-    pub artist_path: Option<PathBuf>,
+    pub artist_dir: Option<PathBuf>,
     #[derivative(Default(
         value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"song\"))"
     ))]
     #[serde_as(deserialize_as = "DefaultOnNull")]
-    pub song_path: Option<PathBuf>,
+    pub song_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

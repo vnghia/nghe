@@ -57,8 +57,8 @@ impl TemporaryFs {
             ..Default::default()
         };
         let art_config = ArtConfig {
-            artist_path: Some(root.path().canonicalize().unwrap().join("art-artist-path")),
-            song_path: Some(root.path().canonicalize().unwrap().join("art-song-path")),
+            artist_dir: Some(root.path().canonicalize().unwrap().join("art-artist-path")),
+            song_dir: Some(root.path().canonicalize().unwrap().join("art-song-path")),
         };
         Self { root, write_option, parsing_config, transcoding_config, art_config }
     }

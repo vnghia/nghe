@@ -9,7 +9,7 @@ use nghe_proc_macros::{add_axum_response, add_common_validate};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::utils::upsert_artist_spotify_image;
+use super::utils::search_and_upsert_artist_spotify_image;
 use crate::models::*;
 use crate::{Database, DatabasePool};
 
@@ -19,7 +19,7 @@ add_axum_response!(ScanArtistSpotifyImageBody);
 #[tracing::instrument(skip_all)]
 pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
     pool: &DatabasePool,
-    artist_art_path: P,
+    artist_art_dir: P,
     client: &rspotify::ClientCredsSpotify,
     artist_updated_at: Option<OffsetDateTime>,
 ) -> Result<()> {
@@ -55,8 +55,14 @@ pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
         } else {
             for (id, name, spotify_id) in &artists {
                 if spotify_id.is_none() {
-                    if let Err(e) =
-                        upsert_artist_spotify_image(pool, &artist_art_path, client, *id, name).await
+                    if let Err(e) = search_and_upsert_artist_spotify_image(
+                        pool,
+                        &artist_art_dir,
+                        client,
+                        *id,
+                        name,
+                    )
+                    .await
                     {
                         tracing::error!(artist=name, upserting_artist_spotify_image=?e);
                     } else {
@@ -76,17 +82,17 @@ pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
 
 pub async fn scan_artist_spotify_image_handler(
     State(database): State<Database>,
-    Extension(artist_art_path): Extension<Option<PathBuf>>,
+    Extension(artist_art_dir): Extension<Option<PathBuf>>,
     Extension(client): Extension<Option<rspotify::ClientCredsSpotify>>,
     req: ScanArtistSpotifyImageRequest,
 ) -> ScanArtistSpotifyImageJsonResponse {
     if let Some(client) = client
-        && let Some(artist_art_path) = artist_art_path
+        && let Some(artist_art_dir) = artist_art_dir
     {
         tokio::task::spawn(async move {
             if let Err(e) = scan_artist_spotify_image(
                 &database.pool,
-                &artist_art_path,
+                &artist_art_dir,
                 &client,
                 req.params.artist_updated_at,
             )
@@ -110,7 +116,7 @@ mod tests {
     #[tokio::test]
     async fn test_scan_artist_spotify_image() {
         let infra = Infra::new().await;
-        let artist_art_path = infra.fs.art_config.artist_path.as_ref().unwrap();
+        let artist_art_dir = infra.fs.art_config.artist_dir.as_ref().unwrap();
         let artist_id = upsert_artists(infra.pool(), &[], &["Micheal Learn To Rock".into()])
             .await
             .unwrap()
@@ -118,7 +124,7 @@ mod tests {
 
         scan_artist_spotify_image(
             infra.pool(),
-            artist_art_path,
+            artist_art_dir,
             infra.spotify_client.as_ref().unwrap(),
             None,
         )
@@ -138,7 +144,7 @@ mod tests {
     #[tokio::test]
     async fn test_scan_artist_spotify_image_updated_at() {
         let infra = Infra::new().await;
-        let artist_art_path = infra.fs.art_config.artist_path.as_ref().unwrap();
+        let artist_art_dir = infra.fs.art_config.artist_dir.as_ref().unwrap();
         let artist_id = upsert_artists(infra.pool(), &[], &["Micheal Learn To Rock".into()])
             .await
             .unwrap()
@@ -146,7 +152,7 @@ mod tests {
 
         scan_artist_spotify_image(
             infra.pool(),
-            artist_art_path,
+            artist_art_dir,
             infra.spotify_client.as_ref().unwrap(),
             Some(datetime!(2000-01-01 0:00 UTC)),
         )
