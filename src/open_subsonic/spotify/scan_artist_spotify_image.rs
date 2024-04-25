@@ -43,7 +43,7 @@ pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
                 .await?
         } else {
             artists::table
-                .filter(artists::cover_art_id.is_null())
+                .filter(artists::spotify_id.is_null())
                 .limit(max_count as i64)
                 .offset(current_offset as i64)
                 .order(artists::id)
