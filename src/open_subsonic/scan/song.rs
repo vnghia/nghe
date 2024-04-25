@@ -77,20 +77,16 @@ pub async fn upsert_song_cover_art<P: AsRef<Path>>(
     tokio::fs::create_dir_all(&art_dir).await?;
     tokio::fs::write(art_dir.join(file_name), data).await?;
 
-    diesel::insert_into(song_cover_arts::table)
-        .values(song_cover_arts::NewSongCoverArt {
+    diesel::insert_into(cover_arts::table)
+        .values(cover_arts::NewCoverArt {
             format: file_format.into(),
             file_hash: file_hash as _,
             file_size: file_size as _,
         })
-        .on_conflict((
-            song_cover_arts::format,
-            song_cover_arts::file_hash,
-            song_cover_arts::file_size,
-        ))
+        .on_conflict((cover_arts::format, cover_arts::file_hash, cover_arts::file_size))
         .do_update()
-        .set(song_cover_arts::upserted_at.eq(time::OffsetDateTime::now_utc()))
-        .returning(song_cover_arts::id)
+        .set(cover_arts::upserted_at.eq(time::OffsetDateTime::now_utc()))
+        .returning(cover_arts::id)
         .get_result::<Uuid>(&mut pool.get().await?)
         .await
         .map_err(anyhow::Error::from)

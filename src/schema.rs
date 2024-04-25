@@ -59,6 +59,19 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
+    cover_arts (id) {
+        id -> Uuid,
+        format -> Text,
+        file_hash -> Int8,
+        file_size -> Int4,
+        upserted_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     genres (id) {
         id -> Uuid,
         value -> Text,
@@ -162,19 +175,6 @@ diesel::table! {
         deleted_genre_count -> Int8,
         scan_error_count -> Int8,
         unrecoverable -> Nullable<Bool>,
-    }
-}
-
-diesel::table! {
-    use diesel::sql_types::*;
-    use diesel_full_text_search::*;
-
-    song_cover_arts (id) {
-        id -> Uuid,
-        format -> Text,
-        file_hash -> Int8,
-        file_size -> Int4,
-        upserted_at -> Timestamptz,
     }
 }
 
@@ -289,8 +289,8 @@ diesel::joinable!(playlists_users -> playlists (playlist_id));
 diesel::joinable!(playlists_users -> users (user_id));
 diesel::joinable!(scans -> music_folders (music_folder_id));
 diesel::joinable!(songs -> albums (album_id));
+diesel::joinable!(songs -> cover_arts (cover_art_id));
 diesel::joinable!(songs -> music_folders (music_folder_id));
-diesel::joinable!(songs -> song_cover_arts (cover_art_id));
 diesel::joinable!(songs_album_artists -> artists (album_artist_id));
 diesel::joinable!(songs_album_artists -> songs (song_id));
 diesel::joinable!(songs_artists -> artists (artist_id));
@@ -304,6 +304,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     albums,
     artists,
     configs,
+    cover_arts,
     genres,
     lyrics,
     music_folders,
@@ -312,7 +313,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     playlists_songs,
     playlists_users,
     scans,
-    song_cover_arts,
     songs,
     songs_album_artists,
     songs_artists,

@@ -37,9 +37,9 @@ pub async fn from_id(
         && let Some(art_path) = art_config.song_path.as_ref()
     {
         let song_cover_art = songs::table
-            .inner_join(song_cover_arts::table)
-            .filter(song_cover_arts::id.eq(cover_art_id))
-            .select(song_cover_arts::SongCoverArt::as_select())
+            .inner_join(cover_arts::table)
+            .filter(cover_arts::id.eq(cover_art_id))
+            .select(cover_arts::CoverArt::as_select())
             .get_result(&mut pool.get().await.unwrap())
             .await
             .unwrap();
