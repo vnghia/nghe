@@ -1,7 +1,7 @@
 use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
-use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use time::OffsetDateTime;
@@ -24,41 +24,49 @@ pub async fn scan_artist_lastfm_info(
 
     let max_count = 100_usize;
     let mut current_offset = 0_usize;
+    let mut upserted_artist_count = 0_usize;
+
     loop {
+        // Can not filter by nullable `lastfm_url` because it will change the offset.
         let artists = if let Some(artist_updated_at) = artist_updated_at {
             artists::table
-                .filter(
-                    artists::updated_at.ge(artist_updated_at).and(artists::lastfm_url.is_null()),
-                )
+                .filter(artists::updated_at.ge(artist_updated_at))
                 .limit(max_count as i64)
                 .offset(current_offset as i64)
-                .select((artists::id, artists::name, artists::mbz_id))
-                .get_results::<(Uuid, String, Option<Uuid>)>(&mut pool.get().await?)
+                .order(artists::id)
+                .select((artists::id, artists::name, artists::mbz_id, artists::lastfm_url))
+                .get_results::<(Uuid, String, Option<Uuid>, Option<String>)>(&mut pool.get().await?)
                 .await?
         } else {
             artists::table
-                .filter(artists::lastfm_url.is_null())
                 .limit(max_count as i64)
                 .offset(current_offset as i64)
-                .select((artists::id, artists::name, artists::mbz_id))
-                .get_results::<(Uuid, String, Option<Uuid>)>(&mut pool.get().await?)
+                .order(artists::id)
+                .select((artists::id, artists::name, artists::mbz_id, artists::lastfm_url))
+                .get_results::<(Uuid, String, Option<Uuid>, Option<String>)>(&mut pool.get().await?)
                 .await?
         };
 
-        for (id, name, mbz_id) in &artists {
-            if let Err(e) = upsert_artist_lastfm_info(pool, client, *id, name, *mbz_id).await {
-                tracing::error!(artist=name, upserting_artist_lastfm_info=?e);
-            }
-        }
-        if artists.len() < max_count {
-            current_offset += artists.len();
+        if artists.is_empty() {
             break;
         } else {
-            current_offset += max_count;
-            tracing::debug!(current_offset = current_offset);
+            for (id, name, mbz_id, lastfm_url) in &artists {
+                if lastfm_url.is_none() {
+                    if let Err(e) =
+                        upsert_artist_lastfm_info(pool, client, *id, name, *mbz_id).await
+                    {
+                        tracing::error!(artist=name, upserting_artist_lastfm_info=?e);
+                    } else {
+                        upserted_artist_count += 1;
+                    }
+                }
+            }
+
+            current_offset += artists.len();
+            tracing::debug!(current_offset);
         }
     }
-    tracing::info!(scanned_artist_count = current_offset, "Finish scanning artist lastfm info");
+    tracing::info!(upserted_artist_count, "Finish scanning artist lastfm info");
 
     Ok(())
 }

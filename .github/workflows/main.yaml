@@ -170,6 +170,8 @@ jobs:
           ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
+          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
+          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_SECRET || '' }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -392,6 +394,8 @@ jobs:
           cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
+          SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
+          SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -471,6 +475,8 @@ jobs:
           cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
+          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
+          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_SECRET || '' }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

@@ -12,6 +12,6 @@ cover_arts (
 );
 
 alter table songs
-add cover_art_id uuid, add constraint cover_art_id_fkey foreign key (
+add column cover_art_id uuid, add constraint cover_art_id_fkey foreign key (
     cover_art_id
 ) references cover_arts (id) on delete set null;

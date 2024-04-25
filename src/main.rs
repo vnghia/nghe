@@ -2,7 +2,7 @@ use axum::Router;
 use nghe::config::Config;
 use nghe::open_subsonic::{
     bookmarks, browsing, extension, lastfm, media_annotation, media_list, media_retrieval,
-    music_folder, permission, playlists, scan, searching, system, user,
+    music_folder, permission, playlists, scan, searching, spotify, system, user,
 };
 use nghe::Database;
 use nghe_types::constant::{SERVER_NAME, SERVER_VERSION};
@@ -47,6 +47,12 @@ fn app(database: Database, config: Config) -> Router {
         .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
 
     let lastfm_client = config.lastfm.key.map(lastfm_client::Client::new);
+    let spotify_client = config.spotify.id.map(|id| {
+        rspotify::ClientCredsSpotify::new(rspotify::Credentials {
+            id,
+            secret: config.spotify.secret,
+        })
+    });
 
     Router::new()
         .merge(system::router())
@@ -57,12 +63,14 @@ fn app(database: Database, config: Config) -> Router {
         .merge(media_list::router())
         .merge(bookmarks::router())
         .merge(searching::router())
+        .merge(spotify::router(config.art.artist_path.clone(), spotify_client.clone()))
         .merge(scan::router(
             config.artist_index,
             config.parsing,
             config.scan,
             config.art,
             lastfm_client.clone(),
+            spotify_client,
         ))
         .merge(media_annotation::router())
         .merge(permission::router())

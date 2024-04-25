@@ -65,6 +65,22 @@ pub async fn get_album_cover_art<P: AsRef<Path>>(
     StreamResponse::try_from_path(album_cover_art.to_path(song_art_dir)).await
 }
 
+pub async fn get_artist_cover_art<P: AsRef<Path>>(
+    pool: &DatabasePool,
+    cover_art_id: Uuid,
+    artist_art_dir: P,
+) -> Result<StreamResponse> {
+    let artist_cover_art = artists::table
+        .inner_join(cover_arts::table)
+        .filter(cover_arts::id.eq(cover_art_id))
+        .select(cover_arts::CoverArt::as_select())
+        .get_result(&mut pool.get().await?)
+        .await
+        .optional()?
+        .ok_or_else(|| OSError::NotFound("Artist cover art".into()))?;
+    StreamResponse::try_from_path(artist_cover_art.to_path(artist_art_dir)).await
+}
+
 pub async fn get_cover_art_handler(
     State(database): State<Database>,
     Extension(art_config): Extension<ArtConfig>,
@@ -76,6 +92,9 @@ pub async fn get_cover_art_handler(
         }
         Some(MediaType::Album) if let Some(song_path) = art_config.song_path => {
             get_album_cover_art(&database.pool, req.user_id, req.params.id.id, &song_path).await
+        }
+        Some(MediaType::Aritst) if let Some(artist_path) = art_config.artist_path => {
+            get_artist_cover_art(&database.pool, req.params.id.id, &artist_path).await
         }
         _ => Err(anyhow::anyhow!(OSError::NotFound("Cover art".into()))),
     }

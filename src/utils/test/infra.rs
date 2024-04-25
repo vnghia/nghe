@@ -43,6 +43,7 @@ pub struct Infra {
     pub music_folders: Vec<music_folders::MusicFolder>,
     pub song_fs_infos_vec: Vec<Vec<SongFsInformation>>,
     pub lastfm_client: Option<lastfm_client::Client>,
+    pub spotify_client: Option<rspotify::ClientCredsSpotify>,
 }
 
 impl Infra {
@@ -55,6 +56,14 @@ impl Infra {
         #[cfg(not(lastfm_env))]
         let lastfm_client = None;
 
+        #[cfg(spotify_env)]
+        let spotify_client = Some(rspotify::ClientCredsSpotify::new(rspotify::Credentials::new(
+            env!("SPOTIFY_ID"),
+            env!("SPOTIFY_SECRET"),
+        )));
+        #[cfg(not(spotify_env))]
+        let spotify_client = None;
+
         Self {
             db,
             fs,
@@ -62,6 +71,7 @@ impl Infra {
             music_folders: vec![],
             song_fs_infos_vec: vec![],
             lastfm_client,
+            spotify_client,
         }
     }
 
@@ -175,6 +185,7 @@ impl Infra {
                     &self.fs.parsing_config,
                     &ScanConfig::default(),
                     &self.fs.art_config,
+                    &None,
                     &None,
                 )
                 .await

@@ -12,7 +12,8 @@ use super::get_scan_status::get_scan_status;
 use super::run_scan::run_scan;
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
-use crate::open_subsonic::lastfm::scan_artist_lastfm_info::scan_artist_lastfm_info;
+use crate::open_subsonic::lastfm::scan_artist_lastfm_info;
+use crate::open_subsonic::spotify::scan_artist_spotify_image;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(StartScanParams, admin);
@@ -89,6 +90,7 @@ pub async fn start_scan(
     scan_config: &ScanConfig,
     art_config: &ArtConfig,
     lastfm_client: &Option<lastfm_client::Client>,
+    spotify_client: &Option<rspotify::ClientCredsSpotify>,
 ) -> Result<ScanStat> {
     let scan_result = run_scan(
         pool,
@@ -110,6 +112,11 @@ pub async fn start_scan(
     if let Some(client) = lastfm_client {
         scan_artist_lastfm_info(pool, client, Some(scan_started_at)).await?;
     }
+    if let Some(client) = spotify_client
+        && let Some(ref artist_art_path) = art_config.artist_path
+    {
+        scan_artist_spotify_image(pool, artist_art_path, client, Some(scan_started_at)).await?;
+    }
 
     finalize_scan(pool, scan_started_at, params.id, scan_result).await
 }
@@ -121,6 +128,7 @@ pub async fn start_scan_handler(
     Extension(scan_config): Extension<ScanConfig>,
     Extension(art_config): Extension<ArtConfig>,
     Extension(lastfm_client): Extension<Option<lastfm_client::Client>>,
+    Extension(spotify_client): Extension<Option<rspotify::ClientCredsSpotify>>,
     req: StartScanRequest,
 ) -> StartScanJsonResponse {
     let id = req.params.id;
@@ -137,6 +145,7 @@ pub async fn start_scan_handler(
             &scan_config,
             &art_config,
             &lastfm_client,
+            &spotify_client,
         )
         .await
     });

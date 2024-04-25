@@ -20,6 +20,7 @@ pub fn router(
     scan_config: ScanConfig,
     art_config: ArtConfig,
     lastfm_client: Option<lastfm_client::Client>,
+    spotify_client: Option<rspotify::ClientCredsSpotify>,
 ) -> axum::Router<crate::Database> {
     nghe_proc_macros::build_router!(start_scan, get_scan_status)
         .layer(Extension(artist_index_config))
@@ -27,6 +28,7 @@ pub fn router(
         .layer(Extension(scan_config))
         .layer(Extension(art_config))
         .layer(Extension(lastfm_client))
+        .layer(Extension(spotify_client))
 }
 
 #[cfg(test)]

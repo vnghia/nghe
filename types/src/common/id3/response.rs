@@ -39,6 +39,9 @@ pub struct ArtistId3 {
     #[new(default)]
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub music_brainz_id: Option<Uuid>,
+    #[new(default)]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub cover_art: Option<MediaTypedId>,
 }
 
 #[add_types_derive]

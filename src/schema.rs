@@ -40,6 +40,8 @@ diesel::table! {
         lastfm_url -> Nullable<Text>,
         lastfm_mbz_id -> Nullable<Uuid>,
         lastfm_biography -> Nullable<Text>,
+        cover_art_id -> Nullable<Uuid>,
+        spotify_id -> Nullable<Text>,
     }
 }
 
@@ -280,6 +282,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(artists -> cover_arts (cover_art_id));
 diesel::joinable!(lyrics -> songs (song_id));
 diesel::joinable!(playbacks -> songs (song_id));
 diesel::joinable!(playbacks -> users (user_id));
