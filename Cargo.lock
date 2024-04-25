@@ -2985,6 +2985,7 @@ dependencies = [
  "image",
  "isolang",
  "itertools",
+ "lastfm-client",
  "libaes",
  "lofty",
  "lrc",

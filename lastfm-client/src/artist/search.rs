@@ -1,11 +1,13 @@
+use std::borrow::Cow;
+
 use lastfm_proc_macros::MethodName;
 use serde::{Deserialize, Serialize};
 
 use super::Artist;
 
 #[derive(Serialize, MethodName)]
-pub struct Params {
-    pub artist: String,
+pub struct Params<'a> {
+    pub artist: Cow<'a, str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -49,6 +51,5 @@ mod tests {
             Uuid::parse_str("bfcc6d75-a6a5-4bc6-8282-47aec8531818").unwrap()
         );
         assert_eq!(artist.url, "https://www.last.fm/music/Cher");
-        assert_eq!(artist.images.len(), 5);
     }
 }

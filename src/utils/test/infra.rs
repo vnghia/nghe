@@ -42,13 +42,27 @@ pub struct Infra {
     pub users: Vec<User>,
     pub music_folders: Vec<music_folders::MusicFolder>,
     pub song_fs_infos_vec: Vec<Vec<SongFsInformation>>,
+    pub lastfm_client: Option<lastfm_client::Client>,
 }
 
 impl Infra {
     pub async fn new() -> Self {
         let db = TemporaryDb::new_from_env().await;
         let fs = TemporaryFs::default();
-        Self { db, fs, users: vec![], music_folders: vec![], song_fs_infos_vec: vec![] }
+
+        #[cfg(lastfm_env)]
+        let lastfm_client = Some(lastfm_client::Client::new_from_env());
+        #[cfg(not(lastfm_env))]
+        let lastfm_client = None;
+
+        Self {
+            db,
+            fs,
+            users: vec![],
+            music_folders: vec![],
+            song_fs_infos_vec: vec![],
+            lastfm_client,
+        }
     }
 
     pub async fn add_user(self, role: Option<users::Role>) -> Self {
@@ -161,6 +175,7 @@ impl Infra {
                     &self.fs.parsing_config,
                     &ScanConfig::default(),
                     &self.fs.art_config,
+                    &None,
                 )
                 .await
                 .unwrap()

@@ -78,6 +78,11 @@ pub struct ArtConfig {
     pub song_path: Option<PathBuf>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct LastFmConfig {
+    pub key: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
@@ -87,6 +92,7 @@ pub struct Config {
     pub scan: ScanConfig,
     pub transcoding: TranscodingConfig,
     pub art: ArtConfig,
+    pub lastfm: LastFmConfig,
 }
 
 impl Config {
@@ -99,6 +105,7 @@ impl Config {
             .join(Serialized::default("scan", ScanConfig::default()))
             .join(Serialized::default("transcoding", TranscodingConfig::default()))
             .join(Serialized::default("art", ArtConfig::default()))
+            .join(Serialized::default("lastfm", LastFmConfig::default()))
             .extract()
             .expect("can not parse initial config")
     }
