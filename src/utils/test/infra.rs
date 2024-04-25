@@ -412,11 +412,11 @@ impl Infra {
                 let file_hash = xxh3_64(data);
                 let file_size = data.len();
 
-                song_cover_arts::table
-                    .select(song_cover_arts::id)
-                    .filter(song_cover_arts::format.eq(file_format))
-                    .filter(song_cover_arts::file_hash.eq(file_hash as i64))
-                    .filter(song_cover_arts::file_size.eq(file_size as i32))
+                cover_arts::table
+                    .select(cover_arts::id)
+                    .filter(cover_arts::format.eq(file_format))
+                    .filter(cover_arts::file_hash.eq(file_hash as i64))
+                    .filter(cover_arts::file_size.eq(file_size as i32))
                     .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
                     .await
                     .unwrap()

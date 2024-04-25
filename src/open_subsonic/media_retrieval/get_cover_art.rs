@@ -26,10 +26,10 @@ pub async fn get_song_cover_art<P: AsRef<Path>>(
     song_art_dir: P,
 ) -> Result<StreamResponse> {
     let song_cover_art = songs::table
-        .inner_join(song_cover_arts::table)
+        .inner_join(cover_arts::table)
         .filter(with_permission(user_id))
-        .filter(song_cover_arts::id.eq(cover_art_id))
-        .select(song_cover_arts::SongCoverArt::as_select())
+        .filter(cover_arts::id.eq(cover_art_id))
+        .select(cover_arts::CoverArt::as_select())
         .get_result(&mut pool.get().await?)
         .await
         .optional()?
@@ -44,7 +44,7 @@ pub async fn get_album_cover_art<P: AsRef<Path>>(
     song_art_dir: P,
 ) -> Result<StreamResponse> {
     let album_cover_art = songs::table
-        .inner_join(song_cover_arts::table)
+        .inner_join(cover_arts::table)
         .filter(with_permission(user_id))
         .filter(songs::album_id.eq(album_id))
         .order((
@@ -53,11 +53,11 @@ pub async fn get_album_cover_art<P: AsRef<Path>>(
             songs::year.desc().nulls_last(),
             songs::disc_number.asc().nulls_last(),
             songs::track_number.asc().nulls_last(),
-            song_cover_arts::file_size.asc().nulls_last(),
+            cover_arts::file_size.asc().nulls_last(),
             // Add this to ensure that album cover art will be deterministic.
-            song_cover_arts::file_hash.asc().nulls_last(),
+            cover_arts::file_hash.asc().nulls_last(),
         ))
-        .select(song_cover_arts::SongCoverArt::as_select())
+        .select(cover_arts::CoverArt::as_select())
         .first(&mut pool.get().await?)
         .await
         .optional()?
