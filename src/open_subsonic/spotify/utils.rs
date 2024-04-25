@@ -22,7 +22,7 @@ pub async fn upsert_artist_spotify_image<P: AsRef<Path>>(
     client.refresh_token().await?;
 
     if let SearchResult::Artists(artists) =
-        client.search(name, SearchType::Artist, None, None, Some(1), Some(0)).await?
+        client.search(name, SearchType::Artist, None, None, None, None).await?
     {
         let artists = artists.items;
         if artists.is_empty() {
