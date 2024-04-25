@@ -20,6 +20,8 @@ pub async fn scan_artist_lastfm_info(
     client: &lastfm_client::Client,
     artist_updated_at: Option<OffsetDateTime>,
 ) -> Result<()> {
+    tracing::info!("Start scanning artist lastfm info");
+
     let max_count = 100_usize;
     let mut current_offset = 0_usize;
     loop {
@@ -49,12 +51,14 @@ pub async fn scan_artist_lastfm_info(
             }
         }
         if artists.len() < max_count {
+            current_offset += artists.len();
             break;
         } else {
             current_offset += max_count;
             tracing::debug!(current_offset = current_offset);
         }
     }
+    tracing::info!(scanned_artist_count = current_offset, "Finish scanning artist lastfm info");
 
     Ok(())
 }
@@ -74,4 +78,52 @@ pub async fn scan_artist_lastfm_info_handler(
         });
     }
     Ok(axum::Json(ScanArtistLastfmInfoBody {}.into()))
+}
+
+#[cfg(all(test, lastfm_env))]
+mod tests {
+    use time::macros::datetime;
+
+    use super::*;
+    use crate::open_subsonic::browsing::test::get_artist_info2;
+    use crate::open_subsonic::scan::test::upsert_artists;
+    use crate::utils::test::Infra;
+
+    #[tokio::test]
+    async fn test_scan_artist_lastfm_info() {
+        let infra = Infra::new().await;
+        let artist_id =
+            upsert_artists(infra.pool(), &[], &["cher".into()]).await.unwrap().remove(0);
+        scan_artist_lastfm_info(infra.pool(), infra.lastfm_client.as_ref().unwrap(), None)
+            .await
+            .unwrap();
+        let artist_info = get_artist_info2(infra.pool(), artist_id).await.unwrap();
+        assert_eq!(
+            artist_info.lastfm_mbz_id.unwrap(),
+            Uuid::parse_str("bfcc6d75-a6a5-4bc6-8282-47aec8531818").unwrap()
+        );
+        assert_eq!(artist_info.lastfm_url.unwrap(), "https://www.last.fm/music/Cher");
+        assert!(artist_info.lastfm_biography.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_scan_artist_lastfm_info_updated_at() {
+        let infra = Infra::new().await;
+        let artist_id =
+            upsert_artists(infra.pool(), &[], &["cher".into()]).await.unwrap().remove(0);
+        scan_artist_lastfm_info(
+            infra.pool(),
+            infra.lastfm_client.as_ref().unwrap(),
+            Some(datetime!(2000-01-01 0:00 UTC)),
+        )
+        .await
+        .unwrap();
+        let artist_info = get_artist_info2(infra.pool(), artist_id).await.unwrap();
+        assert_eq!(
+            artist_info.lastfm_mbz_id.unwrap(),
+            Uuid::parse_str("bfcc6d75-a6a5-4bc6-8282-47aec8531818").unwrap()
+        );
+        assert_eq!(artist_info.lastfm_url.unwrap(), "https://www.last.fm/music/Cher");
+        assert!(artist_info.lastfm_biography.is_some());
+    }
 }
