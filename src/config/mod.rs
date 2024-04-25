@@ -22,7 +22,9 @@ pub type TranscodingConfig = raw::TranscodingConfig;
 
 pub type ArtConfig = raw::ArtConfig;
 
-pub type LastFmConfig = raw::LastFmConfig;
+pub type LastfmConfig = raw::LastfmConfig;
+
+pub type SpotifyConfig = raw::SpotifyConfig;
 
 #[derive(Debug, Clone)]
 pub struct ArtistIndexConfig {
@@ -41,7 +43,8 @@ pub struct Config {
     pub scan: ScanConfig,
     pub transcoding: TranscodingConfig,
     pub art: ArtConfig,
-    pub lastfm: LastFmConfig,
+    pub lastfm: LastfmConfig,
+    pub spotify: SpotifyConfig,
 }
 
 impl ServerConfig {
@@ -73,7 +76,10 @@ impl TranscodingConfig {
 
 impl ArtConfig {
     pub fn new(raw: raw::ArtConfig) -> Self {
-        Self { song_path: to_path_config(raw.song_path) }
+        Self {
+            artist_path: to_path_config(raw.artist_path),
+            song_path: to_path_config(raw.song_path),
+        }
     }
 }
 
@@ -97,7 +103,9 @@ impl Config {
 
         let lastfm = raw_config.lastfm;
 
-        Self { server, database, artist_index, parsing, scan, transcoding, art, lastfm }
+        let spotify = raw_config.spotify;
+
+        Self { server, database, artist_index, parsing, scan, transcoding, art, lastfm, spotify }
     }
 }
 

@@ -72,6 +72,11 @@ pub struct TranscodingConfig {
 #[derivative(Default)]
 pub struct ArtConfig {
     #[derivative(Default(
+        value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"artist\"))"
+    ))]
+    #[serde_as(deserialize_as = "DefaultOnNull")]
+    pub artist_path: Option<PathBuf>,
+    #[derivative(Default(
         value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"song\"))"
     ))]
     #[serde_as(deserialize_as = "DefaultOnNull")]
@@ -79,8 +84,14 @@ pub struct ArtConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct LastFmConfig {
+pub struct LastfmConfig {
     pub key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SpotifyConfig {
+    pub id: Option<String>,
+    pub secret: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -92,7 +103,8 @@ pub struct Config {
     pub scan: ScanConfig,
     pub transcoding: TranscodingConfig,
     pub art: ArtConfig,
-    pub lastfm: LastFmConfig,
+    pub lastfm: LastfmConfig,
+    pub spotify: SpotifyConfig,
 }
 
 impl Config {
@@ -105,7 +117,8 @@ impl Config {
             .join(Serialized::default("scan", ScanConfig::default()))
             .join(Serialized::default("transcoding", TranscodingConfig::default()))
             .join(Serialized::default("art", ArtConfig::default()))
-            .join(Serialized::default("lastfm", LastFmConfig::default()))
+            .join(Serialized::default("lastfm", LastfmConfig::default()))
+            .join(Serialized::default("spotify", SpotifyConfig::default()))
             .extract()
             .expect("can not parse initial config")
     }

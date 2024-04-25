@@ -15,6 +15,7 @@ pub mod permission;
 pub mod playlists;
 pub mod scan;
 pub mod searching;
+pub mod spotify;
 pub mod system;
 pub mod user;
 

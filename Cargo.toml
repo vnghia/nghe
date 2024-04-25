@@ -59,6 +59,7 @@ hex = { workspace = true }
 isolang = { workspace = true }
 itertools = { workspace = true }
 rand = { workspace = true }
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_html_form = { workspace = true }
 serde_with = { workspace = true }
@@ -97,6 +98,10 @@ mime_guess = { version = "2.0.4" }
 rayon = { version = "1.10.0" }
 rsmpeg = { git = "https://github.com/vnghia/rsmpeg.git", rev = "e34a83a", features = [
   "link_system_ffmpeg",
+] }
+rspotify = { version = "0.13.1", default-features = false, features = [
+  "client-reqwest",
+  "reqwest-rustls-tls",
 ] }
 tokio-postgres = { version = "0.7.10" }
 tokio-util = { version = "0.7.10", features = ["io"] }

@@ -1,6 +1,7 @@
 pub mod bookmarks;
 pub mod browsing;
 mod common;
+pub mod cover_art;
 pub mod extension;
 pub mod lastfm;
 pub mod media_annotation;
@@ -11,6 +12,7 @@ pub mod permission;
 pub mod playlists;
 pub mod scan;
 pub mod searching;
+pub mod spotify;
 pub mod system;
 pub mod user;
 
