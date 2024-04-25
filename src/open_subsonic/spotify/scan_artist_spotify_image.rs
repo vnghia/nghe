@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
-use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use nghe_proc_macros::{add_axum_response, add_common_validate};
 use time::OffsetDateTime;
@@ -30,16 +30,15 @@ pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
     let mut upserted_artist_count = 0_usize;
 
     loop {
+        // Can not filter by nullable `spotify_id` because it will change the offset.
         let artists = if let Some(artist_updated_at) = artist_updated_at {
             artists::table
-                .filter(
-                    artists::updated_at.ge(artist_updated_at).and(artists::spotify_id.is_null()),
-                )
+                .filter(artists::updated_at.ge(artist_updated_at))
                 .limit(max_count as i64)
                 .offset(current_offset as i64)
                 .order(artists::id)
-                .select((artists::id, artists::name))
-                .get_results::<(Uuid, String)>(&mut pool.get().await?)
+                .select((artists::id, artists::name, artists::spotify_id))
+                .get_results::<(Uuid, String, Option<String>)>(&mut pool.get().await?)
                 .await?
         } else {
             artists::table
@@ -47,21 +46,23 @@ pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
                 .limit(max_count as i64)
                 .offset(current_offset as i64)
                 .order(artists::id)
-                .select((artists::id, artists::name))
-                .get_results::<(Uuid, String)>(&mut pool.get().await?)
+                .select((artists::id, artists::name, artists::spotify_id))
+                .get_results::<(Uuid, String, Option<String>)>(&mut pool.get().await?)
                 .await?
         };
 
         if artists.is_empty() {
             break;
         } else {
-            for (id, name) in &artists {
-                if let Err(e) =
-                    upsert_artist_spotify_image(pool, &artist_art_path, client, *id, name).await
-                {
-                    tracing::error!(artist=name, upserting_artist_spotify_image=?e);
-                } else {
-                    upserted_artist_count += 1;
+            for (id, name, spotify_id) in &artists {
+                if spotify_id.is_none() {
+                    if let Err(e) =
+                        upsert_artist_spotify_image(pool, &artist_art_path, client, *id, name).await
+                    {
+                        tracing::error!(artist=name, upserting_artist_spotify_image=?e);
+                    } else {
+                        upserted_artist_count += 1;
+                    }
                 }
             }
 
