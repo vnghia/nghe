@@ -187,9 +187,23 @@ You should tweak this carefully to find the optimized value for your system. Som
 
 ### Art
 
-|  Subkey   | Meaning                               | Default value           | Note                                                                           |
-| :-------: | :------------------------------------ | :---------------------- | :----------------------------------------------------------------------------- |
-| song_path | The directory to save song cover arts | `$TMPDIR/nghe/art/song` | Set `null` or a non-absolute path to completely disable song cover art extract |
+|   Subkey   | Meaning                                 | Default value             | Note                                                                           |
+| :--------: | :-------------------------------------- | :------------------------ | :----------------------------------------------------------------------------- |
+| artist_dir | The directory to save artist cover arts | `$TMPDIR/nghe/art/artist` | Set `null` or a non-absolute path to completely disable song cover art extract |
+|  song_dir  | The directory to save song cover arts   | `$TMPDIR/nghe/art/song`   | Set `null` or a non-absolute path to completely disable song cover art extract |
+
+### Lastfm
+
+| Subkey | Meaning                         | Default value | Note |
+| :----: | :------------------------------ | :------------ | :--- |
+|  key   | Lastfm key to fetch information |               |      |
+
+### Spotify
+
+| Subkey | Meaning                                    | Default value | Note |
+| :----: | :----------------------------------------- | :------------ | :--- |
+|   id   | Spotify client id to fetch information     |               |      |
+| secret | Spotify client secret to fetch information |               |      |
 
 ## Scan process
 
