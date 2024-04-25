@@ -87,14 +87,14 @@ pub async fn get_cover_art_handler(
     req: GetCoverArtRequest,
 ) -> Result<StreamResponse, ServerError> {
     match req.params.id.t {
-        Some(MediaType::Song) if let Some(song_path) = art_config.song_path => {
-            get_song_cover_art(&database.pool, req.user_id, req.params.id.id, &song_path).await
+        Some(MediaType::Song) if let Some(song_art_dir) = art_config.song_dir => {
+            get_song_cover_art(&database.pool, req.user_id, req.params.id.id, &song_art_dir).await
         }
-        Some(MediaType::Album) if let Some(song_path) = art_config.song_path => {
-            get_album_cover_art(&database.pool, req.user_id, req.params.id.id, &song_path).await
+        Some(MediaType::Album) if let Some(song_art_dir) = art_config.song_dir => {
+            get_album_cover_art(&database.pool, req.user_id, req.params.id.id, &song_art_dir).await
         }
-        Some(MediaType::Aritst) if let Some(artist_path) = art_config.artist_path => {
-            get_artist_cover_art(&database.pool, req.params.id.id, &artist_path).await
+        Some(MediaType::Aritst) if let Some(artist_art_dir) = art_config.artist_dir => {
+            get_artist_cover_art(&database.pool, req.params.id.id, &artist_art_dir).await
         }
         _ => Err(anyhow::anyhow!(OSError::NotFound("Cover art".into()))),
     }
@@ -127,7 +127,7 @@ mod tests {
                 infra.pool(),
                 infra.user_id(0),
                 infra.song_cover_art_ids(..).await[0],
-                infra.fs.art_config.song_path.as_ref().unwrap(),
+                infra.fs.art_config.song_dir.as_ref().unwrap(),
             )
             .await
             .unwrap()
@@ -165,7 +165,7 @@ mod tests {
                 infra.pool(),
                 infra.user_id(0),
                 album_id,
-                infra.fs.art_config.song_path.as_ref().unwrap(),
+                infra.fs.art_config.song_dir.as_ref().unwrap(),
             )
             .await
             .unwrap()
@@ -198,7 +198,7 @@ mod tests {
                 infra.pool(),
                 infra.user_id(0),
                 album_id,
-                infra.fs.art_config.song_path.as_ref().unwrap()
+                infra.fs.art_config.song_dir.as_ref().unwrap()
             )
             .await
             .is_err()
@@ -232,7 +232,7 @@ mod tests {
                 infra.pool(),
                 infra.user_id(0),
                 album_id,
-                infra.fs.art_config.song_path.as_ref().unwrap()
+                infra.fs.art_config.song_dir.as_ref().unwrap()
             )
             .await
             .is_err()
@@ -277,7 +277,7 @@ mod tests {
                 infra.pool(),
                 infra.user_id(0),
                 album_id,
-                infra.fs.art_config.song_path.as_ref().unwrap(),
+                infra.fs.art_config.song_dir.as_ref().unwrap(),
             )
             .await
             .unwrap()

@@ -5,7 +5,7 @@ use anyhow::Result;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use rspotify::clients::BaseClient;
-use rspotify::model::{SearchResult, SearchType};
+use rspotify::model::{FullArtist, SearchResult, SearchType};
 use uuid::Uuid;
 
 use crate::models::*;
@@ -13,6 +13,37 @@ use crate::open_subsonic::cover_art::upsert_cover_art_from_url;
 use crate::DatabasePool;
 
 pub async fn upsert_artist_spotify_image<P: AsRef<Path>>(
+    pool: &DatabasePool,
+    artist_art_dir: P,
+    id: Uuid,
+    artist: &FullArtist,
+) -> Result<()> {
+    let artist_id = &artist.id;
+    if artist.images.is_empty() {
+        diesel::update(artists::table)
+            .filter(artists::id.eq(id))
+            .set(artists::spotify_id.eq::<&str>(artist_id.borrow()))
+            .execute(&mut pool.get().await?)
+            .await?;
+    } else {
+        diesel::update(artists::table)
+            .filter(artists::id.eq(id))
+            .set((
+                artists::cover_art_id.eq(upsert_cover_art_from_url(
+                    pool,
+                    artist_art_dir,
+                    &artist.images[0].url,
+                )
+                .await?),
+                artists::spotify_id.eq::<&str>(artist_id.borrow()),
+            ))
+            .execute(&mut pool.get().await?)
+            .await?;
+    };
+    Ok(())
+}
+
+pub async fn search_and_upsert_artist_spotify_image<P: AsRef<Path>>(
     pool: &DatabasePool,
     artist_art_dir: P,
     client: &rspotify::ClientCredsSpotify,
@@ -28,30 +59,7 @@ pub async fn upsert_artist_spotify_image<P: AsRef<Path>>(
         if artists.is_empty() {
             return Ok(());
         }
-
-        let artist = &artists[0];
-        let artist_id = &artist.id;
-        if artist.images.is_empty() {
-            diesel::update(artists::table)
-                .filter(artists::id.eq(id))
-                .set(artists::spotify_id.eq::<&str>(artist_id.borrow()))
-                .execute(&mut pool.get().await?)
-                .await?;
-        } else {
-            diesel::update(artists::table)
-                .filter(artists::id.eq(id))
-                .set((
-                    artists::cover_art_id.eq(upsert_cover_art_from_url(
-                        pool,
-                        artist_art_dir,
-                        &artist.images[0].url,
-                    )
-                    .await?),
-                    artists::spotify_id.eq::<&str>(artist_id.borrow()),
-                ))
-                .execute(&mut pool.get().await?)
-                .await?;
-        };
+        upsert_artist_spotify_image(pool, artist_art_dir, id, &artists[0]).await?;
     }
 
     Ok(())
@@ -67,17 +75,17 @@ mod tests {
     use crate::utils::test::Infra;
 
     #[tokio::test]
-    async fn test_upsert_artist_spotify_image() {
+    async fn test_search_and_upsert_artist_spotify_image() {
         let infra = Infra::new().await;
-        let artist_art_path = infra.fs.art_config.artist_path.as_ref().unwrap();
+        let artist_art_dir = infra.fs.art_config.artist_dir.as_ref().unwrap();
         let artist_id = upsert_artists(infra.pool(), &[], &["Micheal Learn To Rock".into()])
             .await
             .unwrap()
             .remove(0);
 
-        upsert_artist_spotify_image(
+        search_and_upsert_artist_spotify_image(
             infra.pool(),
-            artist_art_path,
+            artist_art_dir,
             infra.spotify_client.as_ref().unwrap(),
             artist_id,
             "Micheal Learn To Rock",

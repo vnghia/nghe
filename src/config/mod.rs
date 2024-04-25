@@ -76,10 +76,7 @@ impl TranscodingConfig {
 
 impl ArtConfig {
     pub fn new(raw: raw::ArtConfig) -> Self {
-        Self {
-            artist_path: to_path_config(raw.artist_path),
-            song_path: to_path_config(raw.song_path),
-        }
+        Self { artist_dir: to_path_config(raw.artist_dir), song_dir: to_path_config(raw.song_dir) }
     }
 }
 

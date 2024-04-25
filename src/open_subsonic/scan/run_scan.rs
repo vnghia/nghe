@@ -120,9 +120,9 @@ pub async fn process_path(
     let album_id = upsert_album(pool, (&song_tag.album).into()).await?;
 
     let cover_art_id = if let Some(ref picture) = song_tag.picture
-        && let Some(ref song_path) = art_config.song_path
+        && let Some(ref song_art_dir) = art_config.song_dir
     {
-        Some(upsert_song_cover_art(pool, picture, song_path).await?)
+        Some(upsert_song_cover_art(pool, picture, song_art_dir).await?)
     } else {
         None
     };

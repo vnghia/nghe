@@ -34,7 +34,7 @@ pub async fn from_id(
     art_config: &ArtConfig,
 ) -> Option<Picture> {
     if let Some(cover_art_id) = cover_art_id
-        && let Some(art_path) = art_config.song_path.as_ref()
+        && let Some(song_art_dir) = art_config.song_dir.as_ref()
     {
         let song_cover_art = songs::table
             .inner_join(cover_arts::table)
@@ -43,7 +43,7 @@ pub async fn from_id(
             .get_result(&mut pool.get().await.unwrap())
             .await
             .unwrap();
-        let mut art_file = std::fs::File::open(song_cover_art.to_path(art_path)).unwrap();
+        let mut art_file = std::fs::File::open(song_cover_art.to_path(song_art_dir)).unwrap();
         Some(Picture::from_reader(&mut art_file).unwrap())
     } else {
         None
