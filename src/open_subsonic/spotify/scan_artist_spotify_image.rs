@@ -52,19 +52,20 @@ pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
                 .await?
         };
 
-        for (id, name) in &artists {
-            if let Err(e) =
-                upsert_artist_spotify_image(pool, &artist_art_path, client, *id, name).await
-            {
-                tracing::error!(artist=name, upserting_artist_spotify_image=?e);
-            } else {
-                upserted_artist_count += 1;
-            }
-        }
-        if artists.len() < max_count {
+        if artists.is_empty() {
             break;
         } else {
-            current_offset += max_count;
+            for (id, name) in &artists {
+                if let Err(e) =
+                    upsert_artist_spotify_image(pool, &artist_art_path, client, *id, name).await
+                {
+                    tracing::error!(artist=name, upserting_artist_spotify_image=?e);
+                } else {
+                    upserted_artist_count += 1;
+                }
+            }
+
+            current_offset += artists.len();
             tracing::debug!(current_offset);
         }
     }

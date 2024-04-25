@@ -49,17 +49,18 @@ pub async fn scan_artist_lastfm_info(
                 .await?
         };
 
-        for (id, name, mbz_id) in &artists {
-            if let Err(e) = upsert_artist_lastfm_info(pool, client, *id, name, *mbz_id).await {
-                tracing::error!(artist=name, upserting_artist_lastfm_info=?e);
-            } else {
-                upserted_artist_count += 1;
-            }
-        }
-        if artists.len() < max_count {
+        if artists.is_empty() {
             break;
         } else {
-            current_offset += max_count;
+            for (id, name, mbz_id) in &artists {
+                if let Err(e) = upsert_artist_lastfm_info(pool, client, *id, name, *mbz_id).await {
+                    tracing::error!(artist=name, upserting_artist_lastfm_info=?e);
+                } else {
+                    upserted_artist_count += 1;
+                }
+            }
+
+            current_offset += artists.len();
             tracing::debug!(current_offset);
         }
     }
