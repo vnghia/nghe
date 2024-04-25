@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use flume::Sender;
 use ignore::types::TypesBuilder;
@@ -6,30 +6,12 @@ use ignore::{DirEntry, Error, WalkBuilder};
 use tracing::instrument;
 
 use super::super::song::file_type::SONG_FILE_TYPES;
+use crate::utils::path::LocalPath;
 use crate::utils::song::file_type::{to_extension, to_glob_pattern};
-
-#[cfg_attr(test, derive(Clone))]
-pub struct ScannedMediaFile {
-    pub song_absolute_path: PathBuf,
-    pub song_relative_path: String,
-    pub song_file_size: u32,
-}
-
-impl ScannedMediaFile {
-    pub fn new<P: AsRef<Path>>(root: P, song_absolute_path: PathBuf, song_file_size: u32) -> Self {
-        let song_relative_path = song_absolute_path
-            .strip_prefix(&root)
-            .expect("this path should always contains the root path")
-            .to_str()
-            .expect("non utf-8 path encountered")
-            .to_string();
-        Self { song_absolute_path, song_relative_path, song_file_size }
-    }
-}
 
 fn process_dir_entry<P: AsRef<Path>>(
     root: P,
-    tx: &Sender<ScannedMediaFile>,
+    tx: &Sender<LocalPath>,
     entry: Result<DirEntry, Error>,
 ) -> ignore::WalkState {
     match try {
@@ -37,8 +19,7 @@ fn process_dir_entry<P: AsRef<Path>>(
         let metadata = entry.metadata()?;
         let path = entry.path();
         if metadata.is_file()
-            && let Err(e) =
-                tx.send(ScannedMediaFile::new(root, path.to_path_buf(), metadata.len() as _))
+            && let Err(e) = tx.send(LocalPath::new(root, path.to_path_buf(), metadata))
         {
             tracing::error!(sending_walkdir_result = ?e);
             ignore::WalkState::Quit
@@ -57,7 +38,7 @@ fn process_dir_entry<P: AsRef<Path>>(
 #[instrument(skip(tx))]
 pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug>(
     root: P,
-    tx: Sender<ScannedMediaFile>,
+    tx: Sender<LocalPath>,
     scan_parallel: bool,
 ) {
     tracing::info!("start scanning media files");
@@ -97,6 +78,8 @@ pub fn scan_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug>(
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use itertools::Itertools;
     use lofty::file::FileType;
 
@@ -104,7 +87,7 @@ mod tests {
     use crate::utils::song::file_type::to_extensions;
     use crate::utils::test::Infra;
 
-    async fn wrap_scan_media_file(infra: &Infra, scan_parallel: bool) -> Vec<ScannedMediaFile> {
+    async fn wrap_scan_media_file(infra: &Infra, scan_parallel: bool) -> Vec<LocalPath> {
         let (tx, rx) = flume::bounded(100);
         let root_path = infra.fs.root_path().to_path_buf();
 
@@ -130,14 +113,14 @@ mod tests {
 
         let scanned_results = wrap_scan_media_file(&infra, false).await;
         let scanned_lens =
-            scanned_results.iter().cloned().map(|result| result.song_file_size).collect_vec();
+            scanned_results.iter().cloned().map(|result| result.metadata.len()).collect_vec();
         let scanned_paths =
-            scanned_results.iter().cloned().map(|result| result.song_absolute_path).collect_vec();
+            scanned_results.iter().cloned().map(|result| result.absolute_path).collect_vec();
 
         assert_eq!(
             media_paths
                 .iter()
-                .map(|path| std::fs::metadata(path).unwrap().len() as u32)
+                .map(|path| std::fs::metadata(path).unwrap().len())
                 .sorted()
                 .collect_vec(),
             scanned_lens.into_iter().sorted().collect_vec()
@@ -163,7 +146,7 @@ mod tests {
             .await
             .iter()
             .cloned()
-            .map(|result| PathBuf::from(result.song_relative_path))
+            .map(|result| PathBuf::from(result.relative_path))
             .collect_vec();
 
         assert_eq!(
@@ -198,7 +181,7 @@ mod tests {
         let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
             .into_iter()
-            .map(|result| result.song_absolute_path)
+            .map(|result| result.absolute_path)
             .collect_vec();
 
         assert_eq!(
@@ -226,7 +209,7 @@ mod tests {
         let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
             .into_iter()
-            .map(|result| result.song_absolute_path)
+            .map(|result| result.absolute_path)
             .collect_vec();
 
         assert_eq!(
@@ -246,14 +229,14 @@ mod tests {
 
         let scanned_results = wrap_scan_media_file(&infra, true).await;
         let scanned_lens =
-            scanned_results.iter().cloned().map(|result| result.song_file_size).collect_vec();
+            scanned_results.iter().cloned().map(|result| result.metadata.len()).collect_vec();
         let scanned_paths =
-            scanned_results.iter().cloned().map(|result| result.song_absolute_path).collect_vec();
+            scanned_results.iter().cloned().map(|result| result.absolute_path).collect_vec();
 
         assert_eq!(
             media_paths
                 .iter()
-                .map(|path| std::fs::metadata(path).unwrap().len() as u32)
+                .map(|path| std::fs::metadata(path).unwrap().len())
                 .sorted()
                 .collect_vec(),
             scanned_lens.into_iter().sorted().collect_vec()

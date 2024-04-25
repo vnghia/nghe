@@ -1,4 +1,5 @@
 #![deny(clippy::all)]
+#![allow(async_fn_in_trait)]
 #![allow(incomplete_features)]
 // TODO: reuse type when diesel 2.2.0 is released
 #![allow(clippy::type_complexity)]

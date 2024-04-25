@@ -6,7 +6,6 @@ use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryD
 use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use futures_buffered::FuturesUnorderedBounded;
-use lofty::file::FileType;
 use nghe_types::scan::start_scan::ScanMode;
 use tracing::{instrument, Instrument};
 use uuid::Uuid;
@@ -19,44 +18,39 @@ use super::song::{insert_song, update_song, upsert_song_artists, upsert_song_cov
 use super::ScanStat;
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
-use crate::utils::fs::files::{scan_media_files, ScannedMediaFile};
+use crate::utils::fs::files::scan_media_files;
+use crate::utils::path::GenericPath;
 use crate::utils::song::{SongInformation, SongLyric};
 use crate::DatabasePool;
 
 #[instrument(
-    skip(
-        pool,
-        scan_mode,
-        song_absolute_path,
-        song_file_size,
-        ignored_prefixes,
-        parsing_config,
-        art_config
-    ),
+    skip(pool, scan_mode, ignored_prefixes, parsing_config, art_config),
     ret(level = "trace"),
     err
 )]
-pub async fn process_path(
+pub async fn process_path<P: GenericPath + std::fmt::Debug>(
     pool: &DatabasePool,
     scan_started_at: time::OffsetDateTime,
     scan_mode: ScanMode,
     music_folder_id: Uuid,
-    ScannedMediaFile { song_absolute_path, song_relative_path, song_file_size }: ScannedMediaFile,
+    song_path: P,
     ignored_prefixes: &[String],
     parsing_config: &ParsingConfig,
     art_config: &ArtConfig,
 ) -> Result<bool> {
-    let song_data = tokio::fs::read(&song_absolute_path).await?;
+    let song_relative_path = song_path.relative_path();
+
+    let song_data = song_path.read().await?;
     let song_file_hash = xxh3_64(&song_data);
 
     let song_file_hash = song_file_hash as _;
-    let song_file_size = song_file_size as _;
+    let song_file_size = song_path.size() as _;
 
     let song_id =
         if let Some((song_id_db, song_file_hash_db, song_file_size_db, song_relative_path_db)) =
             diesel::update(songs::table)
                 .filter(songs::music_folder_id.eq(music_folder_id))
-                .filter(songs::relative_path.eq(&song_relative_path).or(
+                .filter(songs::relative_path.eq(song_relative_path).or(
                     songs::file_hash.eq(song_file_hash).and(songs::file_size.eq(song_file_size)),
                 ))
                 .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
@@ -74,16 +68,13 @@ pub async fn process_path(
                     tracing::info!(new_path = ?song_relative_path, "duplicated song");
                     diesel::update(songs::table)
                         .filter(songs::id.eq(song_id_db))
-                        .set(songs::relative_path.eq(&song_relative_path))
+                        .set(songs::relative_path.eq(song_relative_path))
                         .execute(&mut pool.get().await?)
                         .await?;
                     if scan_mode > ScanMode::Full {
                         Some(song_id_db)
                     } else {
-                        if let Ok(lrc_content) =
-                            tokio::fs::read_to_string(song_absolute_path.with_extension("lrc"))
-                                .await
-                        {
+                        if let Ok(lrc_content) = song_path.read_lrc().await {
                             SongLyric::from_str(&lrc_content, true)?
                                 .upsert_lyric(pool, song_id_db)
                                 .await?;
@@ -107,8 +98,8 @@ pub async fn process_path(
 
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
-        FileType::from_path(&song_absolute_path).expect("this should not happen"),
-        tokio::fs::read_to_string(song_absolute_path.with_extension("lrc")).await.ok().as_deref(),
+        song_path.file_type(),
+        song_path.read_lrc().await.ok().as_deref(),
         parsing_config,
     ) else {
         return Ok(false);
@@ -232,7 +223,7 @@ pub async fn run_scan(
     });
 
     let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.pool_size);
-    while let Ok(scanned_media_file) = rx.recv_async().await {
+    while let Ok(song_path) = rx.recv_async().await {
         while process_path_tasks.len() >= process_path_tasks.capacity()
             && let Some(process_path_join_result) = process_path_tasks.next().await
         {
@@ -262,7 +253,7 @@ pub async fn run_scan(
                     scan_started_at,
                     scan_mode,
                     music_folder_id,
-                    scanned_media_file,
+                    song_path,
                     &ignored_prefixes,
                     &parsing_config,
                     &art_config,
