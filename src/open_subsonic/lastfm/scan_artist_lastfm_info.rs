@@ -24,6 +24,8 @@ pub async fn scan_artist_lastfm_info(
 
     let max_count = 100_usize;
     let mut current_offset = 0_usize;
+    let mut upserted_artist_count = 0_usize;
+
     loop {
         let artists = if let Some(artist_updated_at) = artist_updated_at {
             artists::table
@@ -32,6 +34,7 @@ pub async fn scan_artist_lastfm_info(
                 )
                 .limit(max_count as i64)
                 .offset(current_offset as i64)
+                .order(artists::id)
                 .select((artists::id, artists::name, artists::mbz_id))
                 .get_results::<(Uuid, String, Option<Uuid>)>(&mut pool.get().await?)
                 .await?
@@ -40,6 +43,7 @@ pub async fn scan_artist_lastfm_info(
                 .filter(artists::lastfm_url.is_null())
                 .limit(max_count as i64)
                 .offset(current_offset as i64)
+                .order(artists::id)
                 .select((artists::id, artists::name, artists::mbz_id))
                 .get_results::<(Uuid, String, Option<Uuid>)>(&mut pool.get().await?)
                 .await?
@@ -48,17 +52,18 @@ pub async fn scan_artist_lastfm_info(
         for (id, name, mbz_id) in &artists {
             if let Err(e) = upsert_artist_lastfm_info(pool, client, *id, name, *mbz_id).await {
                 tracing::error!(artist=name, upserting_artist_lastfm_info=?e);
+            } else {
+                upserted_artist_count += 1;
             }
         }
         if artists.len() < max_count {
-            current_offset += artists.len();
             break;
         } else {
             current_offset += max_count;
-            tracing::debug!(current_offset = current_offset);
+            tracing::debug!(current_offset);
         }
     }
-    tracing::info!(scanned_artist_count = current_offset, "Finish scanning artist lastfm info");
+    tracing::info!(upserted_artist_count, "Finish scanning artist lastfm info");
 
     Ok(())
 }
