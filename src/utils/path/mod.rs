@@ -1,5 +1,5 @@
-mod generic;
+mod common;
 mod local;
 
-pub use generic::GenericPath;
+pub use common::*;
 pub use local::LocalPath;

@@ -19,7 +19,7 @@ use super::ScanStat;
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
 use crate::utils::fs::files::scan_media_files;
-use crate::utils::path::GenericPath;
+use crate::utils::path::{AbsolutePath, PathTrait};
 use crate::utils::song::{SongInformation, SongLyric};
 use crate::DatabasePool;
 
@@ -28,23 +28,23 @@ use crate::DatabasePool;
     ret(level = "trace"),
     err
 )]
-pub async fn process_path<P: GenericPath + std::fmt::Debug>(
+pub async fn process_path<P: PathTrait + std::fmt::Debug>(
     pool: &DatabasePool,
     scan_started_at: time::OffsetDateTime,
     scan_mode: ScanMode,
     music_folder_id: Uuid,
-    song_path: P,
+    song_path: AbsolutePath<P>,
     ignored_prefixes: &[String],
     parsing_config: &ParsingConfig,
     art_config: &ArtConfig,
 ) -> Result<bool> {
-    let song_relative_path = song_path.relative_path();
+    let song_relative_path = song_path.relative_path.as_str();
 
     let song_data = song_path.read().await?;
     let song_file_hash = xxh3_64(&song_data);
 
     let song_file_hash = song_file_hash as _;
-    let song_file_size = song_path.size() as _;
+    let song_file_size = song_path.metadata.size as _;
 
     let song_id =
         if let Some((song_id_db, song_file_hash_db, song_file_size_db, song_relative_path_db)) =
@@ -74,7 +74,9 @@ pub async fn process_path<P: GenericPath + std::fmt::Debug>(
                     if scan_mode > ScanMode::Full {
                         Some(song_id_db)
                     } else {
-                        if let Ok(lrc_content) = song_path.read_lrc().await {
+                        if let Ok(lrc_content) =
+                            song_path.absolute_path.lrc().read_to_string().await
+                        {
                             SongLyric::from_str(&lrc_content, true)?
                                 .upsert_lyric(pool, song_id_db)
                                 .await?;
@@ -99,7 +101,7 @@ pub async fn process_path<P: GenericPath + std::fmt::Debug>(
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
         song_path.file_type(),
-        song_path.read_lrc().await.ok().as_deref(),
+        song_path.absolute_path.lrc().read_to_string().await.ok().as_deref(),
         parsing_config,
     ) else {
         return Ok(false);

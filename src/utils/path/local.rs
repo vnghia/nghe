@@ -1,54 +1,56 @@
-use std::fs::Metadata;
-use std::path::{Path, PathBuf};
+use std::borrow::Cow;
+use std::path::Path;
 
 use anyhow::Result;
 use lofty::file::FileType;
 
-use super::generic::GenericPath;
+use super::{Metadata, PathLrc, PathMetadata, PathRead, PathRelative};
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
-pub struct LocalPath {
-    pub absolute_path: PathBuf,
-    pub relative_path: String,
-    pub metadata: Metadata,
+pub struct LocalPath<'a> {
+    pub path: Cow<'a, Path>,
 }
 
-impl LocalPath {
-    pub fn new<P: AsRef<Path>>(root: P, absolute_path: PathBuf, metadata: Metadata) -> Self {
-        let relative_path = absolute_path
-            .strip_prefix(&root)
-            .expect("this path should always contains the root path")
+impl From<std::fs::Metadata> for Metadata {
+    fn from(value: std::fs::Metadata) -> Self {
+        Self { is_dir: value.is_dir(), size: value.len() }
+    }
+}
+
+impl<'a> PathMetadata for LocalPath<'a> {
+    fn file_type(&self) -> FileType {
+        FileType::from_path(&self.path).expect("file type is none which is impossible")
+    }
+
+    async fn metadata(&self) -> Result<Metadata> {
+        tokio::fs::metadata(&self.path).await.map(Metadata::from).map_err(anyhow::Error::from)
+    }
+}
+
+impl<'a> PathRead for LocalPath<'a> {
+    async fn read(&self) -> Result<Vec<u8>> {
+        tokio::fs::read(&self.path).await.map_err(anyhow::Error::from)
+    }
+
+    async fn read_to_string(&self) -> Result<String> {
+        tokio::fs::read_to_string(&self.path).await.map_err(anyhow::Error::from)
+    }
+}
+
+impl<'a> PathLrc for LocalPath<'a> {
+    fn lrc(&self) -> Self {
+        Self { path: self.path.with_extension("lrc").into() }
+    }
+}
+
+impl<'a> PathRelative for LocalPath<'a> {
+    fn relative(&self, base: &str) -> String {
+        self.path
+            .strip_prefix(base)
+            .expect("this path should always contains base path")
             .to_str()
             .expect("non utf-8 path encountered")
-            .to_string();
-        Self { absolute_path, relative_path, metadata }
-    }
-}
-
-impl GenericPath for LocalPath {
-    // Path
-    fn relative_path(&self) -> &str {
-        &self.relative_path
-    }
-
-    // Data
-    async fn read(&self) -> Result<Vec<u8>> {
-        tokio::fs::read(&self.absolute_path).await.map_err(anyhow::Error::from)
-    }
-
-    async fn read_lrc(&self) -> Result<String> {
-        tokio::fs::read_to_string(&self.absolute_path.with_extension("lrc"))
-            .await
-            .map_err(anyhow::Error::from)
-    }
-
-    // Metadata
-    fn size(&self) -> u64 {
-        self.metadata.len()
-    }
-
-    fn file_type(&self) -> FileType {
-        FileType::from_path(&self.absolute_path).expect("this should not happen")
+            .to_string()
     }
 }

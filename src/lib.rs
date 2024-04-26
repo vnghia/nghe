@@ -10,6 +10,7 @@
 #![feature(let_chains)]
 #![feature(proc_macro_hygiene)]
 #![feature(stmt_expr_attributes)]
+#![feature(trait_alias)]
 #![feature(try_blocks)]
 
 use mimalloc::MiMalloc;
