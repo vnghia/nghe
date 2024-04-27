@@ -165,6 +165,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 

@@ -73,6 +73,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -85,12 +86,16 @@ mod tests {
         let genre_values = ["genre1", "genre2"];
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(2).await.add_user(None).await;
-        genre_values.into_iter().enumerate().for_each(|(i, v)| {
-            infra.add_songs(
-                i,
-                (0..n_song).map(|_| SongTag { genres: vec![v.into()], ..Faker.fake() }).collect(),
-            );
-        });
+        for (i, v) in genre_values.into_iter().enumerate() {
+            infra
+                .add_songs(
+                    i,
+                    (0..n_song)
+                        .map(|_| SongTag { genres: vec![v.into()], ..Faker.fake() })
+                        .collect(),
+                )
+                .await;
+        }
         infra.scan(.., None).await;
         infra.remove_permissions(.., 1..).await;
 
@@ -104,14 +109,16 @@ mod tests {
         let n_folder = 2_usize;
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
-        (0..n_folder).for_each(|i| {
-            infra.add_songs(
-                i,
-                (0..n_song)
-                    .map(|_| SongTag { genres: vec![genre_value.into()], ..Faker.fake() })
-                    .collect(),
-            );
-        });
+        for i in 0..n_folder {
+            infra
+                .add_songs(
+                    i,
+                    (0..n_song)
+                        .map(|_| SongTag { genres: vec![genre_value.into()], ..Faker.fake() })
+                        .collect(),
+                )
+                .await;
+        }
         infra.scan(.., None).await;
 
         let genre_song_count =

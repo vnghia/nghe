@@ -65,7 +65,7 @@ pub async fn process_path<P: PathTrait + std::fmt::Debug>(
                     // and hash, but different relative path. Update its path to
                     // the newer one and continue if scan mode is not force
                     // and return the song id for further processing otherwise.
-                    tracing::info!(new_path = ?song_relative_path, "duplicated song");
+                    tracing::info!(old_path = ?song_relative_path_db, "duplicated song");
                     diesel::update(songs::table)
                         .filter(songs::id.eq(song_id_db))
                         .set(songs::relative_path.eq(song_relative_path))
@@ -74,9 +74,7 @@ pub async fn process_path<P: PathTrait + std::fmt::Debug>(
                     if scan_mode > ScanMode::Full {
                         Some(song_id_db)
                     } else {
-                        if let Ok(lrc_content) =
-                            song_path.absolute_path.lrc().read_to_string().await
-                        {
+                        if let Ok(lrc_content) = song_path.read_lrc().await {
                             SongLyric::from_str(&lrc_content, true)?
                                 .upsert_lyric(pool, song_id_db)
                                 .await?;
@@ -101,7 +99,7 @@ pub async fn process_path<P: PathTrait + std::fmt::Debug>(
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
         song_path.file_type(),
-        song_path.absolute_path.lrc().read_to_string().await.ok().as_deref(),
+        song_path.read_lrc().await.ok().as_deref(),
         parsing_config,
     ) else {
         return Ok(false);
@@ -360,7 +358,7 @@ mod tests {
     async fn test_simple_scan() {
         let n_song = 50;
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, n_song);
+        infra.add_n_song(0, n_song).await;
         let ScanStat { upserted_song_count, deleted_song_count, .. } = infra.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
@@ -374,12 +372,12 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., None).await;
+            infra.add_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.update_n_song(0, n_update_song).scan(.., None).await;
+            infra.update_n_song(0, n_update_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -393,13 +391,15 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., None).await;
+            infra.add_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } = infra
             .delete_n_song(0, n_delete_song)
+            .await
             .update_n_song(0, n_update_song)
+            .await
             .scan(.., None)
             .await;
         assert_eq!(upserted_song_count, n_update_song);
@@ -413,7 +413,7 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(2).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).add_n_song(1, n_song).scan(.., None).await;
+            infra.add_n_song(0, n_song).await.add_n_song(1, n_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song + n_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -438,6 +438,7 @@ mod tests {
                     },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -452,13 +453,16 @@ mod tests {
         let n_update_song = 4;
 
         let mut infra = Infra::new().await.n_folder(1).await;
-        let ScanStat { deleted_album_count, .. } = infra.add_n_song(0, n_song).scan(.., None).await;
+        let ScanStat { deleted_album_count, .. } =
+            infra.add_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(deleted_album_count, 0);
         infra.assert_album_infos(&infra.album_no_ids(..)).await;
 
         let ScanStat { deleted_album_count, .. } = infra
             .delete_n_song(0, n_delete_song)
+            .await
             .update_n_song(0, n_update_song)
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_album_count, n_delete_song + n_update_song);
@@ -477,12 +481,14 @@ mod tests {
                     SongTag { album: "album".into(), ..Faker.fake() },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_album_count, 0);
         infra.assert_album_infos(&["album".into()]).await;
 
-        let ScanStat { deleted_album_count, .. } = infra.delete_song(0, 0).scan(.., None).await;
+        let ScanStat { deleted_album_count, .. } =
+            infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_album_count, 0);
         infra.assert_album_infos(&["album".into()]).await;
     }
@@ -494,10 +500,16 @@ mod tests {
         let n_update_song = 4;
         let mut infra = Infra::new().await.n_folder(1).await;
 
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
         infra.assert_artist_infos(..).await;
 
-        infra.delete_n_song(0, n_delete_song).update_n_song(0, n_update_song).scan(.., None).await;
+        infra
+            .delete_n_song(0, n_delete_song)
+            .await
+            .update_n_song(0, n_update_song)
+            .await
+            .scan(.., None)
+            .await;
         infra.assert_artist_infos(..).await;
     }
 
@@ -520,6 +532,7 @@ mod tests {
                     SongTag { artists: vec!["artist3".into()], ..Faker.fake() },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 0);
@@ -529,6 +542,7 @@ mod tests {
 
         let ScanStat { deleted_artist_count, .. } = infra
             .update_song(0, 0, SongTag { artists: vec!["artist2".into()], ..Faker.fake() })
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 1);
@@ -556,6 +570,7 @@ mod tests {
                     },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 0);
@@ -563,7 +578,8 @@ mod tests {
             .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
             .await;
 
-        let ScanStat { deleted_artist_count, .. } = infra.delete_song(0, 0).scan(.., None).await;
+        let ScanStat { deleted_artist_count, .. } =
+            infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
         infra.assert_album_artist_no_ids(&["artist2".into(), "artist3".into()]).await;
     }
@@ -597,6 +613,7 @@ mod tests {
                     },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 0);
@@ -604,7 +621,8 @@ mod tests {
             .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
             .await;
 
-        let ScanStat { deleted_artist_count, .. } = infra.delete_song(0, 0).scan(.., None).await;
+        let ScanStat { deleted_artist_count, .. } =
+            infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
         infra.assert_album_artist_no_ids(&["artist2".into(), "artist3".into()]).await;
     }
@@ -636,7 +654,7 @@ mod tests {
         let first_song_tag = song_tags[0].clone();
 
         let ScanStat { deleted_artist_count, .. } =
-            infra.add_songs(0, song_tags).scan(.., None).await;
+            infra.add_songs(0, song_tags).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 0);
         infra
             .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
@@ -652,6 +670,7 @@ mod tests {
                     ..first_song_tag
                 },
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 1);
@@ -661,10 +680,10 @@ mod tests {
     #[tokio::test]
     async fn test_duplicate_song() {
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let ScanStat { scanned_song_count, deleted_song_count, .. } =
-            infra.copy_song(0, 0, Faker.fake::<String>()).scan(.., None).await;
+            infra.copy_song(0, 0, &Faker.fake::<String>()).await.scan(.., None).await;
         assert_eq!(scanned_song_count, 2);
         assert_eq!(deleted_song_count, 0);
 
@@ -674,10 +693,15 @@ mod tests {
     #[tokio::test]
     async fn test_move_song() {
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
-        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
-            infra.copy_song(0, 0, Faker.fake::<String>()).delete_song(0, 0).scan(.., None).await;
+        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } = infra
+            .copy_song(0, 0, &Faker.fake::<String>())
+            .await
+            .delete_song(0, 0)
+            .await
+            .scan(.., None)
+            .await;
         assert_eq!(scanned_song_count, 1);
         assert_eq!(upserted_song_count, 1);
         assert_eq!(deleted_song_count, 0);
@@ -690,7 +714,7 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Force)).await;
+            infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Force)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -702,7 +726,7 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Full)).await;
+            infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Full)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -718,11 +742,13 @@ mod tests {
     async fn test_force_scan_move_song() {
         let n_song = 50_usize;
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Full)).await;
+        infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Full)).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } = infra
-            .copy_song(0, 0, Faker.fake::<String>())
+            .copy_song(0, 0, &Faker.fake::<String>())
+            .await
             .delete_song(0, 0)
+            .await
             .scan(.., Some(ScanMode::Force))
             .await;
         assert_eq!(upserted_song_count, n_song);
@@ -741,10 +767,12 @@ mod tests {
                     .map(|_| SongTag { genres: vec!["genre".into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
-        let ScanStat { deleted_genre_count, .. } = infra.delete_n_song(0, 5).scan(.., None).await;
+        let ScanStat { deleted_genre_count, .. } =
+            infra.delete_n_song(0, 5).await.scan(.., None).await;
         assert_eq!(deleted_genre_count, 0);
     }
 
@@ -759,11 +787,12 @@ mod tests {
                     .map(|_| SongTag { genres: vec!["genre".into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
         let ScanStat { deleted_genre_count, .. } =
-            infra.delete_n_song(0, n_song).scan(.., None).await;
+            infra.delete_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(deleted_genre_count, 1);
     }
 }

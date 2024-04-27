@@ -1,31 +1,29 @@
 use anyhow::Result;
 use lofty::file::FileType;
 
+#[cfg(test)]
+use crate::utils::test::TemporaryFsRoot;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Metadata {
     pub is_dir: bool,
-    pub size: u64,
+    pub size: u32,
 }
 
-pub trait PathMetadata {
+pub trait PathTrait {
+    const PATH_SEPARATOR: &'static str;
+
+    fn relative(&self, base: &str) -> &str;
+
     fn file_type(&self) -> FileType;
     async fn metadata(&self) -> Result<Metadata>;
-}
 
-pub trait PathRead {
     async fn read(&self) -> Result<Vec<u8>>;
     async fn read_to_string(&self) -> Result<String>;
-}
 
-pub trait PathLrc {
     fn lrc(&self) -> Self;
+    async fn read_lrc(&self) -> Result<String>;
 }
-
-pub trait PathRelative {
-    fn relative(&self, base: &str) -> String;
-}
-
-pub trait PathTrait = PathRead + PathLrc + PathRelative + PathMetadata;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
@@ -37,27 +35,40 @@ pub struct AbsolutePath<P: PathTrait> {
 
 impl<P: PathTrait> AbsolutePath<P> {
     pub fn new(base: &str, absolute_path: P, metadata: Metadata) -> Self {
-        let relative_path = absolute_path.relative(base);
+        let relative_path = absolute_path.relative(base).to_string();
         Self { absolute_path, relative_path, metadata }
     }
-}
 
-impl<P: PathTrait> PathMetadata for AbsolutePath<P> {
-    fn file_type(&self) -> FileType {
+    pub fn file_type(&self) -> FileType {
         self.absolute_path.file_type()
     }
 
-    async fn metadata(&self) -> Result<Metadata> {
+    pub async fn metadata(&self) -> Result<Metadata> {
         self.absolute_path.metadata().await
     }
-}
 
-impl<P: PathTrait> PathRead for AbsolutePath<P> {
-    async fn read(&self) -> Result<Vec<u8>> {
+    pub async fn read(&self) -> Result<Vec<u8>> {
         self.absolute_path.read().await
     }
 
-    async fn read_to_string(&self) -> Result<String> {
-        self.absolute_path.read_to_string().await
+    pub async fn read_lrc(&self) -> Result<String> {
+        self.absolute_path.read_lrc().await
     }
+}
+
+#[cfg(test)]
+pub trait PathTest {
+    fn ext(&self) -> &str;
+
+    async fn write<D: AsRef<[u8]>>(&self, data: D);
+    async fn delete(&self);
+    async fn mkdir(&self);
+}
+
+#[cfg(test)]
+pub trait PathBuild {
+    fn new(root: &TemporaryFsRoot, path: Option<&str>) -> Self;
+    fn new_self(&self, root: &TemporaryFsRoot, path: Option<&str>) -> Self;
+    fn join(&self, path: &str) -> Self;
+    fn with_ext(&self, ext: &str) -> Self;
 }

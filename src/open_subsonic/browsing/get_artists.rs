@@ -78,7 +78,7 @@ mod tests {
     async fn test_get_indexed_artists() {
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
 
         let artist_ids = get_indexed_artists(infra.pool(), infra.user_id(0), &None)
             .await
@@ -102,6 +102,7 @@ mod tests {
                     .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -129,6 +130,7 @@ mod tests {
                     .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -150,14 +152,16 @@ mod tests {
         let n_folder = 5_usize;
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
-        (0..n_folder).for_each(|i| {
-            infra.add_songs(
-                i,
-                (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
-                    .collect(),
-            );
-        });
+        for i in 0..n_folder {
+            infra
+                .add_songs(
+                    i,
+                    (0..n_song)
+                        .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
+                        .collect(),
+                )
+                .await;
+        }
         infra.scan(.., None).await;
 
         let artist_id =
@@ -178,21 +182,23 @@ mod tests {
         let n_folder = 5_usize;
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
-        (0..n_folder).for_each(|i| {
-            infra.add_songs(
-                i,
-                (0..n_song)
-                    .map(|_| SongTag {
-                        artists: if i >= 2 {
-                            vec![artist_name.into()]
-                        } else {
-                            artists::ArtistNoId::fake_vec(1..2)
-                        },
-                        ..Faker.fake()
-                    })
-                    .collect(),
-            );
-        });
+        for i in 0..n_folder {
+            infra
+                .add_songs(
+                    i,
+                    (0..n_song)
+                        .map(|_| SongTag {
+                            artists: if i >= 2 {
+                                vec![artist_name.into()]
+                            } else {
+                                artists::ArtistNoId::fake_vec(1..2)
+                            },
+                            ..Faker.fake()
+                        })
+                        .collect(),
+                )
+                .await;
+        }
         infra.scan(.., None).await;
         infra.remove_permission(None, None).await.add_permissions(.., 0..2).await;
 
@@ -213,9 +219,9 @@ mod tests {
         let n_folder = 5_usize;
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
-        (0..n_folder).for_each(|i| {
-            infra.add_n_song(i, n_song);
-        });
+        for i in 0..n_folder {
+            infra.add_n_song(i, n_song).await;
+        }
         infra.scan(.., None).await;
         infra.remove_permission(None, None).await.add_permissions(.., 0..2).await;
 

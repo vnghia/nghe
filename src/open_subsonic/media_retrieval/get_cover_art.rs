@@ -119,6 +119,7 @@ mod tests {
         let picture = fake(true);
         infra
             .add_songs(0, vec![SongTag { picture: picture.clone(), ..Faker.fake() }])
+            .await
             .scan(.., None)
             .await;
 
@@ -156,6 +157,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -189,6 +191,7 @@ mod tests {
                     .map(|_| SongTag { album: album_name.into(), picture: None, ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -212,6 +215,7 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(2).await.add_user(None).await;
         infra
             .add_n_song(0, n_song)
+            .await
             .add_songs(
                 1,
                 (0..n_song)
@@ -222,6 +226,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
         infra.remove_permissions(.., 1..).await;
@@ -257,6 +262,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .add_songs(
                 1,
                 (0..n_song)
@@ -267,6 +273,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
         infra.remove_permissions(.., 1..).await;

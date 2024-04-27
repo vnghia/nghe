@@ -46,15 +46,15 @@ mod tests {
     use diesel::{ExpressionMethods, QueryDsl};
 
     use super::*;
+    use crate::utils::path::LocalPath;
     use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_add_music_folder() {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await;
 
-        let path = infra.fs.create_dir("folder1/");
-        let id =
-            add_music_folder(infra.pool(), "folder1", path.to_str().unwrap(), true).await.unwrap();
+        let path = infra.fs.mkdir::<LocalPath>("folder1/").await;
+        let id = add_music_folder(infra.pool(), "folder1", &path.to_string(), true).await.unwrap();
         let count = user_music_folder_permissions::table
             .filter(user_music_folder_permissions::music_folder_id.eq(id))
             .count()
@@ -63,9 +63,8 @@ mod tests {
             .unwrap();
         assert_eq!(count, 2);
 
-        let path = infra.fs.create_dir("folder2/");
-        let id =
-            add_music_folder(infra.pool(), "folder2", path.to_str().unwrap(), false).await.unwrap();
+        let path = infra.fs.mkdir::<LocalPath>("folder2/").await;
+        let id = add_music_folder(infra.pool(), "folder2", &path.to_string(), false).await.unwrap();
         let count = user_music_folder_permissions::table
             .filter(user_music_folder_permissions::music_folder_id.eq(id))
             .count()

@@ -96,6 +96,7 @@ mod tests {
                 0,
                 (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -131,6 +132,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -164,6 +166,7 @@ mod tests {
                 0,
                 (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -184,12 +187,16 @@ mod tests {
         let n_folder = 2_usize;
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
-        (0..n_folder).for_each(|i| {
-            infra.add_songs(
-                i,
-                (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
-            );
-        });
+        for i in 0..n_folder {
+            infra
+                .add_songs(
+                    i,
+                    (0..n_song)
+                        .map(|_| SongTag { album: album_name.into(), ..Faker.fake() })
+                        .collect(),
+                )
+                .await;
+        }
         infra.scan(.., None).await;
 
         let album_id = upsert_album(infra.pool(), album_name.into()).await.unwrap();
@@ -216,10 +223,12 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
         infra
             .add_songs(0, (0..n_song).map(|_| Faker.fake()).collect())
+            .await
             .add_songs(
                 1,
                 (0..n_song).map(|_| SongTag { album: album_name.into(), ..Faker.fake() }).collect(),
             )
+            .await
             .scan(.., None)
             .await;
         infra.remove_permissions(.., n_scan_folder..).await;

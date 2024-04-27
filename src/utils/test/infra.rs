@@ -1,7 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::ffi::OsStr;
 use std::ops::Add;
-use std::path::Path;
 use std::slice::SliceIndex;
 use std::str::FromStr;
 
@@ -31,6 +29,7 @@ use crate::open_subsonic::permission::{add_permission, remove_permission};
 use crate::open_subsonic::scan::test::initialize_scan;
 use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
+use crate::utils::path::{LocalPath, PathBuild, PathTest, PathTrait};
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::MediaDateMbz;
@@ -85,10 +84,10 @@ impl Infra {
     }
 
     pub async fn add_folder(mut self, allow: bool) -> Self {
-        let pathbuf = self.fs.create_dir(Faker.fake::<String>()).canonicalize().unwrap();
+        let path: LocalPath<'_> = self.fs.mkdir(&Faker.fake::<String>()).await;
 
-        let name = pathbuf.file_stem().unwrap().to_os_string().into_string().unwrap();
-        let path = pathbuf.into_os_string().into_string().unwrap();
+        let name = Faker.fake::<String>();
+        let path = path.to_string();
         let id = add_music_folder(self.pool(), &name, &path, allow).await.unwrap();
 
         self.music_folders.push(music_folders::MusicFolder { id, name, path });
@@ -202,69 +201,77 @@ impl Infra {
         result
     }
 
-    pub fn add_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
-        self.add_songs(index, fake::vec![SongTag; n_song])
+    pub async fn add_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
+        self.add_songs(index, fake::vec![SongTag; n_song]).await
     }
 
-    pub fn add_songs(&mut self, index: usize, song_tags: Vec<SongTag>) -> &mut Self {
-        self.song_fs_infos_vec[index].extend(self.fs.create_random_paths_media_files(
-            &self.music_folders[index].path,
-            song_tags,
-            &to_extensions(),
-        ));
+    pub async fn add_songs(&mut self, index: usize, song_tags: Vec<SongTag>) -> &mut Self {
+        self.song_fs_infos_vec[index].extend(
+            self.fs
+                .mkpathssongs::<LocalPath<'static>, _>(
+                    &self.music_folders[index].path,
+                    song_tags,
+                    &to_extensions(),
+                )
+                .await,
+        );
         self
     }
 
-    pub fn delete_songs(&mut self, index: usize, delete_mask: &[bool]) -> &mut Self {
-        self.song_fs_infos_vec[index] = delete_mask
-            .iter()
-            .copied()
-            .zip(std::mem::take(&mut self.song_fs_infos_vec[index]))
-            .filter_map(|(d, s)| {
+    pub async fn delete_songs(&mut self, index: usize, delete_mask: &[bool]) -> &mut Self {
+        let root = &self.fs.root;
+        self.song_fs_infos_vec[index] = stream::iter(delete_mask.iter().copied())
+            .zip(stream::iter(std::mem::take(&mut self.song_fs_infos_vec[index])))
+            .filter_map(move |(d, s)| async move {
                 if d {
-                    std::fs::remove_file(s.absolute_path()).unwrap();
+                    let path = s.path(root);
+                    path.delete().await;
                     if s.lrc.is_some() {
-                        std::fs::remove_file(s.absolute_path().with_extension("lrc")).unwrap();
+                        path.lrc().delete().await;
                     }
                     None
                 } else {
                     Some(s)
                 }
             })
-            .collect();
+            .collect()
+            .await;
         self
     }
 
-    pub fn delete_song(&mut self, music_folder_index: usize, song_index: usize) -> &mut Self {
+    pub async fn delete_song(&mut self, music_folder_index: usize, song_index: usize) -> &mut Self {
         let mut delete_mask = vec![false; self.song_fs_infos_vec[music_folder_index].len()];
         delete_mask[song_index] = true;
-        self.delete_songs(music_folder_index, &delete_mask)
+        self.delete_songs(music_folder_index, &delete_mask).await
     }
 
-    pub fn delete_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
+    pub async fn delete_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
         self.delete_songs(
             index,
             &random::gen_bool_mask(self.song_fs_infos_vec[index].len(), n_song),
         )
+        .await
     }
 
-    pub fn update_songs(
+    pub async fn update_songs(
         &mut self,
         index: usize,
         update_mask: &[bool],
         song_tags: Vec<SongTag>,
     ) -> &mut Self {
-        let new_song_fs_infos = self.fs.create_media_files(
-            &self.music_folders[index].path,
-            update_mask
-                .iter()
-                .copied()
-                .zip(self.song_fs_infos_vec[index].iter())
-                .filter_map(|(u, s)| if u { Some(s.relative_path.clone()) } else { None })
-                .collect(),
-            song_tags,
-            false,
-        );
+        let music_folder_path = &self.music_folders[index].path;
+        let update_paths = update_mask
+            .iter()
+            .copied()
+            .zip(self.song_fs_infos_vec[index].iter())
+            .filter_map(|(u, s)| if u { Some(s.relative_path.as_str()) } else { None })
+            .collect_vec();
+
+        let new_song_fs_infos = self
+            .fs
+            .mksongs::<LocalPath, _>(music_folder_path, &update_paths, song_tags, false)
+            .await;
+
         update_mask
             .iter()
             .copied()
@@ -277,7 +284,7 @@ impl Infra {
         self
     }
 
-    pub fn update_song(
+    pub async fn update_song(
         &mut self,
         music_folder_index: usize,
         song_index: usize,
@@ -285,46 +292,40 @@ impl Infra {
     ) -> &mut Self {
         let mut update_mask = vec![false; self.song_fs_infos_vec[music_folder_index].len()];
         update_mask[song_index] = true;
-        self.update_songs(music_folder_index, &update_mask, vec![song_tag])
+        self.update_songs(music_folder_index, &update_mask, vec![song_tag]).await
     }
 
-    pub fn update_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
+    pub async fn update_n_song(&mut self, index: usize, n_song: usize) -> &mut Self {
         self.update_songs(
             index,
             &random::gen_bool_mask(self.song_fs_infos_vec[index].len(), n_song),
             fake::vec![SongTag; n_song],
         )
+        .await
     }
 
-    pub fn copy_song<P: AsRef<Path>>(
+    pub async fn copy_song(
         &mut self,
         music_folder_index: usize,
         src_index: usize,
-        dst_path: P,
+        dst_relative_path: &str,
     ) -> &mut Self {
-        let music_folder_path = Path::new(&self.music_folders[music_folder_index].path);
+        let music_folder_path = &self.music_folders[music_folder_index].path;
+        let src_tag = self.song_fs_infos_vec[music_folder_index][src_index].clone();
+        let src_path = src_tag.path(&self.fs.root);
+        let dst_path = src_path
+            .new_self(&self.fs.root, Some(music_folder_path))
+            .join(dst_relative_path)
+            .with_ext(src_path.ext());
 
-        let old_song_tag = self.song_fs_infos_vec[music_folder_index][src_index].clone();
-        let old_song_path = Path::new(&old_song_tag.relative_path);
-
-        let new_song_path = dst_path.as_ref().with_extension(old_song_path.extension().unwrap());
-        assert!(!new_song_path.is_absolute());
-
-        let old_abs_song_path = music_folder_path.join(old_song_path);
-        let new_abs_song_path = music_folder_path.join(&new_song_path);
-
-        std::fs::copy(&old_abs_song_path, &new_abs_song_path).unwrap();
-        if old_song_tag.lrc.is_some() {
-            std::fs::copy(
-                old_abs_song_path.with_extension("lrc"),
-                new_abs_song_path.with_extension("lrc"),
-            )
-            .unwrap();
+        dst_path.write(src_path.read().await.unwrap()).await;
+        if src_tag.lrc.is_some() {
+            dst_path.lrc().write(src_path.read_lrc().await.unwrap()).await;
         }
 
         self.song_fs_infos_vec[music_folder_index].push(SongFsInformation {
-            relative_path: new_song_path.to_str().unwrap().to_owned(),
-            ..old_song_tag
+            relative_path: dst_path.relative(music_folder_path).into(),
+            ..src_tag
         });
         self
     }
@@ -343,14 +344,6 @@ impl Infra {
 
     pub fn state(&self) -> State<Database> {
         self.db.state()
-    }
-
-    pub fn create_random_relative_paths<OS: AsRef<OsStr>>(
-        n_path: usize,
-        max_depth: usize,
-        extensions: &[OS],
-    ) -> Vec<String> {
-        TemporaryFs::create_random_relative_paths(n_path, max_depth, extensions)
     }
 
     pub fn user_id(&self, index: usize) -> Uuid {
@@ -395,9 +388,7 @@ impl Infra {
                 songs::table
                     .select(songs::id)
                     .inner_join(music_folders::table)
-                    .filter(
-                        music_folders::path.eq(&song_fs_info.music_folder_path.to_str().unwrap()),
-                    )
+                    .filter(music_folders::path.eq(&song_fs_info.music_folder_path))
                     .filter(songs::file_hash.eq(song_fs_info.file_hash as i64))
                     .filter(songs::file_size.eq(song_fs_info.file_size as i32))
                     .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
@@ -691,10 +682,7 @@ impl Infra {
         let song_fs_infos_map =
             self.song_fs_infos(..).into_iter().into_group_map_by(|song_fs_info| {
                 (
-                    music_folders[song_fs_info
-                        .music_folder_path
-                        .to_str()
-                        .expect("non utf-8 path encountered")],
+                    music_folders[song_fs_info.music_folder_path.as_str()],
                     song_fs_info.file_hash,
                     song_fs_info.file_size,
                 )

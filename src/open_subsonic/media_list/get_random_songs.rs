@@ -66,7 +66,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_random_songs() {
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, 20).scan(.., None).await;
+        infra.add_n_song(0, 20).await.scan(.., None).await;
         get_random_songs(
             infra.pool(),
             infra.user_id(0),

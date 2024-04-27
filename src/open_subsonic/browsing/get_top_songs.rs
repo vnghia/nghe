@@ -70,13 +70,15 @@ mod tests {
         let artist_name = "artist";
         let n_song = 20_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_songs(
-            0,
-            (0..n_song)
-                .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
-                .collect(),
-        );
-        infra.add_n_song(0, 10).scan(.., None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
+                    .collect(),
+            )
+            .await;
+        infra.add_n_song(0, 10).await.scan(.., None).await;
 
         let top_songs = get_top_songs(infra.pool(), artist_name.into(), None).await.unwrap();
         assert_eq!(top_songs.len(), n_song);
@@ -87,13 +89,18 @@ mod tests {
         let artist_name = "artist";
         let n_song = 20_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_songs(
-            0,
-            (0..n_song)
-                .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
-                .collect(),
-        );
-        infra.add_n_song(0, 10).scan(.., None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
+                    .collect(),
+            )
+            .await
+            .add_n_song(0, 10)
+            .await
+            .scan(.., None)
+            .await;
 
         let top_songs = get_top_songs(infra.pool(), artist_name.into(), None).await.unwrap();
         assert_eq!(top_songs.len(), n_song);
@@ -112,6 +119,7 @@ mod tests {
                     .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 

@@ -74,12 +74,14 @@ mod tests {
                     .map(|_| SongTag { genres: vec![genre_values[0].into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .add_songs(
                 0,
                 (0..n_song - n_diff)
                     .map(|_| SongTag { genres: vec![genre_values[1].into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 

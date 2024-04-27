@@ -186,7 +186,7 @@ mod tests {
     async fn test_sync() {
         let n_song = 10;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
         sync(infra.pool(), infra.user_id(0), &None, Default::default()).await.unwrap();
     }
 
@@ -194,7 +194,7 @@ mod tests {
     async fn test_full_text_search() {
         let n_song = 10;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
         full_text_search(
             infra.pool(),
             infra.user_id(0),

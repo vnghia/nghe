@@ -83,7 +83,7 @@ mod tests {
         let playlist_name = "playlist";
 
         let mut infra = Infra::new().await.add_user(None).await.add_folder(true).await;
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
         let mut song_fs_ids = infra.song_ids(..).await;
         song_fs_ids.shuffle(&mut rand::thread_rng());
 
@@ -118,7 +118,7 @@ mod tests {
         let playlist_name = "playlist";
 
         let mut infra = Infra::new().await.add_user(None).await.n_folder(2).await;
-        infra.add_n_song(0, n_song).add_n_song(1, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.add_n_song(1, n_song).await.scan(.., None).await;
         infra.remove_permission(None, 1).await;
 
         let playlist_id = create_playlist(
@@ -153,7 +153,7 @@ mod tests {
 
         let mut infra =
             Infra::new().await.add_user(None).await.add_user(None).await.n_folder(1).await;
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
 
         let playlist_id = create_playlist(
             infra.pool(),

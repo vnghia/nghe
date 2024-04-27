@@ -26,13 +26,14 @@ mod tests {
     use axum::response::IntoResponse;
 
     use super::*;
+    use crate::utils::path::PathTrait;
     use crate::utils::test::http::to_bytes;
     use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_download() {
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let download_bytes = to_bytes(
             download(infra.pool(), infra.user_id(0), infra.song_ids(..).await[0])
@@ -42,7 +43,7 @@ mod tests {
         )
         .await
         .to_vec();
-        let local_bytes = std::fs::read(infra.song_fs_infos(..)[0].absolute_path()).unwrap();
+        let local_bytes = infra.song_fs_infos(..)[0].path(&infra.fs.root).read().await.unwrap();
         assert_eq!(download_bytes, local_bytes);
     }
 }

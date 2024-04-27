@@ -152,6 +152,7 @@ mod tests {
     use axum::response::IntoResponse;
 
     use super::*;
+    use crate::utils::path::PathTrait;
     use crate::utils::song::transcode_to_memory;
     use crate::utils::test::http::to_bytes;
     use crate::utils::test::Infra;
@@ -159,7 +160,7 @@ mod tests {
     #[tokio::test]
     async fn test_stream_raw() {
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let stream_bytes = to_bytes(
             stream(
@@ -179,14 +180,14 @@ mod tests {
         )
         .await
         .to_vec();
-        let local_bytes = std::fs::read(infra.song_fs_infos(..)[0].absolute_path()).unwrap();
+        let local_bytes = infra.song_fs_infos(..)[0].path(&infra.fs.root).read().await.unwrap();
         assert_eq!(stream_bytes, local_bytes);
     }
 
     #[tokio::test]
     async fn test_stream_simple() {
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let stream_bytes = to_bytes(
             stream(
@@ -207,7 +208,7 @@ mod tests {
         .await
         .to_vec();
         let transcode_bytes = transcode_to_memory(
-            infra.song_fs_infos(..)[0].absolute_path(),
+            infra.song_fs_infos(..)[0].path(&infra.fs.root).to_string().into(),
             Format::Opus,
             32,
             0,
@@ -220,7 +221,7 @@ mod tests {
     #[tokio::test]
     async fn test_stream_no_cache() {
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let stream_bytes = to_bytes(
             stream(
@@ -241,7 +242,7 @@ mod tests {
         .await
         .to_vec();
         let transcode_bytes = transcode_to_memory(
-            infra.song_fs_infos(..)[0].absolute_path(),
+            infra.song_fs_infos(..)[0].path(&infra.fs.root).to_string().into(),
             Format::Opus,
             32,
             0,

@@ -97,7 +97,7 @@ mod tests {
     #[tokio::test]
     async fn test_scrobble() {
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
         let user_id = infra.user_id(0);
         let song_id = infra.song_ids(..).await[0];
 
@@ -125,7 +125,7 @@ mod tests {
         let n_song = 10_usize;
         let more_play_count = 10_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
         let user_id = infra.user_id(0);
         let song_ids = infra.song_ids(..).await;
         let mut play_counts = vec![0; n_song];
@@ -170,7 +170,7 @@ mod tests {
     async fn test_scrobble_multiples_time() {
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
         let user_id = infra.user_id(0);
         let song_ids = infra.song_ids(..).await;
         let start_dt = datetime!(2000-01-01 0:00 UTC);

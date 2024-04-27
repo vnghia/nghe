@@ -65,7 +65,7 @@ mod tests {
     async fn test_get_song_id3() {
         let song_tag = Faker.fake::<SongTag>();
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
-        infra.add_songs(0, vec![song_tag.clone()]).scan(.., None).await;
+        infra.add_songs(0, vec![song_tag.clone()]).await.scan(.., None).await;
 
         let song_id = infra.song_ids(..).await.remove(0);
         let song_id3 = get_song(infra.pool(), infra.user_id(0), song_id).await.unwrap();
@@ -78,7 +78,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_song_id3_deny_music_folders() {
         let mut infra = Infra::new().await.n_folder(2).await.add_user(None).await;
-        infra.add_n_song(0, 1).add_n_song(1, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.add_n_song(1, 1).await.scan(.., None).await;
         infra.remove_permission(None, None).await.add_permissions(.., 0..1).await;
 
         let song_id = infra.song_ids(1..).await.remove(0);
