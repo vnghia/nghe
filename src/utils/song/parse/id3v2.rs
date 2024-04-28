@@ -227,7 +227,7 @@ mod test {
                 write_id3v2_text_tag(
                     &mut tag,
                     parsing_config.genre,
-                    self.genres.iter().map(|g| g.value.as_ref()).join(&multi_value_separator),
+                    self.genres.iter().map(genres::NewGenre::as_str).join(&multi_value_separator),
                 );
             }
 

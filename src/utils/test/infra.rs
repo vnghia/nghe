@@ -443,7 +443,7 @@ impl Infra {
                 } else {
                     artists::table
                         .select(artists::id)
-                        .filter(artists::name.eq(artist_no_id.name.as_ref()))
+                        .filter(artists::name.eq(&artist_no_id.name))
                         .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
                         .await
                         .unwrap()
@@ -498,7 +498,7 @@ impl Infra {
                 } else {
                     albums::table
                         .select(albums::id)
-                        .filter(albums::name.eq(album_no_id.name.as_ref()))
+                        .filter(albums::name.eq(&album_no_id.name))
                         .filter(albums::year.is_not_distinct_from(album_no_id.date.year))
                         .filter(albums::month.is_not_distinct_from(album_no_id.date.month))
                         .filter(albums::day.is_not_distinct_from(album_no_id.date.day))

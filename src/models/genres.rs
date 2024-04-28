@@ -26,3 +26,10 @@ impl From<&str> for Genre {
         v.to_string().into()
     }
 }
+
+#[cfg(test)]
+impl<'a> NewGenre<'a> {
+    pub fn as_str(&self) -> &str {
+        AsRef::<str>::as_ref(&self.value)
+    }
+}
