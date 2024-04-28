@@ -21,7 +21,7 @@ pub async fn add_music_folder(
     let id = diesel::insert_into(music_folders::table)
         .values(music_folders::UpsertMusicFolder {
             name: Some(name.into()),
-            path: Some(check_dir(path).await?.to_str().expect("non utf-8 path encountered").into()),
+            path: Some(check_dir(path).await?.into()),
         })
         .returning(music_folders::id)
         .get_result::<Uuid>(&mut pool.get().await?)

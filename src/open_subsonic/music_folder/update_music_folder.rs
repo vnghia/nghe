@@ -18,18 +18,7 @@ pub async fn update_music_folder(
     name: &Option<String>,
     path: &Option<String>,
 ) -> Result<()> {
-    let path = if let Some(ref path) = path {
-        Some(
-            check_dir(path)
-                .await?
-                .into_os_string()
-                .into_string()
-                .expect("non utf-8 path encountered")
-                .into(),
-        )
-    } else {
-        None
-    };
+    let path = if let Some(ref path) = path { Some(check_dir(path).await?.into()) } else { None };
 
     diesel::update(music_folders::table.filter(music_folders::id.eq(id)))
         .set(music_folders::UpsertMusicFolder { name: name.as_ref().map(|s| s.into()), path })
