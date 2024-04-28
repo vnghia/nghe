@@ -91,7 +91,7 @@ futures = { version = "0.3.30" }
 futures-buffered = { version = "0.2.4" }
 ignore = { version = "0.4.22" }
 libaes = { version = "0.7.0" }
-lofty = { version = "0.19.0" }
+lofty = { version = "0.19.2" }
 lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }
 mimalloc = { version = "0.1.41" }
 mime_guess = { version = "2.0.4" }
