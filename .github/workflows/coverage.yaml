@@ -57,7 +57,7 @@ jobs:
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v1
+        uses: taiki-e/cache-cargo-install-action@v2
         with:
           tool: cargo-vcpkg
       - name: Build vcpkg dependencies
