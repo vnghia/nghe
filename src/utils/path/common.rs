@@ -6,7 +6,6 @@ use crate::utils::test::TemporaryFsRoot;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Metadata {
-    pub is_dir: bool,
     pub size: u32,
 }
 
@@ -63,10 +62,7 @@ pub trait PathTest {
     async fn write<D: AsRef<[u8]>>(&self, data: D);
     async fn delete(&self);
     async fn mkdir(&self);
-}
 
-#[cfg(test)]
-pub trait PathBuild {
     fn new(root: &TemporaryFsRoot, path: Option<&str>) -> Self;
     fn new_self(&self, root: &TemporaryFsRoot, path: Option<&str>) -> Self;
     fn join(&self, path: &str) -> Self;

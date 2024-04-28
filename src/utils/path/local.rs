@@ -5,9 +5,9 @@ use std::path::Path;
 use anyhow::Result;
 use lofty::file::FileType;
 
-use super::{Metadata, PathTrait};
 #[cfg(test)]
-use super::{PathBuild, PathTest};
+use super::PathTest;
+use super::{Metadata, PathTrait};
 #[cfg(test)]
 use crate::utils::test::TemporaryFsRoot;
 
@@ -19,7 +19,7 @@ pub struct LocalPath<'a> {
 
 impl From<std::fs::Metadata> for Metadata {
     fn from(value: std::fs::Metadata) -> Self {
-        Self { is_dir: value.is_dir(), size: value.len() as _ }
+        Self { size: value.len() as _ }
     }
 }
 
@@ -89,10 +89,7 @@ impl<'a> PathTest for LocalPath<'a> {
     async fn mkdir(&self) {
         tokio::fs::create_dir_all(&self.path).await.unwrap();
     }
-}
 
-#[cfg(test)]
-impl PathBuild for LocalPath<'static> {
     fn new(root: &TemporaryFsRoot, path: Option<&str>) -> Self {
         if let Some(path) = path {
             Path::new(path).to_path_buf().into()

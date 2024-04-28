@@ -12,7 +12,7 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use super::asset::get_media_asset_path;
 use crate::config::{ArtConfig, ParsingConfig, TranscodingConfig};
-use crate::utils::path::{LocalPath, PathBuild, PathTest, PathTrait};
+use crate::utils::path::{LocalPath, PathTest, PathTrait};
 use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::{SongInformation, SongLyric};
@@ -28,10 +28,7 @@ pub struct SongFsInformation {
 }
 
 impl SongFsInformation {
-    pub fn path(
-        &self,
-        root: &TemporaryFsRoot,
-    ) -> Box<impl PathTrait + PathTest + PathBuild + ToString> {
+    pub fn path(&self, root: &TemporaryFsRoot) -> Box<impl PathTrait + PathTest + ToString> {
         Box::new(LocalPath::new(root, Some(&self.music_folder_path)).join(&self.relative_path))
     }
 }
@@ -70,24 +67,24 @@ impl TemporaryFs {
         Self { root, write_option, parsing_config, transcoding_config, art_config }
     }
 
-    fn to_path<P: PathBuild>(&self, rel_path: &str) -> P {
+    fn to_path<P: PathTest>(&self, rel_path: &str) -> P {
         P::new(&self.root, None).join(rel_path)
     }
 
-    pub async fn mkdir<P: PathTest + PathBuild + ToString>(&self, rel_path: &str) -> P {
+    pub async fn mkdir<P: PathTest + ToString>(&self, rel_path: &str) -> P {
         let path: P = self.to_path(rel_path);
         path.mkdir().await;
         path
     }
 
-    pub async fn mkfile<P: PathTest + PathBuild>(&self, rel_path: &str) -> P {
+    pub async fn mkfile<P: PathTest>(&self, rel_path: &str) -> P {
         let content: String = Faker.fake();
         let path: P = self.to_path(rel_path);
         path.write(content).await;
         path
     }
 
-    pub async fn mksong<P: PathTrait + PathTest + PathBuild>(
+    pub async fn mksong<P: PathTrait + PathTest>(
         &self,
         music_folder_path: &str,
         rel_path: &str,
@@ -144,7 +141,7 @@ impl TemporaryFs {
         }
     }
 
-    pub async fn mksongs<P: PathTrait + PathTest + PathBuild, S: AsRef<str>>(
+    pub async fn mksongs<P: PathTrait + PathTest, S: AsRef<str>>(
         &self,
         music_folder_path: &str,
         paths: &[S],
@@ -178,7 +175,7 @@ impl TemporaryFs {
             .collect()
     }
 
-    pub async fn mkpathssongs<P: PathTrait + PathTest + PathBuild, S: AsRef<str>>(
+    pub async fn mkpathssongs<P: PathTrait + PathTest, S: AsRef<str>>(
         &self,
         music_folder_path: &str,
         song_tags: Vec<SongTag>,

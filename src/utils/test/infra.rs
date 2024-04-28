@@ -29,7 +29,7 @@ use crate::open_subsonic::permission::{add_permission, remove_permission};
 use crate::open_subsonic::scan::test::initialize_scan;
 use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
-use crate::utils::path::{LocalPath, PathBuild, PathTest, PathTrait};
+use crate::utils::path::{LocalPath, PathTest, PathTrait};
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::MediaDateMbz;
