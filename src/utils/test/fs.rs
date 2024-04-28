@@ -1,20 +1,18 @@
-use std::ffi::OsStr;
-use std::fs::*;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::io::{Cursor, Write};
 
 use concat_string::concat_string;
 use fake::{Fake, Faker};
+use futures::{stream, StreamExt};
 use lofty::config::WriteOptions;
-use lofty::file::{FileType, TaggedFileExt};
 use lofty::tag::{TagExt, TagType};
 use nghe_types::constant::SERVER_NAME;
-use rand::seq::SliceRandom;
+use rand::prelude::SliceRandom;
 use tempfile::{Builder, TempDir};
 use xxhash_rust::xxh3::xxh3_64;
 
 use super::asset::get_media_asset_path;
 use crate::config::{ArtConfig, ParsingConfig, TranscodingConfig};
+use crate::utils::path::{LocalPath, PathBuild, PathTest, PathTrait};
 use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::{SongInformation, SongLyric};
@@ -22,23 +20,30 @@ use crate::utils::song::{SongInformation, SongLyric};
 #[derive(Debug, Clone)]
 pub struct SongFsInformation {
     pub tag: SongTag,
-    pub lrc: Option<SongLyric>,
-    pub music_folder_path: PathBuf,
+    pub music_folder_path: String,
     pub relative_path: String,
+    pub lrc: Option<SongLyric>,
     pub file_hash: u64,
     pub file_size: u32,
 }
 
 impl SongFsInformation {
-    pub fn absolute_path(&self) -> PathBuf {
-        self.music_folder_path.join(&self.relative_path)
+    pub fn path(
+        &self,
+        root: &TemporaryFsRoot,
+    ) -> Box<impl PathTrait + PathTest + PathBuild + ToString> {
+        Box::new(LocalPath::new(root, Some(&self.music_folder_path)).join(&self.relative_path))
     }
 }
 
-pub struct TemporaryFs {
-    root: TempDir,
-    write_option: WriteOptions,
+pub struct TemporaryFsRoot {
+    pub local: TempDir,
+}
 
+pub struct TemporaryFs {
+    pub root: TemporaryFsRoot,
+
+    pub write_option: WriteOptions,
     pub parsing_config: ParsingConfig,
     pub transcoding_config: TranscodingConfig,
     pub art_config: ArtConfig,
@@ -48,116 +53,82 @@ impl TemporaryFs {
     fn new() -> Self {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let root = Builder::new().prefix(SERVER_NAME).tempdir().unwrap();
-        let write_option = WriteOptions::new().remove_others(true);
+        let root = TemporaryFsRoot {
+            local: Builder::new().prefix(&concat_string!(SERVER_NAME, "-")).tempdir().unwrap(),
+        };
 
+        let write_option = WriteOptions::new().remove_others(true);
         let parsing_config = ParsingConfig::default();
         let transcoding_config = TranscodingConfig {
-            cache_path: Some(root.path().canonicalize().unwrap().join("transcoding-cache")),
+            cache_path: Some(root.local.path().canonicalize().unwrap().join("transcoding-cache")),
             ..Default::default()
         };
         let art_config = ArtConfig {
-            artist_dir: Some(root.path().canonicalize().unwrap().join("art-artist-path")),
-            song_dir: Some(root.path().canonicalize().unwrap().join("art-song-path")),
+            artist_dir: Some(root.local.path().canonicalize().unwrap().join("art-artist-path")),
+            song_dir: Some(root.local.path().canonicalize().unwrap().join("art-song-path")),
         };
         Self { root, write_option, parsing_config, transcoding_config, art_config }
     }
 
-    fn get_absolute_path<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let root_path = self.root_path();
-        let path = path.as_ref();
-        if path.is_absolute() {
-            if !path.starts_with(root_path) && !path.starts_with(self.canonicalized_root_path()) {
-                panic!("path is not a children of root temp directory");
-            } else {
-                path.into()
-            }
-        } else {
-            root_path.join(path)
-        }
+    fn to_path<P: PathBuild>(&self, rel_path: &str) -> P {
+        P::new(&self.root, None).join(rel_path)
     }
 
-    fn create_parent_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path = self.get_absolute_path(path);
-        self.create_dir(path.parent().unwrap());
+    pub async fn mkdir<P: PathTest + PathBuild + ToString>(&self, rel_path: &str) -> P {
+        let path: P = self.to_path(rel_path);
+        path.mkdir().await;
         path
     }
 
-    pub fn root_path(&self) -> &Path {
-        self.root.path()
-    }
-
-    pub fn canonicalized_root_path(&self) -> PathBuf {
-        self.root.path().canonicalize().unwrap()
-    }
-
-    pub fn create_dir<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path = self.get_absolute_path(path);
-        create_dir_all(&path).expect("can not create temporary dir");
+    pub async fn mkfile<P: PathTest + PathBuild>(&self, rel_path: &str) -> P {
+        let content: String = Faker.fake();
+        let path: P = self.to_path(rel_path);
+        path.write(content).await;
         path
     }
 
-    pub fn create_file<P: AsRef<Path>>(&self, path: P) -> PathBuf {
-        let path = self.create_parent_dir(path);
-
-        File::create(&path)
-            .expect("can not open temporary file")
-            .write_all(Faker.fake::<String>().as_bytes())
-            .expect("can not write to temporary file");
-        path
-    }
-
-    pub fn create_media_file<PM: AsRef<Path>, S: AsRef<str> + ToString>(
+    pub async fn mksong<P: PathTrait + PathTest + PathBuild>(
         &self,
-        music_folder_path: PM,
-        relative_path: S,
-        song_tag: SongTag,
-        generate_lrc: bool,
+        music_folder_path: &str,
+        rel_path: &str,
+        tag: SongTag,
+        mklrc: bool,
     ) -> SongFsInformation {
-        let tag = song_tag.clone();
-        let music_folder_path = self.get_absolute_path(music_folder_path);
-        let path = self.create_parent_dir(music_folder_path.join(relative_path.as_ref()));
-        let file_type = FileType::from_path(&path).unwrap();
+        let path = P::new(&self.root, Some(music_folder_path)).join(rel_path);
+        let file_type = path.file_type();
+        let mut tag_file =
+            Cursor::new(tokio::fs::read(get_media_asset_path(&file_type)).await.unwrap());
+        let tag_type = file_type.primary_tag_type();
 
-        std::fs::copy(get_media_asset_path(&file_type), &path)
-            .expect("can not copy original media file to temp directory");
-
-        let tag_type = lofty::read_from_path(&path)
-            .expect("can not read original media file")
-            .primary_tag_type();
-
+        let song_tag = tag.clone();
         match tag_type {
             TagType::Id3v2 => {
                 song_tag
                     .into_id3v2(&self.parsing_config.id3v2)
-                    .save_to_path(&path, self.write_option)
-                    .expect("can not write tag to media file");
+                    .save_to(&mut tag_file, self.write_option)
+                    .unwrap();
             }
             TagType::VorbisComments => {
                 song_tag
                     .into_vorbis_comments(&self.parsing_config.vorbis)
-                    .save_to_path(&path, self.write_option)
-                    .expect("can not write tag to media file");
+                    .save_to(&mut tag_file, self.write_option)
+                    .unwrap();
             }
-            _ => unreachable!("media tag type not supported"),
+            _ => unreachable!(),
         };
+        tag_file.flush().unwrap();
+        tag_file.set_position(0);
 
-        let file_data = std::fs::read(&path).unwrap();
+        let file_data = tag_file.into_inner();
+        path.write(&file_data).await;
         let file_hash = xxh3_64(&file_data);
         let file_size = file_data.len() as _;
 
-        let lrc_path = path.with_extension("lrc");
-        let lrc = if !generate_lrc {
-            if lrc_path.exists() {
-                Some(
-                    SongLyric::from_str(&std::fs::read_to_string(lrc_path).unwrap(), true).unwrap(),
-                )
-            } else {
-                None
-            }
+        let lrc = if !mklrc {
+            path.read_lrc().await.map(|s| SongLyric::from_str(&s, true).unwrap()).ok()
         } else if Faker.fake() {
             let lrc = SongLyric { external: true, ..Faker.fake() };
-            std::fs::write(lrc_path, lrc.to_string().as_bytes()).unwrap();
+            path.lrc().write(lrc.to_string()).await;
             Some(lrc)
         } else {
             None
@@ -166,90 +137,85 @@ impl TemporaryFs {
         SongFsInformation {
             tag,
             lrc,
-            music_folder_path,
-            relative_path: relative_path.to_string(),
+            music_folder_path: music_folder_path.into(),
+            relative_path: rel_path.into(),
             file_hash,
             file_size,
         }
     }
 
-    pub fn create_media_files<PM: AsRef<Path>>(
+    pub async fn mksongs<P: PathTrait + PathTest + PathBuild, S: AsRef<str>>(
         &self,
-        music_folder_path: PM,
-        paths: Vec<String>,
-        song_tags: Vec<SongTag>,
-        generate_lrc: bool,
+        music_folder_path: &str,
+        paths: &[S],
+        tags: Vec<SongTag>,
+        mklrc: bool,
     ) -> Vec<SongFsInformation> {
-        paths
-            .into_iter()
-            .zip(song_tags)
-            .map(|(path, song_tag)| {
-                self.create_media_file(&music_folder_path, path, song_tag, generate_lrc)
+        stream::iter(paths)
+            .zip(stream::iter(tags))
+            .then(move |(path, tag)| async move {
+                self.mksong::<P>(music_folder_path, path.as_ref(), tag, mklrc).await
             })
             .collect()
+            .await
     }
 
-    pub fn create_random_relative_paths<OS: AsRef<OsStr>>(
+    pub fn mkrelpaths<P: PathTrait, S: AsRef<str>>(
+        &self,
         n_path: usize,
         max_depth: usize,
-        extensions: &[OS],
+        exts: &[S],
     ) -> Vec<String> {
         (0..n_path)
             .map(|_| {
-                let ext = extensions.choose(&mut rand::thread_rng()).unwrap();
-                Path::new(
-                    &fake::vec![String; 1..(max_depth + 1)].join(std::path::MAIN_SEPARATOR_STR),
+                let ext = exts.choose(&mut rand::thread_rng()).unwrap();
+                concat_string!(
+                    fake::vec![String; 1..(max_depth + 1)].join(P::PATH_SEPARATOR),
+                    ".",
+                    ext
                 )
-                .with_extension(ext)
-                .to_str()
-                .unwrap()
-                .to_owned()
             })
             .collect()
     }
 
-    pub fn create_random_paths_media_files<PM: AsRef<Path>, OS: AsRef<OsStr>>(
+    pub async fn mkpathssongs<P: PathTrait + PathTest + PathBuild, S: AsRef<str>>(
         &self,
-        music_folder_path: PM,
+        music_folder_path: &str,
         song_tags: Vec<SongTag>,
-        extensions: &[OS],
+        exts: &[S],
     ) -> Vec<SongFsInformation> {
-        let n_song = song_tags.len();
-        self.create_media_files(
+        self.mksongs::<P, _>(
             music_folder_path,
-            Self::create_random_relative_paths(n_song, 3, extensions),
+            &self.mkrelpaths::<P, S>(song_tags.len(), 3, exts),
             song_tags,
             true,
         )
-    }
-
-    pub fn join_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
-        paths.iter().map(|path| self.get_absolute_path(path)).collect()
-    }
-
-    pub fn canonicalize_paths<P: AsRef<Path>>(&self, paths: &[P]) -> Vec<PathBuf> {
-        paths
-            .iter()
-            .map(std::fs::canonicalize)
-            .collect::<Result<Vec<_>, _>>()
-            .expect("can not canonicalize temp path")
+        .await
     }
 }
 
-#[test]
-fn test_roundtrip_media_file() {
+impl Default for TemporaryFs {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[tokio::test]
+async fn test_roundtrip_media_file() {
     let fs = TemporaryFs::default();
 
     for file_type in SONG_FILE_TYPES {
         let song_tag = Faker.fake::<SongTag>();
-        let song_fs_infos = fs.create_media_file(
-            fs.root_path(),
-            concat_string!("test.", to_extension(&file_type)),
-            song_tag.clone(),
-            false,
-        );
+        let song_fs_infos = fs
+            .mksong::<LocalPath>(
+                &fs.mkdir::<LocalPath>(&Faker.fake::<String>()).await.to_string(),
+                &concat_string!("test.", to_extension(&file_type)),
+                song_tag.clone(),
+                false,
+            )
+            .await;
         let read_song_tag = SongInformation::read_from(
-            &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
+            &mut Cursor::new(song_fs_infos.path(&fs.root).read().await.unwrap()),
             file_type,
             None,
             &fs.parsing_config,
@@ -260,8 +226,8 @@ fn test_roundtrip_media_file() {
     }
 }
 
-#[test]
-fn test_roundtrip_media_file_none_value() {
+#[tokio::test]
+async fn test_roundtrip_media_file_none_value() {
     let fs = TemporaryFs::default();
 
     for file_type in SONG_FILE_TYPES {
@@ -273,14 +239,16 @@ fn test_roundtrip_media_file_none_value() {
             disc_total: None,
             ..Faker.fake()
         };
-        let song_fs_infos = fs.create_media_file(
-            fs.root_path(),
-            concat_string!("test.", to_extension(&file_type)),
-            song_tag.clone(),
-            false,
-        );
+        let song_fs_infos = fs
+            .mksong::<LocalPath>(
+                &fs.mkdir::<LocalPath>(&Faker.fake::<String>()).await.to_string(),
+                &concat_string!("test.", to_extension(&file_type)),
+                song_tag.clone(),
+                false,
+            )
+            .await;
         let read_song_tag = SongInformation::read_from(
-            &mut std::fs::File::open(song_fs_infos.absolute_path()).unwrap(),
+            &mut Cursor::new(song_fs_infos.path(&fs.root).read().await.unwrap()),
             file_type,
             None,
             &fs.parsing_config,
@@ -288,11 +256,5 @@ fn test_roundtrip_media_file_none_value() {
         .unwrap()
         .tag;
         assert_eq!(song_tag, read_song_tag, "{:?} tag does not match", file_type);
-    }
-}
-
-impl Default for TemporaryFs {
-    fn default() -> Self {
-        Self::new()
     }
 }

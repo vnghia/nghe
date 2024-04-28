@@ -18,18 +18,7 @@ pub async fn update_music_folder(
     name: &Option<String>,
     path: &Option<String>,
 ) -> Result<()> {
-    let path = if let Some(ref path) = path {
-        Some(
-            check_dir(path)
-                .await?
-                .into_os_string()
-                .into_string()
-                .expect("non utf-8 path encountered")
-                .into(),
-        )
-    } else {
-        None
-    };
+    let path = if let Some(ref path) = path { Some(check_dir(path).await?.into()) } else { None };
 
     diesel::update(music_folders::table.filter(music_folders::id.eq(id)))
         .set(music_folders::UpsertMusicFolder { name: name.as_ref().map(|s| s.into()), path })
@@ -51,15 +40,15 @@ pub async fn update_music_folder_handler(
 mod tests {
     use super::super::add_music_folder::add_music_folder;
     use super::*;
+    use crate::utils::path::LocalPath;
     use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_update_music_folder() {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await;
 
-        let path = infra.fs.create_dir("folder/");
-        let id =
-            add_music_folder(infra.pool(), "folder", path.to_str().unwrap(), true).await.unwrap();
+        let path = infra.fs.mkdir::<LocalPath>("folder/").await;
+        let id = add_music_folder(infra.pool(), "folder", &path.to_string(), true).await.unwrap();
         update_music_folder(infra.pool(), id, &Some("new-folder".into()), &None).await.unwrap();
 
         let new_id = music_folders::table

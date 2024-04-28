@@ -1,4 +1,5 @@
 #![deny(clippy::all)]
+#![allow(async_fn_in_trait)]
 #![allow(incomplete_features)]
 // TODO: reuse type when diesel 2.2.0 is released
 #![allow(clippy::type_complexity)]
@@ -9,6 +10,7 @@
 #![feature(let_chains)]
 #![feature(proc_macro_hygiene)]
 #![feature(stmt_expr_attributes)]
+#![feature(trait_alias)]
 #![feature(try_blocks)]
 
 use mimalloc::MiMalloc;

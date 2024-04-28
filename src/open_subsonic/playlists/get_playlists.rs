@@ -78,7 +78,7 @@ mod tests {
     async fn test_get_playlists() {
         let mut infra =
             Infra::new().await.add_user(None).await.add_user(None).await.add_folder(true).await;
-        infra.add_n_song(0, 10).scan(.., None).await;
+        infra.add_n_song(0, 10).await.scan(.., None).await;
         let song_fs_ids = infra.song_ids(..).await;
 
         for user_id in infra.user_ids(..) {
@@ -121,7 +121,13 @@ mod tests {
         let playlist_name = "playlist";
 
         let mut infra = Infra::new().await.add_user(None).await.n_folder(2).await;
-        infra.add_n_song(0, n_song + n_diff).add_n_song(1, n_song - n_diff).scan(.., None).await;
+        infra
+            .add_n_song(0, n_song + n_diff)
+            .await
+            .add_n_song(1, n_song - n_diff)
+            .await
+            .scan(.., None)
+            .await;
         infra.remove_permission(None, 1).await;
 
         create_playlist(

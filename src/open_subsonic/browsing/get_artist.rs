@@ -94,6 +94,7 @@ mod tests {
                     .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -121,6 +122,7 @@ mod tests {
                     .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -153,6 +155,7 @@ mod tests {
                     })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -175,14 +178,16 @@ mod tests {
         let n_folder = 2_usize;
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
-        (0..n_folder).for_each(|i| {
-            infra.add_songs(
-                i,
-                (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
-                    .collect(),
-            );
-        });
+        for i in 0..n_folder {
+            infra
+                .add_songs(
+                    i,
+                    (0..n_song)
+                        .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
+                        .collect(),
+                )
+                .await;
+        }
         infra.scan(.., None).await;
 
         let artist_id =
@@ -213,12 +218,14 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
         infra
             .add_n_song(0, n_song)
+            .await
             .add_songs(
                 1,
                 (0..n_song)
                     .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
         infra.remove_permission(None, None).await.add_permissions(.., ..n_scan_folder).await;
@@ -250,18 +257,21 @@ mod tests {
                     .map(|_| SongTag { album: album_names[0].into(), ..Faker.fake() })
                     .collect(),
             )
+            .await
             .add_songs(
                 1,
                 (0..n_song + n_diff)
                     .map(|_| SongTag { album: album_names[1].into(), ..Faker.fake() })
                     .collect(),
             )
+            .await
             .add_songs(
                 2,
                 (0..n_song - n_diff)
                     .map(|_| SongTag { album: album_names[1].into(), ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
         infra.remove_permission(None, None).await.add_permissions(.., ..2).await;

@@ -6,7 +6,6 @@ use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryD
 use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use futures_buffered::FuturesUnorderedBounded;
-use lofty::file::FileType;
 use nghe_types::scan::start_scan::ScanMode;
 use tracing::{instrument, Instrument};
 use uuid::Uuid;
@@ -19,44 +18,39 @@ use super::song::{insert_song, update_song, upsert_song_artists, upsert_song_cov
 use super::ScanStat;
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
-use crate::utils::fs::files::{scan_media_files, ScannedMediaFile};
+use crate::utils::fs::files::scan_media_files;
+use crate::utils::path::{AbsolutePath, PathTrait};
 use crate::utils::song::{SongInformation, SongLyric};
 use crate::DatabasePool;
 
 #[instrument(
-    skip(
-        pool,
-        scan_mode,
-        song_absolute_path,
-        song_file_size,
-        ignored_prefixes,
-        parsing_config,
-        art_config
-    ),
+    skip(pool, scan_mode, ignored_prefixes, parsing_config, art_config),
     ret(level = "trace"),
     err
 )]
-pub async fn process_path(
+pub async fn process_path<P: PathTrait + std::fmt::Debug>(
     pool: &DatabasePool,
     scan_started_at: time::OffsetDateTime,
     scan_mode: ScanMode,
     music_folder_id: Uuid,
-    ScannedMediaFile { song_absolute_path, song_relative_path, song_file_size }: ScannedMediaFile,
+    song_path: AbsolutePath<P>,
     ignored_prefixes: &[String],
     parsing_config: &ParsingConfig,
     art_config: &ArtConfig,
 ) -> Result<bool> {
-    let song_data = tokio::fs::read(&song_absolute_path).await?;
+    let song_relative_path = song_path.relative_path.as_str();
+
+    let song_data = song_path.read().await?;
     let song_file_hash = xxh3_64(&song_data);
 
     let song_file_hash = song_file_hash as _;
-    let song_file_size = song_file_size as _;
+    let song_file_size = song_path.metadata.size as _;
 
     let song_id =
         if let Some((song_id_db, song_file_hash_db, song_file_size_db, song_relative_path_db)) =
             diesel::update(songs::table)
                 .filter(songs::music_folder_id.eq(music_folder_id))
-                .filter(songs::relative_path.eq(&song_relative_path).or(
+                .filter(songs::relative_path.eq(song_relative_path).or(
                     songs::file_hash.eq(song_file_hash).and(songs::file_size.eq(song_file_size)),
                 ))
                 .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
@@ -71,19 +65,16 @@ pub async fn process_path(
                     // and hash, but different relative path. Update its path to
                     // the newer one and continue if scan mode is not force
                     // and return the song id for further processing otherwise.
-                    tracing::info!(new_path = ?song_relative_path, "duplicated song");
+                    tracing::info!(old_path = ?song_relative_path_db, "duplicated song");
                     diesel::update(songs::table)
                         .filter(songs::id.eq(song_id_db))
-                        .set(songs::relative_path.eq(&song_relative_path))
+                        .set(songs::relative_path.eq(song_relative_path))
                         .execute(&mut pool.get().await?)
                         .await?;
                     if scan_mode > ScanMode::Full {
                         Some(song_id_db)
                     } else {
-                        if let Ok(lrc_content) =
-                            tokio::fs::read_to_string(song_absolute_path.with_extension("lrc"))
-                                .await
-                        {
+                        if let Ok(lrc_content) = song_path.read_lrc().await {
                             SongLyric::from_str(&lrc_content, true)?
                                 .upsert_lyric(pool, song_id_db)
                                 .await?;
@@ -107,8 +98,8 @@ pub async fn process_path(
 
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
-        FileType::from_path(&song_absolute_path).expect("this should not happen"),
-        tokio::fs::read_to_string(song_absolute_path.with_extension("lrc")).await.ok().as_deref(),
+        song_path.file_type(),
+        song_path.read_lrc().await.ok().as_deref(),
         parsing_config,
     ) else {
         return Ok(false);
@@ -232,7 +223,7 @@ pub async fn run_scan(
     });
 
     let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.pool_size);
-    while let Ok(scanned_media_file) = rx.recv_async().await {
+    while let Ok(song_path) = rx.recv_async().await {
         while process_path_tasks.len() >= process_path_tasks.capacity()
             && let Some(process_path_join_result) = process_path_tasks.next().await
         {
@@ -262,7 +253,7 @@ pub async fn run_scan(
                     scan_started_at,
                     scan_mode,
                     music_folder_id,
-                    scanned_media_file,
+                    song_path,
                     &ignored_prefixes,
                     &parsing_config,
                     &art_config,
@@ -367,7 +358,7 @@ mod tests {
     async fn test_simple_scan() {
         let n_song = 50;
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, n_song);
+        infra.add_n_song(0, n_song).await;
         let ScanStat { upserted_song_count, deleted_song_count, .. } = infra.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
@@ -381,12 +372,12 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., None).await;
+            infra.add_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.update_n_song(0, n_update_song).scan(.., None).await;
+            infra.update_n_song(0, n_update_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_update_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -400,13 +391,15 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., None).await;
+            infra.add_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } = infra
             .delete_n_song(0, n_delete_song)
+            .await
             .update_n_song(0, n_update_song)
+            .await
             .scan(.., None)
             .await;
         assert_eq!(upserted_song_count, n_update_song);
@@ -420,7 +413,7 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(2).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).add_n_song(1, n_song).scan(.., None).await;
+            infra.add_n_song(0, n_song).await.add_n_song(1, n_song).await.scan(.., None).await;
         assert_eq!(upserted_song_count, n_song + n_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -445,6 +438,7 @@ mod tests {
                     },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
 
@@ -459,13 +453,16 @@ mod tests {
         let n_update_song = 4;
 
         let mut infra = Infra::new().await.n_folder(1).await;
-        let ScanStat { deleted_album_count, .. } = infra.add_n_song(0, n_song).scan(.., None).await;
+        let ScanStat { deleted_album_count, .. } =
+            infra.add_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(deleted_album_count, 0);
         infra.assert_album_infos(&infra.album_no_ids(..)).await;
 
         let ScanStat { deleted_album_count, .. } = infra
             .delete_n_song(0, n_delete_song)
+            .await
             .update_n_song(0, n_update_song)
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_album_count, n_delete_song + n_update_song);
@@ -484,12 +481,14 @@ mod tests {
                     SongTag { album: "album".into(), ..Faker.fake() },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_album_count, 0);
         infra.assert_album_infos(&["album".into()]).await;
 
-        let ScanStat { deleted_album_count, .. } = infra.delete_song(0, 0).scan(.., None).await;
+        let ScanStat { deleted_album_count, .. } =
+            infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_album_count, 0);
         infra.assert_album_infos(&["album".into()]).await;
     }
@@ -501,10 +500,16 @@ mod tests {
         let n_update_song = 4;
         let mut infra = Infra::new().await.n_folder(1).await;
 
-        infra.add_n_song(0, n_song).scan(.., None).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
         infra.assert_artist_infos(..).await;
 
-        infra.delete_n_song(0, n_delete_song).update_n_song(0, n_update_song).scan(.., None).await;
+        infra
+            .delete_n_song(0, n_delete_song)
+            .await
+            .update_n_song(0, n_update_song)
+            .await
+            .scan(.., None)
+            .await;
         infra.assert_artist_infos(..).await;
     }
 
@@ -527,6 +532,7 @@ mod tests {
                     SongTag { artists: vec!["artist3".into()], ..Faker.fake() },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 0);
@@ -536,6 +542,7 @@ mod tests {
 
         let ScanStat { deleted_artist_count, .. } = infra
             .update_song(0, 0, SongTag { artists: vec!["artist2".into()], ..Faker.fake() })
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 1);
@@ -563,6 +570,7 @@ mod tests {
                     },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 0);
@@ -570,7 +578,8 @@ mod tests {
             .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
             .await;
 
-        let ScanStat { deleted_artist_count, .. } = infra.delete_song(0, 0).scan(.., None).await;
+        let ScanStat { deleted_artist_count, .. } =
+            infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
         infra.assert_album_artist_no_ids(&["artist2".into(), "artist3".into()]).await;
     }
@@ -604,6 +613,7 @@ mod tests {
                     },
                 ],
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 0);
@@ -611,7 +621,8 @@ mod tests {
             .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
             .await;
 
-        let ScanStat { deleted_artist_count, .. } = infra.delete_song(0, 0).scan(.., None).await;
+        let ScanStat { deleted_artist_count, .. } =
+            infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
         infra.assert_album_artist_no_ids(&["artist2".into(), "artist3".into()]).await;
     }
@@ -643,7 +654,7 @@ mod tests {
         let first_song_tag = song_tags[0].clone();
 
         let ScanStat { deleted_artist_count, .. } =
-            infra.add_songs(0, song_tags).scan(.., None).await;
+            infra.add_songs(0, song_tags).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 0);
         infra
             .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
@@ -659,6 +670,7 @@ mod tests {
                     ..first_song_tag
                 },
             )
+            .await
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 1);
@@ -668,10 +680,10 @@ mod tests {
     #[tokio::test]
     async fn test_duplicate_song() {
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let ScanStat { scanned_song_count, deleted_song_count, .. } =
-            infra.copy_song(0, 0, Faker.fake::<String>()).scan(.., None).await;
+            infra.copy_song(0, 0, &Faker.fake::<String>()).await.scan(.., None).await;
         assert_eq!(scanned_song_count, 2);
         assert_eq!(deleted_song_count, 0);
 
@@ -681,10 +693,15 @@ mod tests {
     #[tokio::test]
     async fn test_move_song() {
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, 1).scan(.., None).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
 
-        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
-            infra.copy_song(0, 0, Faker.fake::<String>()).delete_song(0, 0).scan(.., None).await;
+        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } = infra
+            .copy_song(0, 0, &Faker.fake::<String>())
+            .await
+            .delete_song(0, 0)
+            .await
+            .scan(.., None)
+            .await;
         assert_eq!(scanned_song_count, 1);
         assert_eq!(upserted_song_count, 1);
         assert_eq!(deleted_song_count, 0);
@@ -697,7 +714,7 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Force)).await;
+            infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Force)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -709,7 +726,7 @@ mod tests {
         let mut infra = Infra::new().await.n_folder(1).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } =
-            infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Full)).await;
+            infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Full)).await;
         assert_eq!(upserted_song_count, n_song);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
@@ -725,11 +742,13 @@ mod tests {
     async fn test_force_scan_move_song() {
         let n_song = 50_usize;
         let mut infra = Infra::new().await.n_folder(1).await;
-        infra.add_n_song(0, n_song).scan(.., Some(ScanMode::Full)).await;
+        infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Full)).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } = infra
-            .copy_song(0, 0, Faker.fake::<String>())
+            .copy_song(0, 0, &Faker.fake::<String>())
+            .await
             .delete_song(0, 0)
+            .await
             .scan(.., Some(ScanMode::Force))
             .await;
         assert_eq!(upserted_song_count, n_song);
@@ -748,10 +767,12 @@ mod tests {
                     .map(|_| SongTag { genres: vec!["genre".into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
-        let ScanStat { deleted_genre_count, .. } = infra.delete_n_song(0, 5).scan(.., None).await;
+        let ScanStat { deleted_genre_count, .. } =
+            infra.delete_n_song(0, 5).await.scan(.., None).await;
         assert_eq!(deleted_genre_count, 0);
     }
 
@@ -766,11 +787,12 @@ mod tests {
                     .map(|_| SongTag { genres: vec!["genre".into()], ..Faker.fake() })
                     .collect(),
             )
+            .await
             .scan(.., None)
             .await;
 
         let ScanStat { deleted_genre_count, .. } =
-            infra.delete_n_song(0, n_song).scan(.., None).await;
+            infra.delete_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(deleted_genre_count, 1);
     }
 }
