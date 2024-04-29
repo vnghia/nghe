@@ -22,7 +22,7 @@ pub async fn upsert_artists(
             let index = compute_artist_index(ignored_prefixes, &artist_no_id.name)?;
             let new_artist = artists::NewArtistWithIndex {
                 new_artist: artist_no_id.into(),
-                index: index.as_ref().into(),
+                index: AsRef::<str>::as_ref(&index).into(),
             };
 
             if artist_no_id.mbz_id.is_some() {
@@ -31,8 +31,8 @@ pub async fn upsert_artists(
                     .on_conflict(artists::mbz_id)
                     .do_update()
                     .set((
-                        artists::name.eq(artist_no_id.name.as_ref()),
-                        artists::index.eq(index.as_ref()),
+                        artists::name.eq(&artist_no_id.name),
+                        artists::index.eq(&index),
                         artists::scanned_at.eq(time::OffsetDateTime::now_utc()),
                     ))
                     .returning(artists::id)
@@ -45,7 +45,7 @@ pub async fn upsert_artists(
                     .filter_target(artists::mbz_id.is_null())
                     .do_update()
                     .set((
-                        artists::index.eq(index.as_ref()),
+                        artists::index.eq(&index),
                         artists::scanned_at.eq(time::OffsetDateTime::now_utc()),
                     ))
                     .returning(artists::id)

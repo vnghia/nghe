@@ -152,7 +152,6 @@ mod tests {
     use axum::response::IntoResponse;
 
     use super::*;
-    use crate::utils::path::PathTrait;
     use crate::utils::song::transcode_to_memory;
     use crate::utils::test::http::to_bytes;
     use crate::utils::test::Infra;
@@ -180,7 +179,7 @@ mod tests {
         )
         .await
         .to_vec();
-        let local_bytes = infra.song_fs_infos(..)[0].path(&infra.fs.root).read().await.unwrap();
+        let local_bytes = infra.fs.read_song(&infra.song_fs_infos(..)[0]).await;
         assert_eq!(stream_bytes, local_bytes);
     }
 
@@ -208,7 +207,7 @@ mod tests {
         .await
         .to_vec();
         let transcode_bytes = transcode_to_memory(
-            infra.song_fs_infos(..)[0].path(&infra.fs.root).to_string().into(),
+            infra.fs.song_absolute_path(&infra.song_fs_infos(..)[0]).into(),
             Format::Opus,
             32,
             0,
@@ -242,7 +241,7 @@ mod tests {
         .await
         .to_vec();
         let transcode_bytes = transcode_to_memory(
-            infra.song_fs_infos(..)[0].path(&infra.fs.root).to_string().into(),
+            infra.fs.song_absolute_path(&infra.song_fs_infos(..)[0]).into(),
             Format::Opus,
             32,
             0,

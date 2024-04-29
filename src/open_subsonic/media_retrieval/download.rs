@@ -26,7 +26,6 @@ mod tests {
     use axum::response::IntoResponse;
 
     use super::*;
-    use crate::utils::path::PathTrait;
     use crate::utils::test::http::to_bytes;
     use crate::utils::test::Infra;
 
@@ -43,7 +42,7 @@ mod tests {
         )
         .await
         .to_vec();
-        let local_bytes = infra.song_fs_infos(..)[0].path(&infra.fs.root).read().await.unwrap();
+        let local_bytes = infra.fs.read_song(&infra.song_fs_infos(..)[0]).await;
         assert_eq!(download_bytes, local_bytes);
     }
 }

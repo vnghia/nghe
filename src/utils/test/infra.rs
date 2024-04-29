@@ -29,7 +29,6 @@ use crate::open_subsonic::permission::{add_permission, remove_permission};
 use crate::open_subsonic::scan::test::initialize_scan;
 use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
-use crate::utils::path::{LocalPath, PathBuild, PathTest, PathTrait};
 use crate::utils::song::file_type::{picture_to_extension, to_extensions};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::MediaDateMbz;
@@ -40,6 +39,7 @@ pub struct Infra {
     pub fs: TemporaryFs,
     pub users: Vec<User>,
     pub music_folders: Vec<music_folders::MusicFolder>,
+    pub fs_idxs: Vec<usize>,
     pub song_fs_infos_vec: Vec<Vec<SongFsInformation>>,
     pub lastfm_client: Option<lastfm_client::Client>,
     pub spotify_client: Option<rspotify::ClientCredsSpotify>,
@@ -68,6 +68,7 @@ impl Infra {
             fs,
             users: vec![],
             music_folders: vec![],
+            fs_idxs: vec![],
             song_fs_infos_vec: vec![],
             lastfm_client,
             spotify_client,
@@ -83,14 +84,15 @@ impl Infra {
         self
     }
 
-    pub async fn add_folder(mut self, allow: bool) -> Self {
-        let path: LocalPath<'_> = self.fs.mkdir(&Faker.fake::<String>()).await;
+    pub async fn add_folder(mut self, fs: usize, allow: bool) -> Self {
+        let path = self.fs.mkdir(fs, &Faker.fake::<String>()).await;
 
         let name = Faker.fake::<String>();
         let path = path.to_string();
         let id = add_music_folder(self.pool(), &name, &path, allow).await.unwrap();
 
         self.music_folders.push(music_folders::MusicFolder { id, name, path });
+        self.fs_idxs.push(fs);
         self.song_fs_infos_vec.push(vec![]);
 
         self
@@ -98,7 +100,7 @@ impl Infra {
 
     pub async fn n_folder(mut self, n_folder: usize) -> Self {
         for _ in 0..n_folder {
-            self = self.add_folder(true).await;
+            self = self.add_folder(0, true).await;
         }
 
         self
@@ -208,7 +210,8 @@ impl Infra {
     pub async fn add_songs(&mut self, index: usize, song_tags: Vec<SongTag>) -> &mut Self {
         self.song_fs_infos_vec[index].extend(
             self.fs
-                .mkpathssongs::<LocalPath<'static>, _>(
+                .mkpathssongs(
+                    self.fs_idxs[index],
                     &self.music_folders[index].path,
                     song_tags,
                     &to_extensions(),
@@ -219,15 +222,16 @@ impl Infra {
     }
 
     pub async fn delete_songs(&mut self, index: usize, delete_mask: &[bool]) -> &mut Self {
-        let root = &self.fs.root;
+        let fs = &self.fs;
+
         self.song_fs_infos_vec[index] = stream::iter(delete_mask.iter().copied())
             .zip(stream::iter(std::mem::take(&mut self.song_fs_infos_vec[index])))
             .filter_map(move |(d, s)| async move {
                 if d {
-                    let path = s.path(root);
-                    path.delete().await;
+                    let path = fs.song_absolute_path(&s);
+                    fs.remove(s.fs, &path).await;
                     if s.lrc.is_some() {
-                        path.lrc().delete().await;
+                        fs.remove(s.fs, &fs.with_ext(s.fs, &path, "lrc")).await;
                     }
                     None
                 } else {
@@ -269,7 +273,7 @@ impl Infra {
 
         let new_song_fs_infos = self
             .fs
-            .mksongs::<LocalPath, _>(music_folder_path, &update_paths, song_tags, false)
+            .mksongs(self.fs_idxs[index], music_folder_path, &update_paths, song_tags, false)
             .await;
 
         update_mask
@@ -310,21 +314,32 @@ impl Infra {
         src_index: usize,
         dst_relative_path: &str,
     ) -> &mut Self {
+        let fs_idx = self.fs_idxs[music_folder_index];
         let music_folder_path = &self.music_folders[music_folder_index].path;
-        let src_tag = self.song_fs_infos_vec[music_folder_index][src_index].clone();
-        let src_path = src_tag.path(&self.fs.root);
-        let dst_path = src_path
-            .new_self(&self.fs.root, Some(music_folder_path))
-            .join(dst_relative_path)
-            .with_ext(src_path.ext());
 
-        dst_path.write(src_path.read().await.unwrap()).await;
+        let src_tag = self.song_fs_infos_vec[music_folder_index][src_index].clone();
+        let src_path = self.fs.song_absolute_path(&src_tag);
+        let dst_path = self.fs.with_ext(
+            fs_idx,
+            &self.fs.join(fs_idx, music_folder_path, dst_relative_path),
+            self.fs.ext(fs_idx, &src_path),
+        );
+
+        self.fs.write(fs_idx, &dst_path, self.fs.read_song(&src_tag).await).await;
         if src_tag.lrc.is_some() {
-            dst_path.lrc().write(src_path.read_lrc().await.unwrap()).await;
+            self.fs
+                .write(
+                    fs_idx,
+                    &self.fs.with_ext(fs_idx, &dst_path, "lrc"),
+                    self.fs
+                        .read_to_string(fs_idx, &self.fs.with_ext(fs_idx, &src_path, "lrc"))
+                        .await,
+                )
+                .await;
         }
 
         self.song_fs_infos_vec[music_folder_index].push(SongFsInformation {
-            relative_path: dst_path.relative(music_folder_path).into(),
+            relative_path: self.fs.strip_prefix(fs_idx, &dst_path, music_folder_path),
             ..src_tag
         });
         self
@@ -443,7 +458,7 @@ impl Infra {
                 } else {
                     artists::table
                         .select(artists::id)
-                        .filter(artists::name.eq(artist_no_id.name.as_ref()))
+                        .filter(artists::name.eq(&artist_no_id.name))
                         .get_result::<Uuid>(&mut self.pool().get().await.unwrap())
                         .await
                         .unwrap()
@@ -498,7 +513,7 @@ impl Infra {
                 } else {
                     albums::table
                         .select(albums::id)
-                        .filter(albums::name.eq(album_no_id.name.as_ref()))
+                        .filter(albums::name.eq(&album_no_id.name))
                         .filter(albums::year.is_not_distinct_from(album_no_id.date.year))
                         .filter(albums::month.is_not_distinct_from(album_no_id.date.month))
                         .filter(albums::day.is_not_distinct_from(album_no_id.date.day))

@@ -46,7 +46,7 @@ pub type ArtistNoId = NewArtist<'static>;
 
 impl<'a> From<&'a ArtistNoId> for NewArtist<'a> {
     fn from(value: &'a ArtistNoId) -> Self {
-        NewArtist { name: value.name.as_ref().into(), mbz_id: value.mbz_id }
+        NewArtist { name: AsRef::<str>::as_ref(&value.name).into(), mbz_id: value.mbz_id }
     }
 }
 

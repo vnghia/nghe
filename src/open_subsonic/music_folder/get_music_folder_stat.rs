@@ -104,7 +104,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_folder_stat_empty() {
-        let infra = Infra::new().await.add_user(None).await.add_folder(false).await;
+        let infra = Infra::new().await.add_user(None).await.add_folder(0, false).await;
         let stat = get_music_folder_stat(infra.pool(), infra.music_folder_id(0)).await.unwrap();
         assert_eq!(
             MusicFolderStatDb {
@@ -121,7 +121,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_folder_stat_empty_with_user() {
-        let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
+        let infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
         let stat = get_music_folder_stat(infra.pool(), infra.music_folder_id(0)).await.unwrap();
         assert_eq!(
             MusicFolderStatDb {
@@ -144,7 +144,7 @@ mod tests {
 
         let mut thread_rng = rand::thread_rng();
 
-        let mut infra = Infra::new().await.add_user(None).await.add_folder(true).await;
+        let mut infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
         infra
             .add_songs(
                 0,

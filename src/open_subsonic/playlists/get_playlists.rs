@@ -52,14 +52,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_empty_playlists() {
-        let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
+        let infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
         let playlists = get_playlists(infra.pool(), infra.user_id(0)).await.unwrap();
         assert!(playlists.is_empty());
     }
 
     #[tokio::test]
     async fn test_get_playlists_empty_song() {
-        let infra = Infra::new().await.add_user(None).await.add_folder(true).await;
+        let infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
 
         create_playlist(
             infra.pool(),
@@ -77,7 +77,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_playlists() {
         let mut infra =
-            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(true).await;
+            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(0, true).await;
         infra.add_n_song(0, 10).await.scan(.., None).await;
         let song_fs_ids = infra.song_ids(..).await;
 

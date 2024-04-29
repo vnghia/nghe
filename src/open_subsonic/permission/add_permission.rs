@@ -95,7 +95,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_add_permission() {
-        let infra = Infra::new().await.add_user_allow(None, false).await.add_folder(false).await;
+        let infra = Infra::new().await.add_user_allow(None, false).await.add_folder(0, false).await;
 
         let count = user_music_folder_permissions::table
             .count()
@@ -121,9 +121,9 @@ mod tests {
             .await
             .add_user_allow(None, false)
             .await
-            .add_folder(false)
+            .add_folder(0, false)
             .await
-            .add_folder(false)
+            .add_folder(0, false)
             .await;
 
         let count = user_music_folder_permissions::table
@@ -150,7 +150,7 @@ mod tests {
             .await
             .add_user_allow(None, false)
             .await
-            .add_folder(false)
+            .add_folder(0, false)
             .await;
 
         let count = user_music_folder_permissions::table
