@@ -43,7 +43,9 @@ pub struct Config {
     pub scan: ScanConfig,
     pub transcoding: TranscodingConfig,
     pub art: ArtConfig,
+    #[derivative(Debug = "ignore")]
     pub lastfm: LastfmConfig,
+    #[derivative(Debug = "ignore")]
     pub spotify: SpotifyConfig,
 }
 

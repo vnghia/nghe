@@ -46,8 +46,12 @@ fn app(database: Database, config: Config) -> Router {
     let serve_frontend = ServeDir::new(&config.server.frontend_dir)
         .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
 
-    let lastfm_client = config.lastfm.key.map(lastfm_client::Client::new);
+    let lastfm_client = config.lastfm.key.map(|key| {
+        tracing::info!("lastfm integration enabled");
+        lastfm_client::Client::new(key)
+    });
     let spotify_client = config.spotify.id.map(|id| {
+        tracing::info!("spotify integration enabled");
         rspotify::ClientCredsSpotify::new(rspotify::Credentials {
             id,
             secret: config.spotify.secret,
