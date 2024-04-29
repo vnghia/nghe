@@ -27,7 +27,7 @@ itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.199", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
-serde_with = { version = "3.8.0", features = ["hex"] }
+serde_with = { version = "3.8.1", features = ["hex"] }
 strum = { version = "0.26.2", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }
