@@ -19,8 +19,7 @@ use super::song::{insert_song, update_song, upsert_song_artists, upsert_song_cov
 use super::ScanStat;
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
-use crate::utils::fs::files::scan_media_files;
-use crate::utils::fs::{FsTrait, LocalFs};
+use crate::utils::fs::{scan_local_media_files, FsTrait, LocalFs};
 use crate::utils::path::PathInfo;
 use crate::utils::song::{SongInformation, SongLyric};
 use crate::DatabasePool;
@@ -236,7 +235,7 @@ pub async fn run_scan(
     let scan_parallel = scan_config.parallel;
     let scan_media_files_task = tokio::task::spawn_blocking(move || {
         let _enter = span.enter();
-        scan_media_files(music_folder_path, tx, scan_parallel)
+        scan_local_media_files(music_folder_path, tx, scan_parallel)
     });
 
     let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.pool_size);
