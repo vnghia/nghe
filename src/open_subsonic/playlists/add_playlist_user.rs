@@ -50,7 +50,7 @@ mod tests {
     #[tokio::test]
     async fn test_add_playlist_user() {
         let infra =
-            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(true).await;
+            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(0, true).await;
         let playlist_id = create_playlist(
             infra.pool(),
             infra.user_id(0),
@@ -87,7 +87,7 @@ mod tests {
             .await
             .add_user(None)
             .await
-            .add_folder(true)
+            .add_folder(0, true)
             .await;
         let playlist_id = create_playlist(
             infra.pool(),

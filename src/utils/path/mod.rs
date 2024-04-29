@@ -1,5 +1,3 @@
-mod common;
-mod local;
+mod info;
 
-pub use common::*;
-pub use local::LocalPath;
+pub use info::{PathInfo, PathMetadata};

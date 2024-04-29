@@ -7,6 +7,6 @@ pub mod picture;
 pub mod random;
 mod user;
 
-pub use fs::TemporaryFsRoot;
+pub use fs::{SongFsInformation, TemporaryFsTrait, TemporaryLocalFs};
 pub use infra::Infra;
 pub use user::User;

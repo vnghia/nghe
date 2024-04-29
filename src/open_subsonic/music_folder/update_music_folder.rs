@@ -40,14 +40,13 @@ pub async fn update_music_folder_handler(
 mod tests {
     use super::super::add_music_folder::add_music_folder;
     use super::*;
-    use crate::utils::path::LocalPath;
     use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_update_music_folder() {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await;
 
-        let path = infra.fs.mkdir::<LocalPath>("folder/").await;
+        let path = infra.fs.mkdir(0, "folder/").await;
         let id = add_music_folder(infra.pool(), "folder", &path.to_string(), true).await.unwrap();
         update_music_folder(infra.pool(), id, &Some("new-folder".into()), &None).await.unwrap();
 

@@ -6,6 +6,7 @@ use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryD
 use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use futures_buffered::FuturesUnorderedBounded;
+use lofty::file::FileType;
 use nghe_types::scan::start_scan::ScanMode;
 use tracing::{instrument, Instrument};
 use uuid::Uuid;
@@ -19,32 +20,45 @@ use super::ScanStat;
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
 use crate::utils::fs::files::scan_media_files;
-use crate::utils::path::{AbsolutePath, PathTrait};
+use crate::utils::fs::{FsTrait, LocalFs};
+use crate::utils::path::PathInfo;
 use crate::utils::song::{SongInformation, SongLyric};
 use crate::DatabasePool;
 
 #[instrument(
-    skip(pool, scan_mode, ignored_prefixes, parsing_config, art_config),
+    skip(
+        pool,
+        fs,
+        scan_mode,
+        music_folder_id,
+        music_folder_path,
+        ignored_prefixes,
+        parsing_config,
+        art_config
+    ),
     ret(level = "trace"),
     err
 )]
-pub async fn process_path<P: PathTrait + std::fmt::Debug>(
+pub async fn process_path<Fs: FsTrait>(
     pool: &DatabasePool,
+    fs: &Fs,
     scan_started_at: time::OffsetDateTime,
     scan_mode: ScanMode,
     music_folder_id: Uuid,
-    song_path: AbsolutePath<P>,
+    music_folder_path: &str,
+    song_path_info: PathInfo,
     ignored_prefixes: &[String],
     parsing_config: &ParsingConfig,
     art_config: &ArtConfig,
 ) -> Result<bool> {
-    let song_relative_path = song_path.relative_path.as_str();
+    let song_path = &song_path_info.path;
+    let song_relative_path = fs.strip_prefix(song_path, music_folder_path);
 
-    let song_data = song_path.read().await?;
+    let song_data = fs.read(song_path).await?;
     let song_file_hash = xxh3_64(&song_data);
 
     let song_file_hash = song_file_hash as _;
-    let song_file_size = song_path.metadata.size as _;
+    let song_file_size = song_path_info.metadata.size as _;
 
     let song_id =
         if let Some((song_id_db, song_file_hash_db, song_file_size_db, song_relative_path_db)) =
@@ -74,7 +88,9 @@ pub async fn process_path<P: PathTrait + std::fmt::Debug>(
                     if scan_mode > ScanMode::Full {
                         Some(song_id_db)
                     } else {
-                        if let Ok(lrc_content) = song_path.read_lrc().await {
+                        if let Ok(lrc_content) =
+                            fs.read_to_string(&fs.with_ext(song_path, "lrc")).await
+                        {
                             SongLyric::from_str(&lrc_content, true)?
                                 .upsert_lyric(pool, song_id_db)
                                 .await?;
@@ -98,8 +114,8 @@ pub async fn process_path<P: PathTrait + std::fmt::Debug>(
 
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
-        song_path.file_type(),
-        song_path.read_lrc().await.ok().as_deref(),
+        FileType::from_ext(fs.ext(song_path)).expect("can not determine file type from extension"),
+        fs.read_to_string(&fs.with_ext(song_path, "lrc")).await.ok().as_deref(),
         parsing_config,
     ) else {
         return Ok(false);
@@ -215,11 +231,12 @@ pub async fn run_scan(
     let mut scan_error_count: usize = 0;
 
     let span = tracing::Span::current();
+    let music_folder_path = music_folder.path.clone();
     let (tx, rx) = flume::bounded(scan_config.channel_size);
     let scan_parallel = scan_config.parallel;
     let scan_media_files_task = tokio::task::spawn_blocking(move || {
         let _enter = span.enter();
-        scan_media_files(music_folder.path, tx, scan_parallel)
+        scan_media_files(music_folder_path, tx, scan_parallel)
     });
 
     let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.pool_size);
@@ -241,6 +258,7 @@ pub async fn run_scan(
         scanned_song_count += 1;
 
         let pool = pool.clone();
+        let music_folder_path = music_folder.path.clone();
         let ignored_prefixes = ignored_prefixes.to_vec();
         let parsing_config = parsing_config.clone();
         let art_config = art_config.clone();
@@ -250,9 +268,11 @@ pub async fn run_scan(
             async move {
                 process_path(
                     &pool,
+                    &LocalFs,
                     scan_started_at,
                     scan_mode,
                     music_folder_id,
+                    &music_folder_path,
                     song_path,
                     &ignored_prefixes,
                     &parsing_config,
