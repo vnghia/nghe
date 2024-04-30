@@ -1,5 +1,6 @@
 use std::io::{Cursor, Write};
 
+use anyhow::Result;
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use futures::{stream, StreamExt};
@@ -7,6 +8,7 @@ use lofty::config::WriteOptions;
 use lofty::file::FileType;
 use lofty::tag::{TagExt, TagType};
 use rand::prelude::SliceRandom;
+use typed_path::Utf8Path;
 use xxhash_rust::xxh3::xxh3_64;
 
 use super::TemporaryLocalFs;
@@ -28,10 +30,39 @@ pub struct SongFsInformation {
     pub fs: usize,
 }
 
+pub fn join<Fs: FsTrait>(base: &str, path: &str) -> String {
+    Utf8Path::<Fs::E>::new(base).join(path).to_string()
+}
+
+pub fn strip_prefix<'a, Fs: FsTrait>(path: &'a str, base: &str) -> &'a str
+where
+    Fs::E: 'a,
+{
+    Utf8Path::<Fs::E>::new(path).strip_prefix(base).unwrap().as_str()
+}
+
+pub fn extension<'a, Fs: FsTrait>(path: &'a str) -> &'a str
+where
+    Fs::E: 'a,
+{
+    Utf8Path::<Fs::E>::new(path).extension().unwrap()
+}
+
+pub fn with_extension<Fs: FsTrait>(path: &str, extension: &str) -> String {
+    Utf8Path::<Fs::E>::new(path).with_extension(extension).into_string()
+}
+
 #[async_trait::async_trait]
-pub trait TemporaryFsTrait: FsTrait {
+pub trait TemporaryFsTrait {
     fn prefix(&self) -> &str;
+
     fn join(&self, base: &str, path: &str) -> String;
+    fn strip_prefix<'a>(&self, path: &'a str, base: &str) -> &'a str;
+    fn extension<'a>(&self, path: &'a str) -> &'a str;
+    fn with_extension(&self, path: &str, ext: &str) -> String;
+
+    async fn read(&self, path: &str) -> Result<Vec<u8>>;
+    async fn read_to_string(&self, path: &str) -> Result<String>;
 
     async fn mkdir(&self, path: &str);
     async fn write(&self, path: &str, data: &[u8]);
@@ -78,14 +109,14 @@ impl TemporaryFs {
         fs.strip_prefix(&self.absolute_path(fs, path), &self.absolute_path(fs, base)).into()
     }
 
-    pub fn ext<'a>(&self, fs: usize, path: &'a str) -> &'a str {
+    pub fn extension<'a>(&self, fs: usize, path: &'a str) -> &'a str {
         let fs = self.fs[fs].as_ref();
-        fs.ext(path)
+        fs.extension(path)
     }
 
-    pub fn with_ext(&self, fs: usize, path: &str, ext: &str) -> String {
+    pub fn with_extension(&self, fs: usize, path: &str, ext: &str) -> String {
         let fs = self.fs[fs].as_ref();
-        fs.with_ext(&self.absolute_path(fs, path), ext)
+        fs.with_extension(&self.absolute_path(fs, path), ext)
     }
 
     pub fn join(&self, fs: usize, base: &str, path: &str) -> String {
@@ -150,7 +181,7 @@ impl TemporaryFs {
         let fs = self.fs[fs].as_ref();
 
         let path = fs.join(&self.absolute_path(fs, music_folder_path), relative_path);
-        let file_type = FileType::from_ext(fs.ext(&path)).unwrap();
+        let file_type = FileType::from_ext(fs.extension(&path)).unwrap();
         let mut tag_file =
             Cursor::new(tokio::fs::read(get_media_asset_path(&file_type)).await.unwrap());
         let tag_type = file_type.primary_tag_type();
@@ -180,13 +211,13 @@ impl TemporaryFs {
         let file_size = file_data.len() as _;
 
         let lrc = if !mklrc {
-            fs.read_to_string(&fs.with_ext(&path, "lrc"))
+            fs.read_to_string(&fs.with_extension(&path, "lrc"))
                 .await
                 .map(|s| SongLyric::from_str(&s, true).unwrap())
                 .ok()
         } else if Faker.fake() {
             let lrc = SongLyric { external: true, ..Faker.fake() };
-            fs.write(&fs.with_ext(&path, "lrc"), lrc.to_string().as_bytes()).await;
+            fs.write(&fs.with_extension(&path, "lrc"), lrc.to_string().as_bytes()).await;
             Some(lrc)
         } else {
             None
@@ -232,7 +263,7 @@ impl TemporaryFs {
         (0..n_path)
             .map(|_| {
                 let ext = exts.choose(&mut rand::thread_rng()).unwrap();
-                fs.with_ext(
+                fs.with_extension(
                     &fake::vec![String; 1..(max_depth + 1)]
                         .into_iter()
                         .reduce(|base, path| fs.join(&base, &path))

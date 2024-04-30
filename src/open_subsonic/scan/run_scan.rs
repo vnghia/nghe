@@ -22,7 +22,7 @@ use crate::models::*;
 use crate::utils::fs::{scan_local_media_files, FsTrait, LocalFs};
 use crate::utils::path::PathInfo;
 use crate::utils::song::{SongInformation, SongLyric};
-use crate::DatabasePool;
+use crate::{DatabasePool, OSError};
 
 #[instrument(
     skip(
@@ -45,13 +45,13 @@ pub async fn process_path<Fs: FsTrait>(
     scan_mode: ScanMode,
     music_folder_id: Uuid,
     music_folder_path: &str,
-    song_path_info: PathInfo,
+    song_path_info: PathInfo<Fs>,
     ignored_prefixes: &[String],
     parsing_config: &ParsingConfig,
     art_config: &ArtConfig,
 ) -> Result<bool> {
     let song_path = &song_path_info.path;
-    let song_relative_path = fs.strip_prefix(song_path, music_folder_path);
+    let song_relative_path = song_path.strip_prefix(music_folder_path)?;
 
     let song_data = fs.read(song_path).await?;
     let song_file_hash = xxh3_64(&song_data);
@@ -63,7 +63,7 @@ pub async fn process_path<Fs: FsTrait>(
         if let Some((song_id_db, song_file_hash_db, song_file_size_db, song_relative_path_db)) =
             diesel::update(songs::table)
                 .filter(songs::music_folder_id.eq(music_folder_id))
-                .filter(songs::relative_path.eq(song_relative_path).or(
+                .filter(songs::relative_path.eq(song_relative_path.as_str()).or(
                     songs::file_hash.eq(song_file_hash).and(songs::file_size.eq(song_file_size)),
                 ))
                 .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
@@ -81,14 +81,14 @@ pub async fn process_path<Fs: FsTrait>(
                     tracing::info!(old_path = ?song_relative_path_db, "duplicated song");
                     diesel::update(songs::table)
                         .filter(songs::id.eq(song_id_db))
-                        .set(songs::relative_path.eq(song_relative_path))
+                        .set(songs::relative_path.eq(song_relative_path.as_str()))
                         .execute(&mut pool.get().await?)
                         .await?;
                     if scan_mode > ScanMode::Full {
                         Some(song_id_db)
                     } else {
                         if let Ok(lrc_content) =
-                            fs.read_to_string(&fs.with_ext(song_path, "lrc")).await
+                            fs.read_to_string(&song_path.with_extension("lrc")).await
                         {
                             SongLyric::from_str(&lrc_content, true)?
                                 .upsert_lyric(pool, song_id_db)
@@ -113,8 +113,13 @@ pub async fn process_path<Fs: FsTrait>(
 
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
-        FileType::from_ext(fs.ext(song_path)).expect("can not determine file type from extension"),
-        fs.read_to_string(&fs.with_ext(song_path, "lrc")).await.ok().as_deref(),
+        FileType::from_ext(song_path.extension().ok_or_else(|| {
+            OSError::InvalidParameter("song path does not have an extension".into())
+        })?)
+        .ok_or_else(|| {
+            OSError::InvalidParameter("can not determine file type from extension".into())
+        })?,
+        fs.read_to_string(song_path.with_extension("lrc")).await.ok().as_deref(),
         parsing_config,
     ) else {
         return Ok(false);

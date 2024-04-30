@@ -2,11 +2,10 @@ use anyhow::Result;
 use concat_string::concat_string;
 use nghe_types::constant::SERVER_NAME;
 use tempfile::{Builder, TempDir};
-use typed_path::{Utf8NativeEncoding, Utf8Path};
+use typed_path::Utf8Path;
 
-use super::TemporaryFsTrait;
+use super::{extension, join, strip_prefix, with_extension, TemporaryFsTrait};
 use crate::utils::fs::{FsTrait, LocalFs};
-use crate::utils::path::PathMetadata;
 
 pub struct TemporaryLocalFs {
     pub root: TempDir,
@@ -23,17 +22,25 @@ impl TemporaryLocalFs {
 }
 
 #[async_trait::async_trait]
-impl FsTrait for TemporaryLocalFs {
+impl TemporaryFsTrait for TemporaryLocalFs {
+    fn prefix(&self) -> &str {
+        self.root.path().to_str().unwrap()
+    }
+
+    fn join(&self, base: &str, path: &str) -> String {
+        join::<LocalFs>(base, path)
+    }
+
     fn strip_prefix<'a>(&self, path: &'a str, base: &str) -> &'a str {
-        self.fs.strip_prefix(path, base)
+        strip_prefix::<LocalFs>(path, base)
     }
 
-    fn ext<'a>(&self, path: &'a str) -> &'a str {
-        self.fs.ext(path)
+    fn extension<'a>(&self, path: &'a str) -> &'a str {
+        extension::<LocalFs>(path)
     }
 
-    fn with_ext(&self, path: &str, ext: &str) -> String {
-        self.fs.with_ext(path, ext)
+    fn with_extension(&self, path: &str, extension: &str) -> String {
+        with_extension::<LocalFs>(path, extension)
     }
 
     async fn read(&self, path: &str) -> Result<Vec<u8>> {
@@ -44,27 +51,12 @@ impl FsTrait for TemporaryLocalFs {
         self.fs.read_to_string(path).await
     }
 
-    async fn metadata(&self, path: &str) -> Result<PathMetadata> {
-        self.fs.metadata(path).await
-    }
-}
-
-#[async_trait::async_trait]
-impl TemporaryFsTrait for TemporaryLocalFs {
-    fn join(&self, base: &str, path: &str) -> String {
-        Utf8Path::<Utf8NativeEncoding>::new(base).join(path).into_string()
-    }
-
-    fn prefix(&self) -> &str {
-        self.root.path().to_str().unwrap()
-    }
-
     async fn mkdir(&self, path: &str) {
         tokio::fs::create_dir_all(path).await.unwrap();
     }
 
     async fn write(&self, path: &str, data: &[u8]) {
-        self.mkdir(Utf8Path::<Utf8NativeEncoding>::new(path).parent().unwrap().as_str()).await;
+        self.mkdir(Utf8Path::<<LocalFs as FsTrait>::E>::new(path).parent().unwrap().as_str()).await;
         tokio::fs::write(path, data).await.unwrap();
     }
 

@@ -231,7 +231,7 @@ impl Infra {
                     let path = fs.song_absolute_path(&s);
                     fs.remove(s.fs, &path).await;
                     if s.lrc.is_some() {
-                        fs.remove(s.fs, &fs.with_ext(s.fs, &path, "lrc")).await;
+                        fs.remove(s.fs, &fs.with_extension(s.fs, &path, "lrc")).await;
                     }
                     None
                 } else {
@@ -319,10 +319,10 @@ impl Infra {
 
         let src_tag = self.song_fs_infos_vec[music_folder_index][src_index].clone();
         let src_path = self.fs.song_absolute_path(&src_tag);
-        let dst_path = self.fs.with_ext(
+        let dst_path = self.fs.with_extension(
             fs_idx,
             &self.fs.join(fs_idx, music_folder_path, dst_relative_path),
-            self.fs.ext(fs_idx, &src_path),
+            self.fs.extension(fs_idx, &src_path),
         );
 
         self.fs.write(fs_idx, &dst_path, self.fs.read_song(&src_tag).await).await;
@@ -330,9 +330,9 @@ impl Infra {
             self.fs
                 .write(
                     fs_idx,
-                    &self.fs.with_ext(fs_idx, &dst_path, "lrc"),
+                    &self.fs.with_extension(fs_idx, &dst_path, "lrc"),
                     self.fs
-                        .read_to_string(fs_idx, &self.fs.with_ext(fs_idx, &src_path, "lrc"))
+                        .read_to_string(fs_idx, &self.fs.with_extension(fs_idx, &src_path, "lrc"))
                         .await,
                 )
                 .await;

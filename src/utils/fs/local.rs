@@ -13,6 +13,7 @@ use super::FsTrait;
 use crate::utils::path::{PathInfo, PathMetadata};
 use crate::utils::song::file_type::{to_extension, to_glob_pattern};
 
+#[derive(Debug, Clone)]
 pub struct LocalFs;
 
 impl From<Metadata> for PathMetadata {
@@ -21,39 +22,22 @@ impl From<Metadata> for PathMetadata {
     }
 }
 
-#[async_trait::async_trait]
 impl FsTrait for LocalFs {
-    fn strip_prefix<'a>(&self, path: &'a str, base: &str) -> &'a str {
-        Utf8Path::<Utf8NativeEncoding>::new(path)
-            .strip_prefix(base)
-            .expect("path should be a children of base")
-            .as_str()
+    type E = Utf8NativeEncoding;
+
+    async fn read<P: AsRef<Utf8Path<Self::E>>>(&self, path: P) -> Result<Vec<u8>> {
+        tokio::fs::read(path.as_ref().as_str()).await.map_err(anyhow::Error::from)
     }
 
-    fn ext<'a>(&self, path: &'a str) -> &'a str {
-        Utf8Path::<Utf8NativeEncoding>::new(path)
-            .extension()
-            .expect("path should have an extension")
-    }
-
-    fn with_ext(&self, path: &str, ext: &str) -> String {
-        Utf8Path::<Utf8NativeEncoding>::new(path).with_extension(ext).into_string()
-    }
-
-    async fn read(&self, path: &str) -> Result<Vec<u8>> {
-        tokio::fs::read(path).await.map_err(anyhow::Error::from)
-    }
-
-    async fn read_to_string(&self, path: &str) -> Result<String> {
-        tokio::fs::read_to_string(path).await.map_err(anyhow::Error::from)
-    }
-
-    async fn metadata(&self, path: &str) -> Result<PathMetadata> {
-        tokio::fs::metadata(path).await.map(PathMetadata::from).map_err(anyhow::Error::from)
+    async fn read_to_string<P: AsRef<Utf8Path<Self::E>>>(&self, path: P) -> Result<String> {
+        tokio::fs::read_to_string(path.as_ref().as_str()).await.map_err(anyhow::Error::from)
     }
 }
 
-fn process_dir_entry(tx: &Sender<PathInfo>, entry: Result<DirEntry, Error>) -> ignore::WalkState {
+fn process_dir_entry(
+    tx: &Sender<PathInfo<LocalFs>>,
+    entry: Result<DirEntry, Error>,
+) -> ignore::WalkState {
     match try {
         let entry = entry?;
         let metadata = entry.metadata()?;
@@ -79,7 +63,7 @@ fn process_dir_entry(tx: &Sender<PathInfo>, entry: Result<DirEntry, Error>) -> i
 #[instrument(skip(tx))]
 pub fn scan_local_media_files<P: AsRef<Path> + Clone + Send + std::fmt::Debug>(
     root: P,
-    tx: Sender<PathInfo>,
+    tx: Sender<PathInfo<LocalFs>>,
     scan_parallel: bool,
 ) {
     tracing::info!("start scanning media files");
@@ -126,7 +110,7 @@ mod tests {
     use crate::utils::song::file_type::to_extensions;
     use crate::utils::test::Infra;
 
-    async fn wrap_scan_media_file(infra: &Infra, scan_parallel: bool) -> Vec<PathInfo> {
+    async fn wrap_scan_media_file(infra: &Infra, scan_parallel: bool) -> Vec<PathInfo<LocalFs>> {
         let root = infra.fs.prefix(0).to_string();
         let (tx, rx) = flume::bounded(100);
         let scan_thread =
@@ -153,7 +137,8 @@ mod tests {
         let scanned_results = wrap_scan_media_file(&infra, false).await;
         let scanned_lens =
             scanned_results.iter().cloned().map(|result| result.metadata.size).collect_vec();
-        let scanned_paths = scanned_results.iter().cloned().map(|result| result.path).collect_vec();
+        let scanned_paths =
+            scanned_results.iter().cloned().map(|result| result.path.to_string()).collect_vec();
 
         assert_eq!(
             media_paths
@@ -197,7 +182,7 @@ mod tests {
         let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
             .into_iter()
-            .map(|result| result.path)
+            .map(|result| result.path.to_string())
             .collect_vec();
 
         assert_eq!(
@@ -226,7 +211,7 @@ mod tests {
         let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
             .into_iter()
-            .map(|result| result.path)
+            .map(|result| result.path.to_string())
             .collect_vec();
 
         assert_eq!(
@@ -248,7 +233,8 @@ mod tests {
         let scanned_results = wrap_scan_media_file(&infra, true).await;
         let scanned_lens =
             scanned_results.iter().cloned().map(|result| result.metadata.size).collect_vec();
-        let scanned_paths = scanned_results.iter().cloned().map(|result| result.path).collect_vec();
+        let scanned_paths =
+            scanned_results.iter().cloned().map(|result| result.path.to_string()).collect_vec();
 
         assert_eq!(
             media_paths
