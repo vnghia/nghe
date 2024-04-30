@@ -9,7 +9,6 @@ use diesel::{
     ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
 use isolang::Language;
 use itertools::Itertools;
@@ -48,7 +47,7 @@ pub struct Infra {
 impl Infra {
     pub async fn new() -> Self {
         let db = TemporaryDb::new_from_env().await;
-        let fs = TemporaryFs::default();
+        let fs = TemporaryFs::new().await;
 
         #[cfg(lastfm_env)]
         let lastfm_client = Some(lastfm_client::Client::new_from_env());
@@ -85,9 +84,9 @@ impl Infra {
     }
 
     pub async fn add_folder(mut self, fs: usize, allow: bool) -> Self {
-        let path = self.fs.mkdir(fs, &Faker.fake::<String>()).await;
+        let path = self.fs.mkdir(fs, &Self::fake_fs_name()).await;
 
-        let name = Faker.fake::<String>();
+        let name = Self::fake_fs_name();
         let path = path.to_string();
         let id = add_music_folder(self.pool(), &name, &path, allow).await.unwrap();
 
@@ -359,6 +358,10 @@ impl Infra {
 
     pub fn state(&self) -> State<Database> {
         self.db.state()
+    }
+
+    pub fn fake_fs_name() -> String {
+        TemporaryFs::fake_fs_name()
     }
 
     pub fn user_id(&self, index: usize) -> Uuid {

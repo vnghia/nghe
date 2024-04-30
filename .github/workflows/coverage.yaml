@@ -10,13 +10,18 @@ env:
   CARGO_TERM_COLOR: always
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   RUST_TOOLCHAIN: nightly-2024-04-21
+  DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
+  AWS_REGION: us-east-1
+  AWS_ENDPOINT_URL: http://localhost:9000
+  AWS_USE_PATH_STYLE_ENDPOINT: true
+  MINIO_ROOT_USER: minioadmin
+  MINIO_ROOT_PASSWORD: minioadmin
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
-
-    env:
-      DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
 
     services:
       postgres:
@@ -31,6 +36,13 @@ jobs:
           --name postgres
         ports:
           - 5432:5432
+      s3:
+        image: bitnami/minio:2024.4.28
+        env:
+          MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
+        ports:
+          - 9000:9000
 
     steps:
       - uses: actions/checkout@v4

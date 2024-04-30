@@ -7,11 +7,12 @@ use futures::{stream, StreamExt};
 use lofty::config::WriteOptions;
 use lofty::file::FileType;
 use lofty::tag::{TagExt, TagType};
+use rand::distributions::{Alphanumeric, DistString};
 use rand::prelude::SliceRandom;
 use typed_path::Utf8Path;
 use xxhash_rust::xxh3::xxh3_64;
 
-use super::TemporaryLocalFs;
+use super::{TemporaryLocalFs, TemporaryS3Fs};
 use crate::config::{ArtConfig, ParsingConfig, TranscodingConfig};
 use crate::utils::fs::FsTrait;
 use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
@@ -70,7 +71,7 @@ pub trait TemporaryFsTrait {
 }
 
 pub struct TemporaryFs {
-    fs: [Box<dyn TemporaryFsTrait>; 1],
+    fs: [Box<dyn TemporaryFsTrait>; 2],
 
     pub write_option: WriteOptions,
     pub parsing_config: ParsingConfig,
@@ -79,7 +80,7 @@ pub struct TemporaryFs {
 }
 
 impl TemporaryFs {
-    pub fn new() -> Self {
+    pub async fn new() -> Self {
         let local = TemporaryLocalFs::default();
 
         let write_option = WriteOptions::new().remove_others(true);
@@ -93,11 +94,21 @@ impl TemporaryFs {
             song_dir: Some(local.root.path().canonicalize().unwrap().join("art-song-path")),
         };
 
-        Self { fs: [Box::new(local)], write_option, parsing_config, transcoding_config, art_config }
+        Self {
+            fs: [Box::new(local), Box::new(TemporaryS3Fs::new().await)],
+            write_option,
+            parsing_config,
+            transcoding_config,
+            art_config,
+        }
     }
 
     fn absolute_path(&self, fs: &dyn TemporaryFsTrait, path: &str) -> String {
         if path.starts_with(fs.prefix()) { path.to_string() } else { fs.join(fs.prefix(), path) }
+    }
+
+    pub fn fake_fs_name() -> String {
+        Alphanumeric.sample_string(&mut rand::thread_rng(), (5..10).fake()).to_ascii_lowercase()
     }
 
     pub fn prefix(&self, fs: usize) -> &str {
@@ -292,15 +303,9 @@ impl TemporaryFs {
     }
 }
 
-impl Default for TemporaryFs {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[tokio::test]
 async fn test_roundtrip_media_file() {
-    let fs = TemporaryFs::default();
+    let fs = TemporaryFs::new().await;
 
     for (fs_idx, fs_impl) in fs.fs.iter().enumerate() {
         for file_type in SONG_FILE_TYPES {
@@ -308,7 +313,7 @@ async fn test_roundtrip_media_file() {
             let song_fs_info = fs
                 .mksong(
                     fs_idx,
-                    &fs.mkdir(fs_idx, &Faker.fake::<String>()).await,
+                    &fs.mkdir(fs_idx, &TemporaryFs::fake_fs_name()).await,
                     &concat_string!("test.", to_extension(&file_type)),
                     song_tag.clone(),
                     false,
@@ -335,7 +340,7 @@ async fn test_roundtrip_media_file() {
 
 #[tokio::test]
 async fn test_roundtrip_media_file_none_value() {
-    let fs = TemporaryFs::default();
+    let fs = TemporaryFs::new().await;
 
     for (fs_idx, fs_impl) in fs.fs.iter().enumerate() {
         for file_type in SONG_FILE_TYPES {
@@ -350,7 +355,7 @@ async fn test_roundtrip_media_file_none_value() {
             let song_fs_info = fs
                 .mksong(
                     fs_idx,
-                    &fs.mkdir(fs_idx, &Faker.fake::<String>()).await,
+                    &fs.mkdir(fs_idx, &TemporaryFs::fake_fs_name()).await,
                     &concat_string!("test.", to_extension(&file_type)),
                     song_tag.clone(),
                     false,

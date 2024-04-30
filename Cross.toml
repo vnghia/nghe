@@ -1,5 +1,12 @@
 [build.env]
-passthrough = ["DATABASE_URL"]
+passthrough = [
+    "DATABASE_URL",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_REGION",
+    "AWS_ENDPOINT_URL",
+    "AWS_USE_PATH_STYLE_ENDPOINT",
+]
 
 [build]
 pre-build = "ci/cross-pre-build.sh"
