@@ -404,7 +404,7 @@ jobs:
       - name: Install and setup minio
         run: |
           curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
-          $PWD\minio.exe server data
+          "$PWD\minio" server data
 
       - name: Install cargo-vcpkg
         uses: taiki-e/cache-cargo-install-action@v2
