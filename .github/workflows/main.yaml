@@ -354,6 +354,7 @@ jobs:
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.10/freebsd-${{ matrix.version }}-x86-64.qcow2
           run: |
+            sudo pkg install -y ca_root_nss
             sudo chown -R $(id -u):$(id -g) /root/
             export PATH="/root/.cargo/bin/:$PATH"
 
