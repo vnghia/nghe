@@ -261,173 +261,180 @@ jobs:
   #         push: true
   #         tags: ${{ steps.meta-musl.outputs.tags }}
 
-  # build-freebsd:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       version:
-  #         - "14.0"
-  #         - "13.2"
+  build-freebsd:
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "14.0"
+          - "13.2"
 
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     TARGET: x86_64-unknown-freebsd
+    runs-on: ubuntu-latest
+    env:
+      TARGET: x86_64-unknown-freebsd
 
-  #   services:
-  #     postgres:
-  #       image: postgres:16
-  #       env:
-  #         POSTGRES_PASSWORD: postgres
-  #         POSTGRES_HOST_AUTH_METHOD: md5
-  #         POSTGRES_INITDB_ARGS: --auth-host=md5
-  #       options: >-
-  #         --health-cmd pg_isready
-  #         --health-interval 10s
-  #         --health-timeout 5s
-  #         --health-retries 5
-  #         --name postgres
-  #       ports:
-  #         - 5432:5432
-  #     s3:
-  #       image: bitnami/minio:2024.4.28
-  #       env:
-  #         MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
-  #         MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
-  #       ports:
-  #         - 9000:9000
-
-  #   steps:
-  #     - name: Remove unused packages
-  #       run: |
-  #         sudo rm -rf /usr/share/dotnet
-  #         sudo rm -rf /usr/local/lib/android
-  #         sudo rm -rf /opt/ghc
-  #         sudo rm -rf /opt/hostedtoolcache
-  #         sudo rm -rf /usr/local/share/edge_driver
-  #         sudo rm -rf /usr/local/share/gecko_driver
-  #         sudo rm -rf /usr/local/share/chromium
-  #         sudo rm -rf /usr/local/share/chromedriver-linux64
-  #         sudo rm -rf /usr/local/share/vcpkg
-  #         sudo rm -rf /usr/local/lib/python*
-  #         sudo rm -rf /usr/local/lib/node_modules
-  #         sudo rm -rf /usr/local/julia*
-  #         sudo docker image prune --all --force
-
-  #     - uses: actions/checkout@v4
-  #     - name: Extract build information
-  #       id: build
-  #       run: |
-  #         echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-  #         echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
-  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
-  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-  #     - uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: ${{ env.RUST_TOOLCHAIN }}
-  #     - uses: Swatinem/rust-cache@v2
-  #       with:
-  #         key: ${{ steps.build.outputs.target }}-${{ matrix.version }}-${{ steps.build.outputs.profile }}
-  #         save-if: ${{ github.ref == 'refs/heads/main' }}
-  #     - name: Increase postgres max connection
-  #       run: |
-  #         docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-  #         docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-  #         docker restart postgres
-
-  #     - name: Build and test
-  #       uses: cross-platform-actions/action@v0.24.0
-  #       env:
-  #         DATABASE_URL: "postgres://postgres:postgres@10.0.2.2:5432/postgres"
-  #         AWS_ENDPOINT_URL: "http://10.0.2.2:9000"
-  #       with:
-  #         operating_system: freebsd
-  #         version: ${{ matrix.version }}
-  #         environment_variables: "DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
-  #         shell: "bash"
-  #         cpu_count: 4
-  #         image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.9/freebsd-${{ matrix.version }}-x86-64.qcow2
-  #         run: |
-  #           sudo chown -R $(id -u):$(id -g) /root/
-  #           export PATH="/root/.cargo/bin/:$PATH"
-
-  #           cargo install cargo-vcpkg
-  #           cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
-
-  #           cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
-  #           cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
-  #     - name: Upload build artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
-  #         path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe
-  #         retention-days: 1
-
-  build-windows:
-    runs-on: windows-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: md5
+          POSTGRES_INITDB_ARGS: --auth-host=md5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name postgres
+        ports:
+          - 5432:5432
+      s3:
+        image: bitnami/minio:2024.4.28
+        env:
+          MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
+        ports:
+          - 9000:9000
 
     steps:
+      - name: Remove unused packages
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/share/edge_driver
+          sudo rm -rf /usr/local/share/gecko_driver
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/local/share/chromedriver-linux64
+          sudo rm -rf /usr/local/share/vcpkg
+          sudo rm -rf /usr/local/lib/python*
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/lib/google-cloud-sdk
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /usr/lib/mono
+          sudo rm -rf /usr/lib/R
+          sudo rm -rf /usr/lib/postgresql
+          sudo rm -rf /usr/lib/heroku
+          sudo rm -rf /usr/lib/gcc
+          sudo docker image prune --all --force
+
       - uses: actions/checkout@v4
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
       - name: Extract build information
         id: build
         run: |
-          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
-          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
+          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
+          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
         with:
-          key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
+          key: ${{ steps.build.outputs.target }}-${{ matrix.version }}-${{ steps.build.outputs.profile }}
           save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - name: Install and setup postgres
+      - name: Increase postgres max connection
         run: |
-          curl https://get.enterprisedb.com/postgresql/postgresql-16.2-1-windows-x64-binaries.zip --output postgresql.zip
-          7z x postgresql.zip
-          $env:PGDATA = "$PWD\pgsql\data"
-          $env:PGPASSWORD = "postgres"
-          echo $env:PGPASSWORD > pwfile
-          pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
-          pgsql\bin\pg_ctl start
-          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-          pgsql\bin\pg_ctl restart
-          echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
-          echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
-          echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
-      - name: Install and setup minio
-        run: |
-          curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
-          .\minio.exe server data &
-
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v2
-        with:
-          tool: cargo-vcpkg
-      - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+          docker restart postgres
 
       - name: Build and test
-        run: |
-          cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+        uses: cross-platform-actions/action@v0.24.0
         env:
-          LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
-          SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
-          SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
+          DATABASE_URL: "postgres://postgres:postgres@10.0.2.2:5432/postgres"
+          AWS_ENDPOINT_URL: "http://10.0.2.2:9000"
+        with:
+          operating_system: freebsd
+          version: ${{ matrix.version }}
+          environment_variables: "DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
+          shell: "bash"
+          cpu_count: 4
+          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.10/freebsd-${{ matrix.version }}-x86-64.qcow2
+          run: |
+            sudo chown -R $(id -u):$(id -g) /root/
+            export PATH="/root/.cargo/bin/:$PATH"
+
+            cargo install cargo-vcpkg
+            cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
+
+            cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
+            cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amd64-windows
-          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe.exe
+          name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
+          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
+
+  # build-windows:
+  #   runs-on: windows-latest
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Export GitHub Actions cache environment variables
+  #       uses: actions/github-script@v7
+  #       with:
+  #         script: |
+  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{ env.RUST_TOOLCHAIN }}
+  #     - name: Extract build information
+  #       id: build
+  #       run: |
+  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
+  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
+  #     - uses: Swatinem/rust-cache@v2
+  #       with:
+  #         key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
+  #         save-if: ${{ github.ref == 'refs/heads/main' }}
+
+  #     - name: Install and setup postgres
+  #       run: |
+  #         curl https://get.enterprisedb.com/postgresql/postgresql-16.2-1-windows-x64-binaries.zip --output postgresql.zip
+  #         7z x postgresql.zip
+  #         $env:PGDATA = "$PWD\pgsql\data"
+  #         $env:PGPASSWORD = "postgres"
+  #         echo $env:PGPASSWORD > pwfile
+  #         pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
+  #         pgsql\bin\pg_ctl start
+  #         pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+  #         pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
+  #         pgsql\bin\pg_ctl restart
+  #         echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
+  #         echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
+  #         echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
+  #     - name: Install and setup minio
+  #       run: |
+  #         curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
+  #         .\minio.exe server data &
+
+  #     - name: Install cargo-vcpkg
+  #       uses: taiki-e/cache-cargo-install-action@v2
+  #       with:
+  #         tool: cargo-vcpkg
+  #     - name: Build vcpkg dependencies
+  #       run: |
+  #         cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
+
+  #     - name: Build and test
+  #       run: |
+  #         cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
+  #         cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+  #       env:
+  #         LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
+  #         SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
+  #         SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
+  #     - name: Upload build artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: amd64-windows
+  #         path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe.exe
+  #         retention-days: 1
 
   # build-macos:
   #   strategy:
