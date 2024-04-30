@@ -707,7 +707,7 @@ mod tests {
         infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let ScanStat { scanned_song_count, deleted_song_count, .. } =
-            infra.copy_song(0, 0, &Faker.fake::<String>()).await.scan(.., None).await;
+            infra.copy_song(0, 0, &Infra::fake_fs_name()).await.scan(.., None).await;
         assert_eq!(scanned_song_count, 2);
         assert_eq!(deleted_song_count, 0);
 
@@ -720,7 +720,7 @@ mod tests {
         infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } = infra
-            .copy_song(0, 0, &Faker.fake::<String>())
+            .copy_song(0, 0, &Infra::fake_fs_name())
             .await
             .delete_song(0, 0)
             .await
@@ -769,7 +769,7 @@ mod tests {
         infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Full)).await;
 
         let ScanStat { upserted_song_count, deleted_song_count, .. } = infra
-            .copy_song(0, 0, &Faker.fake::<String>())
+            .copy_song(0, 0, &Infra::fake_fs_name())
             .await
             .delete_song(0, 0)
             .await

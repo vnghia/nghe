@@ -92,7 +92,7 @@ mod tests {
         let song_tag = Faker.fake::<SongTag>();
         let album_id = upsert_album(infra.pool(), (&song_tag.album).into()).await.unwrap();
 
-        let song_path = Faker.fake::<String>();
+        let song_path = Infra::fake_fs_name();
         let song_hash: i64 = rand::random();
         let song_size: i32 = rand::random();
 
@@ -125,7 +125,7 @@ mod tests {
         let song_tag = Faker.fake::<SongTag>();
         let album_id = upsert_album(infra.pool(), (&song_tag.album).into()).await.unwrap();
 
-        let song_path = Faker.fake::<String>();
+        let song_path = Infra::fake_fs_name();
         let song_hash: i64 = rand::random();
         let song_size: i32 = rand::random();
 

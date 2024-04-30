@@ -18,6 +18,13 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   RUST_TOOLCHAIN: nightly-2024-04-21
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
+  AWS_REGION: us-east-1
+  AWS_ENDPOINT_URL: http://localhost:9000
+  AWS_USE_PATH_STYLE_ENDPOINT: true
+  MINIO_ROOT_USER: minioadmin
+  MINIO_ROOT_PASSWORD: minioadmin
 
 jobs:
   build-frontend:
@@ -88,6 +95,13 @@ jobs:
           --name postgres
         ports:
           - 5432:5432
+      s3:
+        image: bitnami/minio:2024.4.28
+        env:
+          MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
+        ports:
+          - 9000:9000
 
     steps:
       - uses: actions/checkout@v4
@@ -274,6 +288,13 @@ jobs:
           --name postgres
         ports:
           - 5432:5432
+      s3:
+        image: bitnami/minio:2024.4.28
+        env:
+          MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
+        ports:
+          - 9000:9000
 
     steps:
       - name: Remove unused packages
@@ -317,10 +338,11 @@ jobs:
         uses: cross-platform-actions/action@v0.24.0
         env:
           DATABASE_URL: "postgres://postgres:postgres@10.0.2.2:5432/postgres"
+          AWS_ENDPOINT_URL: "http://10.0.2.2:9000"
         with:
           operating_system: freebsd
           version: ${{ matrix.version }}
-          environment_variables: "DATABASE_URL"
+          environment_variables: "DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
           shell: "bash"
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.9/freebsd-${{ matrix.version }}-x86-64.qcow2
@@ -379,6 +401,10 @@ jobs:
           echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
           echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
           echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
+      - name: Install and setup minio
+        run: |
+          curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
+          minio server data &
 
       - name: Install cargo-vcpkg
         uses: taiki-e/cache-cargo-install-action@v2
@@ -458,6 +484,10 @@ jobs:
           psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
           psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
           pg_ctl restart
+      - name: Install and setup minio
+        run: |
+          brew install minio/stable/minio
+          minio server data &
 
       - name: Install vcpkg build deps
         run: brew install nasm
