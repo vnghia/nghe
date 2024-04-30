@@ -1,3 +1,7 @@
+use typed_path::Utf8PathBuf;
+
+use crate::utils::fs::FsTrait;
+
 #[derive(Debug, Clone, Copy)]
 pub struct PathMetadata {
     pub size: u32,
@@ -5,13 +9,13 @@ pub struct PathMetadata {
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(Clone))]
-pub struct PathInfo {
-    pub path: String,
+pub struct PathInfo<Fs: FsTrait> {
+    pub path: Utf8PathBuf<Fs::E>,
     pub metadata: PathMetadata,
 }
 
-impl PathInfo {
-    pub fn new<P: Into<String>, M: Into<PathMetadata>>(path: P, metadata: M) -> Self {
+impl<Fs: FsTrait> PathInfo<Fs> {
+    pub fn new<P: Into<Utf8PathBuf<Fs::E>>, M: Into<PathMetadata>>(path: P, metadata: M) -> Self {
         Self { path: path.into(), metadata: metadata.into() }
     }
 }

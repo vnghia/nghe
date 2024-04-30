@@ -1,14 +1,14 @@
+use std::fmt::Debug;
+
 use anyhow::Result;
+use typed_path::{Utf8Encoding, Utf8Path};
 
-use crate::utils::path::PathMetadata;
+pub trait FsTrait: Debug + Clone
+where
+    for<'enc> Self::E: Utf8Encoding<'enc> + Debug,
+{
+    type E;
 
-#[async_trait::async_trait]
-pub trait FsTrait {
-    fn strip_prefix<'a>(&self, path: &'a str, base: &str) -> &'a str;
-    fn ext<'a>(&self, path: &'a str) -> &'a str;
-    fn with_ext(&self, path: &str, ext: &str) -> String;
-
-    async fn read(&self, path: &str) -> Result<Vec<u8>>;
-    async fn read_to_string(&self, path: &str) -> Result<String>;
-    async fn metadata(&self, path: &str) -> Result<PathMetadata>;
+    async fn read<P: AsRef<Utf8Path<Self::E>>>(&self, path: P) -> Result<Vec<u8>>;
+    async fn read_to_string<P: AsRef<Utf8Path<Self::E>>>(&self, path: P) -> Result<String>;
 }
