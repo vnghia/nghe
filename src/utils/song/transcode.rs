@@ -398,7 +398,7 @@ mod tests {
     use strum::IntoEnumIterator;
 
     use super::test::transcode_to_memory;
-    use crate::utils::song::file_type::SONG_FILE_TYPES;
+    use crate::utils::song::file_type::SUPPORTED_EXTENSIONS;
     use crate::utils::test::asset::get_media_asset_path;
 
     const OUTPUT_BITRATE: &[u32] = &[32, 64, 192, 320];
@@ -408,8 +408,8 @@ mod tests {
     async fn test_transcode() {
         let mut transcoding_set = tokio::task::JoinSet::new();
 
-        for file_type in SONG_FILE_TYPES {
-            let media_path = get_media_asset_path(&file_type);
+        for file_type in SUPPORTED_EXTENSIONS.values() {
+            let media_path = get_media_asset_path(file_type);
             for output_format in Format::iter() {
                 if output_format == Format::Raw {
                     continue;

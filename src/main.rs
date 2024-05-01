@@ -4,6 +4,7 @@ use nghe::open_subsonic::{
     bookmarks, browsing, extension, lastfm, media_annotation, media_list, media_retrieval,
     music_folder, permission, playlists, scan, searching, spotify, system, user,
 };
+use nghe::utils::fs::LocalFs;
 use nghe::Database;
 use nghe_types::constant::{SERVER_NAME, SERVER_VERSION};
 use tokio::signal;
@@ -43,6 +44,8 @@ async fn main() {
 }
 
 fn app(database: Database, config: Config) -> Router {
+    let local_fs = LocalFs { scan_parallel: config.scan.parallel };
+
     let serve_frontend = ServeDir::new(&config.server.frontend_dir)
         .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
 
@@ -69,6 +72,7 @@ fn app(database: Database, config: Config) -> Router {
         .merge(searching::router())
         .merge(spotify::router(config.art.artist_dir.clone(), spotify_client.clone()))
         .merge(scan::router(
+            local_fs,
             config.artist_index,
             config.parsing,
             config.scan,

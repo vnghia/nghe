@@ -13,8 +13,10 @@ use axum::Extension;
 pub use start_scan::{start_scan, ScanStat};
 
 use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
+use crate::utils::fs::LocalFs;
 
 pub fn router(
+    local_fs: LocalFs,
     artist_index_config: ArtistIndexConfig,
     parsing_config: ParsingConfig,
     scan_config: ScanConfig,
@@ -23,6 +25,7 @@ pub fn router(
     spotify_client: Option<rspotify::ClientCredsSpotify>,
 ) -> axum::Router<crate::Database> {
     nghe_proc_macros::build_router!(start_scan, get_scan_status)
+        .layer(Extension(local_fs))
         .layer(Extension(artist_index_config))
         .layer(Extension(parsing_config))
         .layer(Extension(scan_config))

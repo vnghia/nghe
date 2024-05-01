@@ -163,12 +163,12 @@ mod tests {
     use isolang::Language;
 
     use super::*;
-    use crate::utils::song::file_type::SONG_FILE_TYPES;
+    use crate::utils::song::file_type::SUPPORTED_EXTENSIONS;
     use crate::utils::test::asset::{get_asset_dir, get_media_asset_path};
 
     #[test]
     fn test_parse_media_file() {
-        for file_type in SONG_FILE_TYPES {
+        for file_type in SUPPORTED_EXTENSIONS.values().copied() {
             let path = get_media_asset_path(&file_type);
             let tag = SongInformation::read_from(
                 &mut std::fs::File::open(&path).unwrap(),
