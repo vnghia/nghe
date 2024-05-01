@@ -67,7 +67,9 @@ pub async fn add_music_folder_handler(
 
 #[cfg(test)]
 mod tests {
+    use concat_string::concat_string;
     use diesel::{ExpressionMethods, QueryDsl};
+    use strum::IntoEnumIterator;
 
     use super::*;
     use crate::utils::test::Infra;
@@ -75,45 +77,48 @@ mod tests {
     #[tokio::test]
     async fn test_add_music_folder() {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await;
-
-        let path = infra.fs.mkdir(0, "folder1/").await;
-        let id = add_music_folder(
-            infra.pool(),
-            infra.fs.local(),
-            infra.fs.s3_option(),
-            "folder1",
-            &path.to_string(),
-            true,
-            music_folders::FsType::Local,
-        )
-        .await
-        .unwrap();
-        let count = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::music_folder_id.eq(id))
-            .count()
-            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+        for fs_type in music_folders::FsType::iter() {
+            let name = concat_string!(fs_type.as_ref(), "-folder1");
+            let path = infra.fs.mkdir(fs_type, "folder1/").await;
+            let id = add_music_folder(
+                infra.pool(),
+                infra.fs.local(),
+                infra.fs.s3_option(),
+                &name,
+                &path.to_string(),
+                true,
+                fs_type,
+            )
             .await
             .unwrap();
-        assert_eq!(count, 2);
+            let count = user_music_folder_permissions::table
+                .filter(user_music_folder_permissions::music_folder_id.eq(id))
+                .count()
+                .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+                .await
+                .unwrap();
+            assert_eq!(count, 2);
 
-        let path = infra.fs.mkdir(0, "folder2/").await;
-        let id = add_music_folder(
-            infra.pool(),
-            infra.fs.local(),
-            infra.fs.s3_option(),
-            "folder2",
-            &path.to_string(),
-            false,
-            music_folders::FsType::Local,
-        )
-        .await
-        .unwrap();
-        let count = user_music_folder_permissions::table
-            .filter(user_music_folder_permissions::music_folder_id.eq(id))
-            .count()
-            .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+            let name = concat_string!(fs_type.as_ref(), "-folder2");
+            let path = infra.fs.mkdir(fs_type, "folder2/").await;
+            let id = add_music_folder(
+                infra.pool(),
+                infra.fs.local(),
+                infra.fs.s3_option(),
+                &name,
+                &path.to_string(),
+                false,
+                fs_type,
+            )
             .await
             .unwrap();
-        assert_eq!(count, 0);
+            let count = user_music_folder_permissions::table
+                .filter(user_music_folder_permissions::music_folder_id.eq(id))
+                .count()
+                .get_result::<i64>(&mut infra.pool().get().await.unwrap())
+                .await
+                .unwrap();
+            assert_eq!(count, 0);
+        }
     }
 }

@@ -49,7 +49,7 @@ mod tests {
     async fn test_get_empty_playlist() {
         let playlist_name = "playlist";
 
-        let infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let infra = Infra::new().await.add_user(None).await.n_folder(1).await;
 
         let playlist_id = create_playlist(
             infra.pool(),
@@ -82,7 +82,7 @@ mod tests {
         let n_song = 10_usize;
         let playlist_name = "playlist";
 
-        let mut infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let mut infra = Infra::new().await.add_user(None).await.n_folder(1).await;
         infra.add_n_song(0, n_song).await.scan(.., None).await;
         let mut song_fs_ids = infra.song_ids(..).await;
         song_fs_ids.shuffle(&mut rand::thread_rng());

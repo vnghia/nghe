@@ -14,11 +14,10 @@ use uuid::Uuid;
 
 pub use crate::schema::music_folders;
 
-#[derive(
-    Debug, Clone, Copy, FromRepr, AsExpression, FromSqlRow, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Debug, Clone, Copy, FromRepr, AsExpression, FromSqlRow, PartialEq, Eq)]
 #[repr(i16)]
 #[diesel(sql_type = Int2)]
+#[cfg_attr(test, derive(fake::Dummy, strum::EnumIter, strum::AsRefStr, PartialOrd, Ord))]
 pub enum FsType {
     Local = 1,
     S3 = 2,

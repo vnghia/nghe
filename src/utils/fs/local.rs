@@ -144,15 +144,16 @@ mod tests {
     use itertools::Itertools;
 
     use super::*;
+    use crate::models::*;
     use crate::utils::song::file_type::SUPPORTED_EXTENSIONS;
     use crate::utils::test::Infra;
 
-    const FS_INDEX: usize = 0;
+    const FS_TYPE: music_folders::FsType = music_folders::FsType::Local;
 
     async fn wrap_scan_media_file(infra: &Infra, scan_parallel: bool) -> Vec<PathInfo<LocalFs>> {
         let (tx, rx) = flume::bounded(100);
         let scan_task =
-            LocalFs { scan_parallel }.scan_songs(infra.fs.prefix(FS_INDEX).to_string(), tx);
+            LocalFs { scan_parallel }.scan_songs(infra.fs.prefix(FS_TYPE).to_string(), tx);
         let mut result = vec![];
         while let Ok(r) = rx.recv_async().await {
             result.push(r);
@@ -167,12 +168,12 @@ mod tests {
         let fs = &infra.fs;
 
         let media_paths = stream::iter(infra.fs.mkrelpaths(
-            FS_INDEX,
+            FS_TYPE,
             50,
             3,
             &SUPPORTED_EXTENSIONS.keys().collect_vec(),
         ))
-        .then(move |path| async move { fs.mkfile(FS_INDEX, &path).await })
+        .then(move |path| async move { fs.mkfile(FS_TYPE, &path).await })
         .collect::<Vec<_>>()
         .await;
 
@@ -193,7 +194,7 @@ mod tests {
 
         let media_paths = stream::iter(
             infra.fs.mkrelpaths(
-                FS_INDEX,
+                FS_TYPE,
                 50,
                 3,
                 &[SUPPORTED_EXTENSIONS.keys().copied().collect_vec().as_slice(), &["txt", "rs"]]
@@ -201,8 +202,8 @@ mod tests {
             ),
         )
         .filter_map(move |path| async move {
-            let path = fs.mkfile(FS_INDEX, &path).await;
-            let extension = fs.extension(FS_INDEX, &path);
+            let path = fs.mkfile(FS_TYPE, &path).await;
+            let extension = fs.extension(FS_TYPE, &path);
             if SUPPORTED_EXTENSIONS.contains_key(extension) { Some(path) } else { None }
         })
         .collect::<Vec<_>>()
@@ -225,22 +226,18 @@ mod tests {
         let infra = Infra::new().await;
         let fs = &infra.fs;
 
-        let media_paths = stream::iter(fs.mkrelpaths(
-            FS_INDEX,
-            50,
-            3,
-            &SUPPORTED_EXTENSIONS.keys().collect_vec(),
-        ))
-        .filter_map(move |path| async move {
-            if rand::random::<bool>() {
-                Some(fs.mkfile(FS_INDEX, &path).await)
-            } else {
-                fs.mkdir(FS_INDEX, &path).await;
-                None
-            }
-        })
-        .collect::<Vec<_>>()
-        .await;
+        let media_paths =
+            stream::iter(fs.mkrelpaths(FS_TYPE, 50, 3, &SUPPORTED_EXTENSIONS.keys().collect_vec()))
+                .filter_map(move |path| async move {
+                    if rand::random::<bool>() {
+                        Some(fs.mkfile(FS_TYPE, &path).await)
+                    } else {
+                        fs.mkdir(FS_TYPE, &path).await;
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .await;
 
         let scanned_paths = wrap_scan_media_file(&infra, false)
             .await
@@ -259,15 +256,11 @@ mod tests {
         let infra = Infra::new().await;
         let fs = &infra.fs;
 
-        let media_paths = stream::iter(fs.mkrelpaths(
-            FS_INDEX,
-            50,
-            3,
-            &SUPPORTED_EXTENSIONS.keys().collect_vec(),
-        ))
-        .then(move |path| async move { fs.mkfile(FS_INDEX, &path).await })
-        .collect::<Vec<_>>()
-        .await;
+        let media_paths =
+            stream::iter(fs.mkrelpaths(FS_TYPE, 50, 3, &SUPPORTED_EXTENSIONS.keys().collect_vec()))
+                .then(move |path| async move { fs.mkfile(FS_TYPE, &path).await })
+                .collect::<Vec<_>>()
+                .await;
 
         let scanned_results = wrap_scan_media_file(&infra, true).await;
         let scanned_paths =

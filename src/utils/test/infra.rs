@@ -9,6 +9,7 @@ use diesel::{
     ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use fake::{Fake, Faker};
 use futures::stream::{self, StreamExt};
 use isolang::Language;
 use itertools::Itertools;
@@ -38,7 +39,6 @@ pub struct Infra {
     pub fs: TemporaryFs,
     pub users: Vec<User>,
     pub music_folders: Vec<music_folders::MusicFolder>,
-    pub fs_idxs: Vec<usize>,
     pub song_fs_infos_vec: Vec<Vec<SongFsInformation>>,
     pub lastfm_client: Option<lastfm_client::Client>,
     pub spotify_client: Option<rspotify::ClientCredsSpotify>,
@@ -67,7 +67,6 @@ impl Infra {
             fs,
             users: vec![],
             music_folders: vec![],
-            fs_idxs: vec![],
             song_fs_infos_vec: vec![],
             lastfm_client,
             spotify_client,
@@ -83,8 +82,8 @@ impl Infra {
         self
     }
 
-    pub async fn add_folder(mut self, fs: usize, allow: bool) -> Self {
-        let path = self.fs.mkdir(fs, &Self::fake_fs_name()).await;
+    pub async fn add_folder(mut self, fs_type: music_folders::FsType, allow: bool) -> Self {
+        let path = self.fs.mkdir(fs_type, &Self::fake_fs_name()).await;
 
         let name = Self::fake_fs_name();
         let path = path.to_string();
@@ -95,18 +94,12 @@ impl Infra {
             &name,
             &path,
             allow,
-            music_folders::FsType::Local,
+            fs_type,
         )
         .await
         .unwrap();
 
-        self.music_folders.push(music_folders::MusicFolder {
-            id,
-            name,
-            path,
-            fs_type: music_folders::FsType::Local,
-        });
-        self.fs_idxs.push(fs);
+        self.music_folders.push(music_folders::MusicFolder { id, name, path, fs_type });
         self.song_fs_infos_vec.push(vec![]);
 
         self
@@ -114,7 +107,7 @@ impl Infra {
 
     pub async fn n_folder(mut self, n_folder: usize) -> Self {
         for _ in 0..n_folder {
-            self = self.add_folder(0, true).await;
+            self = self.add_folder(Faker.fake(), true).await;
         }
 
         self
@@ -195,6 +188,7 @@ impl Infra {
                 start_scan(
                     self.pool(),
                     self.fs.local(),
+                    self.fs.s3_option(),
                     scan_started_at,
                     StartScanParams { id, mode: scan_mode.unwrap_or(ScanMode::Full) },
                     &ArtistIndexConfig::default(),
@@ -226,7 +220,7 @@ impl Infra {
         self.song_fs_infos_vec[index].extend(
             self.fs
                 .mkpathssongs(
-                    self.fs_idxs[index],
+                    self.music_folders[index].fs_type,
                     &self.music_folders[index].path,
                     song_tags,
                     &SUPPORTED_EXTENSIONS.keys().collect_vec(),
@@ -278,7 +272,6 @@ impl Infra {
         update_mask: &[bool],
         song_tags: Vec<SongTag>,
     ) -> &mut Self {
-        let music_folder_path = &self.music_folders[index].path;
         let update_paths = update_mask
             .iter()
             .copied()
@@ -288,7 +281,13 @@ impl Infra {
 
         let new_song_fs_infos = self
             .fs
-            .mksongs(self.fs_idxs[index], music_folder_path, &update_paths, song_tags, false)
+            .mksongs(
+                self.music_folders[index].fs_type,
+                &self.music_folders[index].path,
+                &update_paths,
+                song_tags,
+                false,
+            )
             .await;
 
         update_mask
@@ -329,32 +328,32 @@ impl Infra {
         src_index: usize,
         dst_relative_path: &str,
     ) -> &mut Self {
-        let fs_idx = self.fs_idxs[music_folder_index];
+        let fs_type = self.music_folders[music_folder_index].fs_type;
         let music_folder_path = &self.music_folders[music_folder_index].path;
 
         let src_tag = self.song_fs_infos_vec[music_folder_index][src_index].clone();
         let src_path = self.fs.song_absolute_path(&src_tag);
         let dst_path = self.fs.with_extension(
-            fs_idx,
-            &self.fs.join(fs_idx, music_folder_path, dst_relative_path),
-            self.fs.extension(fs_idx, &src_path),
+            fs_type,
+            &self.fs.join(fs_type, music_folder_path, dst_relative_path),
+            self.fs.extension(fs_type, &src_path),
         );
 
-        self.fs.write(fs_idx, &dst_path, self.fs.read_song(&src_tag).await).await;
+        self.fs.write(fs_type, &dst_path, self.fs.read_song(&src_tag).await).await;
         if src_tag.lrc.is_some() {
             self.fs
                 .write(
-                    fs_idx,
-                    &self.fs.with_extension(fs_idx, &dst_path, "lrc"),
+                    fs_type,
+                    &self.fs.with_extension(fs_type, &dst_path, "lrc"),
                     self.fs
-                        .read_to_string(fs_idx, &self.fs.with_extension(fs_idx, &src_path, "lrc"))
+                        .read_to_string(fs_type, &self.fs.with_extension(fs_type, &src_path, "lrc"))
                         .await,
                 )
                 .await;
         }
 
         self.song_fs_infos_vec[music_folder_index].push(SongFsInformation {
-            relative_path: self.fs.strip_prefix(fs_idx, &dst_path, music_folder_path),
+            relative_path: self.fs.strip_prefix(fs_type, &dst_path, music_folder_path),
             ..src_tag
         });
         self

@@ -45,7 +45,12 @@ async fn main() {
 
 async fn app(database: Database, config: Config) -> Router {
     let local_fs = LocalFs { scan_parallel: config.scan.parallel };
-    let s3_fs = if config.s3.enable { Some(S3Fs::new(config.s3).await) } else { None };
+    let s3_fs = if config.s3.enable {
+        tracing::info!("s3 integration enabled");
+        Some(S3Fs::new(config.s3).await)
+    } else {
+        None
+    };
 
     let serve_frontend = ServeDir::new(&config.server.frontend_dir)
         .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));

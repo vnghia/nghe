@@ -86,7 +86,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_access_level() {
-        let infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let infra = Infra::new().await.add_user(None).await.n_folder(1).await;
         let playlist_id = create_playlist(
             infra.pool(),
             infra.user_id(0),
@@ -114,8 +114,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_access_level_not_found() {
-        let infra =
-            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(0, true).await;
+        let infra = Infra::new().await.add_user(None).await.add_user(None).await.n_folder(1).await;
         let playlist_id = create_playlist(
             infra.pool(),
             infra.user_id(0),
@@ -145,8 +144,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_access_level_deny() {
-        let infra =
-            Infra::new().await.add_user(None).await.add_user(None).await.add_folder(0, true).await;
+        let infra = Infra::new().await.add_user(None).await.add_user(None).await.n_folder(1).await;
         let playlist_id = create_playlist(
             infra.pool(),
             infra.user_id(0),

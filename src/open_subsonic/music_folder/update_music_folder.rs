@@ -77,7 +77,7 @@ mod tests {
     async fn test_update_music_folder() {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await;
 
-        let path = infra.fs.mkdir(0, "folder/").await;
+        let path = infra.fs.mkdir(music_folders::FsType::Local, "folder/").await;
         let id = add_music_folder(
             infra.pool(),
             infra.fs.local(),
