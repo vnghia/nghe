@@ -120,7 +120,7 @@ jobs:
           TARGET: ${{ matrix.platform.target }}
         run: |
           echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-          echo "arch=$(echo $TARGET | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "arch=$(echo $TARGET | cut -d '-' -f1)" >> "$GITHUB_OUTPUT"
           echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
           echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
           echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
