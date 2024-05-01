@@ -1,5 +1,3 @@
-use std::path::{Path, PathBuf};
-
 use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
@@ -11,13 +9,14 @@ use uuid::Uuid;
 
 use super::utils::search_and_upsert_artist_spotify_image;
 use crate::models::*;
+use crate::utils::fs::{LocalPath, LocalPathBuf};
 use crate::{Database, DatabasePool};
 
 add_common_validate!(ScanArtistSpotifyImageParams);
 add_axum_response!(ScanArtistSpotifyImageBody);
 
 #[tracing::instrument(skip_all)]
-pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
+pub async fn scan_artist_spotify_image<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     artist_art_dir: P,
     client: &rspotify::ClientCredsSpotify,
@@ -82,7 +81,7 @@ pub async fn scan_artist_spotify_image<P: AsRef<Path>>(
 
 pub async fn scan_artist_spotify_image_handler(
     State(database): State<Database>,
-    Extension(artist_art_dir): Extension<Option<PathBuf>>,
+    Extension(artist_art_dir): Extension<Option<LocalPathBuf>>,
     Extension(client): Extension<Option<rspotify::ClientCredsSpotify>>,
     req: ScanArtistSpotifyImageRequest,
 ) -> ScanArtistSpotifyImageJsonResponse {

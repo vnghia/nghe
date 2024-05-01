@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
@@ -13,6 +11,7 @@ use super::utils::get_song_download_info;
 use crate::config::TranscodingConfig;
 use crate::open_subsonic::StreamResponse;
 use crate::utils::fs::path::hash_size_to_path;
+use crate::utils::fs::LocalPathBuf;
 use crate::utils::song::transcode;
 use crate::{Database, DatabasePool, ServerError};
 
@@ -20,10 +19,10 @@ add_common_validate!(StreamParams, stream);
 
 #[instrument(skip(output_path, buffer_size))]
 fn spawn_transcoding(
-    input_path: PathBuf,
-    output_path: PathBuf,
+    input_path: LocalPathBuf,
+    output_path: LocalPathBuf,
     output_ext: &str,
-    done_path: Option<PathBuf>,
+    done_path: Option<LocalPathBuf>,
     output_bit_rate: u32,
     output_time_offset: u32,
     buffer_size: usize,
@@ -81,9 +80,9 @@ async fn stream(
         let (absolute_path, song_file_hash, song_file_size) =
             get_song_download_info(pool, user_id, params.id).await?;
 
-        if let Some(cache_path) = transcoding_config.cache_path {
+        if let Some(cache_dir) = transcoding_config.cache_dir {
             // Transcoding cache is enabled
-            let cache_dir = hash_size_to_path(cache_path, song_file_hash, song_file_size)
+            let cache_dir = hash_size_to_path(cache_dir, song_file_hash, song_file_size)
                 .join(format)
                 .join(bit_rate.to_string());
             tokio::fs::create_dir_all(&cache_dir).await?;
@@ -232,7 +231,7 @@ mod tests {
                     format: Some(Format::Opus),
                     time_offset: None,
                 },
-                TranscodingConfig { cache_path: None, ..Default::default() },
+                TranscodingConfig { cache_dir: None, ..Default::default() },
             )
             .await
             .unwrap()

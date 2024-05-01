@@ -2,25 +2,34 @@ pub mod parsing;
 mod raw;
 
 use std::net::SocketAddr;
-use std::path::PathBuf;
 
 use derivative::Derivative;
 use itertools::Itertools;
 pub use parsing::ParsingConfig;
 
+use crate::utils::fs::{LocalPath, LocalPathBuf};
+
 #[derive(Debug)]
 pub struct ServerConfig {
     pub bind_addr: SocketAddr,
-    pub frontend_dir: PathBuf,
+    pub frontend_dir: LocalPathBuf,
 }
 
 pub type DatabaseConfig = raw::DatabaseConfig;
 
 pub type ScanConfig = raw::ScanConfig;
 
-pub type TranscodingConfig = raw::TranscodingConfig;
+#[derive(Debug, Clone)]
+pub struct TranscodingConfig {
+    pub buffer_size: usize,
+    pub cache_dir: Option<LocalPathBuf>,
+}
 
-pub type ArtConfig = raw::ArtConfig;
+#[derive(Debug, Clone)]
+pub struct ArtConfig {
+    pub artist_dir: Option<LocalPathBuf>,
+    pub song_dir: Option<LocalPathBuf>,
+}
 
 pub type LastfmConfig = raw::LastfmConfig;
 
@@ -53,7 +62,9 @@ impl ServerConfig {
     pub fn new(raw::ServerConfig { host, port, frontend_dir }: raw::ServerConfig) -> Self {
         Self {
             bind_addr: SocketAddr::new(host, port),
-            frontend_dir: frontend_dir.canonicalize().expect("failed to canonicalize frontend dir"),
+            frontend_dir: LocalPath::new(&frontend_dir)
+                .absolutize()
+                .expect("failed to canonicalize frontend dir"),
         }
     }
 }
@@ -72,7 +83,7 @@ impl ArtistIndexConfig {
 
 impl TranscodingConfig {
     pub fn new(raw: raw::TranscodingConfig) -> Self {
-        Self { buffer_size: raw.buffer_size, cache_path: to_path_config(raw.cache_path) }
+        Self { buffer_size: raw.buffer_size, cache_dir: to_path_config(raw.cache_dir) }
     }
 }
 
@@ -114,16 +125,28 @@ impl Default for Config {
     }
 }
 
-fn to_path_config(p: Option<PathBuf>) -> Option<PathBuf> {
+fn to_path_config(p: Option<String>) -> Option<LocalPathBuf> {
     match p {
-        Some(p) if !p.is_absolute() => None,
-        p => p,
+        Some(p) => {
+            if LocalPath::new(&p).is_absolute() {
+                Some(p.into())
+            } else {
+                None
+            }
+        }
+        None => None,
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    impl Default for TranscodingConfig {
+        fn default() -> Self {
+            Self::new(Default::default())
+        }
+    }
 
     impl Default for ArtistIndexConfig {
         fn default() -> Self {
@@ -150,9 +173,10 @@ mod tests {
     fn test_to_path_config() {
         assert_eq!(to_path_config(None), None);
 
-        assert_eq!(to_path_config(Some(PathBuf::from("non-absolute"))), None);
+        assert_eq!(to_path_config(Some("non-absolute".into())), None);
 
-        let abs_path = std::env::temp_dir().canonicalize().unwrap();
-        assert_eq!(to_path_config(Some(abs_path.clone())), Some(abs_path));
+        let abs_path =
+            std::env::temp_dir().canonicalize().unwrap().into_os_string().into_string().unwrap();
+        assert_eq!(to_path_config(Some(abs_path.clone())), Some(abs_path.into()));
     }
 }

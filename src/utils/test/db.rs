@@ -1,5 +1,3 @@
-use std::path::{Path, PathBuf};
-
 use axum::extract::State;
 use concat_string::concat_string;
 use diesel_async::{AsyncConnection, AsyncPgConnection};
@@ -25,12 +23,6 @@ pub struct SongDbInformation {
     pub relative_path: String,
     pub file_hash: u64,
     pub file_size: u32,
-}
-
-impl SongDbInformation {
-    pub fn absolute_path(&self) -> PathBuf {
-        Path::new(&self.music_folder.path).join(&self.relative_path)
-    }
 }
 
 pub struct TemporaryDb {

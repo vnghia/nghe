@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::str::FromStr;
 
 use anyhow::Result;
@@ -6,9 +5,10 @@ use mime_guess::Mime;
 use uuid::Uuid;
 
 use super::upsert_cover_art_from_data;
+use crate::utils::fs::LocalPath;
 use crate::{DatabasePool, OSError};
 
-pub async fn upsert_cover_art_from_url<P: AsRef<Path>>(
+pub async fn upsert_cover_art_from_url<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     art_dir: P,
     url: &str,

@@ -87,12 +87,42 @@ impl TemporaryFs {
         let write_option = WriteOptions::new().remove_others(true);
         let parsing_config = ParsingConfig::default();
         let transcoding_config = TranscodingConfig {
-            cache_path: Some(local.root.path().canonicalize().unwrap().join("transcoding-cache")),
+            cache_dir: Some(
+                local
+                    .root
+                    .path()
+                    .canonicalize()
+                    .unwrap()
+                    .join("transcoding-cache")
+                    .to_str()
+                    .unwrap()
+                    .into(),
+            ),
             ..Default::default()
         };
         let art_config = ArtConfig {
-            artist_dir: Some(local.root.path().canonicalize().unwrap().join("art-artist-path")),
-            song_dir: Some(local.root.path().canonicalize().unwrap().join("art-song-path")),
+            artist_dir: Some(
+                local
+                    .root
+                    .path()
+                    .canonicalize()
+                    .unwrap()
+                    .join("art-artist-path")
+                    .to_str()
+                    .unwrap()
+                    .into(),
+            ),
+            song_dir: Some(
+                local
+                    .root
+                    .path()
+                    .canonicalize()
+                    .unwrap()
+                    .join("art-song-path")
+                    .to_str()
+                    .unwrap()
+                    .into(),
+            ),
         };
 
         Self {

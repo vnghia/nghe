@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
@@ -15,11 +13,12 @@ use crate::config::ArtConfig;
 use crate::models::*;
 use crate::open_subsonic::permission::with_permission;
 use crate::open_subsonic::StreamResponse;
+use crate::utils::fs::LocalPath;
 use crate::{Database, DatabasePool, OSError, ServerError};
 
 add_common_validate!(GetCoverArtParams);
 
-pub async fn get_song_cover_art<P: AsRef<Path>>(
+pub async fn get_song_cover_art<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     user_id: Uuid,
     cover_art_id: Uuid,
@@ -37,7 +36,7 @@ pub async fn get_song_cover_art<P: AsRef<Path>>(
     StreamResponse::try_from_path(song_cover_art.to_path(song_art_dir)).await
 }
 
-pub async fn get_album_cover_art<P: AsRef<Path>>(
+pub async fn get_album_cover_art<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     user_id: Uuid,
     album_id: Uuid,
@@ -65,7 +64,7 @@ pub async fn get_album_cover_art<P: AsRef<Path>>(
     StreamResponse::try_from_path(album_cover_art.to_path(song_art_dir)).await
 }
 
-pub async fn get_artist_cover_art<P: AsRef<Path>>(
+pub async fn get_artist_cover_art<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     cover_art_id: Uuid,
     artist_art_dir: P,

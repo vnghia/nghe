@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use anyhow::Result;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
@@ -9,6 +7,7 @@ use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::cover_art::upsert_cover_art_from_data;
+use crate::utils::fs::LocalPath;
 use crate::utils::song::file_type::picture_to_extension;
 use crate::{DatabasePool, OSError};
 
@@ -58,7 +57,7 @@ pub async fn update_song<'a>(
     Ok(())
 }
 
-pub async fn upsert_song_cover_art<P: AsRef<Path>>(
+pub async fn upsert_song_cover_art<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     picture: &Picture,
     song_art_dir: P,

@@ -1,5 +1,3 @@
-use std::path::{Path, PathBuf};
-
 use anyhow::Result;
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
@@ -7,13 +5,14 @@ use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::permission::with_permission;
+use crate::utils::fs::{LocalPath, LocalPathBuf};
 use crate::{DatabasePool, OSError};
 
 pub async fn get_song_download_info(
     pool: &DatabasePool,
     user_id: Uuid,
     song_id: Uuid,
-) -> Result<(PathBuf, u64, u32)> {
+) -> Result<(LocalPathBuf, u64, u32)> {
     songs::table
         .inner_join(music_folders::table)
         .filter(with_permission(user_id))
@@ -25,7 +24,7 @@ pub async fn get_song_download_info(
         .ok_or_else(|| OSError::NotFound("Song".into()).into())
         .map(|(music_folder_path, song_relative_path, song_file_hash, song_file_size)| {
             (
-                Path::new(&music_folder_path).join(song_relative_path),
+                LocalPath::new(&music_folder_path).join(song_relative_path),
                 song_file_hash as _,
                 song_file_size as _,
             )

@@ -1,5 +1,4 @@
 use std::convert::Infallible;
-use std::path::Path;
 
 use anyhow::{Ok, Result};
 use axum::body::Body;
@@ -10,6 +9,9 @@ use flume::Receiver;
 use futures::StreamExt;
 use mime_guess::Mime;
 use tokio_util::io::ReaderStream;
+
+use crate::utils::fs::LocalPath;
+use crate::OSError;
 
 struct RxStream(RecvStream<'static, Vec<u8>>);
 
@@ -36,9 +38,14 @@ pub struct StreamResponse {
 }
 
 impl StreamResponse {
-    pub async fn try_from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mime = mime_guess::from_path(&path).first_or_octet_stream();
-        let stream = ReaderStream::new(tokio::fs::File::open(&path).await?);
+    pub async fn try_from_path<P: AsRef<LocalPath>>(path: P) -> Result<Self> {
+        let path = path.as_ref();
+        let mime =
+            mime_guess::from_ext(path.extension().ok_or_else(|| {
+                OSError::InvalidParameter("path does not have an extension".into())
+            })?)
+            .first_or_octet_stream();
+        let stream = ReaderStream::new(tokio::fs::File::open(path.as_str()).await?);
         Ok(Self { mime, stream: StreamType::File(stream) })
     }
 
