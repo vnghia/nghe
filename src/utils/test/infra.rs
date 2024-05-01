@@ -88,9 +88,24 @@ impl Infra {
 
         let name = Self::fake_fs_name();
         let path = path.to_string();
-        let id = add_music_folder(self.pool(), &name, &path, allow).await.unwrap();
+        let id = add_music_folder(
+            self.pool(),
+            self.fs.local(),
+            self.fs.s3_option(),
+            &name,
+            &path,
+            allow,
+            music_folders::FsType::Local,
+        )
+        .await
+        .unwrap();
 
-        self.music_folders.push(music_folders::MusicFolder { id, name, path });
+        self.music_folders.push(music_folders::MusicFolder {
+            id,
+            name,
+            path,
+            fs_type: music_folders::FsType::Local,
+        });
         self.fs_idxs.push(fs);
         self.song_fs_infos_vec.push(vec![]);
 

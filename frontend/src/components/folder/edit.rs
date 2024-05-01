@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 use nghe_types::music_folder::update_music_folder::{
     UpdateMusicFolderBody, UpdateMusicFolderParams,
 };
+use nghe_types::music_folder::FsType;
 use uuid::Uuid;
 
 use super::super::Toast;
@@ -28,7 +29,12 @@ pub fn Folder(id: Uuid) -> Element {
             if common_state
                 .send_with_common::<_, UpdateMusicFolderBody>(
                     "/rest/updateMusicFolder",
-                    UpdateMusicFolderParams { id, name: name(), path: path() },
+                    UpdateMusicFolderParams {
+                        id,
+                        name: name(),
+                        path: path(),
+                        fs_type: FsType::Local,
+                    },
                 )
                 .await
                 .map_err(anyhow::Error::from)

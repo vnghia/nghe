@@ -1,5 +1,6 @@
 use dioxus::prelude::*;
 use nghe_types::music_folder::add_music_folder::{AddMusicFolderBody, AddMusicFolderParams};
+use nghe_types::music_folder::FsType;
 
 use super::super::Toast;
 use super::FolderForm;
@@ -30,6 +31,7 @@ pub fn AddFolder() -> Element {
                         name: name().expect("name should not be none"),
                         path: path().expect("path should not be none"),
                         allow: allow(),
+                        fs_type: FsType::Local,
                     },
                 )
                 .await

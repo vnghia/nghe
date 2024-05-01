@@ -11,10 +11,10 @@ use uuid::Uuid;
 
 pub use crate::schema::playlists_users;
 
-#[repr(i16)]
 #[derive(
     Debug, Clone, Copy, FromRepr, AsExpression, FromSqlRow, PartialEq, Eq, PartialOrd, Ord,
 )]
+#[repr(i16)]
 #[diesel(sql_type = Int2)]
 pub enum AccessLevel {
     Read = 1,

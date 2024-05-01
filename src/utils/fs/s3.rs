@@ -10,6 +10,7 @@ use tracing::instrument;
 use typed_path::{Utf8Path, Utf8PathBuf, Utf8UnixEncoding};
 
 use super::FsTrait;
+use crate::config::S3Config;
 use crate::utils::path::{PathInfo, PathMetadata};
 use crate::utils::song::file_type::SUPPORTED_EXTENSIONS;
 use crate::OSError;
@@ -20,18 +21,22 @@ pub struct S3Fs {
 }
 
 impl S3Fs {
-    pub async fn new(endpoint_url: Option<String>, use_path_style_endpoint: bool) -> Self {
+    pub async fn new(config: S3Config) -> Self {
         let mut config_loader = aws_config::from_env();
-        if let Some(endpoint_url) = endpoint_url {
+        if let Some(endpoint_url) = config.endpoint_url {
             config_loader = config_loader.endpoint_url(endpoint_url)
         }
 
         let client = Client::from_conf(
             aws_sdk_s3::config::Builder::from(&config_loader.load().await)
-                .force_path_style(use_path_style_endpoint)
+                .force_path_style(config.use_path_style_endpoint)
                 .build(),
         );
         Self { client }
+    }
+
+    pub fn unwrap(value: Option<&S3Fs>) -> Result<&S3Fs> {
+        value.ok_or_else(|| OSError::InvalidParameter("s3 integration is disabled".into()).into())
     }
 
     pub fn split(path: &str) -> Result<(&str, &str)> {
@@ -97,6 +102,12 @@ impl S3Fs {
 #[async_trait::async_trait]
 impl FsTrait for S3Fs {
     type E = Utf8UnixEncoding;
+
+    async fn check_folder<'a>(&self, path: &'a Utf8Path<Self::E>) -> Result<&'a str> {
+        let (bucket, prefix) = Self::split(path.as_str())?;
+        self.client.list_objects_v2().bucket(bucket).prefix(prefix).max_keys(1).send().await?;
+        Ok(path.as_str())
+    }
 
     async fn read<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(&self, path: P) -> Result<Vec<u8>> {
         let (bucket, key) = Self::split(path.as_ref().as_str())?;

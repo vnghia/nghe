@@ -143,7 +143,11 @@ impl TemporaryFs {
     }
 
     pub fn s3(&self) -> &S3Fs {
-        self.fs[1].fs().downcast_ref::<S3Fs>().unwrap()
+        self.s3_option().unwrap()
+    }
+
+    pub fn s3_option(&self) -> Option<&S3Fs> {
+        self.fs[1].fs().downcast_ref::<S3Fs>()
     }
 
     pub fn fake_fs_name() -> String {

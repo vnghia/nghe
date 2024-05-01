@@ -12,8 +12,9 @@ use typed_path::{Utf8NativeEncoding, Utf8Path, Utf8PathBuf};
 use super::FsTrait;
 use crate::utils::path::{PathInfo, PathMetadata};
 use crate::utils::song::file_type::{to_extension, FILETYPE_GLOB_PATTERN};
+use crate::OSError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct LocalFs {
     pub scan_parallel: bool,
 }
@@ -101,6 +102,16 @@ impl From<&Metadata> for PathMetadata {
 #[async_trait::async_trait]
 impl FsTrait for LocalFs {
     type E = Utf8NativeEncoding;
+
+    async fn check_folder<'a>(&self, path: &'a Utf8Path<Self::E>) -> Result<&'a str> {
+        if path.is_absolute() && tokio::fs::metadata(path.as_str()).await?.is_dir() {
+            Ok(path.as_str())
+        } else {
+            anyhow::bail!(OSError::InvalidParameter(
+                "path is not absolute or not a directory".into()
+            ))
+        }
+    }
 
     async fn read<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(&self, path: P) -> Result<Vec<u8>> {
         tokio::fs::read(path.as_ref().as_str()).await.map_err(anyhow::Error::from)
