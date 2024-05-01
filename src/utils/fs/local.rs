@@ -7,7 +7,7 @@ use ignore::types::TypesBuilder;
 use ignore::{DirEntry, Error, WalkBuilder};
 use tokio::task::JoinHandle;
 use tracing::instrument;
-use typed_path::{Utf8NativeEncoding, Utf8Path};
+use typed_path::{Utf8NativeEncoding, Utf8Path, Utf8PathBuf};
 
 use super::FsTrait;
 use crate::utils::path::{PathInfo, PathMetadata};
@@ -17,6 +17,9 @@ use crate::utils::song::file_type::{to_extension, FILETYPE_GLOB_PATTERN};
 pub struct LocalFs {
     pub scan_parallel: bool,
 }
+
+pub type LocalPath = Utf8Path<Utf8NativeEncoding>;
+pub type LocalPathBuf = Utf8PathBuf<Utf8NativeEncoding>;
 
 impl LocalFs {
     fn process_dir_entry(

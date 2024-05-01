@@ -183,7 +183,7 @@ You should tweak this carefully to find the optimized value for your system. Som
 |   Subkey    | Meaning                                          | Default value                    | Note                                                                    |
 | :---------: | :----------------------------------------------- | :------------------------------- | :---------------------------------------------------------------------- |
 | buffer_size | Buffer size to allocate for custom `AVIOContext` | 32 \* 1024                       |                                                                         |
-| cache_path  | The cache directory to save transcoding results  | `$TMPDIR/nghe/cache/transcoding` | Set `null` or a non-absolute path to completely disable parsing caching |
+|  cache_dir  | The cache directory to save transcoding results  | `$TMPDIR/nghe/cache/transcoding` | Set `null` or a non-absolute path to completely disable parsing caching |
 
 ### Art
 

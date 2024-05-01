@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use anyhow::Result;
 use concat_string::concat_string;
 use diesel::ExpressionMethods;
@@ -9,9 +7,10 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use crate::models::*;
 use crate::utils::fs::path::hash_size_to_path;
+use crate::utils::fs::LocalPath;
 use crate::DatabasePool;
 
-pub async fn upsert_cover_art_from_data<P: AsRef<Path>, D: AsRef<[u8]>>(
+pub async fn upsert_cover_art_from_data<P: AsRef<LocalPath>, D: AsRef<[u8]>>(
     pool: &DatabasePool,
     art_dir: P,
     file_data: D,

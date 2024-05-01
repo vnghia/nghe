@@ -1,5 +1,4 @@
 use std::borrow::Borrow;
-use std::path::Path;
 
 use anyhow::Result;
 use diesel::ExpressionMethods;
@@ -10,9 +9,10 @@ use uuid::Uuid;
 
 use crate::models::*;
 use crate::open_subsonic::cover_art::upsert_cover_art_from_url;
+use crate::utils::fs::LocalPath;
 use crate::DatabasePool;
 
-pub async fn upsert_artist_spotify_image<P: AsRef<Path>>(
+pub async fn upsert_artist_spotify_image<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     artist_art_dir: P,
     id: Uuid,
@@ -43,7 +43,7 @@ pub async fn upsert_artist_spotify_image<P: AsRef<Path>>(
     Ok(())
 }
 
-pub async fn search_and_upsert_artist_spotify_image<P: AsRef<Path>>(
+pub async fn search_and_upsert_artist_spotify_image<P: AsRef<LocalPath>>(
     pool: &DatabasePool,
     artist_art_dir: P,
     client: &rspotify::ClientCredsSpotify,

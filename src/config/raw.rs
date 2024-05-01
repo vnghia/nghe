@@ -1,5 +1,4 @@
 use std::net::IpAddr;
-use std::path::PathBuf;
 
 use derivative::Derivative;
 use figment::providers::{Env, Serialized};
@@ -19,10 +18,10 @@ pub struct ServerConfig {
     pub host: IpAddr,
     #[derivative(Default(value = "3000"))]
     pub port: u16,
-    #[derivative(Default(
-        value = "std::env::current_dir().unwrap().join(\"frontend\").join(\"dist\")"
-    ))]
-    pub frontend_dir: PathBuf,
+    #[derivative(Default(value = "std::env::current_dir().unwrap().join(\"frontend\").join(\"\
+                                  dist\").into_os_string().into_string().expect(\"non utf-8 \
+                                  path encountered\")"))]
+    pub frontend_dir: String,
 }
 
 #[serde_as]
@@ -60,27 +59,27 @@ pub struct ScanConfig {
 pub struct TranscodingConfig {
     #[derivative(Default(value = "32 * 1024"))]
     pub buffer_size: usize,
-    #[derivative(Default(
-        value = "Some(std::env::temp_dir().join(\"nghe\").join(\"cache\").join(\"transcoding\"))"
-    ))]
+    #[derivative(Default(value = "Some(std::env::temp_dir().join(\"nghe\").join(\"cache\").\
+                                  join(\"transcoding\").into_os_string().into_string().\
+                                  expect(\"non utf-8 path encountered\"))"))]
     #[serde_as(deserialize_as = "DefaultOnNull")]
-    pub cache_path: Option<PathBuf>,
+    pub cache_dir: Option<String>,
 }
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 pub struct ArtConfig {
-    #[derivative(Default(
-        value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"artist\"))"
-    ))]
+    #[derivative(Default(value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").\
+                                  join(\"artist\").into_os_string().into_string().expect(\"\
+                                  non utf-8 path encountered\"))"))]
     #[serde_as(deserialize_as = "DefaultOnNull")]
-    pub artist_dir: Option<PathBuf>,
-    #[derivative(Default(
-        value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").join(\"song\"))"
-    ))]
+    pub artist_dir: Option<String>,
+    #[derivative(Default(value = "Some(std::env::temp_dir().join(\"nghe\").join(\"art\").\
+                                  join(\"song\").into_os_string().into_string().expect(\"non \
+                                  utf-8 path encountered\"))"))]
     #[serde_as(deserialize_as = "DefaultOnNull")]
-    pub song_dir: Option<PathBuf>,
+    pub song_dir: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -1,7 +1,6 @@
 use std::ffi::{CStr, CString};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use std::path::Path;
 
 use anyhow::{Context, Result};
 use concat_string::concat_string;
@@ -15,6 +14,8 @@ use rsmpeg::avutil::{get_sample_fmt_name, ra, AVFrame, AVMem};
 use rsmpeg::error::RsmpegError;
 use rsmpeg::{ffi, UnsafeDerefMut};
 use tracing::instrument;
+
+use crate::utils::fs::LocalPath;
 
 fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext, usize)> {
     let input_fmt_ctx =
@@ -247,7 +248,7 @@ fn flush_encoder(
 }
 
 #[instrument(skip_all, err(Debug))]
-pub fn transcode<PI: AsRef<Path>, PO: AsRef<Path>>(
+pub fn transcode<PI: AsRef<LocalPath>, PO: AsRef<LocalPath>>(
     input_path: PI,
     output_path: PO,
     write_to_file: bool,
@@ -259,16 +260,15 @@ pub fn transcode<PI: AsRef<Path>, PO: AsRef<Path>>(
     let input_path = input_path.as_ref();
     let output_path = output_path.as_ref();
     let output_file = if write_to_file {
-        Some(OpenOptions::new().write(true).create_new(true).open(output_path)?)
+        Some(OpenOptions::new().write(true).create_new(true).open(output_path.as_str())?)
     } else {
         None
     };
     let output_bit_rate = output_bit_rate * 1000; // bit to kbit
 
-    let input_cpath = CString::new(input_path.to_str().expect("non utf-8 path encountered"))
-        .expect("could not create cstring from str");
-    let output_cpath = CString::new(output_path.to_str().expect("non utf-8 path encountered"))
-        .expect("could not create cstring from str");
+    let input_cpath = CString::new(input_path.as_str()).expect("could not create cstring from str");
+    let output_cpath =
+        CString::new(output_path.as_str()).expect("could not create cstring from str");
 
     let (mut input_fmt_ctx, mut dec_ctx, audio_idx) = open_input_file(&input_cpath)?;
     let (mut output_fmt_ctx, mut enc_ctx) = open_output_file(
@@ -355,14 +355,14 @@ pub fn transcode<PI: AsRef<Path>, PO: AsRef<Path>>(
 
 #[cfg(test)]
 pub mod test {
-    use std::path::PathBuf;
 
     use nghe_types::media_retrieval::stream::Format;
 
     use super::*;
+    use crate::utils::fs::LocalPathBuf;
 
     pub async fn transcode_to_memory(
-        input_path: PathBuf,
+        input_path: LocalPathBuf,
         output_format: Format,
         output_bit_rate: u32,
         output_time_offset: u32,
