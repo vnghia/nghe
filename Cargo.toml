@@ -151,7 +151,7 @@ debug = true
 
 [package.metadata.vcpkg]
 dependencies = [
-  "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis]",
+  "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis,openssl]",
 ]
 git = "https://github.com/microsoft/vcpkg"
 rev = "2023.11.20"
