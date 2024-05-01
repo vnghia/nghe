@@ -141,14 +141,17 @@ jobs:
           aarch64-linux-gnu-pkg-config --version
         if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
 
-      - name: Setup x64 musl environment
+      - name: Setup musl environment
         run: |
-          sudo apt install --assume-yes musl-tools
-          sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/x86_64-linux-musl-pkg-config
-          x86_64-linux-musl-pkg-config --version
-        if: ${{ matrix.platform.target == 'x86_64-unknown-linux-musl' }}
+          wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/${{ steps.build.outputs.arch }}-linux-musl-cross.linux.tgz -O - | tar -xz
+          sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-g++ /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-g++
+          sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc
+          ${{ steps.build.outputs.arch }}-linux-musl-gcc --version
+          ${{ steps.build.outputs.arch }}-linux-musl-g++ --version
+          sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-pkg-config
+          ${{ steps.build.outputs.arch }}-linux-musl-pkg-config --version
+        if: ${{ steps.build.outputs.env == 'musl' }}
 
-      # TODO: Rename binary after https://github.com/microsoft/vcpkg/issues/36094 is fixed
       - name: Setup arm64 musl environment
         run: |
           wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/aarch64-linux-musl-cross.linux.tgz -O - | tar -xz

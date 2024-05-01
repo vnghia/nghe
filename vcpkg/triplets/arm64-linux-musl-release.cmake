@@ -4,6 +4,4 @@ set(VCPKG_LIBRARY_LINKAGE "static")
 set(VCPKG_BUILD_TYPE "release")
 
 set(VCPKG_CMAKE_SYSTEM_NAME "Linux")
-
-set(CMAKE_CXX_COMPILER "aarch64-linux-musl-g++")
-set(CMAKE_C_COMPILER "aarch64-linux-musl-gcc")
+set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE ${CMAKE_CURRENT_LIST_DIR}/../toolchain/arm64-linux-musl.cmake)
