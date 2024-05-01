@@ -109,6 +109,7 @@ diesel::table! {
         scanned_at -> Timestamptz,
         name -> Text,
         updated_at -> Timestamptz,
+        fs_type -> Int2,
     }
 }
 

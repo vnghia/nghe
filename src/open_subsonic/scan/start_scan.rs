@@ -14,7 +14,7 @@ use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
 use crate::open_subsonic::lastfm::scan_artist_lastfm_info;
 use crate::open_subsonic::spotify::scan_artist_spotify_image;
-use crate::utils::fs::LocalFs;
+use crate::utils::fs::{LocalFs, S3Fs};
 use crate::{Database, DatabasePool};
 
 add_common_validate!(StartScanParams, admin);
@@ -85,6 +85,7 @@ pub async fn finalize_scan(
 pub async fn start_scan(
     pool: &DatabasePool,
     local_fs: &LocalFs,
+    s3_fs: Option<&S3Fs>,
     scan_started_at: OffsetDateTime,
     params: StartScanParams,
     artist_index_config: &ArtistIndexConfig,
@@ -94,22 +95,42 @@ pub async fn start_scan(
     lastfm_client: &Option<lastfm_client::Client>,
     spotify_client: &Option<rspotify::ClientCredsSpotify>,
 ) -> Result<ScanStat> {
-    let scan_result = run_scan(
-        pool,
-        local_fs,
-        scan_started_at,
-        params.mode,
-        music_folders::table
-            .filter(music_folders::id.eq(params.id))
-            .select(music_folders::MusicFolder::as_select())
-            .get_result(&mut pool.get().await?)
-            .await?,
-        &artist_index_config.ignored_prefixes,
-        parsing_config,
-        scan_config,
-        art_config,
-    )
-    .await;
+    let music_folder = music_folders::table
+        .filter(music_folders::id.eq(params.id))
+        .select(music_folders::MusicFolder::as_select())
+        .get_result(&mut pool.get().await?)
+        .await?;
+
+    let scan_result = match music_folder.fs_type {
+        music_folders::FsType::Local => {
+            run_scan(
+                pool,
+                local_fs,
+                scan_started_at,
+                params.mode,
+                music_folder,
+                &artist_index_config.ignored_prefixes,
+                parsing_config,
+                scan_config,
+                art_config,
+            )
+            .await
+        }
+        music_folders::FsType::S3 => {
+            run_scan(
+                pool,
+                S3Fs::unwrap(s3_fs)?,
+                scan_started_at,
+                params.mode,
+                music_folder,
+                &artist_index_config.ignored_prefixes,
+                parsing_config,
+                scan_config,
+                art_config,
+            )
+            .await
+        }
+    };
 
     insert_ignored_articles_config(pool, &artist_index_config.ignored_articles).await?;
     if let Some(client) = lastfm_client {
@@ -127,6 +148,7 @@ pub async fn start_scan(
 pub async fn start_scan_handler(
     State(database): State<Database>,
     Extension(local_fs): Extension<LocalFs>,
+    Extension(s3_fs): Extension<Option<S3Fs>>,
     Extension(artist_index_config): Extension<ArtistIndexConfig>,
     Extension(parsing_config): Extension<ParsingConfig>,
     Extension(scan_config): Extension<ScanConfig>,
@@ -143,6 +165,7 @@ pub async fn start_scan_handler(
         start_scan(
             &pool,
             &local_fs,
+            s3_fs.as_ref(),
             scan_started_at,
             req.params,
             &artist_index_config,

@@ -91,7 +91,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_by_indexes_empty() {
-        let infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let infra = Infra::new().await.add_user(None).await.n_folder(1).await;
         let playlist_id = create_playlist(
             infra.pool(),
             infra.user_id(0),
@@ -116,7 +116,7 @@ mod tests {
     async fn test_delete_by_indexes() {
         let n_song = 10_usize;
 
-        let mut infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let mut infra = Infra::new().await.add_user(None).await.n_folder(1).await;
         infra.add_n_song(0, n_song).await.scan(.., None).await;
         let mut song_fs_ids = infra.song_ids(..).await;
         song_fs_ids.shuffle(&mut rand::thread_rng());
@@ -317,7 +317,7 @@ mod tests {
     async fn test_update_playlist_add_song() {
         let n_song = 10_usize;
 
-        let mut infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let mut infra = Infra::new().await.add_user(None).await.n_folder(1).await;
         infra.add_n_song(0, n_song).await.scan(.., None).await;
         let mut song_fs_ids = infra.song_ids(..).await;
         song_fs_ids.shuffle(&mut rand::thread_rng());
@@ -364,7 +364,7 @@ mod tests {
     async fn test_update_playlist_remove_song() {
         let n_song = 10_usize;
 
-        let mut infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let mut infra = Infra::new().await.add_user(None).await.n_folder(1).await;
         infra.add_n_song(0, n_song).await.scan(.., None).await;
         let mut song_fs_ids = infra.song_ids(..).await;
         song_fs_ids.shuffle(&mut rand::thread_rng());
@@ -414,7 +414,7 @@ mod tests {
     async fn test_update_playlist_remove_song_add_song() {
         let n_song = 10_usize;
 
-        let mut infra = Infra::new().await.add_user(None).await.add_folder(0, true).await;
+        let mut infra = Infra::new().await.add_user(None).await.n_folder(1).await;
         infra.add_n_song(0, n_song).await.scan(.., None).await;
         let mut song_fs_ids = infra.song_ids(..).await;
         song_fs_ids.shuffle(&mut rand::thread_rng());

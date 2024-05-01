@@ -14,6 +14,8 @@ where
 {
     type E;
 
+    async fn check_folder<'a>(&self, path: &'a Utf8Path<Self::E>) -> Result<&'a str>;
+
     async fn read<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(&self, path: P) -> Result<Vec<u8>>;
     async fn read_to_string<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(
         &self,

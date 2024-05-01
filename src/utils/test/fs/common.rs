@@ -14,6 +14,7 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use super::{TemporaryLocalFs, TemporaryS3Fs};
 use crate::config::{ArtConfig, ParsingConfig, TranscodingConfig};
+use crate::models::*;
 use crate::utils::fs::{FsTrait, LocalFs, S3Fs};
 use crate::utils::song::file_type::{to_extension, SUPPORTED_EXTENSIONS};
 use crate::utils::song::test::SongTag;
@@ -28,7 +29,7 @@ pub struct SongFsInformation {
     pub lrc: Option<SongLyric>,
     pub file_hash: u64,
     pub file_size: u32,
-    pub fs: usize,
+    pub fs: music_folders::FsType,
 }
 
 pub fn join<Fs: FsTrait>(base: &str, path: &str) -> String {
@@ -138,39 +139,47 @@ impl TemporaryFs {
         if path.starts_with(fs.prefix()) { path.to_string() } else { fs.join(fs.prefix(), path) }
     }
 
+    pub fn fs(&self, fs_type: music_folders::FsType) -> &dyn TemporaryFsTrait {
+        self.fs[(fs_type as i16 - 1) as usize].as_ref()
+    }
+
     pub fn local(&self) -> &LocalFs {
         self.fs[0].fs().downcast_ref::<LocalFs>().unwrap()
     }
 
     pub fn s3(&self) -> &S3Fs {
-        self.fs[1].fs().downcast_ref::<S3Fs>().unwrap()
+        self.s3_option().unwrap()
+    }
+
+    pub fn s3_option(&self) -> Option<&S3Fs> {
+        self.fs[1].fs().downcast_ref::<S3Fs>()
     }
 
     pub fn fake_fs_name() -> String {
         Alphanumeric.sample_string(&mut rand::thread_rng(), (5..10).fake()).to_ascii_lowercase()
     }
 
-    pub fn prefix(&self, fs: usize) -> &str {
-        self.fs[fs].prefix()
+    pub fn prefix(&self, fs: music_folders::FsType) -> &str {
+        self.fs(fs).prefix()
     }
 
-    pub fn strip_prefix(&self, fs: usize, path: &str, base: &str) -> String {
-        let fs = self.fs[fs].as_ref();
+    pub fn strip_prefix(&self, fs: music_folders::FsType, path: &str, base: &str) -> String {
+        let fs = self.fs(fs);
         fs.strip_prefix(&self.absolute_path(fs, path), &self.absolute_path(fs, base)).into()
     }
 
-    pub fn extension<'a>(&self, fs: usize, path: &'a str) -> &'a str {
-        let fs = self.fs[fs].as_ref();
+    pub fn extension<'a>(&self, fs: music_folders::FsType, path: &'a str) -> &'a str {
+        let fs = self.fs(fs);
         fs.extension(path)
     }
 
-    pub fn with_extension(&self, fs: usize, path: &str, ext: &str) -> String {
-        let fs = self.fs[fs].as_ref();
+    pub fn with_extension(&self, fs: music_folders::FsType, path: &str, ext: &str) -> String {
+        let fs = self.fs(fs);
         fs.with_extension(&self.absolute_path(fs, path), ext)
     }
 
-    pub fn join(&self, fs: usize, base: &str, path: &str) -> String {
-        let fs = self.fs[fs].as_ref();
+    pub fn join(&self, fs: music_folders::FsType, base: &str, path: &str) -> String {
+        let fs = self.fs(fs);
         fs.join(&self.absolute_path(fs, base), path)
     }
 
@@ -178,20 +187,20 @@ impl TemporaryFs {
         self.join(info.fs, &info.music_folder_path, &info.relative_path)
     }
 
-    pub async fn read(&self, fs: usize, path: &str) -> Vec<u8> {
-        let fs = self.fs[fs].as_ref();
+    pub async fn read(&self, fs: music_folders::FsType, path: &str) -> Vec<u8> {
+        let fs = self.fs(fs);
         let path = self.absolute_path(fs, path);
         fs.read(&path).await.unwrap()
     }
 
-    pub async fn read_to_string(&self, fs: usize, path: &str) -> String {
-        let fs = self.fs[fs].as_ref();
+    pub async fn read_to_string(&self, fs: music_folders::FsType, path: &str) -> String {
+        let fs = self.fs(fs);
         let path = self.absolute_path(fs, path);
         fs.read_to_string(&path).await.unwrap()
     }
 
-    pub async fn write<D: AsRef<[u8]>>(&self, fs: usize, path: &str, data: D) {
-        let fs = self.fs[fs].as_ref();
+    pub async fn write<D: AsRef<[u8]>>(&self, fs: music_folders::FsType, path: &str, data: D) {
+        let fs = self.fs(fs);
         let path = self.absolute_path(fs, path);
         fs.write(&path, data.as_ref()).await;
     }
@@ -200,35 +209,35 @@ impl TemporaryFs {
         self.read(info.fs, &self.song_absolute_path(info)).await
     }
 
-    pub async fn mkdir(&self, fs: usize, path: &str) -> String {
-        let fs = self.fs[fs].as_ref();
+    pub async fn mkdir(&self, fs: music_folders::FsType, path: &str) -> String {
+        let fs = self.fs(fs);
         let path = self.absolute_path(fs, path);
         fs.mkdir(&path).await;
         path
     }
 
-    pub async fn mkfile(&self, fs: usize, path: &str) -> String {
-        let fs = self.fs[fs].as_ref();
+    pub async fn mkfile(&self, fs: music_folders::FsType, path: &str) -> String {
+        let fs = self.fs(fs);
         let path = self.absolute_path(fs, path);
         fs.write(&path, Faker.fake::<String>().as_bytes()).await;
         path
     }
 
-    pub async fn remove(&self, fs: usize, path: &str) {
-        let fs = self.fs[fs].as_ref();
+    pub async fn remove(&self, fs: music_folders::FsType, path: &str) {
+        let fs = self.fs(fs);
         fs.remove(&self.absolute_path(fs, path)).await;
     }
 
     pub async fn mksong(
         &self,
-        fs: usize,
+        fs: music_folders::FsType,
         music_folder_path: &str,
         relative_path: &str,
         tag: SongTag,
         mklrc: bool,
     ) -> SongFsInformation {
         let fs_idx = fs;
-        let fs = self.fs[fs].as_ref();
+        let fs = self.fs(fs);
 
         let path = fs.join(&self.absolute_path(fs, music_folder_path), relative_path);
         let file_type = *SUPPORTED_EXTENSIONS.get(fs.extension(&path)).unwrap();
@@ -286,7 +295,7 @@ impl TemporaryFs {
 
     pub async fn mksongs<S: AsRef<str>>(
         &self,
-        fs: usize,
+        fs: music_folders::FsType,
         music_folder_path: &str,
         relative_paths: &[S],
         tags: Vec<SongTag>,
@@ -303,12 +312,12 @@ impl TemporaryFs {
 
     pub fn mkrelpaths<S: AsRef<str>>(
         &self,
-        fs: usize,
+        fs: music_folders::FsType,
         n_path: usize,
         max_depth: usize,
         exts: &[S],
     ) -> Vec<String> {
-        let fs = self.fs[fs].as_ref();
+        let fs = self.fs(fs);
 
         (0..n_path)
             .map(|_| {
@@ -326,7 +335,7 @@ impl TemporaryFs {
 
     pub async fn mkpathssongs<S: AsRef<str>>(
         &self,
-        fs: usize,
+        fs: music_folders::FsType,
         music_folder_path: &str,
         song_tags: Vec<SongTag>,
         exts: &[S],
@@ -346,13 +355,14 @@ impl TemporaryFs {
 async fn test_roundtrip_media_file() {
     let fs = TemporaryFs::new().await;
 
-    for (fs_idx, fs_impl) in fs.fs.iter().enumerate() {
+    for (idx, fs_impl) in fs.fs.iter().enumerate() {
+        let fs_type = music_folders::FsType::from_repr((idx + 1) as _).unwrap();
         for file_type in SUPPORTED_EXTENSIONS.values().copied() {
             let song_tag = Faker.fake::<SongTag>();
             let song_fs_info = fs
                 .mksong(
-                    fs_idx,
-                    &fs.mkdir(fs_idx, &TemporaryFs::fake_fs_name()).await,
+                    fs_type,
+                    &fs.mkdir(fs_type, &TemporaryFs::fake_fs_name()).await,
                     &concat_string!("test.", to_extension(&file_type)),
                     song_tag.clone(),
                     false,
@@ -370,8 +380,8 @@ async fn test_roundtrip_media_file() {
             .tag;
             assert_eq!(
                 song_tag, read_song_tag,
-                "{:?} tag for fs {} does not match",
-                file_type, fs_idx
+                "{:?} tag for fs {:?} does not match",
+                file_type, fs_type
             );
         }
     }
@@ -381,7 +391,8 @@ async fn test_roundtrip_media_file() {
 async fn test_roundtrip_media_file_none_value() {
     let fs = TemporaryFs::new().await;
 
-    for (fs_idx, fs_impl) in fs.fs.iter().enumerate() {
+    for (idx, fs_impl) in fs.fs.iter().enumerate() {
+        let fs_type = music_folders::FsType::from_repr((idx + 1) as _).unwrap();
         for file_type in SUPPORTED_EXTENSIONS.values().copied() {
             let song_tag = SongTag {
                 album_artists: vec![],
@@ -393,8 +404,8 @@ async fn test_roundtrip_media_file_none_value() {
             };
             let song_fs_info = fs
                 .mksong(
-                    fs_idx,
-                    &fs.mkdir(fs_idx, &TemporaryFs::fake_fs_name()).await,
+                    fs_type,
+                    &fs.mkdir(fs_type, &TemporaryFs::fake_fs_name()).await,
                     &concat_string!("test.", to_extension(&file_type)),
                     song_tag.clone(),
                     false,
@@ -412,8 +423,8 @@ async fn test_roundtrip_media_file_none_value() {
             .tag;
             assert_eq!(
                 song_tag, read_song_tag,
-                "{:?} tag for fs {} does not match",
-                file_type, fs_idx
+                "{:?} tag for fs {:?} does not match",
+                file_type, fs_type
             );
         }
     }

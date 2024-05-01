@@ -14,9 +14,7 @@ pub struct TemporaryS3Fs {
 
 impl TemporaryS3Fs {
     pub async fn new() -> Self {
-        let endpoint_url = std::env::var("AWS_ENDPOINT_URL").ok();
-        let use_path_style_endpoint = std::env::var("AWS_USE_PATH_STYLE_ENDPOINT").is_ok();
-        let fs = S3Fs::new(endpoint_url, use_path_style_endpoint).await;
+        let fs = S3Fs::new(Default::default()).await;
 
         let bucket = TemporaryFs::fake_fs_name();
         fs.client.create_bucket().bucket(&bucket).send().await.unwrap();

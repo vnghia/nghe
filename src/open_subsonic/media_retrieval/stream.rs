@@ -151,13 +151,19 @@ mod tests {
     use axum::response::IntoResponse;
 
     use super::*;
+    use crate::models::*;
     use crate::utils::song::transcode_to_memory;
     use crate::utils::test::http::to_bytes;
     use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_stream_raw() {
-        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        let mut infra = Infra::new()
+            .await
+            .add_folder(music_folders::FsType::Local, true)
+            .await
+            .add_user(None)
+            .await;
         infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let stream_bytes = to_bytes(
@@ -184,7 +190,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_stream_simple() {
-        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        let mut infra = Infra::new()
+            .await
+            .add_folder(music_folders::FsType::Local, true)
+            .await
+            .add_user(None)
+            .await;
         infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let stream_bytes = to_bytes(
@@ -218,7 +229,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_stream_no_cache() {
-        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        let mut infra = Infra::new()
+            .await
+            .add_folder(music_folders::FsType::Local, true)
+            .await
+            .add_user(None)
+            .await;
         infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let stream_bytes = to_bytes(

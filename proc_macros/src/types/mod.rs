@@ -97,7 +97,7 @@ pub fn add_convert_types(args: TokenStream, input: TokenStream) -> Result<TokenS
         fields
             .named
             .iter()
-            .map(|f| {
+            .filter_map(|f| {
                 f.ident.as_ref().and_then(|ident| {
                     if !args.skips.contains(ident) {
                         if args.refs.contains(ident) {

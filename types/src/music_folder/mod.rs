@@ -8,10 +8,19 @@ use nghe_proc_macros::add_types_derive;
 use uuid::Uuid;
 
 #[add_types_derive]
+#[repr(i16)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FsType {
+    Local,
+    S3,
+}
+
+#[add_types_derive]
 #[derive(Debug)]
 pub struct MusicFolder {
     pub id: Uuid,
     pub name: String,
+    pub fs_type: FsType,
 }
 
 #[add_types_derive]
@@ -20,4 +29,5 @@ pub struct MusicFolderPath {
     pub id: Uuid,
     pub name: String,
     pub path: String,
+    pub fs_type: FsType,
 }

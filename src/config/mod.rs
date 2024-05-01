@@ -41,6 +41,8 @@ pub struct ArtistIndexConfig {
     pub ignored_prefixes: Vec<String>,
 }
 
+pub type S3Config = raw::S3Config;
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Config {
@@ -56,6 +58,7 @@ pub struct Config {
     pub lastfm: LastfmConfig,
     #[derivative(Debug = "ignore")]
     pub spotify: SpotifyConfig,
+    pub s3: S3Config,
 }
 
 impl ServerConfig {
@@ -115,7 +118,20 @@ impl Config {
 
         let spotify = raw_config.spotify;
 
-        Self { server, database, artist_index, parsing, scan, transcoding, art, lastfm, spotify }
+        let s3 = raw_config.s3;
+
+        Self {
+            server,
+            database,
+            artist_index,
+            parsing,
+            scan,
+            transcoding,
+            art,
+            lastfm,
+            spotify,
+            s3,
+        }
     }
 }
 

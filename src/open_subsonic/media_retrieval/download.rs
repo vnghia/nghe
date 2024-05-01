@@ -26,12 +26,18 @@ mod tests {
     use axum::response::IntoResponse;
 
     use super::*;
+    use crate::models::*;
     use crate::utils::test::http::to_bytes;
     use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_download() {
-        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        let mut infra = Infra::new()
+            .await
+            .add_folder(music_folders::FsType::Local, true)
+            .await
+            .add_user(None)
+            .await;
         infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let download_bytes = to_bytes(

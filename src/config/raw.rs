@@ -93,6 +93,16 @@ pub struct SpotifyConfig {
     pub secret: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
+#[derivative(Default)]
+pub struct S3Config {
+    pub enable: bool,
+    #[derivative(Default(value = "std::env::var(\"AWS_ENDPOINT_URL\").ok()"))]
+    pub endpoint_url: Option<String>,
+    #[derivative(Default(value = "std::env::var(\"AWS_USE_PATH_STYLE_ENDPOINT\").is_ok()"))]
+    pub use_path_style_endpoint: bool,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub server: ServerConfig,
@@ -104,6 +114,7 @@ pub struct Config {
     pub art: ArtConfig,
     pub lastfm: LastfmConfig,
     pub spotify: SpotifyConfig,
+    pub s3: S3Config,
 }
 
 impl Config {
@@ -118,6 +129,7 @@ impl Config {
             .join(Serialized::default("art", ArtConfig::default()))
             .join(Serialized::default("lastfm", LastfmConfig::default()))
             .join(Serialized::default("spotify", SpotifyConfig::default()))
+            .join(Serialized::default("s3", S3Config::default()))
             .extract()
             .expect("can not parse initial config")
     }

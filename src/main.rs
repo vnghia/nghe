@@ -4,7 +4,7 @@ use nghe::open_subsonic::{
     bookmarks, browsing, extension, lastfm, media_annotation, media_list, media_retrieval,
     music_folder, permission, playlists, scan, searching, spotify, system, user,
 };
-use nghe::utils::fs::LocalFs;
+use nghe::utils::fs::{LocalFs, S3Fs};
 use nghe::Database;
 use nghe_types::constant::{SERVER_NAME, SERVER_VERSION};
 use tokio::signal;
@@ -37,14 +37,20 @@ async fn main() {
     // run it
     let listener = tokio::net::TcpListener::bind(config.server.bind_addr).await.unwrap();
     tracing::info!(listening_addr = %listener.local_addr().unwrap());
-    axum::serve(listener, app(database, config))
+    axum::serve(listener, app(database, config).await)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
 }
 
-fn app(database: Database, config: Config) -> Router {
+async fn app(database: Database, config: Config) -> Router {
     let local_fs = LocalFs { scan_parallel: config.scan.parallel };
+    let s3_fs = if config.s3.enable {
+        tracing::info!("s3 integration enabled");
+        Some(S3Fs::new(config.s3).await)
+    } else {
+        None
+    };
 
     let serve_frontend = ServeDir::new(&config.server.frontend_dir)
         .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
@@ -82,7 +88,7 @@ fn app(database: Database, config: Config) -> Router {
         ))
         .merge(media_annotation::router())
         .merge(permission::router())
-        .merge(music_folder::router())
+        .merge(music_folder::router(local_fs, s3_fs))
         .merge(playlists::router())
         .merge(lastfm::router(lastfm_client))
         .layer(

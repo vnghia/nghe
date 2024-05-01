@@ -10,6 +10,7 @@ use tracing::instrument;
 use typed_path::{Utf8Path, Utf8PathBuf, Utf8UnixEncoding};
 
 use super::FsTrait;
+use crate::config::S3Config;
 use crate::utils::path::{PathInfo, PathMetadata};
 use crate::utils::song::file_type::SUPPORTED_EXTENSIONS;
 use crate::OSError;
@@ -20,18 +21,22 @@ pub struct S3Fs {
 }
 
 impl S3Fs {
-    pub async fn new(endpoint_url: Option<String>, use_path_style_endpoint: bool) -> Self {
+    pub async fn new(config: S3Config) -> Self {
         let mut config_loader = aws_config::from_env();
-        if let Some(endpoint_url) = endpoint_url {
+        if let Some(endpoint_url) = config.endpoint_url {
             config_loader = config_loader.endpoint_url(endpoint_url)
         }
 
         let client = Client::from_conf(
             aws_sdk_s3::config::Builder::from(&config_loader.load().await)
-                .force_path_style(use_path_style_endpoint)
+                .force_path_style(config.use_path_style_endpoint)
                 .build(),
         );
         Self { client }
+    }
+
+    pub fn unwrap(value: Option<&S3Fs>) -> Result<&S3Fs> {
+        value.ok_or_else(|| OSError::InvalidParameter("s3 integration is disabled".into()).into())
     }
 
     pub fn split(path: &str) -> Result<(&str, &str)> {
@@ -46,7 +51,7 @@ impl S3Fs {
         concat_string!("/", path).into()
     }
 
-    #[instrument(skip(tx))]
+    #[instrument(skip(tx, client))]
     async fn list_object<P: AsRef<Utf8Path<<Self as FsTrait>::E>> + Debug + Send + Sync>(
         prefix: P,
         tx: Sender<PathInfo<Self>>,
@@ -69,7 +74,7 @@ impl S3Fs {
                         if let Some(extension) = path.extension()
                             && SUPPORTED_EXTENSIONS.contains_key(extension)
                         {
-                            tx.send(PathInfo {
+                            tx.send_async(PathInfo {
                                 path,
                                 metadata: PathMetadata {
                                     size: content
@@ -77,7 +82,8 @@ impl S3Fs {
                                         .ok_or_else(|| OSError::NotFound("Object size".into()))?
                                         as _,
                                 },
-                            })?
+                            })
+                            .await?
                         }
                     }
                 }
@@ -97,6 +103,12 @@ impl S3Fs {
 #[async_trait::async_trait]
 impl FsTrait for S3Fs {
     type E = Utf8UnixEncoding;
+
+    async fn check_folder<'a>(&self, path: &'a Utf8Path<Self::E>) -> Result<&'a str> {
+        let (bucket, prefix) = Self::split(path.as_str())?;
+        self.client.list_objects_v2().bucket(bucket).prefix(prefix).max_keys(1).send().await?;
+        Ok(path.as_str())
+    }
 
     async fn read<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(&self, path: P) -> Result<Vec<u8>> {
         let (bucket, key) = Self::split(path.as_ref().as_str())?;
@@ -140,13 +152,14 @@ mod tests {
     use itertools::Itertools;
 
     use super::*;
+    use crate::models::*;
     use crate::utils::test::Infra;
 
-    const FS_INDEX: usize = 1;
+    const FS_TYPE: music_folders::FsType = music_folders::FsType::S3;
 
     async fn wrap_scan_media_file(infra: &Infra) -> Vec<PathInfo<S3Fs>> {
         let (tx, rx) = flume::bounded(100);
-        let scan_task = infra.fs.s3().scan_songs(infra.fs.prefix(FS_INDEX).to_string(), tx);
+        let scan_task = infra.fs.s3().scan_songs(infra.fs.prefix(FS_TYPE).to_string(), tx);
         let mut result = vec![];
         while let Ok(r) = rx.recv_async().await {
             result.push(r);
@@ -161,12 +174,12 @@ mod tests {
         let fs = &infra.fs;
 
         let media_paths = stream::iter(infra.fs.mkrelpaths(
-            FS_INDEX,
+            FS_TYPE,
             50,
             3,
             &SUPPORTED_EXTENSIONS.keys().collect_vec(),
         ))
-        .then(move |path| async move { fs.mkfile(FS_INDEX, &path).await })
+        .then(move |path| async move { fs.mkfile(FS_TYPE, &path).await })
         .collect::<Vec<_>>()
         .await;
 
@@ -187,7 +200,7 @@ mod tests {
 
         let media_paths = stream::iter(
             infra.fs.mkrelpaths(
-                FS_INDEX,
+                FS_TYPE,
                 50,
                 3,
                 &[SUPPORTED_EXTENSIONS.keys().copied().collect_vec().as_slice(), &["txt", "rs"]]
@@ -195,8 +208,8 @@ mod tests {
             ),
         )
         .filter_map(move |path| async move {
-            let path = fs.mkfile(FS_INDEX, &path).await;
-            let extension = fs.extension(FS_INDEX, &path);
+            let path = fs.mkfile(FS_TYPE, &path).await;
+            let extension = fs.extension(FS_TYPE, &path);
             if SUPPORTED_EXTENSIONS.contains_key(extension) { Some(path) } else { None }
         })
         .collect::<Vec<_>>()
@@ -219,22 +232,18 @@ mod tests {
         let infra = Infra::new().await;
         let fs = &infra.fs;
 
-        let media_paths = stream::iter(fs.mkrelpaths(
-            FS_INDEX,
-            50,
-            3,
-            &SUPPORTED_EXTENSIONS.keys().collect_vec(),
-        ))
-        .filter_map(move |path| async move {
-            if rand::random::<bool>() {
-                Some(fs.mkfile(FS_INDEX, &path).await)
-            } else {
-                fs.mkdir(FS_INDEX, &path).await;
-                None
-            }
-        })
-        .collect::<Vec<_>>()
-        .await;
+        let media_paths =
+            stream::iter(fs.mkrelpaths(FS_TYPE, 50, 3, &SUPPORTED_EXTENSIONS.keys().collect_vec()))
+                .filter_map(move |path| async move {
+                    if rand::random::<bool>() {
+                        Some(fs.mkfile(FS_TYPE, &path).await)
+                    } else {
+                        fs.mkdir(FS_TYPE, &path).await;
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .await;
 
         let scanned_paths = wrap_scan_media_file(&infra)
             .await
