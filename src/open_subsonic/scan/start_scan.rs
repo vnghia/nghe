@@ -14,6 +14,7 @@ use crate::config::{ArtConfig, ArtistIndexConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
 use crate::open_subsonic::lastfm::scan_artist_lastfm_info;
 use crate::open_subsonic::spotify::scan_artist_spotify_image;
+use crate::utils::fs::LocalFs;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(StartScanParams, admin);
@@ -83,6 +84,7 @@ pub async fn finalize_scan(
 
 pub async fn start_scan(
     pool: &DatabasePool,
+    local_fs: &LocalFs,
     scan_started_at: OffsetDateTime,
     params: StartScanParams,
     artist_index_config: &ArtistIndexConfig,
@@ -94,6 +96,7 @@ pub async fn start_scan(
 ) -> Result<ScanStat> {
     let scan_result = run_scan(
         pool,
+        local_fs,
         scan_started_at,
         params.mode,
         music_folders::table
@@ -123,6 +126,7 @@ pub async fn start_scan(
 
 pub async fn start_scan_handler(
     State(database): State<Database>,
+    Extension(local_fs): Extension<LocalFs>,
     Extension(artist_index_config): Extension<ArtistIndexConfig>,
     Extension(parsing_config): Extension<ParsingConfig>,
     Extension(scan_config): Extension<ScanConfig>,
@@ -138,6 +142,7 @@ pub async fn start_scan_handler(
     tokio::task::spawn(async move {
         start_scan(
             &pool,
+            &local_fs,
             scan_started_at,
             req.params,
             &artist_index_config,

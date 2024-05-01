@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::io::{Cursor, Write};
 
 use anyhow::Result;
@@ -5,7 +6,6 @@ use concat_string::concat_string;
 use fake::{Fake, Faker};
 use futures::{stream, StreamExt};
 use lofty::config::WriteOptions;
-use lofty::file::FileType;
 use lofty::tag::{TagExt, TagType};
 use rand::distributions::{Alphanumeric, DistString};
 use rand::prelude::SliceRandom;
@@ -14,8 +14,8 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use super::{TemporaryLocalFs, TemporaryS3Fs};
 use crate::config::{ArtConfig, ParsingConfig, TranscodingConfig};
-use crate::utils::fs::FsTrait;
-use crate::utils::song::file_type::{to_extension, SONG_FILE_TYPES};
+use crate::utils::fs::{FsTrait, LocalFs, S3Fs};
+use crate::utils::song::file_type::{to_extension, SUPPORTED_EXTENSIONS};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::{SongInformation, SongLyric};
 use crate::utils::test::asset::get_media_asset_path;
@@ -56,6 +56,7 @@ pub fn with_extension<Fs: FsTrait>(path: &str, extension: &str) -> String {
 #[async_trait::async_trait]
 pub trait TemporaryFsTrait {
     fn prefix(&self) -> &str;
+    fn fs(&self) -> &dyn Any;
 
     fn join(&self, base: &str, path: &str) -> String;
     fn strip_prefix<'a>(&self, path: &'a str, base: &str) -> &'a str;
@@ -105,6 +106,14 @@ impl TemporaryFs {
 
     fn absolute_path(&self, fs: &dyn TemporaryFsTrait, path: &str) -> String {
         if path.starts_with(fs.prefix()) { path.to_string() } else { fs.join(fs.prefix(), path) }
+    }
+
+    pub fn local(&self) -> &LocalFs {
+        self.fs[0].fs().downcast_ref::<LocalFs>().unwrap()
+    }
+
+    pub fn s3(&self) -> &S3Fs {
+        self.fs[1].fs().downcast_ref::<S3Fs>().unwrap()
     }
 
     pub fn fake_fs_name() -> String {
@@ -192,7 +201,7 @@ impl TemporaryFs {
         let fs = self.fs[fs].as_ref();
 
         let path = fs.join(&self.absolute_path(fs, music_folder_path), relative_path);
-        let file_type = FileType::from_ext(fs.extension(&path)).unwrap();
+        let file_type = *SUPPORTED_EXTENSIONS.get(fs.extension(&path)).unwrap();
         let mut tag_file =
             Cursor::new(tokio::fs::read(get_media_asset_path(&file_type)).await.unwrap());
         let tag_type = file_type.primary_tag_type();
@@ -308,7 +317,7 @@ async fn test_roundtrip_media_file() {
     let fs = TemporaryFs::new().await;
 
     for (fs_idx, fs_impl) in fs.fs.iter().enumerate() {
-        for file_type in SONG_FILE_TYPES {
+        for file_type in SUPPORTED_EXTENSIONS.values().copied() {
             let song_tag = Faker.fake::<SongTag>();
             let song_fs_info = fs
                 .mksong(
@@ -343,7 +352,7 @@ async fn test_roundtrip_media_file_none_value() {
     let fs = TemporaryFs::new().await;
 
     for (fs_idx, fs_impl) in fs.fs.iter().enumerate() {
-        for file_type in SONG_FILE_TYPES {
+        for file_type in SUPPORTED_EXTENSIONS.values().copied() {
             let song_tag = SongTag {
                 album_artists: vec![],
                 track_number: None,

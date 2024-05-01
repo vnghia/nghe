@@ -103,6 +103,7 @@ lofty = { version = "0.19.2" }
 lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }
 mimalloc = { version = "0.1.41" }
 mime_guess = { version = "2.0.4" }
+phf = { version = "0.11.2", features = ["macros"] }
 rayon = { version = "1.10.0" }
 rsmpeg = { git = "https://github.com/vnghia/rsmpeg.git", rev = "e34a83a", features = [
   "link_system_ffmpeg",

@@ -1,26 +1,40 @@
+use std::any::Any;
+
 use anyhow::Result;
 use aws_sdk_s3::primitives::ByteStream;
-use concat_string::concat_string;
+use typed_path::{Utf8PathBuf, Utf8UnixEncoding};
 
-use super::{extension, join, strip_prefix, with_extension, TemporaryFsTrait};
+use super::{extension, join, strip_prefix, with_extension, TemporaryFs, TemporaryFsTrait};
 use crate::utils::fs::{FsTrait, S3Fs};
 
 pub struct TemporaryS3Fs {
     fs: S3Fs,
+    bucket: Utf8PathBuf<Utf8UnixEncoding>,
 }
 
 impl TemporaryS3Fs {
     pub async fn new() -> Self {
         let endpoint_url = std::env::var("AWS_ENDPOINT_URL").ok();
         let use_path_style_endpoint = std::env::var("AWS_USE_PATH_STYLE_ENDPOINT").is_ok();
-        Self { fs: S3Fs::new(endpoint_url, use_path_style_endpoint).await }
+        let fs = S3Fs::new(endpoint_url, use_path_style_endpoint).await;
+
+        let bucket = TemporaryFs::fake_fs_name();
+        fs.client.create_bucket().bucket(&bucket).send().await.unwrap();
+        let bucket = S3Fs::absolutize(bucket);
+        assert!(bucket.is_absolute());
+
+        Self { fs, bucket }
     }
 }
 
 #[async_trait::async_trait]
 impl TemporaryFsTrait for TemporaryS3Fs {
     fn prefix(&self) -> &str {
-        "/"
+        self.bucket.as_str()
+    }
+
+    fn fs(&self) -> &dyn Any {
+        &self.fs
     }
 
     fn join(&self, base: &str, path: &str) -> String {
@@ -47,14 +61,7 @@ impl TemporaryFsTrait for TemporaryS3Fs {
         self.fs.read_to_string(path).await
     }
 
-    async fn mkdir(&self, path: &str) {
-        // only create bucket if needed
-        let path = concat_string!(path.trim_end_matches('/'), "/");
-        let (bucket, _) = S3Fs::split(&path).unwrap();
-        if self.fs.client.head_bucket().bucket(bucket).send().await.is_err() {
-            self.fs.client.create_bucket().bucket(bucket).send().await.unwrap();
-        }
-    }
+    async fn mkdir(&self, _: &str) {}
 
     async fn write(&self, path: &str, data: &[u8]) {
         let (bucket, key) = S3Fs::split(path).unwrap();

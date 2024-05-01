@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use anyhow::Result;
 use concat_string::concat_string;
 use nghe_types::constant::SERVER_NAME;
@@ -5,6 +7,7 @@ use tempfile::{Builder, TempDir};
 use typed_path::Utf8Path;
 
 use super::{extension, join, strip_prefix, with_extension, TemporaryFsTrait};
+use crate::config::ScanConfig;
 use crate::utils::fs::{FsTrait, LocalFs};
 
 pub struct TemporaryLocalFs {
@@ -14,9 +17,10 @@ pub struct TemporaryLocalFs {
 
 impl TemporaryLocalFs {
     pub fn new() -> Self {
+        let scan_config = ScanConfig::default();
         Self {
             root: Builder::new().prefix(&concat_string!(SERVER_NAME, ".")).tempdir().unwrap(),
-            fs: LocalFs,
+            fs: LocalFs { scan_parallel: scan_config.parallel },
         }
     }
 }
@@ -25,6 +29,10 @@ impl TemporaryLocalFs {
 impl TemporaryFsTrait for TemporaryLocalFs {
     fn prefix(&self) -> &str {
         self.root.path().to_str().unwrap()
+    }
+
+    fn fs(&self) -> &dyn Any {
+        &self.fs
     }
 
     fn join(&self, base: &str, path: &str) -> String {

@@ -6,7 +6,6 @@ use diesel::{BoolExpressionMethods, ExpressionMethods, OptionalExtension, QueryD
 use diesel_async::RunQueryDsl;
 use futures::StreamExt;
 use futures_buffered::FuturesUnorderedBounded;
-use lofty::file::FileType;
 use nghe_types::scan::start_scan::ScanMode;
 use tracing::{instrument, Instrument};
 use uuid::Uuid;
@@ -19,8 +18,9 @@ use super::song::{insert_song, update_song, upsert_song_artists, upsert_song_cov
 use super::ScanStat;
 use crate::config::{ArtConfig, ParsingConfig, ScanConfig};
 use crate::models::*;
-use crate::utils::fs::{scan_local_media_files, FsTrait, LocalFs};
+use crate::utils::fs::FsTrait;
 use crate::utils::path::PathInfo;
+use crate::utils::song::file_type::SUPPORTED_EXTENSIONS;
 use crate::utils::song::{SongInformation, SongLyric};
 use crate::{DatabasePool, OSError};
 
@@ -113,12 +113,13 @@ pub async fn process_path<Fs: FsTrait>(
 
     let Ok(song_information) = SongInformation::read_from(
         &mut Cursor::new(&song_data),
-        FileType::from_ext(song_path.extension().ok_or_else(|| {
-            OSError::InvalidParameter("song path does not have an extension".into())
-        })?)
-        .ok_or_else(|| {
-            OSError::InvalidParameter("can not determine file type from extension".into())
-        })?,
+        *SUPPORTED_EXTENSIONS
+            .get(song_path.extension().ok_or_else(|| {
+                OSError::InvalidParameter("song path does not have an extension".into())
+            })?)
+            .ok_or_else(|| {
+                OSError::InvalidParameter("can not determine file type from extension".into())
+            })?,
         fs.read_to_string(song_path.with_extension("lrc")).await.ok().as_deref(),
         parsing_config,
     ) else {
@@ -215,9 +216,10 @@ pub async fn process_path<Fs: FsTrait>(
     Ok(true)
 }
 
-#[instrument(skip(pool, ignored_prefixes, parsing_config, scan_config, art_config), ret, err)]
-pub async fn run_scan(
+#[instrument(skip(pool, fs, ignored_prefixes, parsing_config, scan_config, art_config), ret, err)]
+pub async fn run_scan<Fs: FsTrait + 'static>(
     pool: &DatabasePool,
+    fs: &Fs,
     scan_started_at: time::OffsetDateTime,
     scan_mode: ScanMode,
     music_folder: music_folders::MusicFolder,
@@ -234,14 +236,8 @@ pub async fn run_scan(
     let mut upserted_song_count: usize = 0;
     let mut scan_error_count: usize = 0;
 
-    let span = tracing::Span::current();
-    let music_folder_path = music_folder.path.clone();
     let (tx, rx) = flume::bounded(scan_config.channel_size);
-    let scan_parallel = scan_config.parallel;
-    let scan_media_files_task = tokio::task::spawn_blocking(move || {
-        let _enter = span.enter();
-        scan_local_media_files(music_folder_path, tx, scan_parallel)
-    });
+    let scan_songs_task = fs.scan_songs(music_folder.path.clone(), tx);
 
     let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.pool_size);
     while let Ok(song_path) = rx.recv_async().await {
@@ -262,6 +258,7 @@ pub async fn run_scan(
         scanned_song_count += 1;
 
         let pool = pool.clone();
+        let fs = fs.clone();
         let music_folder_path = music_folder.path.clone();
         let ignored_prefixes = ignored_prefixes.to_vec();
         let parsing_config = parsing_config.clone();
@@ -272,7 +269,7 @@ pub async fn run_scan(
             async move {
                 process_path(
                     &pool,
-                    &LocalFs,
+                    &fs,
                     scan_started_at,
                     scan_mode,
                     music_folder_id,
@@ -288,7 +285,7 @@ pub async fn run_scan(
         ));
     }
 
-    scan_media_files_task.await?;
+    scan_songs_task.await?;
 
     while let Some(process_path_join_result) = process_path_tasks.next().await {
         if let Ok(process_path_result) = process_path_join_result

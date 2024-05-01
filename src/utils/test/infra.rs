@@ -28,7 +28,7 @@ use crate::open_subsonic::permission::{add_permission, remove_permission};
 use crate::open_subsonic::scan::test::initialize_scan;
 use crate::open_subsonic::scan::{start_scan, ScanStat};
 use crate::open_subsonic::test::id3::*;
-use crate::utils::song::file_type::{picture_to_extension, to_extensions};
+use crate::utils::song::file_type::{picture_to_extension, SUPPORTED_EXTENSIONS};
 use crate::utils::song::test::SongTag;
 use crate::utils::song::MediaDateMbz;
 use crate::{Database, DatabasePool};
@@ -179,6 +179,7 @@ impl Infra {
                 }
                 start_scan(
                     self.pool(),
+                    self.fs.local(),
                     scan_started_at,
                     StartScanParams { id, mode: scan_mode.unwrap_or(ScanMode::Full) },
                     &ArtistIndexConfig::default(),
@@ -213,7 +214,7 @@ impl Infra {
                     self.fs_idxs[index],
                     &self.music_folders[index].path,
                     song_tags,
-                    &to_extensions(),
+                    &SUPPORTED_EXTENSIONS.keys().collect_vec(),
                 )
                 .await,
         );
