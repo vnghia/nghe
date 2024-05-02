@@ -218,6 +218,10 @@ Duplication on two different music folders are is allowed and will be treated as
 
 ### Scan mode
 
+#### Quick
+
+The song will be first checked by its last modified time and then process the same as full if its updated at time is sooner or it hasn't been added into the database. Otherwise mark it as scanned and move to the next song. This mode is particularly useful for cloud storage service.
+
 #### Full
 
 As describe above, if an already identified song is scanned (by checking relative path, hash and size), the scanning process will just mark the file as scanned and skip that file. In the end of the scanning process, all old songs and related informations (artists/albums/genres/etc) inside that music folder that are not scanned will be deleted.
