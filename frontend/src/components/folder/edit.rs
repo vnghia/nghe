@@ -20,6 +20,7 @@ pub fn Folder(id: Uuid) -> Element {
 
     let name = use_signal(Default::default);
     let path = use_signal(Default::default);
+    let fs_type = use_signal(|| FsType::Local);
     let mut submitable = use_signal(Default::default);
 
     if submitable()
@@ -29,12 +30,7 @@ pub fn Folder(id: Uuid) -> Element {
             if common_state
                 .send_with_common::<_, UpdateMusicFolderBody>(
                     "/rest/updateMusicFolder",
-                    UpdateMusicFolderParams {
-                        id,
-                        name: name(),
-                        path: path(),
-                        fs_type: FsType::Local,
-                    },
+                    UpdateMusicFolderParams { id, name: name(), path: path(), fs_type: fs_type() },
                 )
                 .await
                 .map_err(anyhow::Error::from)
@@ -53,6 +49,7 @@ pub fn Folder(id: Uuid) -> Element {
             title: "Update music folder",
             name,
             path,
+            fs_type,
             allow_empty: true,
             submitable
         }

@@ -123,6 +123,7 @@ pub fn Folders() -> Element {
                         tr { class: "shadow bg-base-200",
                             th { class: "text-base", "align": "center", "Name" }
                             th { class: "text-base", "align": "center", "Path" }
+                            th { class: "text-base", "align": "center", "Type" }
                             th { class: "text-base", "align": "center", "Artist" }
                             th { class: "text-base", "align": "center", "Album" }
                             th { class: "text-base", "align": "center", "Song" }
@@ -149,6 +150,7 @@ pub fn Folders() -> Element {
                             tr { key: "{folder.stat.music_folder.id}",
                                 td { class: "text-base", "{folder.stat.music_folder.name}" }
                                 td { class: "text-base", "{folder.stat.music_folder.path}" }
+                                td { class: "text-base", "{folder.stat.music_folder.fs_type.as_ref()}" }
                                 td { class: "text-base", "align": "right",
                                     "{Unsigned::from(folder.stat.artist_count)}"
                                 }

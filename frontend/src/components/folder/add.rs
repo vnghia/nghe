@@ -17,6 +17,7 @@ pub fn AddFolder() -> Element {
 
     let name: Signal<Option<String>> = use_signal(Default::default);
     let path: Signal<Option<String>> = use_signal(Default::default);
+    let fs_type: Signal<FsType> = use_signal(|| FsType::Local);
     let allow = use_signal(|| true);
     let mut submitable = use_signal(Default::default);
 
@@ -31,7 +32,7 @@ pub fn AddFolder() -> Element {
                         name: name().expect("name should not be none"),
                         path: path().expect("path should not be none"),
                         allow: allow(),
-                        fs_type: FsType::Local,
+                        fs_type: fs_type(),
                     },
                 )
                 .await
@@ -51,6 +52,7 @@ pub fn AddFolder() -> Element {
             title: "Add music folder",
             name,
             path,
+            fs_type,
             allow: Some(allow),
             allow_empty: false,
             submitable
