@@ -53,6 +53,27 @@ pub async fn process_path<Fs: FsTrait>(
     let song_path = &song_path_info.path;
     let song_relative_path = song_path.strip_prefix(music_folder_path)?;
 
+    if scan_mode == ScanMode::Quick
+        && let Some(last_modified) = song_path_info.metadata.last_modified
+        && diesel::update(songs::table)
+            .filter(songs::music_folder_id.eq(music_folder_id))
+            .filter(songs::relative_path.eq(song_relative_path.as_str()))
+            .filter(songs::updated_at.ge(last_modified))
+            .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
+            .execute(&mut pool.get().await?)
+            .await?
+            > 0
+    {
+        // There is one song at that path and updated at after the latest modification of this song,
+        // return scanned but not upserted.
+        // In case of duplication, the song that is not in the database before (because of hash size
+        // constrait) will be scanned and will overwrite the song that is already inside the
+        // database. This will always happen for each scan as long as there are duplications.
+        // In case of moving, the song at the destination will be scanned and the path will be
+        // updated.
+        return Ok(false);
+    }
+
     let song_data = fs.read(song_path).await?;
     let song_file_hash = xxh3_64(&song_data);
 
@@ -815,5 +836,77 @@ mod tests {
         let ScanStat { deleted_genre_count, .. } =
             infra.delete_n_song(0, n_song).await.scan(.., None).await;
         assert_eq!(deleted_genre_count, 1);
+    }
+
+    #[tokio::test]
+    async fn test_quick_scan() {
+        let n_song = 50_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+
+        let ScanStat { upserted_song_count, deleted_song_count, .. } =
+            infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Quick)).await;
+        assert_eq!(upserted_song_count, n_song);
+        assert_eq!(deleted_song_count, 0);
+        infra.assert_song_infos().await;
+    }
+
+    #[tokio::test]
+    async fn test_quick_and_quick_scan() {
+        let n_song = 50_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+
+        let ScanStat { upserted_song_count, deleted_song_count, .. } =
+            infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Quick)).await;
+        assert_eq!(upserted_song_count, n_song);
+        assert_eq!(deleted_song_count, 0);
+        infra.assert_song_infos().await;
+
+        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
+            infra.scan(.., Some(ScanMode::Quick)).await;
+        assert_eq!(scanned_song_count, n_song);
+        assert_eq!(upserted_song_count, 0);
+        assert_eq!(deleted_song_count, 0);
+        infra.assert_song_infos().await;
+    }
+
+    #[tokio::test]
+    async fn test_quick_scan_duplicate_song() {
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_n_song(0, 1).await.scan(.., None).await;
+
+        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } = infra
+            .copy_song(0, 0, &Infra::fake_fs_name())
+            .await
+            .scan(.., Some(ScanMode::Quick))
+            .await;
+        assert_eq!(scanned_song_count, 2);
+        assert_eq!(upserted_song_count, 1);
+        assert_eq!(deleted_song_count, 0);
+        infra.assert_song_infos().await;
+
+        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } =
+            infra.scan(.., Some(ScanMode::Quick)).await;
+        assert_eq!(scanned_song_count, 2);
+        assert_eq!(upserted_song_count, 1);
+        assert_eq!(deleted_song_count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_quick_scan_move_song() {
+        let n_song = 50_usize;
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra.add_n_song(0, n_song).await.scan(.., Some(ScanMode::Full)).await;
+
+        let ScanStat { scanned_song_count, upserted_song_count, deleted_song_count, .. } = infra
+            .copy_song(0, 0, &Infra::fake_fs_name())
+            .await
+            .delete_song(0, 0)
+            .await
+            .scan(.., Some(ScanMode::Quick))
+            .await;
+        assert_eq!(scanned_song_count, n_song);
+        assert_eq!(upserted_song_count, 1);
+        assert_eq!(deleted_song_count, 0);
+        infra.assert_song_infos().await;
     }
 }

@@ -1,3 +1,4 @@
+use time::OffsetDateTime;
 use typed_path::Utf8PathBuf;
 
 use crate::utils::fs::FsTrait;
@@ -5,6 +6,7 @@ use crate::utils::fs::FsTrait;
 #[derive(Debug, Clone, Copy)]
 pub struct PathMetadata {
     pub size: u32,
+    pub last_modified: Option<OffsetDateTime>,
 }
 
 #[derive(Debug)]

@@ -8,6 +8,7 @@ use super::get_scan_status::ScanStatus;
 #[add_types_derive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ScanMode {
+    Quick,
     Full,
     Force,
 }

@@ -5,6 +5,7 @@ use anyhow::Result;
 use flume::Sender;
 use ignore::types::TypesBuilder;
 use ignore::{DirEntry, Error, WalkBuilder};
+use time::OffsetDateTime;
 use tokio::task::JoinHandle;
 use tracing::instrument;
 use typed_path::{Utf8NativeEncoding, Utf8Path, Utf8PathBuf};
@@ -96,7 +97,10 @@ impl LocalFs {
 
 impl From<&Metadata> for PathMetadata {
     fn from(value: &Metadata) -> Self {
-        Self { size: value.len() as _ }
+        Self {
+            size: value.len() as _,
+            last_modified: value.modified().ok().map(OffsetDateTime::from),
+        }
     }
 }
 
