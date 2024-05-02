@@ -267,8 +267,24 @@ pub fn Folders() -> Element {
                     }
                     dialog { id: "scan-dialog", class: "modal",
                         form {
-                            class: "modal-box bg-base-100 flex gap-4 justify-center w-min",
+                            class: "modal-box bg-base-100 flex gap-4 justify-center w-min overflow-visible",
                             method: "dialog",
+                            div { class: "tooltip", "data-tip": "Quick",
+                                button {
+                                    class: "btn btn-square btn-lg",
+                                    onclick: move |_| scan_mode.set(Some(ScanMode::Quick)),
+                                    svg {
+                                        class: "fill-none h-6 w-6 stroke-2 stroke-success",
+                                        xmlns: "http://www.w3.org/2000/svg",
+                                        view_box: "0 0 24 24",
+                                        path {
+                                            stroke_linecap: "round",
+                                            stroke_linejoin: "round",
+                                            d: "M3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z"
+                                        }
+                                    }
+                                }
+                            }
                             div { class: "tooltip", "data-tip": "Full",
                                 button {
                                     class: "btn btn-square btn-lg",

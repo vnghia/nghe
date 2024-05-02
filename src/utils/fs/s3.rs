@@ -7,6 +7,7 @@ use aws_sdk_s3::primitives::AggregatedBytes;
 use aws_sdk_s3::Client;
 use concat_string::concat_string;
 use flume::Sender;
+use time::OffsetDateTime;
 use tokio::task::JoinHandle;
 use tracing::instrument;
 use typed_path::{Utf8Path, Utf8PathBuf, Utf8UnixEncoding};
@@ -85,6 +86,12 @@ impl S3Fs {
                                         .size
                                         .ok_or_else(|| OSError::NotFound("Object size".into()))?
                                         as _,
+                                    last_modified: match content.last_modified {
+                                        Some(t) => Some(OffsetDateTime::from_unix_timestamp_nanos(
+                                            t.as_nanos(),
+                                        )?),
+                                        None => None,
+                                    },
                                 },
                             })
                             .await?
