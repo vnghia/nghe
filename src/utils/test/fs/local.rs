@@ -6,7 +6,7 @@ use nghe_types::constant::SERVER_NAME;
 use tempfile::{Builder, TempDir};
 use typed_path::Utf8Path;
 
-use super::{extension, join, strip_prefix, with_extension, TemporaryFsTrait};
+use super::{extension, strip_prefix, with_extension, TemporaryFsTrait};
 use crate::config::ScanConfig;
 use crate::utils::fs::{FsTrait, LocalFs};
 
@@ -36,7 +36,7 @@ impl TemporaryFsTrait for TemporaryLocalFs {
     }
 
     fn join(&self, base: &str, path: &str) -> String {
-        join::<LocalFs>(base, path)
+        LocalFs::join(base, path).to_string()
     }
 
     fn strip_prefix<'a>(&self, path: &'a str, base: &str) -> &'a str {
@@ -57,6 +57,10 @@ impl TemporaryFsTrait for TemporaryLocalFs {
 
     async fn read_to_string(&self, path: &str) -> Result<String> {
         self.fs.read_to_string(path).await
+    }
+
+    async fn read_to_transcoding_input(&self, path: String) -> String {
+        self.fs.read_to_transcoding_input(path).await.unwrap()
     }
 
     async fn mkdir(&self, path: &str) {

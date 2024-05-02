@@ -1,6 +1,8 @@
 use std::fmt::Debug;
+use std::time::Duration;
 
 use anyhow::Result;
+use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::AggregatedBytes;
 use aws_sdk_s3::Client;
 use concat_string::concat_string;
@@ -11,6 +13,7 @@ use typed_path::{Utf8Path, Utf8PathBuf, Utf8UnixEncoding};
 
 use super::FsTrait;
 use crate::config::S3Config;
+use crate::open_subsonic::StreamResponse;
 use crate::utils::path::{PathInfo, PathMetadata};
 use crate::utils::song::file_type::SUPPORTED_EXTENSIONS;
 use crate::OSError;
@@ -18,6 +21,7 @@ use crate::OSError;
 #[derive(Debug, Clone)]
 pub struct S3Fs {
     pub client: Client,
+    pub presigned_url_duration: u64,
 }
 
 impl S3Fs {
@@ -32,7 +36,7 @@ impl S3Fs {
                 .force_path_style(config.use_path_style_endpoint)
                 .build(),
         );
-        Self { client }
+        Self { client, presigned_url_duration: config.presigned_url_duration }
     }
 
     pub fn unwrap(value: Option<&S3Fs>) -> Result<&S3Fs> {
@@ -130,6 +134,39 @@ impl FsTrait for S3Fs {
         path: P,
     ) -> Result<String> {
         String::from_utf8(self.read(path).await?).map_err(anyhow::Error::from)
+    }
+
+    async fn read_to_stream<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(
+        &self,
+        path: P,
+    ) -> Result<StreamResponse> {
+        let path = path.as_ref();
+        let (bucket, key) = Self::split(path.as_str())?;
+        Ok(StreamResponse::from_async_read(
+            path.extension().ok_or_else(|| {
+                OSError::InvalidParameter("path does not have an extension".into())
+            })?,
+            self.client.get_object().bucket(bucket).key(key).send().await?.body.into_async_read(),
+        ))
+    }
+
+    async fn read_to_transcoding_input<P: Into<Utf8PathBuf<Self::E>> + Send + Sync>(
+        &self,
+        path: P,
+    ) -> Result<String> {
+        let path = path.into();
+        let (bucket, key) = Self::split(path.as_str())?;
+        Ok(self
+            .client
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .presigned(PresigningConfig::expires_in(Duration::from_secs(
+                self.presigned_url_duration * 60,
+            ))?)
+            .await?
+            .uri()
+            .into())
     }
 
     fn scan_songs<P: AsRef<Utf8Path<Self::E>> + Debug + Send + Sync + 'static>(

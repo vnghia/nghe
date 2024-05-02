@@ -4,7 +4,7 @@ use anyhow::Result;
 use aws_sdk_s3::primitives::ByteStream;
 use typed_path::{Utf8PathBuf, Utf8UnixEncoding};
 
-use super::{extension, join, strip_prefix, with_extension, TemporaryFs, TemporaryFsTrait};
+use super::{extension, strip_prefix, with_extension, TemporaryFs, TemporaryFsTrait};
 use crate::utils::fs::{FsTrait, S3Fs};
 
 pub struct TemporaryS3Fs {
@@ -36,7 +36,7 @@ impl TemporaryFsTrait for TemporaryS3Fs {
     }
 
     fn join(&self, base: &str, path: &str) -> String {
-        join::<S3Fs>(base, path)
+        S3Fs::join(base, path).to_string()
     }
 
     fn strip_prefix<'a>(&self, path: &'a str, base: &str) -> &'a str {
@@ -57,6 +57,10 @@ impl TemporaryFsTrait for TemporaryS3Fs {
 
     async fn read_to_string(&self, path: &str) -> Result<String> {
         self.fs.read_to_string(path).await
+    }
+
+    async fn read_to_transcoding_input(&self, path: String) -> String {
+        self.fs.read_to_transcoding_input(path).await.unwrap()
     }
 
     async fn mkdir(&self, _: &str) {}

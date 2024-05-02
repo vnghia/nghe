@@ -1,12 +1,12 @@
-use axum::Extension;
-
-use crate::utils::fs::{LocalFs, S3Fs};
-
 mod add_music_folder;
 mod get_music_folder_ids;
 mod get_music_folder_stat;
 mod remove_music_folder;
 mod update_music_folder;
+
+use axum::Extension;
+
+use crate::utils::fs::{LocalFs, S3Fs};
 
 pub fn router(local_fs: LocalFs, s3_fs: Option<S3Fs>) -> axum::Router<crate::Database> {
     nghe_proc_macros::build_router!(

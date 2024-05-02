@@ -1,24 +1,47 @@
 use anyhow::Result;
 use axum::extract::State;
+use axum::Extension;
 use nghe_proc_macros::add_common_validate;
 use uuid::Uuid;
 
 use super::utils::get_song_download_info;
+use crate::models::*;
 use crate::open_subsonic::StreamResponse;
+use crate::utils::fs::{FsTrait, LocalFs, S3Fs};
 use crate::{Database, DatabasePool, ServerError};
 
 add_common_validate!(DownloadParams, download);
 
-pub async fn download(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Result<StreamResponse> {
-    let (absolute_path, ..) = get_song_download_info(pool, user_id, song_id).await?;
-    StreamResponse::try_from_path(&absolute_path).await
+pub async fn download(
+    pool: &DatabasePool,
+    local_fs: &LocalFs,
+    s3_fs: Option<&S3Fs>,
+    user_id: Uuid,
+    song_id: Uuid,
+) -> Result<StreamResponse> {
+    let (music_folder_path, fs_type, song_relative_path, ..) =
+        get_song_download_info(pool, user_id, song_id).await?;
+    match fs_type {
+        music_folders::FsType::Local => {
+            local_fs.read_to_stream(LocalFs::join(music_folder_path, song_relative_path)).await
+        }
+        music_folders::FsType::S3 => {
+            S3Fs::unwrap(s3_fs)?
+                .read_to_stream(S3Fs::join(music_folder_path, song_relative_path))
+                .await
+        }
+    }
 }
 
 pub async fn download_handler(
     State(database): State<Database>,
+    Extension(local_fs): Extension<LocalFs>,
+    Extension(s3_fs): Extension<Option<S3Fs>>,
     req: DownloadRequest,
 ) -> Result<StreamResponse, ServerError> {
-    download(&database.pool, req.user_id, req.params.id).await.map_err(ServerError)
+    download(&database.pool, &local_fs, s3_fs.as_ref(), req.user_id, req.params.id)
+        .await
+        .map_err(ServerError)
 }
 
 #[cfg(test)]
@@ -26,7 +49,6 @@ mod tests {
     use axum::response::IntoResponse;
 
     use super::*;
-    use crate::models::*;
     use crate::utils::test::http::to_bytes;
     use crate::utils::test::Infra;
 
@@ -41,10 +63,16 @@ mod tests {
         infra.add_n_song(0, 1).await.scan(.., None).await;
 
         let download_bytes = to_bytes(
-            download(infra.pool(), infra.user_id(0), infra.song_ids(..).await[0])
-                .await
-                .unwrap()
-                .into_response(),
+            download(
+                infra.pool(),
+                infra.fs.local(),
+                infra.fs.s3_option(),
+                infra.user_id(0),
+                infra.song_ids(..).await[0],
+            )
+            .await
+            .unwrap()
+            .into_response(),
         )
         .await
         .to_vec();

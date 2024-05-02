@@ -8,6 +8,7 @@ use flume::r#async::RecvStream;
 use flume::Receiver;
 use futures::StreamExt;
 use mime_guess::Mime;
+use tokio::io::AsyncRead;
 use tokio_util::io::ReaderStream;
 
 use crate::utils::fs::LocalPath;
@@ -27,40 +28,37 @@ impl futures::Stream for RxStream {
     }
 }
 
-enum StreamType {
-    File(ReaderStream<tokio::fs::File>),
-    Rx(RxStream),
-}
-
 pub struct StreamResponse {
     mime: Mime,
-    stream: StreamType,
+    body: Body,
 }
 
 impl StreamResponse {
+    fn from_ext(ext: &str) -> Mime {
+        mime_guess::from_ext(ext).first_or_octet_stream()
+    }
+
     pub async fn try_from_path<P: AsRef<LocalPath>>(path: P) -> Result<Self> {
         let path = path.as_ref();
-        let mime =
-            mime_guess::from_ext(path.extension().ok_or_else(|| {
+        Ok(Self::from_async_read(
+            path.extension().ok_or_else(|| {
                 OSError::InvalidParameter("path does not have an extension".into())
-            })?)
-            .first_or_octet_stream();
-        let stream = ReaderStream::new(tokio::fs::File::open(path.as_str()).await?);
-        Ok(Self { mime, stream: StreamType::File(stream) })
+            })?,
+            tokio::fs::File::open(path.as_str()).await?,
+        ))
+    }
+
+    pub fn from_async_read<R: AsyncRead + Send + Sync + 'static>(ext: &str, reader: R) -> Self {
+        Self { mime: Self::from_ext(ext), body: Body::from_stream(ReaderStream::new(reader)) }
     }
 
     pub fn from_rx(ext: &str, rx: Receiver<Vec<u8>>) -> Self {
-        let mime = mime_guess::from_ext(ext).first_or_octet_stream();
-        Self { mime, stream: StreamType::Rx(RxStream(rx.into_stream())) }
+        Self { mime: Self::from_ext(ext), body: Body::from_stream(RxStream(rx.into_stream())) }
     }
 }
 
 impl IntoResponse for StreamResponse {
     fn into_response(self) -> Response {
-        let body = match self.stream {
-            StreamType::File(f) => Body::from_stream(f),
-            StreamType::Rx(rx) => Body::from_stream(rx),
-        };
-        ([(header::CONTENT_TYPE, self.mime.essence_str().to_owned())], body).into_response()
+        ([(header::CONTENT_TYPE, self.mime.essence_str().to_owned())], self.body).into_response()
     }
 }

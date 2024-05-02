@@ -32,10 +32,6 @@ pub struct SongFsInformation {
     pub fs: music_folders::FsType,
 }
 
-pub fn join<Fs: FsTrait>(base: &str, path: &str) -> String {
-    Utf8Path::<Fs::E>::new(base).join(path).to_string()
-}
-
 pub fn strip_prefix<'a, Fs: FsTrait>(path: &'a str, base: &str) -> &'a str
 where
     Fs::E: 'a,
@@ -66,6 +62,7 @@ pub trait TemporaryFsTrait {
 
     async fn read(&self, path: &str) -> Result<Vec<u8>>;
     async fn read_to_string(&self, path: &str) -> Result<String>;
+    async fn read_to_transcoding_input(&self, path: String) -> String;
 
     async fn mkdir(&self, path: &str);
     async fn write(&self, path: &str, data: &[u8]);
@@ -197,6 +194,12 @@ impl TemporaryFs {
         let fs = self.fs(fs);
         let path = self.absolute_path(fs, path);
         fs.read_to_string(&path).await.unwrap()
+    }
+
+    pub async fn read_to_transcoding_input(&self, info: &SongFsInformation) -> String {
+        let path = self.song_absolute_path(info);
+        let fs = self.fs(info.fs);
+        fs.read_to_transcoding_input(path).await
     }
 
     pub async fn write<D: AsRef<[u8]>>(&self, fs: music_folders::FsType, path: &str, data: D) {
