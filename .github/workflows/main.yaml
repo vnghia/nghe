@@ -53,6 +53,8 @@ jobs:
         with:
           tool: dioxus-cli
       - name: Build frontend
+        env:
+          RUST_LOG: info
         run: |
           dx build --verbose --profile ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}
 
