@@ -14,8 +14,12 @@ use crate::OSError;
 
 type FormatDescription<'a> = &'a [time::format_description::BorrowedFormatItem<'a>];
 
-const YMD_FORMAT: FormatDescription = format_description!("[year]-[month]-[day]");
-const YM_FORMAT: FormatDescription = format_description!("[year]-[month]");
+const YMD_MINUS_FORMAT: FormatDescription = format_description!("[year]-[month]-[day]");
+const YM_MINUS_FORMAT: FormatDescription = format_description!("[year]-[month]");
+const YMD_SLASH_FORMAT: FormatDescription = format_description!("[year]/[month]/[day]");
+const YM_SLASH_FORMAT: FormatDescription = format_description!("[year]/[month]");
+const YMD_DOT_FORMAT: FormatDescription = format_description!("[year].[month].[day]");
+const YM_DOT_FORMAT: FormatDescription = format_description!("[year].[month]");
 const Y_FORMAT: FormatDescription = format_description!("[year]");
 
 type SongDateInner = Option<(u16, Option<(u8, Option<u8>)>)>;
@@ -108,22 +112,42 @@ impl SongDate {
             let mut parsed = time::parsing::Parsed::new();
             if input.len() >= 10 {
                 // yyyy-mm-dd
-                parsed.parse_items(input[..10].as_bytes(), YMD_FORMAT)?;
-                let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
-                let month = parsed.month().ok_or_else(|| OSError::NotFound("month".into()))? as _;
-                let day = parsed.day().ok_or_else(|| OSError::NotFound("day".into()))?.get();
-                Ok(Self(Some((year, Some((month, Some(day)))))))
+                let input = input[..10].as_bytes();
+                if parsed.parse_items(input, YMD_MINUS_FORMAT).is_ok()
+                    || parsed.parse_items(input, YMD_SLASH_FORMAT).is_ok()
+                    || parsed.parse_items(input, YMD_DOT_FORMAT).is_ok()
+                {
+                    let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
+                    let month =
+                        parsed.month().ok_or_else(|| OSError::NotFound("month".into()))? as _;
+                    let day = parsed.day().ok_or_else(|| OSError::NotFound("day".into()))?.get();
+                    Ok(Self(Some((year, Some((month, Some(day)))))))
+                } else {
+                    anyhow::bail!(OSError::InvalidParameter("can not parse date input".into()))
+                }
             } else if input.len() >= 7 {
                 // yyyy-mm
-                parsed.parse_items(input[..7].as_bytes(), YM_FORMAT)?;
-                let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
-                let month = parsed.month().ok_or_else(|| OSError::NotFound("month".into()))? as _;
-                Ok(Self(Some((year, Some((month, None))))))
+                let input = input[..7].as_bytes();
+                if parsed.parse_items(input, YM_MINUS_FORMAT).is_ok()
+                    || parsed.parse_items(input, YM_SLASH_FORMAT).is_ok()
+                    || parsed.parse_items(input, YM_DOT_FORMAT).is_ok()
+                {
+                    let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
+                    let month =
+                        parsed.month().ok_or_else(|| OSError::NotFound("month".into()))? as _;
+                    Ok(Self(Some((year, Some((month, None))))))
+                } else {
+                    anyhow::bail!(OSError::InvalidParameter("can not parse date input".into()))
+                }
             } else {
                 // yyyy
-                parsed.parse_items(input[..4].as_bytes(), Y_FORMAT)?;
-                let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
-                Ok(Self(Some((year, None))))
+                let input = input[..4].as_bytes();
+                if parsed.parse_items(input, Y_FORMAT).is_ok() {
+                    let year = parsed.year().ok_or_else(|| OSError::NotFound("year".into()))? as _;
+                    Ok(Self(Some((year, None))))
+                } else {
+                    anyhow::bail!(OSError::InvalidParameter("can not parse date input".into()))
+                }
             }
         } else {
             Ok(Self(None))
@@ -254,11 +278,23 @@ mod tests {
 
         let date = SongDate::parse(Some("2000-12-01")).unwrap();
         assert_eq!(date.0, Some((2000, Some((12, Some(1))))));
+        let date = SongDate::parse(Some("2000/12/01")).unwrap();
+        assert_eq!(date.0, Some((2000, Some((12, Some(1))))));
+        let date = SongDate::parse(Some("2000.12.01")).unwrap();
+        assert_eq!(date.0, Some((2000, Some((12, Some(1))))));
 
         let date = SongDate::parse(Some("2000-12-01-still-ok")).unwrap();
         assert_eq!(date.0, Some((2000, Some((12, Some(1))))));
+        let date = SongDate::parse(Some("2000/12/01 still ok")).unwrap();
+        assert_eq!(date.0, Some((2000, Some((12, Some(1))))));
+        let date = SongDate::parse(Some("2000.12.01:still:ok")).unwrap();
+        assert_eq!(date.0, Some((2000, Some((12, Some(1))))));
 
         let date = SongDate::parse(Some("2000-12")).unwrap();
+        assert_eq!(date.0, Some((2000, Some((12, None)))));
+        let date = SongDate::parse(Some("2000/12")).unwrap();
+        assert_eq!(date.0, Some((2000, Some((12, None)))));
+        let date = SongDate::parse(Some("2000.12")).unwrap();
         assert_eq!(date.0, Some((2000, Some((12, None)))));
 
         let date = SongDate::parse(Some("2000")).unwrap();
