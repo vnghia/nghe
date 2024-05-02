@@ -102,7 +102,9 @@ impl<'a> From<&'a MediaDateMbz> for albums::NewAlbum<'a> {
 impl SongDate {
     #[instrument(err(Debug))]
     pub fn parse(input: Option<&str>) -> Result<Self> {
-        if let Some(input) = input {
+        if let Some(input) = input
+            && input.len() >= 4
+        {
             let mut parsed = time::parsing::Parsed::new();
             if input.len() >= 10 {
                 // yyyy-mm-dd
@@ -261,6 +263,9 @@ mod tests {
 
         let date = SongDate::parse(Some("2000")).unwrap();
         assert_eq!(date.0, Some((2000, None)));
+
+        let date = SongDate::parse(Some("")).unwrap();
+        assert_eq!(date.0, None);
 
         assert!(SongDate::parse(Some("2000-31")).is_err());
         assert!(SongDate::parse(Some("12-01")).is_err());
