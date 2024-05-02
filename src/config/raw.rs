@@ -101,6 +101,8 @@ pub struct S3Config {
     pub endpoint_url: Option<String>,
     #[derivative(Default(value = "std::env::var(\"AWS_USE_PATH_STYLE_ENDPOINT\").is_ok()"))]
     pub use_path_style_endpoint: bool,
+    #[derivative(Default(value = "15"))]
+    pub presigned_url_duration: u64,
 }
 
 #[derive(Debug, Deserialize)]

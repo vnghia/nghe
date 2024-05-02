@@ -248,8 +248,8 @@ fn flush_encoder(
 }
 
 #[instrument(skip_all, err(Debug))]
-pub fn transcode<PI: AsRef<LocalPath>, PO: AsRef<LocalPath>>(
-    input_path: PI,
+pub fn transcode<I: Into<Vec<u8>>, PO: AsRef<LocalPath>>(
+    input: I,
     output_path: PO,
     write_to_file: bool,
     output_bit_rate: u32,
@@ -257,7 +257,6 @@ pub fn transcode<PI: AsRef<LocalPath>, PO: AsRef<LocalPath>>(
     buffer_size: usize,
     tx: Sender<Vec<u8>>,
 ) -> Result<()> {
-    let input_path = input_path.as_ref();
     let output_path = output_path.as_ref();
     let output_file = if write_to_file {
         Some(OpenOptions::new().write(true).create_new(true).open(output_path.as_str())?)
@@ -266,7 +265,7 @@ pub fn transcode<PI: AsRef<LocalPath>, PO: AsRef<LocalPath>>(
     };
     let output_bit_rate = output_bit_rate * 1000; // bit to kbit
 
-    let input_cpath = CString::new(input_path.as_str()).expect("could not create cstring from str");
+    let input_cpath = CString::new(input).expect("could not create cstring from str");
     let output_cpath =
         CString::new(output_path.as_str()).expect("could not create cstring from str");
 
@@ -359,10 +358,9 @@ pub mod test {
     use nghe_types::media_retrieval::stream::Format;
 
     use super::*;
-    use crate::utils::fs::LocalPathBuf;
 
-    pub async fn transcode_to_memory(
-        input_path: LocalPathBuf,
+    pub async fn transcode_to_memory<I: Into<Vec<u8>> + Send + Sync + 'static>(
+        input: I,
         output_format: Format,
         output_bit_rate: u32,
         output_time_offset: u32,
@@ -372,7 +370,7 @@ pub mod test {
 
         let transcode_thread = tokio::task::spawn_blocking(move || {
             transcode(
-                input_path,
+                input,
                 concat_string!("output.", output_format.as_ref()),
                 false,
                 output_bit_rate,
@@ -419,7 +417,7 @@ mod tests {
                         let input_path = media_path.clone();
                         transcoding_set.spawn(async move {
                             transcode_to_memory(
-                                input_path,
+                                input_path.into_string(),
                                 output_format,
                                 *output_bitrate,
                                 *output_time_offset,

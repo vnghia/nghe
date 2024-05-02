@@ -10,6 +10,7 @@ use tracing::instrument;
 use typed_path::{Utf8NativeEncoding, Utf8Path, Utf8PathBuf};
 
 use super::FsTrait;
+use crate::open_subsonic::StreamResponse;
 use crate::utils::path::{PathInfo, PathMetadata};
 use crate::utils::song::file_type::{to_extension, FILETYPE_GLOB_PATTERN};
 use crate::OSError;
@@ -122,6 +123,20 @@ impl FsTrait for LocalFs {
         path: P,
     ) -> Result<String> {
         tokio::fs::read_to_string(path.as_ref().as_str()).await.map_err(anyhow::Error::from)
+    }
+
+    async fn read_to_stream<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(
+        &self,
+        path: P,
+    ) -> Result<StreamResponse> {
+        StreamResponse::try_from_path(path).await
+    }
+
+    async fn read_to_transcoding_input<P: Into<Utf8PathBuf<Self::E>> + Send + Sync>(
+        &self,
+        path: P,
+    ) -> Result<String> {
+        Ok(path.into().into_string())
     }
 
     fn scan_songs<P: AsRef<Utf8Path<Self::E>> + Debug + Send + Sync + 'static>(
