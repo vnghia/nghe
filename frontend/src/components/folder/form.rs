@@ -1,4 +1,6 @@
 use dioxus::prelude::*;
+use nghe_types::music_folder::FsType;
+use strum::IntoEnumIterator;
 
 use super::super::Toast;
 use crate::state::CommonState;
@@ -9,6 +11,7 @@ pub struct FolderFormProps {
     title: &'static str,
     name: Signal<Option<String>>,
     path: Signal<Option<String>>,
+    fs_type: Signal<FsType>,
     allow: Option<Signal<bool>>,
     allow_empty: bool,
     submitable: Signal<bool>,
@@ -16,7 +19,15 @@ pub struct FolderFormProps {
 
 #[component]
 pub fn FolderForm(props: FolderFormProps) -> Element {
-    let FolderFormProps { title, mut name, mut path, allow, allow_empty, mut submitable } = props;
+    let FolderFormProps {
+        title,
+        mut name,
+        mut path,
+        mut fs_type,
+        allow,
+        allow_empty,
+        mut submitable,
+    } = props;
 
     let nav = navigator();
     let common_state = CommonState::use_redirect();
@@ -73,11 +84,23 @@ pub fn FolderForm(props: FolderFormProps) -> Element {
                             span { class: "text-base text-base-content", "Path" }
                         }
                         input {
-                            class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md",
+                            class: "input input-bordered sm:mx-auto sm:w-full sm:max-w-md mb-4",
                             r#type: "text",
                             value: "{raw_path}",
                             autocomplete: "path",
                             oninput: move |e| raw_path.set(e.value())
+                        }
+                        for value in FsType::iter() {
+                            div { class: "label",
+                                span { class: "text-base text-base-content", "{value.as_ref()}" }
+                                input {
+                                    class: "radio",
+                                    r#type: "radio",
+                                    name: "fs-type",
+                                    checked: value == fs_type(),
+                                    oninput: move |_| fs_type.set(value)
+                                }
+                            }
                         }
                         if let Some(mut allow) = allow {
                             div { class: "flex flex-row justify-center items-center gap-4 mt-4",

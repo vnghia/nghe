@@ -5,11 +5,12 @@ pub mod remove_music_folder;
 pub mod update_music_folder;
 
 use nghe_proc_macros::add_types_derive;
+use strum::{AsRefStr, EnumIter};
 use uuid::Uuid;
 
 #[add_types_derive]
 #[repr(i16)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, AsRefStr, EnumIter, PartialOrd, Ord)]
 pub enum FsType {
     Local,
     S3,

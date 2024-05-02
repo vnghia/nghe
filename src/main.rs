@@ -79,6 +79,7 @@ async fn app(database: Database, config: Config) -> Router {
         .merge(spotify::router(config.art.artist_dir.clone(), spotify_client.clone()))
         .merge(scan::router(
             local_fs,
+            s3_fs.clone(),
             config.artist_index,
             config.parsing,
             config.scan,
