@@ -143,6 +143,7 @@ impl FsTrait for LocalFs {
         Ok(path.into().into_string())
     }
 
+    #[instrument(skip_all)]
     fn scan_songs<P: AsRef<Utf8Path<Self::E>> + Debug + Send + Sync + 'static>(
         &self,
         prefix: P,
