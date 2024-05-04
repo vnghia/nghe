@@ -113,7 +113,7 @@ rspotify = { version = "0.13.1", default-features = false, features = [
   "reqwest-rustls-tls",
 ] }
 tokio-postgres = { version = "0.7.10" }
-tokio-util = { version = "0.7.10", features = ["io"] }
+tokio-util = { version = "0.7.11", features = ["io"] }
 tower = { version = "0.4.13", features = ["util"] }
 tower-http = { version = "0.5.2", features = ["cors", "fs", "trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
