@@ -351,7 +351,7 @@ jobs:
         with:
           operating_system: freebsd
           version: ${{ matrix.version }}
-          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG VCPKG_BINARY_SOURCES ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
+          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE VCPKG_BINARY_SOURCES ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
           shell: "bash"
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.10/freebsd-${{ matrix.version }}-x86-64.qcow2
@@ -364,7 +364,7 @@ jobs:
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
 
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
-            cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+            RUST_LOG=trace cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
