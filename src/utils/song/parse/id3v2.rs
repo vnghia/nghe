@@ -78,6 +78,7 @@ impl SongTag {
                 .map_or_else(|| Ok(Vec::default()), |v| v.map(Language::from_str).try_collect())?;
         let genres = extract_and_split_str(tag, &parsing_config.genre, parsing_config.separator)
             .map_or_else(Vec::default, |v| v.map(genres::Genre::from).collect());
+        let compilation = get_text(tag, &parsing_config.compilation).is_some_and(|s| !s.is_empty());
 
         let picture = Self::extract_id3v2_picture(tag)?;
 
@@ -92,6 +93,7 @@ impl SongTag {
             disc_total,
             languages,
             genres,
+            compilation,
             picture,
         })
     }
@@ -229,6 +231,9 @@ mod test {
                     parsing_config.genre,
                     self.genres.iter().map(genres::NewGenre::as_str).join(&multi_value_separator),
                 );
+            }
+            if self.compilation {
+                write_id3v2_text_tag(&mut tag, parsing_config.compilation, "1".into());
             }
 
             if let Some(picture) = self.picture {

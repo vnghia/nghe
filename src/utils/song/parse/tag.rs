@@ -42,6 +42,7 @@ pub struct MediaDateMbz {
 pub struct SongTag {
     pub song: MediaDateMbz,
     pub album: MediaDateMbz,
+
     #[cfg_attr(
         test,
         dummy(
@@ -56,10 +57,12 @@ pub struct SongTag {
         )
     )]
     pub album_artists: Vec<artists::ArtistNoId>,
+
     pub track_number: Option<u32>,
     pub track_total: Option<u32>,
     pub disc_number: Option<u32>,
     pub disc_total: Option<u32>,
+
     #[cfg_attr(
         test,
         dummy(expr = "((0..=7915), 0..=2).fake::<Vec<usize>>().into_iter().unique().map(|i| \
@@ -71,6 +74,8 @@ pub struct SongTag {
         dummy(expr = "fake::vec![String; 0..=2].into_iter().map(genres::Genre::from).collect()")
     )]
     pub genres: Vec<genres::Genre>,
+    pub compilation: bool,
+
     #[cfg_attr(test, dummy(expr = "crate::utils::test::picture::fake(false)"))]
     pub picture: Option<Picture>,
 }

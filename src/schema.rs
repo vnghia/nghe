@@ -230,6 +230,7 @@ diesel::table! {
         song_id -> Uuid,
         album_artist_id -> Uuid,
         upserted_at -> Timestamptz,
+        compilation -> Bool,
     }
 }
 

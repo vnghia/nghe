@@ -49,6 +49,8 @@ pub struct Id3v2ParsingConfig {
     pub language: FrameIdOrUserText,
     #[derivative(Default(value = "\"TCON\".try_into().unwrap()"))]
     pub genre: FrameIdOrUserText,
+    #[derivative(Default(value = "\"compilation\".try_into().unwrap()"))]
+    pub compilation: FrameIdOrUserText,
 
     #[derivative(Default(value = "\"MusicBrainz Artist Id\".try_into().unwrap()"))]
     pub artist_mbz_id: FrameIdOrUserText,
@@ -96,6 +98,8 @@ pub struct VorbisCommentsParsingConfig {
     pub language: String,
     #[derivative(Default(value = "\"GENRE\".into()"))]
     pub genre: String,
+    #[derivative(Default(value = "\"COMPILATION\".into()"))]
+    pub compilation: String,
 
     #[derivative(Default(value = "\"MUSICBRAINZ_ARTISTID\".into()"))]
     pub artist_mbz_id: String,

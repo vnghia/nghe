@@ -667,6 +667,7 @@ impl Infra {
                 .map(|language| Language::from_str(&language.unwrap()).unwrap())
                 .collect_vec(),
             genres,
+            compilation: false,
             picture,
         };
 
