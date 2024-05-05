@@ -657,7 +657,19 @@ impl Infra {
             .select(BasicGenreId3Db::as_select())
             .get_results::<BasicGenreId3Db>(&mut self.pool().get().await.unwrap())
             .await
-            .unwrap();
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec();
+
+        let compilation = !songs_album_artists::table
+            .filter(songs_album_artists::song_id.eq(song_id))
+            .filter(songs_album_artists::compilation)
+            .select(songs_album_artists::compilation)
+            .get_results::<bool>(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap()
+            .is_empty();
 
         let picture = picture::from_id(self.pool(), song.cover_art_id, &self.fs.art_config).await;
 
@@ -676,7 +688,7 @@ impl Infra {
                 .map(|language| Language::from_str(&language.unwrap()).unwrap())
                 .collect_vec(),
             genres,
-            compilation: false,
+            compilation,
             picture,
         };
 
@@ -767,6 +779,13 @@ impl Infra {
             assert_eq!(song_fs_tag.disc_total, song_db_tag.disc_total);
 
             assert_eq!(song_fs_tag.languages, song_db_tag.languages);
+            assert_eq!(song_fs_tag.genres, song_db_tag.genres);
+            // In both case, compilation tag does not have any meaning
+            if !song_fs_tag.album_artists.is_empty()
+                && song_fs_tag.album_artists != song_fs_tag.artists
+            {
+                assert_eq!(song_fs_tag.compilation, song_db_tag.compilation);
+            }
 
             assert_eq!(song_fs_tag.picture, song_db_tag.picture);
 

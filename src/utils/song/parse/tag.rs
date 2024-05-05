@@ -71,7 +71,8 @@ pub struct SongTag {
     pub languages: Vec<Language>,
     #[cfg_attr(
         test,
-        dummy(expr = "fake::vec![String; 0..=2].into_iter().map(genres::Genre::from).collect()")
+        dummy(expr = "fake::vec![String; \
+                      0..=2].into_iter().map(genres::Genre::from).sorted().collect()")
     )]
     pub genres: Vec<genres::Genre>,
     pub compilation: bool,
