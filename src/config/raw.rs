@@ -103,6 +103,7 @@ pub struct S3Config {
     pub use_path_style_endpoint: bool,
     #[derivative(Default(value = "15"))]
     pub presigned_url_duration: u64,
+    pub stalled_stream_grace_preriod: u64,
 }
 
 #[derive(Debug, Deserialize)]
