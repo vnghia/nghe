@@ -33,7 +33,13 @@ pub struct TemporaryDb {
 
 impl TemporaryDb {
     async fn new(url: String) -> Self {
-        let _ = tracing_subscriber::fmt().with_test_writer().try_init();
+        let _ = tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "info".into()),
+            )
+            .with_test_writer()
+            .try_init();
 
         let name = Uuid::new_v4().to_string();
         let mut new_url = Url::parse(&url).expect("can not parse database url");
