@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::time::Duration;
 
 use anyhow::Result;
+use aws_sdk_s3::config::StalledStreamProtectionConfig;
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::AggregatedBytes;
 use aws_sdk_s3::Client;
@@ -32,9 +33,18 @@ impl S3Fs {
             config_loader = config_loader.endpoint_url(endpoint_url)
         }
 
+        let stalled_stream_protection_config = if config.stalled_stream_grace_preriod > 0 {
+            StalledStreamProtectionConfig::enabled()
+                .grace_period(Duration::from_secs(config.stalled_stream_grace_preriod))
+                .build()
+        } else {
+            StalledStreamProtectionConfig::disabled()
+        };
+
         let client = Client::from_conf(
             aws_sdk_s3::config::Builder::from(&config_loader.load().await)
                 .force_path_style(config.use_path_style_endpoint)
+                .stalled_stream_protection(stalled_stream_protection_config)
                 .build(),
         );
         Self { client, presigned_url_duration: config.presigned_url_duration }
