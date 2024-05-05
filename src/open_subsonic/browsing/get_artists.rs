@@ -21,7 +21,7 @@ async fn get_indexed_artists(
     music_folder_ids: &Option<Vec<Uuid>>,
 ) -> Result<Vec<(String, ArtistId3Db)>> {
     #[add_permission_filter]
-    get_basic_artist_id3_db()
+    get_album_artist_id3_db()
         .select((artists::index, ArtistId3Db::as_select()))
         .get_results::<(String, ArtistId3Db)>(&mut pool.get().await?)
         .await
@@ -87,7 +87,7 @@ mod tests {
             .map(|(_, artist)| artist.basic.id)
             .sorted()
             .collect_vec();
-        assert_eq!(artist_ids, infra.artist_ids(&infra.artist_no_ids(..)).await);
+        assert_eq!(artist_ids, infra.artist_ids(&infra.album_artist_no_ids(..)).await);
     }
 
     #[tokio::test]

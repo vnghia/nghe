@@ -5,7 +5,7 @@ use diesel::dsl::{count_distinct, max, sql, sum, AssumeNotNull};
 use diesel::expression::SqlLiteral;
 use diesel::{
     helper_types, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable,
-    Selectable, SelectableHelper,
+    Selectable,
 };
 use diesel_async::RunQueryDsl;
 use isolang::Language;
@@ -14,6 +14,7 @@ use nghe_types::id3::*;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+use super::get_basic_artist_id3_db;
 use crate::models::*;
 use crate::DatabasePool;
 
@@ -32,8 +33,12 @@ pub struct BasicArtistId3Db {
 pub struct ArtistId3Db {
     #[diesel(embed)]
     pub basic: BasicArtistId3Db,
-    #[diesel(select_expression = count_distinct(songs::album_id))]
-    #[diesel(select_expression_type = count_distinct<songs::album_id>)]
+    // if songs_album_artists.song_id is null, this artist does not have any album, return 0
+    #[diesel(select_expression = sql(
+        "case when any_value(songs_album_artists.song_id) is null \
+        then 0 else count(distinct(songs.album_id)) end",
+    ))]
+    #[diesel(select_expression_type = SqlLiteral::<sql_types::Int8>)]
     pub album_count: i64,
     pub mbz_id: Option<Uuid>,
     pub cover_art_id: Option<Uuid>,
@@ -181,10 +186,9 @@ impl From<BasicAlbumId3Db> for AlbumId3 {
 
 impl AlbumId3Db {
     pub async fn into(self, pool: &DatabasePool) -> Result<AlbumId3> {
-        let artists = artists::table
+        let artists = get_basic_artist_id3_db()
             .filter(artists::id.eq_any(self.artist_ids))
-            .select(BasicArtistId3Db::as_select())
-            .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
+            .get_results(&mut pool.get().await?)
             .await?
             .into_iter()
             .map(BasicArtistId3Db::into)
@@ -231,10 +235,9 @@ impl From<BasicSongId3Db> for SongId3 {
 
 impl SongId3Db {
     pub async fn into(self, pool: &DatabasePool) -> Result<SongId3> {
-        let artists = artists::table
+        let artists = get_basic_artist_id3_db()
             .filter(artists::id.eq_any(self.artist_ids))
-            .select(BasicArtistId3Db::as_select())
-            .get_results::<BasicArtistId3Db>(&mut pool.get().await?)
+            .get_results(&mut pool.get().await?)
             .await?
             .into_iter()
             .map(BasicArtistId3Db::into)

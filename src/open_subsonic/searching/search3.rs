@@ -52,9 +52,9 @@ async fn sync(
 ) -> Result<Search3Result> {
     let artists = #[add_permission_filter]
     #[add_count_offset(artist)]
-    get_artist_id3_db()
+    get_album_artist_id3_db()
         .order(artists::name.asc())
-        .get_results::<ArtistId3Db>(&mut pool.get().await?)
+        .get_results(&mut pool.get().await?)
         .await?;
 
     let albums = #[add_permission_filter]
@@ -100,7 +100,7 @@ async fn full_text_search(
 ) -> Result<Search3Result> {
     let artists = #[add_permission_filter]
     #[add_count_offset(artist)]
-    get_artist_id3_db()
+    get_album_artist_id3_db()
         .filter(
             artists::ts
                 .matches(websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query)),
@@ -112,7 +112,7 @@ async fn full_text_search(
             )
             .desc(),
         )
-        .get_results::<ArtistId3Db>(&mut pool.get().await?)
+        .get_results(&mut pool.get().await?)
         .await?;
 
     let albums = #[add_permission_filter]

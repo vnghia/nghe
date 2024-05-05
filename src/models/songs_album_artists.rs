@@ -10,4 +10,5 @@ pub use crate::schema::songs_album_artists;
 pub struct NewSongAlbumArtist {
     pub song_id: Uuid,
     pub album_artist_id: Uuid,
+    pub compilation: bool,
 }
