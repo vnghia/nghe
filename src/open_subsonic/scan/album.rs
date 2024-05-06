@@ -49,6 +49,7 @@ pub async fn upsert_song_album_artists(
     pool: &DatabasePool,
     song_id: Uuid,
     album_artist_ids: &[Uuid],
+    compilation: bool,
 ) -> Result<()> {
     diesel::insert_into(songs_album_artists::table)
         .values(
@@ -58,12 +59,16 @@ pub async fn upsert_song_album_artists(
                 .map(|album_artist_id| songs_album_artists::NewSongAlbumArtist {
                     song_id,
                     album_artist_id,
+                    compilation,
                 })
                 .collect_vec(),
         )
         .on_conflict((songs_album_artists::song_id, songs_album_artists::album_artist_id))
         .do_update()
-        .set(songs_album_artists::upserted_at.eq(time::OffsetDateTime::now_utc()))
+        .set((
+            songs_album_artists::upserted_at.eq(time::OffsetDateTime::now_utc()),
+            songs_album_artists::compilation.eq(compilation),
+        ))
         .execute(&mut pool.get().await?)
         .await?;
     Ok(())

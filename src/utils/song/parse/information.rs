@@ -245,6 +245,8 @@ mod tests {
                 "{:?} language does not match",
                 file_type
             );
+            assert!(tag.genres.is_empty(), "{:?} genre does not match", file_type);
+            assert!(tag.compilation, "{:?} compilation does not match", file_type);
 
             let picture_data =
                 std::fs::read(get_asset_dir().join("test").join("sample.jpg")).unwrap();

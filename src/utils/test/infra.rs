@@ -4,7 +4,6 @@ use std::slice::SliceIndex;
 use std::str::FromStr;
 
 use axum::extract::State;
-use diesel::dsl::{Filter, IsNotNull};
 use diesel::{
     ExpressionMethods, OptionalExtension, PgExpressionMethods, QueryDsl, SelectableHelper,
 };
@@ -496,13 +495,34 @@ impl Infra {
         self.song_fs_infos(slice).iter().flat_map(|s| s.tag.artists.clone()).unique().collect_vec()
     }
 
-    pub fn album_artist_no_ids<S>(&self, slice: S) -> Vec<artists::ArtistNoId>
+    pub fn no_compilation_album_artist_no_ids<S>(&self, slice: S) -> Vec<artists::ArtistNoId>
     where
         S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
     {
         self.song_fs_infos(slice)
             .iter()
             .flat_map(|s| s.tag.album_artists.clone())
+            .unique()
+            .collect_vec()
+    }
+
+    pub fn album_artist_no_ids<S>(&self, slice: S) -> Vec<artists::ArtistNoId>
+    where
+        S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
+    {
+        self.song_fs_infos(slice)
+            .iter()
+            .flat_map(|s| {
+                [
+                    s.tag.album_artists.clone(),
+                    if s.tag.album_artists.is_empty() || s.tag.compilation {
+                        s.tag.artists.clone()
+                    } else {
+                        vec![]
+                    },
+                ]
+                .concat()
+            })
             .unique()
             .collect_vec()
     }
@@ -579,18 +599,6 @@ impl Infra {
         self.song_fs_infos(slice).iter().map(|s| s.tag.album.clone().into()).unique().collect_vec()
     }
 
-    pub fn get_song_artist_db() -> Filter<GetBasicArtistId3Db, IsNotNull<songs_artists::artist_id>>
-    {
-        // inner join = left join + not null
-        get_basic_artist_id3_db().filter(songs_artists::artist_id.is_not_null())
-    }
-
-    pub fn get_album_artist_db()
-    -> Filter<GetBasicArtistId3Db, IsNotNull<songs_album_artists::album_artist_id>> {
-        // inner join = left join + not null
-        get_basic_artist_id3_db().filter(songs_album_artists::album_artist_id.is_not_null())
-    }
-
     pub async fn song_db_info(&self, song_id: Uuid) -> SongDbInformation {
         let song = songs::table
             .inner_join(music_folders::table)
@@ -620,25 +628,26 @@ impl Infra {
             mbz_id: album.no_id.mbz_id,
         };
 
-        let (artist_ids, artist_no_ids): (Vec<_>, Vec<_>) = Self::get_song_artist_db()
+        let (artist_ids, artist_no_ids): (Vec<_>, Vec<_>) = get_song_artist_id3_db()
             .filter(songs::id.eq(song_id))
-            .get_results::<BasicArtistId3Db>(&mut self.pool().get().await.unwrap())
+            .get_results(&mut self.pool().get().await.unwrap())
             .await
             .unwrap()
             .into_iter()
-            .map(|a| (a.id, a.no_id))
+            .map(|a| (a.basic.id, a.basic.no_id))
             .unzip();
         let artist_ids = artist_ids.into_iter().sorted().collect_vec();
         let artist_no_ids = artist_no_ids.into_iter().sorted().collect_vec();
 
-        let (album_artist_ids, album_artist_no_ids): (Vec<_>, Vec<_>) = Self::get_album_artist_db()
-            .filter(songs::id.eq(song_id))
-            .get_results::<BasicArtistId3Db>(&mut self.pool().get().await.unwrap())
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|a| (a.id, a.no_id))
-            .unzip();
+        let (album_artist_ids, album_artist_no_ids): (Vec<_>, Vec<_>) =
+            get_no_compilation_album_artist_id3_db()
+                .filter(songs::id.eq(song_id))
+                .get_results(&mut self.pool().get().await.unwrap())
+                .await
+                .unwrap()
+                .into_iter()
+                .map(|a| (a.artist.basic.id, a.artist.basic.no_id))
+                .unzip();
         let album_artist_ids = album_artist_ids.into_iter().sorted().collect_vec();
         let album_artist_no_ids = album_artist_no_ids.into_iter().sorted().collect_vec();
 
@@ -648,7 +657,19 @@ impl Infra {
             .select(BasicGenreId3Db::as_select())
             .get_results::<BasicGenreId3Db>(&mut self.pool().get().await.unwrap())
             .await
-            .unwrap();
+            .unwrap()
+            .into_iter()
+            .sorted()
+            .collect_vec();
+
+        let compilation = !songs_album_artists::table
+            .filter(songs_album_artists::song_id.eq(song_id))
+            .filter(songs_album_artists::compilation)
+            .select(songs_album_artists::compilation)
+            .get_results::<bool>(&mut self.pool().get().await.unwrap())
+            .await
+            .unwrap()
+            .is_empty();
 
         let picture = picture::from_id(self.pool(), song.cover_art_id, &self.fs.art_config).await;
 
@@ -667,6 +688,7 @@ impl Infra {
                 .map(|language| Language::from_str(&language.unwrap()).unwrap())
                 .collect_vec(),
             genres,
+            compilation,
             picture,
         };
 
@@ -757,6 +779,13 @@ impl Infra {
             assert_eq!(song_fs_tag.disc_total, song_db_tag.disc_total);
 
             assert_eq!(song_fs_tag.languages, song_db_tag.languages);
+            assert_eq!(song_fs_tag.genres, song_db_tag.genres);
+            // In both case, compilation tag does not have any meaning
+            if !song_fs_tag.album_artists.is_empty()
+                && song_fs_tag.album_artists != song_fs_tag.artists
+            {
+                assert_eq!(song_fs_tag.compilation, song_db_tag.compilation);
+            }
 
             assert_eq!(song_fs_tag.picture, song_db_tag.picture);
 
@@ -804,7 +833,7 @@ impl Infra {
     pub async fn assert_song_artist_no_ids(&self, artist_no_ids: &[artists::ArtistNoId]) {
         assert_eq!(
             self.artist_ids(artist_no_ids).await,
-            Self::get_song_artist_db()
+            get_song_artist_id3_db()
                 .select(artists::id)
                 .get_results::<Uuid>(&mut self.pool().get().await.unwrap())
                 .await
@@ -815,17 +844,23 @@ impl Infra {
         );
     }
 
-    pub async fn assert_album_artist_infos<S>(&self, slice: S)
+    pub async fn assert_no_compilation_album_artist_infos<S>(&self, slice: S)
     where
         S: SliceIndex<[Vec<SongFsInformation>], Output = [Vec<SongFsInformation>]>,
     {
-        self.assert_album_artist_no_ids(&self.album_artist_no_ids(slice)).await;
+        self.assert_no_compilation_album_artist_no_ids(
+            &self.no_compilation_album_artist_no_ids(slice),
+        )
+        .await;
     }
 
-    pub async fn assert_album_artist_no_ids(&self, artist_no_ids: &[artists::ArtistNoId]) {
+    pub async fn assert_no_compilation_album_artist_no_ids(
+        &self,
+        artist_no_ids: &[artists::ArtistNoId],
+    ) {
         assert_eq!(
             self.artist_ids(artist_no_ids).await,
-            Self::get_album_artist_db()
+            get_no_compilation_album_artist_id3_db()
                 .select(artists::id)
                 .get_results::<Uuid>(&mut self.pool().get().await.unwrap())
                 .await

@@ -191,11 +191,19 @@ pub async fn process_path<Fs: FsTrait>(
     // if there are no album artists,
     // we assume that they are the same as artists.
     if !song_tag.album_artists.is_empty() {
+        // if the song has compilation, all artists in the song artists will be added to song album
+        // artists with compilation set to true. If it also contains any album artists, the
+        // compilation field will be overwritten to false later. If the album artists field
+        // is empty, the album artists will be the same with song artists which in turn set
+        // any compilation field to false, so don't set to true in the first place.
+        if song_tag.compilation {
+            upsert_song_album_artists(pool, song_id, &artist_ids, true).await?;
+        }
         let album_artist_ids =
             upsert_artists(pool, ignored_prefixes, &song_tag.album_artists).await?;
-        upsert_song_album_artists(pool, song_id, &album_artist_ids).await?;
+        upsert_song_album_artists(pool, song_id, &album_artist_ids, false).await?;
     } else {
-        upsert_song_album_artists(pool, song_id, &artist_ids).await?;
+        upsert_song_album_artists(pool, song_id, &artist_ids, false).await?;
     }
     // album artists for the same album
     // that are extracted from multiple songs
@@ -485,7 +493,7 @@ mod tests {
             .await;
 
         infra.assert_song_infos().await;
-        infra.assert_album_artist_infos(..).await;
+        infra.assert_no_compilation_album_artist_infos(..).await;
     }
 
     #[tokio::test]
@@ -617,13 +625,19 @@ mod tests {
             .await;
         assert_eq!(deleted_artist_count, 0);
         infra
-            .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
+            .assert_no_compilation_album_artist_no_ids(&[
+                "artist1".into(),
+                "artist2".into(),
+                "artist3".into(),
+            ])
             .await;
 
         let ScanStat { deleted_artist_count, .. } =
             infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
-        infra.assert_album_artist_no_ids(&["artist2".into(), "artist3".into()]).await;
+        infra
+            .assert_no_compilation_album_artist_no_ids(&["artist2".into(), "artist3".into()])
+            .await;
     }
 
     #[tokio::test]
@@ -660,13 +674,19 @@ mod tests {
             .await;
         assert_eq!(deleted_artist_count, 0);
         infra
-            .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
+            .assert_no_compilation_album_artist_no_ids(&[
+                "artist1".into(),
+                "artist2".into(),
+                "artist3".into(),
+            ])
             .await;
 
         let ScanStat { deleted_artist_count, .. } =
             infra.delete_song(0, 0).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 1);
-        infra.assert_album_artist_no_ids(&["artist2".into(), "artist3".into()]).await;
+        infra
+            .assert_no_compilation_album_artist_no_ids(&["artist2".into(), "artist3".into()])
+            .await;
     }
 
     #[tokio::test]
@@ -699,7 +719,11 @@ mod tests {
             infra.add_songs(0, song_tags).await.scan(.., None).await;
         assert_eq!(deleted_artist_count, 0);
         infra
-            .assert_album_artist_no_ids(&["artist1".into(), "artist2".into(), "artist3".into()])
+            .assert_no_compilation_album_artist_no_ids(&[
+                "artist1".into(),
+                "artist2".into(),
+                "artist3".into(),
+            ])
             .await;
 
         let ScanStat { deleted_artist_count, .. } = infra
@@ -716,7 +740,9 @@ mod tests {
             .scan(.., None)
             .await;
         assert_eq!(deleted_artist_count, 1);
-        infra.assert_album_artist_no_ids(&["artist2".into(), "artist3".into()]).await;
+        infra
+            .assert_no_compilation_album_artist_no_ids(&["artist2".into(), "artist3".into()])
+            .await;
     }
 
     #[tokio::test]
@@ -908,5 +934,24 @@ mod tests {
         assert_eq!(upserted_song_count, 1);
         assert_eq!(deleted_song_count, 0);
         infra.assert_song_infos().await;
+    }
+
+    #[tokio::test]
+    async fn test_upsert_both_album_artist_and_artist() {
+        let mut infra = Infra::new().await.n_folder(1).await;
+        infra
+            .add_songs(
+                0,
+                vec![SongTag {
+                    album: "album".into(),
+                    artists: vec!["artist1".into()],
+                    album_artists: vec!["artist1".into()],
+                    ..Faker.fake()
+                }],
+            )
+            .await
+            .scan(.., None)
+            .await;
+        infra.assert_no_compilation_album_artist_no_ids(&["artist1".into()]).await;
     }
 }

@@ -52,9 +52,9 @@ async fn sync(
 ) -> Result<Search3Result> {
     let artists = #[add_permission_filter]
     #[add_count_offset(artist)]
-    get_artist_id3_db()
+    get_album_artist_id3_db()
         .order(artists::name.asc())
-        .get_results::<ArtistId3Db>(&mut pool.get().await?)
+        .get_results(&mut pool.get().await?)
         .await?;
 
     let albums = #[add_permission_filter]
@@ -72,7 +72,7 @@ async fn sync(
         .await?;
 
     Ok(Search3Result {
-        artists: artists.into_iter().map(ArtistId3Db::into).collect(),
+        artists: artists.into_iter().map(ArtistAlbumCountId3Db::into).collect(),
         albums: stream::iter(albums)
             .then(|v| async move { v.into(pool).await })
             .try_collect()
@@ -100,7 +100,7 @@ async fn full_text_search(
 ) -> Result<Search3Result> {
     let artists = #[add_permission_filter]
     #[add_count_offset(artist)]
-    get_artist_id3_db()
+    get_album_artist_id3_db()
         .filter(
             artists::ts
                 .matches(websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query)),
@@ -112,7 +112,7 @@ async fn full_text_search(
             )
             .desc(),
         )
-        .get_results::<ArtistId3Db>(&mut pool.get().await?)
+        .get_results(&mut pool.get().await?)
         .await?;
 
     let albums = #[add_permission_filter]
@@ -150,7 +150,7 @@ async fn full_text_search(
         .await?;
 
     Ok(Search3Result {
-        artists: artists.into_iter().map(ArtistId3Db::into).collect(),
+        artists: artists.into_iter().map(ArtistAlbumCountId3Db::into).collect(),
         albums: albums.into_iter().map(BasicAlbumId3Db::into).collect(),
         songs: stream::iter(songs)
             .then(|v| async move { v.into(pool).await })

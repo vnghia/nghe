@@ -18,20 +18,34 @@ async fn get_artist_and_album_ids(
     pool: &DatabasePool,
     user_id: Uuid,
     artist_id: Uuid,
-) -> Result<(ArtistId3Db, Vec<Uuid>)> {
-    get_artist_id3_db()
+) -> Result<(ArtistAlbumCountId3Db, Vec<Uuid>)> {
+    if let Some(res) = get_album_artist_id3_db()
         .filter(with_permission(user_id))
         .filter(artists::id.eq(artist_id))
         .select((
-            ArtistId3Db::as_select(),
+            ArtistAlbumCountId3Db::as_select(),
             sql::<sql_types::Array<sql_types::Uuid>>(
                 "array_agg(distinct(songs.album_id)) album_ids",
             ),
         ))
-        .first::<(ArtistId3Db, Vec<Uuid>)>(&mut pool.get().await?)
+        .first::<(ArtistAlbumCountId3Db, Vec<Uuid>)>(&mut pool.get().await?)
         .await
         .optional()?
-        .ok_or_else(|| OSError::NotFound("Artist".into()).into())
+    {
+        Ok(res)
+    } else {
+        Ok((
+            get_no_album_artist_id3_db()
+                .filter(with_permission(user_id))
+                .filter(artists::id.eq(artist_id))
+                .first(&mut pool.get().await?)
+                .await
+                .optional()?
+                .ok_or_else(|| OSError::NotFound("Artist".into()))?
+                .into(),
+            vec![],
+        ))
+    }
 }
 
 async fn get_basic_albums(
@@ -100,18 +114,16 @@ mod tests {
 
         let artist_id =
             upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
-        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
-            .await
-            .unwrap()
-            .1
-            .into_iter()
-            .sorted()
-            .collect_vec();
+        let (artist, album_ids) =
+            get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id).await.unwrap();
+        let album_count = artist.album_count;
+        let album_ids = album_ids.into_iter().sorted().collect_vec();
+        assert_eq!(album_count as usize, album_ids.len());
         assert_eq!(album_ids, infra.album_ids(&infra.album_no_ids(..)).await);
     }
 
     #[tokio::test]
-    async fn test_get_artist_featured_in_albums() {
+    async fn test_get_artist_albums_compilation() {
         let artist_name = "artist";
         let n_song = 10_usize;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
@@ -119,7 +131,11 @@ mod tests {
             .add_songs(
                 0,
                 (0..n_song)
-                    .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
+                    .map(|_| SongTag {
+                        artists: vec![artist_name.into()],
+                        compilation: true,
+                        ..Faker.fake()
+                    })
                     .collect(),
             )
             .await
@@ -128,18 +144,46 @@ mod tests {
 
         let artist_id =
             upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
-        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
-            .await
-            .unwrap()
-            .1
-            .into_iter()
-            .sorted()
-            .collect_vec();
+        let (artist, album_ids) =
+            get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id).await.unwrap();
+        let album_count = artist.album_count;
+        let album_ids = album_ids.into_iter().sorted().collect_vec();
+        assert_eq!(album_count as usize, album_ids.len());
         assert_eq!(album_ids, infra.album_ids(&infra.album_no_ids(..)).await);
     }
 
     #[tokio::test]
-    async fn test_get_artist_distinct_albums() {
+    async fn test_get_artist_albums_no_compilation() {
+        let artist_name = "artist";
+        let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag {
+                        artists: vec![artist_name.into()],
+                        album_artists: vec![Faker.fake::<String>().into()],
+                        compilation: false,
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            )
+            .await
+            .scan(.., None)
+            .await;
+
+        let artist_id =
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
+        let (artist, album_ids) =
+            get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id).await.unwrap();
+        let album_count = artist.album_count;
+        assert_eq!(album_count, 0);
+        assert!(album_ids.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_artist_distinct_albums_compilation() {
         let artist_name = "artist";
         let album_names = ["album1", "album2"];
         let n_song = 10_usize;
@@ -151,6 +195,7 @@ mod tests {
                     .map(|i| SongTag {
                         artists: vec![artist_name.into()],
                         album: if i < 5 { album_names[0].into() } else { album_names[1].into() },
+                        compilation: true,
                         ..Faker.fake()
                     })
                     .collect(),
@@ -161,19 +206,17 @@ mod tests {
 
         let artist_id =
             upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
-        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
-            .await
-            .unwrap()
-            .1
-            .into_iter()
-            .sorted()
-            .collect_vec();
+        let (artist, album_ids) =
+            get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id).await.unwrap();
+        let album_count = artist.album_count;
+        let album_ids = album_ids.into_iter().sorted().collect_vec();
+        assert_eq!(album_count as usize, album_ids.len());
         assert_eq!(album_ids.len(), album_names.len());
         assert_eq!(album_ids, infra.album_ids(&infra.album_no_ids(..)).await);
     }
 
     #[tokio::test]
-    async fn test_get_artist_albums_partial_music_folders() {
+    async fn test_get_artist_partial_music_folders_compilation() {
         let artist_name = "artist";
         let n_folder = 2_usize;
         let n_song = 10_usize;
@@ -183,7 +226,11 @@ mod tests {
                 .add_songs(
                     i,
                     (0..n_song)
-                        .map(|_| SongTag { artists: vec![artist_name.into()], ..Faker.fake() })
+                        .map(|_| SongTag {
+                            artists: vec![artist_name.into()],
+                            compilation: true,
+                            ..Faker.fake()
+                        })
                         .collect(),
                 )
                 .await;
@@ -195,17 +242,55 @@ mod tests {
         let music_folder_idx = rand::thread_rng().gen_range(0..infra.music_folders.len());
         infra.remove_permission(None, None).await.add_permission(None, music_folder_idx).await;
 
-        let album_ids = get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id)
-            .await
-            .unwrap()
-            .1
-            .into_iter()
-            .sorted()
-            .collect_vec();
+        let (artist, album_ids) =
+            get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id).await.unwrap();
+        let album_count = artist.album_count;
+        let album_ids = album_ids.into_iter().sorted().collect_vec();
+        assert_eq!(album_count as usize, album_ids.len());
         assert_eq!(
             album_ids,
             infra.album_ids(&infra.album_no_ids(music_folder_idx..=music_folder_idx)).await
         );
+    }
+
+    #[tokio::test]
+    async fn test_get_artist_partial_music_folders_no_compilation() {
+        let artist_name = "artist";
+        let n_folder = 2_usize;
+        let n_song = 10_usize;
+        let mut infra = Infra::new().await.n_folder(n_folder).await.add_user(None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|_| SongTag {
+                        artists: vec![artist_name.into()],
+                        album_artists: vec![Faker.fake::<String>().into()],
+                        compilation: false,
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            )
+            .await
+            .add_songs(
+                1,
+                (0..n_song)
+                    .map(|_| SongTag { album_artists: vec![artist_name.into()], ..Faker.fake() })
+                    .collect(),
+            )
+            .await
+            .scan(.., None)
+            .await;
+        infra.remove_permission(None, None).await.add_permissions(.., ..1).await;
+
+        let artist_id =
+            upsert_artists(infra.pool(), &[], &[artist_name.into()]).await.unwrap().remove(0);
+
+        let (artist, album_ids) =
+            get_artist_and_album_ids(infra.pool(), infra.user_id(0), artist_id).await.unwrap();
+        let album_count = artist.album_count;
+        assert_eq!(album_count, 0);
+        assert!(album_ids.is_empty());
     }
 
     #[tokio::test]

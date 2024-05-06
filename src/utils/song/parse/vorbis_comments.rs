@@ -45,6 +45,7 @@ impl SongTag {
         let languages =
             tag.remove(&parsing_config.language).map(|s| Language::from_str(&s)).try_collect()?;
         let genres = tag.remove(&parsing_config.genre).map(genres::Genre::from).collect();
+        let compilation = tag.get(&parsing_config.compilation).is_some_and(|s| !s.is_empty());
 
         let picture = Self::extract_ogg_picture(tag);
 
@@ -59,6 +60,7 @@ impl SongTag {
             disc_total,
             languages,
             genres,
+            compilation,
             picture,
         })
     }
@@ -133,6 +135,9 @@ mod test {
             self.genres.into_iter().for_each(|genre| {
                 tag.push(parsing_config.genre.to_owned(), genre.value.into_owned())
             });
+            if self.compilation {
+                tag.push(parsing_config.compilation, "1".into());
+            }
 
             if let Some(picture) = self.picture {
                 tag.insert_picture(picture, None).unwrap();

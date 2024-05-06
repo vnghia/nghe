@@ -48,7 +48,7 @@ mod tests {
     use crate::utils::test::Infra;
 
     async fn get_artist_ids(pool: &DatabasePool, user_id: Uuid, song_id: Uuid) -> Vec<Uuid> {
-        Infra::get_song_artist_db()
+        get_song_artist_id3_db()
             .filter(with_permission(user_id))
             .filter(songs::id.eq(song_id))
             .select(artists::id)

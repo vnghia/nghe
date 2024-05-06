@@ -21,6 +21,7 @@ An implementation of OpenSubsonic API in Rust
   - [Scan process](#scan-process)
     - [How a song is uniquely identified ?](#how-a-song-is-uniquely-identified--)
     - [Scan mode](#scan-mode)
+      - [Quick](#quick)
       - [Full](#full)
       - [Force](#force)
     - [How an artist is uniquely identified ?](#how-an-artist-is-uniquely-identified--)
@@ -28,6 +29,7 @@ An implementation of OpenSubsonic API in Rust
   - [Permission model](#permission-model)
     - [Access to a song-level resource](#access-to-a-song-level-resource)
     - [Access to an artist or album level resource](#access-to-an-artist-or-album-level-resource)
+  - [Compilation album](#compilation-album)
   - [Roadmap](#roadmap)
 
 ## Features
@@ -280,6 +282,12 @@ Nested music folders are allowed and each folder will be treated as a separate u
 ### Configuration
 
 Permission configuration can be found in the folders menu of the frontend.
+
+## Compilation album
+
+If a song has compilation tag, its album will be added to the list of albums of each artist in its artists tag (not to be confused with album artists). For example, if a song has album named "album", compilation enabled, 2 artists "artist1", "artist2" and 1 album aritst "various artists", all of these 3 artists will have album "album" in their information. However, when accessing by album id, only album artists ("various artists" in this case) will be shown in the aritst fields.
+
+For artist listing operations, like searching or syncing, only artists with at least one album (compilation or not) will be sent back. Artists with no album can only be accessed directly using their id.
 
 ## Roadmap
 
