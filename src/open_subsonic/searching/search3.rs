@@ -72,7 +72,7 @@ async fn sync(
         .await?;
 
     Ok(Search3Result {
-        artists: artists.into_iter().map(ArtistId3Db::into).collect(),
+        artists: artists.into_iter().map(ArtistAlbumCountId3Db::into).collect(),
         albums: stream::iter(albums)
             .then(|v| async move { v.into(pool).await })
             .try_collect()
@@ -150,7 +150,7 @@ async fn full_text_search(
         .await?;
 
     Ok(Search3Result {
-        artists: artists.into_iter().map(ArtistId3Db::into).collect(),
+        artists: artists.into_iter().map(ArtistAlbumCountId3Db::into).collect(),
         albums: albums.into_iter().map(BasicAlbumId3Db::into).collect(),
         songs: stream::iter(songs)
             .then(|v| async move { v.into(pool).await })

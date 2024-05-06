@@ -33,15 +33,19 @@ pub struct BasicArtistId3Db {
 pub struct ArtistId3Db {
     #[diesel(embed)]
     pub basic: BasicArtistId3Db,
-    // if songs_album_artists.song_id is null, this artist does not have any album, return 0
-    #[diesel(select_expression = sql(
-        "case when any_value(songs_album_artists.song_id) is null \
-        then 0 else count(distinct(songs.album_id)) end",
-    ))]
-    #[diesel(select_expression_type = SqlLiteral::<sql_types::Int8>)]
-    pub album_count: i64,
     pub mbz_id: Option<Uuid>,
     pub cover_art_id: Option<Uuid>,
+}
+
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = artists)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct ArtistAlbumCountId3Db {
+    #[diesel(embed)]
+    pub artist: ArtistId3Db,
+    #[diesel(select_expression = count_distinct(songs::album_id))]
+    #[diesel(select_expression_type = count_distinct<songs::album_id>)]
+    pub album_count: i64,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -156,14 +160,23 @@ impl From<BasicArtistId3Db> for ArtistId3 {
     }
 }
 
-impl From<ArtistId3Db> for ArtistId3 {
-    fn from(value: ArtistId3Db) -> Self {
+impl From<ArtistId3Db> for ArtistAlbumCountId3Db {
+    fn from(artist: ArtistId3Db) -> Self {
+        Self { artist, album_count: 0 }
+    }
+}
+
+impl From<ArtistAlbumCountId3Db> for ArtistId3 {
+    fn from(value: ArtistAlbumCountId3Db) -> Self {
         Self {
-            id: value.basic.id,
-            name: value.basic.no_id.name.into_owned(),
+            id: value.artist.basic.id,
+            name: value.artist.basic.no_id.name.into_owned(),
+            music_brainz_id: value.artist.mbz_id,
+            cover_art: value
+                .artist
+                .cover_art_id
+                .map(|id| MediaTypedId { t: Some(MediaType::Aritst), id }),
             album_count: Some(value.album_count as _),
-            music_brainz_id: value.mbz_id,
-            cover_art: value.cover_art_id.map(|id| MediaTypedId { t: Some(MediaType::Aritst), id }),
         }
     }
 }

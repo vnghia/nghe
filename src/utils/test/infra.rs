@@ -646,7 +646,7 @@ impl Infra {
                 .await
                 .unwrap()
                 .into_iter()
-                .map(|a| (a.basic.id, a.basic.no_id))
+                .map(|a| (a.artist.basic.id, a.artist.basic.no_id))
                 .unzip();
         let album_artist_ids = album_artist_ids.into_iter().sorted().collect_vec();
         let album_artist_no_ids = album_artist_no_ids.into_iter().sorted().collect_vec();
