@@ -287,7 +287,7 @@ Permission configuration can be found in the folders menu of the frontend.
 
 If a song has compilation tag, its album will be added to the list of albums of each artist in its artists tag (not to be confused with album artists). For example, if a song has album named "album", compilation enabled, 2 artists "artist1", "artist2" and 1 album aritst "various artists", all of these 3 artists will have album "album" in their information. However, when accessing by album id, only album artists ("various artists" in this case) will be shown in the aritst fields.
 
-For artist listing operations, like searching or syncing, only artists with at least one album (compilation or not) will be sent back. Artists with no album can only be accessed directly using their id.
+For artist searching or syncing, artists with no album might be ignored if the number of artists is divisible by artist count. To fix this, we will need a continuation token.
 
 ## Roadmap
 
