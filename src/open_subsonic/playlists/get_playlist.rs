@@ -38,7 +38,9 @@ pub async fn get_playlist_handler(
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
     use nghe_types::playlists::create_playlist::CreatePlaylistParams;
+    use nghe_types::playlists::id3::PlaylistId3WithSongs;
     use rand::prelude::SliceRandom;
 
     use super::super::create_playlist::create_playlist;
@@ -171,5 +173,45 @@ mod tests {
         .id;
 
         assert!(get_playlist(infra.pool(), infra.user_id(0), playlist_id).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_playlist_sorted() {
+        let n_song = 10_usize;
+        let playlist_name = "playlist";
+
+        let mut infra = Infra::new().await.add_user(None).await.n_folder(1).await;
+        infra.add_n_song(0, n_song).await.scan(.., None).await;
+        let mut song_fs_ids = infra.song_ids(..).await;
+        song_fs_ids.shuffle(&mut rand::thread_rng());
+
+        let playlist_id = create_playlist(
+            infra.pool(),
+            infra.user_id(0),
+            &CreatePlaylistParams {
+                name: Some(playlist_name.into()),
+                playlist_id: None,
+                song_ids: Some(song_fs_ids.clone()),
+            },
+        )
+        .await
+        .unwrap()
+        .playlist
+        .basic
+        .id;
+
+        let PlaylistId3WithSongs { playlist, songs } =
+            get_playlist(infra.pool(), infra.user_id(0), playlist_id)
+                .await
+                .unwrap()
+                .into(infra.pool())
+                .await
+                .unwrap();
+
+        assert_eq!(playlist.name, playlist_name);
+        assert!(!playlist.public);
+        assert_eq!(playlist.song_count, songs.len() as u32);
+
+        assert_eq!(song_fs_ids, songs.into_iter().map(|s| s.id).collect_vec());
     }
 }

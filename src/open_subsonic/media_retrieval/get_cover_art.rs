@@ -47,11 +47,11 @@ pub async fn get_album_cover_art<P: AsRef<LocalPath>>(
         .filter(with_permission(user_id))
         .filter(songs::album_id.eq(album_id))
         .order((
-            // Latest song, first disc, first track and lastly smallest cover art id if any
+            // First disc, first track, latest song and lastly smallest cover art id if any
             // difference.
-            songs::year.desc().nulls_last(),
             songs::disc_number.asc().nulls_last(),
             songs::track_number.asc().nulls_last(),
+            songs::year.desc().nulls_last(),
             cover_arts::file_size.asc().nulls_last(),
             // Add this to ensure that album cover art will be deterministic.
             cover_arts::file_hash.asc().nulls_last(),
