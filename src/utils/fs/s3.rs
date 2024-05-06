@@ -10,7 +10,7 @@ use concat_string::concat_string;
 use flume::Sender;
 use time::OffsetDateTime;
 use tokio::task::JoinHandle;
-use tracing::instrument;
+use tracing::{instrument, Instrument};
 use typed_path::{Utf8Path, Utf8PathBuf, Utf8UnixEncoding};
 
 use super::FsTrait;
@@ -194,10 +194,9 @@ impl FsTrait for S3Fs {
     ) -> JoinHandle<()> {
         let span = tracing::Span::current();
         let client = self.client.clone();
-        tokio::task::spawn(async move {
-            let _enter = span.enter();
-            Self::list_object(prefix, tx, client).await
-        })
+        tokio::task::spawn(
+            async move { Self::list_object(prefix, tx, client).await }.instrument(span),
+        )
     }
 }
 
