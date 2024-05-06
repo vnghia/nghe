@@ -50,12 +50,27 @@ async fn sync(
         ..
     }: SearchQueryParams<'_>,
 ) -> Result<Search3Result> {
-    let artists = #[add_permission_filter]
+    let mut artists = #[add_permission_filter]
     #[add_count_offset(artist)]
     get_album_artist_id3_db()
         .order(artists::name.asc())
         .get_results(&mut pool.get().await?)
         .await?;
+    if !artists.is_empty() && artists.len() < artist_count.unwrap_or(20) as usize {
+        // the number of artists with no album is relatively small, so we include it in the response
+        // if the number of artists with album is smaller than the requested number.
+        // if the number of artists with album is divisible by artist count, the artist with no
+        // album will be ignored. In order to resolve this, we will need a continuation token.
+        artists.extend({
+            #[add_permission_filter]
+            get_no_album_artist_id3_db()
+                .order(artists::name.asc())
+                .get_results(&mut pool.get().await?)
+                .await?
+                .into_iter()
+                .map(ArtistId3Db::into)
+        });
+    };
 
     let albums = #[add_permission_filter]
     #[add_count_offset(album)]
@@ -98,7 +113,7 @@ async fn full_text_search(
         song_offset,
     }: SearchQueryParams<'_>,
 ) -> Result<Search3Result> {
-    let artists = #[add_permission_filter]
+    let mut artists = #[add_permission_filter]
     #[add_count_offset(artist)]
     get_album_artist_id3_db()
         .filter(
@@ -114,6 +129,31 @@ async fn full_text_search(
         )
         .get_results(&mut pool.get().await?)
         .await?;
+    if !artists.is_empty() && artists.len() < artist_count.unwrap_or(20) as usize {
+        // the number of artists with no album is relatively small, so we include it in the response
+        // if the number of artists with album is smaller than the requested number.
+        // if the number of artists with album is divisible by artist count, the artist with no
+        // album will be ignored. In order to resolve this, we will need a continuation token.
+        artists.extend({
+            #[add_permission_filter]
+            get_no_album_artist_id3_db()
+                .filter(artists::ts.matches(websearch_to_tsquery_with_search_config(
+                    USIMPLE_TS_CONFIGURATION,
+                    &query,
+                )))
+                .order(
+                    ts_rank_cd(
+                        artists::ts,
+                        websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query),
+                    )
+                    .desc(),
+                )
+                .get_results(&mut pool.get().await?)
+                .await?
+                .into_iter()
+                .map(ArtistId3Db::into)
+        });
+    }
 
     let albums = #[add_permission_filter]
     #[add_count_offset(album)]
