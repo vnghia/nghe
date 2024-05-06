@@ -16,3 +16,9 @@ sql_function! {
 }
 
 sql_function!(fn greatest(x: Nullable<Timestamptz>, y: Timestamptz) -> Timestamptz);
+
+sql_function! {
+    #[aggregate]
+    #[sql_name = "any_value"]
+    fn any_value_text(x: Text) -> Text;
+}

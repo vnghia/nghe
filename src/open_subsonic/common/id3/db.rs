@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use anyhow::Result;
-use diesel::dsl::{count_distinct, max, sql, sum, AssumeNotNull};
+use diesel::dsl::{count_distinct, sql, sum, AssumeNotNull};
 use diesel::expression::SqlLiteral;
 use diesel::{
     helper_types, sql_types, ExpressionMethods, NullableExpressionMethods, QueryDsl, Queryable,
@@ -16,6 +16,8 @@ use uuid::Uuid;
 
 use super::get_basic_artist_id3_db;
 use crate::models::*;
+use crate::open_subsonic::sql::any_value_text;
+use crate::open_subsonic::sql::any_value_text::HelperType as AnyValueText;
 use crate::DatabasePool;
 
 #[derive(Debug, Queryable, Selectable)]
@@ -107,8 +109,8 @@ pub struct BasicSongId3Db {
 pub struct SongId3Db {
     #[diesel(embed)]
     pub basic: BasicSongId3Db,
-    #[diesel(select_expression = max(albums::name).assume_not_null())]
-    #[diesel(select_expression_type = AssumeNotNull<helper_types::max<albums::name>>)]
+    #[diesel(select_expression = any_value_text(albums::name))]
+    #[diesel(select_expression_type = AnyValueText<albums::name>)]
     pub album: String,
     #[diesel(select_expression = sql("array_agg(distinct(songs_artists.artist_id)) artist_ids"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
