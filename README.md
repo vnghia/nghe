@@ -73,7 +73,7 @@ services:
       retries: 5
 ```
 
-The minimum required postgres version is 15. Alternatively, you can also download corresponding binary with your OS and the frontend package in the release section.
+The minimum required postgres version is 16. Alternatively, you can also download corresponding binary with your OS and the frontend package in the release section.
 
 Once the server is running, go to `[your-server-url]/setup` to setup a first admin account. After that, login and go to the folders menu on the right side of the screen. You can add a new music folder from there, hit the scan button, choose one scan mode (more detail in [scan process](#scan-process)) and start using the server while your media files are being scanned.
 
