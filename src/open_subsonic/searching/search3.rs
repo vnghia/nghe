@@ -56,7 +56,6 @@ async fn sync(
         .order(artists::name.asc())
         .get_results(&mut pool.get().await?)
         .await?;
-    dbg!(artists.len(), artist_count);
     if !artists.is_empty() && artists.len() < artist_count.unwrap_or(20) as usize {
         // the number of artists with no album is relatively small, so we include it in the response
         // if the number of artists with album is smaller than the requested number.
