@@ -156,6 +156,8 @@ impl FsTrait for S3Fs {
     async fn read_to_stream<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(
         &self,
         path: P,
+        offset: u64,
+        size: u64,
     ) -> Result<StreamResponse> {
         let path = path.as_ref();
         let (bucket, key) = Self::split(path.as_str())?;
@@ -163,7 +165,22 @@ impl FsTrait for S3Fs {
             path.extension().ok_or_else(|| {
                 OSError::InvalidParameter("path does not have an extension".into())
             })?,
-            self.client.get_object().bucket(bucket).key(key).send().await?.body.into_async_read(),
+            offset,
+            size,
+            true,
+            self.client
+                .get_object()
+                .bucket(bucket)
+                .key(key)
+                .set_range(if offset > 0 {
+                    Some(concat_string!("bytes=", offset.to_string(), "-"))
+                } else {
+                    None
+                })
+                .send()
+                .await?
+                .body
+                .into_async_read(),
         ))
     }
 
