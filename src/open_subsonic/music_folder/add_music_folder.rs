@@ -79,7 +79,7 @@ mod tests {
         let infra = Infra::new().await.add_user(None).await.add_user(None).await;
         for fs_type in music_folders::FsType::iter() {
             let name = concat_string!(fs_type.as_ref(), "-folder1");
-            let path = infra.fs.mkdir(fs_type, "folder1/").await;
+            let path = infra.fs.mkdir(fs_type, "folder1").await;
             let id = add_music_folder(
                 infra.pool(),
                 infra.fs.local(),
@@ -100,7 +100,7 @@ mod tests {
             assert_eq!(count, 2);
 
             let name = concat_string!(fs_type.as_ref(), "-folder2");
-            let path = infra.fs.mkdir(fs_type, "folder2/").await;
+            let path = infra.fs.mkdir(fs_type, "folder2").await;
             let id = add_music_folder(
                 infra.pool(),
                 infra.fs.local(),
