@@ -32,6 +32,8 @@ where
     async fn read_to_stream<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(
         &self,
         path: P,
+        offset: u64,
+        size: u64,
     ) -> Result<StreamResponse>;
     async fn read_to_transcoding_input<P: Into<Utf8PathBuf<Self::E>> + Send + Sync>(
         &self,

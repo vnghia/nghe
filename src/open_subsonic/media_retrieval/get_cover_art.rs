@@ -33,7 +33,13 @@ pub async fn get_song_cover_art<P: AsRef<LocalPath>>(
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Song cover art".into()))?;
-    StreamResponse::try_from_path(song_cover_art.to_path(song_art_dir)).await
+    StreamResponse::try_from_path(
+        song_cover_art.to_path(song_art_dir),
+        None,
+        song_cover_art.file_size as u64,
+        false,
+    )
+    .await
 }
 
 pub async fn get_album_cover_art<P: AsRef<LocalPath>>(
@@ -61,7 +67,13 @@ pub async fn get_album_cover_art<P: AsRef<LocalPath>>(
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Album cover art".into()))?;
-    StreamResponse::try_from_path(album_cover_art.to_path(song_art_dir)).await
+    StreamResponse::try_from_path(
+        album_cover_art.to_path(song_art_dir),
+        None,
+        album_cover_art.file_size as u64,
+        false,
+    )
+    .await
 }
 
 pub async fn get_artist_cover_art<P: AsRef<LocalPath>>(
@@ -77,7 +89,13 @@ pub async fn get_artist_cover_art<P: AsRef<LocalPath>>(
         .await
         .optional()?
         .ok_or_else(|| OSError::NotFound("Artist cover art".into()))?;
-    StreamResponse::try_from_path(artist_cover_art.to_path(artist_art_dir)).await
+    StreamResponse::try_from_path(
+        artist_cover_art.to_path(artist_art_dir),
+        None,
+        artist_cover_art.file_size as u64,
+        false,
+    )
+    .await
 }
 
 pub async fn get_cover_art_handler(

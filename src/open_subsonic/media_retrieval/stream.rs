@@ -1,6 +1,8 @@
 use anyhow::Result;
 use axum::extract::State;
 use axum::Extension;
+use axum_extra::headers::Range;
+use axum_extra::TypedHeader;
 use concat_string::concat_string;
 use nghe_proc_macros::add_common_validate;
 use tracing::instrument;
@@ -66,13 +68,14 @@ async fn stream(
     pool: &DatabasePool,
     local_fs: &LocalFs,
     s3_fs: Option<&S3Fs>,
+    range: Option<Range>,
     user_id: Uuid,
     params: StreamParams,
     transcoding_config: TranscodingConfig,
 ) -> Result<StreamResponse> {
     let format = params.format.unwrap_or(Format::Raw);
     if format == Format::Raw {
-        download(pool, local_fs, s3_fs, user_id, params.id).await
+        download(pool, local_fs, s3_fs, range, user_id, params.id).await
     } else {
         // Lowest bitrate possible. Only works well with opus.
         let bit_rate = params.max_bit_rate.unwrap_or(32);
@@ -97,7 +100,7 @@ async fn stream(
                 if time_offset == 0 {
                     // If the song is already transcoded and time offset is 0,
                     // we will just stream the transcoded file.
-                    StreamResponse::try_from_path(&done_path).await
+                    StreamResponse::try_from_path(&done_path, None, None, true).await
                 } else {
                     // If the song is already transcoded but time offset is not 0,
                     // we will use the transcoded file as input, which will active only `atrim`
@@ -179,12 +182,22 @@ pub async fn stream_handler(
     State(database): State<Database>,
     Extension(local_fs): Extension<LocalFs>,
     Extension(s3_fs): Extension<Option<S3Fs>>,
+    range: Option<TypedHeader<Range>>,
     Extension(transcoding_config): Extension<TranscodingConfig>,
     req: StreamRequest,
 ) -> Result<StreamResponse, ServerError> {
-    stream(&database.pool, &local_fs, s3_fs.as_ref(), req.user_id, req.params, transcoding_config)
-        .await
-        .map_err(ServerError)
+    let range = range.map(|h| h.0);
+    stream(
+        &database.pool,
+        &local_fs,
+        s3_fs.as_ref(),
+        range,
+        req.user_id,
+        req.params,
+        transcoding_config,
+    )
+    .await
+    .map_err(ServerError)
 }
 
 #[cfg(test)]
@@ -208,6 +221,7 @@ mod tests {
                     infra.pool(),
                     infra.fs.local(),
                     infra.fs.s3_option(),
+                    None,
                     infra.user_id(0),
                     StreamParams {
                         id: infra.song_ids(..).await[0],
@@ -231,12 +245,7 @@ mod tests {
     #[tokio::test]
     async fn test_stream_simple() {
         for fs_type in music_folders::FsType::iter() {
-            let mut infra = Infra::new()
-                .await
-                .add_folder(music_folders::FsType::Local, true)
-                .await
-                .add_user(None)
-                .await;
+            let mut infra = Infra::new().await.add_folder(fs_type, true).await.add_user(None).await;
             infra.add_n_song(0, 1).await.scan(.., None).await;
 
             let stream_bytes = to_bytes(
@@ -244,6 +253,7 @@ mod tests {
                     infra.pool(),
                     infra.fs.local(),
                     infra.fs.s3_option(),
+                    None,
                     infra.user_id(0),
                     StreamParams {
                         id: infra.song_ids(..).await[0],
@@ -274,12 +284,7 @@ mod tests {
     #[tokio::test]
     async fn test_stream_no_cache() {
         for fs_type in music_folders::FsType::iter() {
-            let mut infra = Infra::new()
-                .await
-                .add_folder(music_folders::FsType::Local, true)
-                .await
-                .add_user(None)
-                .await;
+            let mut infra = Infra::new().await.add_folder(fs_type, true).await.add_user(None).await;
             infra.add_n_song(0, 1).await.scan(.., None).await;
 
             let stream_bytes = to_bytes(
@@ -287,6 +292,7 @@ mod tests {
                     infra.pool(),
                     infra.fs.local(),
                     infra.fs.s3_option(),
+                    None,
                     infra.user_id(0),
                     StreamParams {
                         id: infra.song_ids(..).await[0],
