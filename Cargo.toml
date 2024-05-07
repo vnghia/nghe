@@ -82,7 +82,7 @@ aws-config = { version = "1.3.0", default-features = false, features = [
   "credentials-process",
   "behavior-version-latest",
 ] }
-aws-sdk-s3 = { version = "1.25.0", features = ["rt-tokio"] }
+aws-sdk-s3 = { version = "1.26.0", features = ["rt-tokio"] }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form", "typed-header"] }
 diesel = { version = "2.1.6", features = ["64-column-tables", "time", "uuid"] }

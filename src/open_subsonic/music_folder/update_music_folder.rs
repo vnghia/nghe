@@ -69,44 +69,48 @@ pub async fn update_music_folder_handler(
 
 #[cfg(test)]
 mod tests {
+    use strum::IntoEnumIterator;
+
     use super::super::add_music_folder::add_music_folder;
     use super::*;
     use crate::utils::test::Infra;
 
     #[tokio::test]
     async fn test_update_music_folder() {
-        let infra = Infra::new().await.add_user(None).await.add_user(None).await;
+        for fs_type in music_folders::FsType::iter() {
+            let infra = Infra::new().await.add_user(None).await.add_user(None).await;
 
-        let path = infra.fs.mkdir(music_folders::FsType::Local, "folder/").await;
-        let id = add_music_folder(
-            infra.pool(),
-            infra.fs.local(),
-            infra.fs.s3_option(),
-            "folder",
-            &path.to_string(),
-            true,
-            music_folders::FsType::Local,
-        )
-        .await
-        .unwrap();
-        update_music_folder(
-            infra.pool(),
-            infra.fs.local(),
-            infra.fs.s3_option(),
-            id,
-            &Some("new-folder".into()),
-            &None,
-            music_folders::FsType::Local,
-        )
-        .await
-        .unwrap();
-
-        let new_id = music_folders::table
-            .filter(music_folders::name.eq("new-folder"))
-            .select(music_folders::id)
-            .get_result::<Uuid>(&mut infra.pool().get().await.unwrap())
+            let path = infra.fs.mkdir(fs_type, "folder").await;
+            let id = add_music_folder(
+                infra.pool(),
+                infra.fs.local(),
+                infra.fs.s3_option(),
+                "folder",
+                &path.to_string(),
+                true,
+                fs_type,
+            )
             .await
             .unwrap();
-        assert_eq!(new_id, id);
+            update_music_folder(
+                infra.pool(),
+                infra.fs.local(),
+                infra.fs.s3_option(),
+                id,
+                &Some("new-folder".into()),
+                &None,
+                fs_type,
+            )
+            .await
+            .unwrap();
+
+            let new_id = music_folders::table
+                .filter(music_folders::name.eq("new-folder"))
+                .select(music_folders::id)
+                .get_result::<Uuid>(&mut infra.pool().get().await.unwrap())
+                .await
+                .unwrap();
+            assert_eq!(new_id, id);
+        }
     }
 }
