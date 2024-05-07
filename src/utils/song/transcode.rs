@@ -4,7 +4,7 @@ use std::io::Write;
 
 use anyhow::{Context, Result};
 use concat_string::concat_string;
-use flume::Sender;
+use kanal::Sender;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
 use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
 use rsmpeg::avformat::{
@@ -366,7 +366,7 @@ pub mod test {
         output_time_offset: u32,
         buffer_size: usize,
     ) -> Vec<u8> {
-        let (tx, rx) = flume::bounded(0);
+        let (tx, rx) = kanal::bounded_async(0);
 
         let transcode_thread = tokio::task::spawn_blocking(move || {
             transcode(
@@ -376,12 +376,12 @@ pub mod test {
                 output_bit_rate,
                 output_time_offset,
                 buffer_size,
-                tx,
+                tx.to_sync(),
             )
         });
 
         let mut result = vec![];
-        while let Ok(r) = rx.recv_async().await {
+        while let Ok(r) = rx.recv().await {
             result.extend_from_slice(&r);
         }
 

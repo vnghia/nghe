@@ -94,10 +94,10 @@ diesel-async = { version = "0.4.1", features = [
 diesel_full_text_search = { version = "2.1.1", default-features = false }
 diesel_migrations = { version = "2.1.0", features = ["postgres"] }
 figment = { version = "0.10.18", features = ["env"] }
-flume = { version = "0.11.0", features = ["async"] }
 futures = { version = "0.3.30" }
 futures-buffered = { version = "0.2.4" }
 ignore = { version = "0.4.22" }
+kanal = { version = "0.1.0-pre8" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.19.2" }
 lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }

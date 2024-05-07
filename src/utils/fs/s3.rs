@@ -7,7 +7,7 @@ use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::AggregatedBytes;
 use aws_sdk_s3::Client;
 use concat_string::concat_string;
-use flume::Sender;
+use kanal::Sender;
 use time::OffsetDateTime;
 use tokio::task::JoinHandle;
 use tracing::{instrument, Instrument};
@@ -74,6 +74,7 @@ impl S3Fs {
     ) {
         tracing::info!("start listing object");
 
+        let tx = tx.to_async();
         match try {
             let (bucket, prefix) = Self::split(prefix.as_ref().as_str())?;
             let mut stream =
@@ -89,7 +90,7 @@ impl S3Fs {
                         if let Some(extension) = path.extension()
                             && SUPPORTED_EXTENSIONS.contains_key(extension)
                         {
-                            tx.send_async(PathInfo {
+                            tx.send(PathInfo {
                                 path,
                                 metadata: PathMetadata {
                                     size: content
@@ -229,10 +230,11 @@ mod tests {
     const FS_TYPE: music_folders::FsType = music_folders::FsType::S3;
 
     async fn wrap_scan_media_file(infra: &Infra) -> Vec<PathInfo<S3Fs>> {
-        let (tx, rx) = flume::bounded(100);
-        let scan_task = infra.fs.s3().scan_songs(infra.fs.prefix(FS_TYPE).to_string(), tx);
+        let (tx, rx) = kanal::bounded_async(100);
+        let scan_task =
+            infra.fs.s3().scan_songs(infra.fs.prefix(FS_TYPE).to_string(), tx.to_sync());
         let mut result = vec![];
-        while let Ok(r) = rx.recv_async().await {
+        while let Ok(r) = rx.recv().await {
             result.push(r);
         }
         scan_task.await.unwrap();

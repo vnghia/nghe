@@ -1,5 +1,6 @@
-use std::convert::Infallible;
 use std::io::SeekFrom;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 use anyhow::{Ok, Result};
 use axum::body::Body;
@@ -7,9 +8,8 @@ use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum_extra::headers::{AcceptRanges, ContentLength, ContentRange};
 use axum_extra::TypedHeader;
-use flume::r#async::RecvStream;
-use flume::Receiver;
-use futures::StreamExt;
+use futures::{Future, Stream};
+use kanal::{AsyncReceiver, ReceiveError};
 use mime_guess::Mime;
 use tokio::io::{AsyncRead, AsyncSeekExt};
 use tokio_util::io::ReaderStream;
@@ -17,17 +17,13 @@ use tokio_util::io::ReaderStream;
 use crate::utils::fs::LocalPath;
 use crate::OSError;
 
-struct RxStream(RecvStream<'static, Vec<u8>>);
+struct RxStream(AsyncReceiver<Vec<u8>>);
 
-impl futures::Stream for RxStream {
-    type Item = Result<Vec<u8>, Infallible>;
+impl Stream for RxStream {
+    type Item = Result<Vec<u8>, ReceiveError>;
 
-    // TODO: remove this when axum::body does not require TryStream anymore.
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
-        self.0.poll_next_unpin(cx).map(|t| t.map(Result::<_, Infallible>::Ok))
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        std::pin::pin!(self.0.recv()).as_mut().poll(cx).map(Option::Some)
     }
 }
 
@@ -88,13 +84,13 @@ impl StreamResponse {
         }
     }
 
-    pub fn from_rx(ext: &str, rx: Receiver<Vec<u8>>) -> Self {
+    pub fn from_rx(ext: &str, rx: AsyncReceiver<Vec<u8>>) -> Self {
         Self {
             mime: Self::from_ext(ext),
             offset: 0,
             size: 0,
             streamable: false,
-            body: Body::from_stream(RxStream(rx.into_stream())),
+            body: Body::from_stream(RxStream(rx)),
         }
     }
 }

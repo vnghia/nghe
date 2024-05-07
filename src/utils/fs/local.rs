@@ -2,9 +2,9 @@ use std::fmt::Debug;
 use std::fs::Metadata;
 
 use anyhow::Result;
-use flume::Sender;
 use ignore::types::TypesBuilder;
 use ignore::{DirEntry, Error, WalkBuilder};
+use kanal::Sender;
 use time::OffsetDateTime;
 use tokio::task::JoinHandle;
 use tracing::instrument;
@@ -173,11 +173,11 @@ mod tests {
     const FS_TYPE: music_folders::FsType = music_folders::FsType::Local;
 
     async fn wrap_scan_media_file(infra: &Infra, scan_parallel: bool) -> Vec<PathInfo<LocalFs>> {
-        let (tx, rx) = flume::bounded(100);
-        let scan_task =
-            LocalFs { scan_parallel }.scan_songs(infra.fs.prefix(FS_TYPE).to_string(), tx);
+        let (tx, rx) = kanal::bounded_async(100);
+        let scan_task = LocalFs { scan_parallel }
+            .scan_songs(infra.fs.prefix(FS_TYPE).to_string(), tx.to_sync());
         let mut result = vec![];
-        while let Ok(r) = rx.recv_async().await {
+        while let Ok(r) = rx.recv().await {
             result.push(r);
         }
         scan_task.await.unwrap();

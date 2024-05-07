@@ -265,11 +265,11 @@ pub async fn run_scan<Fs: FsTrait + 'static>(
     let mut upserted_song_count: usize = 0;
     let mut scan_error_count: usize = 0;
 
-    let (tx, rx) = flume::bounded(scan_config.channel_size);
-    let scan_songs_task = fs.scan_songs(music_folder.path.clone(), tx);
+    let (tx, rx) = kanal::bounded_async(scan_config.channel_size);
+    let scan_songs_task = fs.scan_songs(music_folder.path.clone(), tx.to_sync());
 
     let mut process_path_tasks = FuturesUnorderedBounded::new(scan_config.pool_size);
-    while let Ok(song_path) = rx.recv_async().await {
+    while let Ok(song_path) = rx.recv().await {
         while process_path_tasks.len() >= process_path_tasks.capacity()
             && let Some(process_path_join_result) = process_path_tasks.next().await
         {

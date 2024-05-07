@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use anyhow::Result;
-use flume::Sender;
+use kanal::Sender;
 use tokio::task::JoinHandle;
 use typed_path::{Utf8Encoding, Utf8Path, Utf8PathBuf};
 

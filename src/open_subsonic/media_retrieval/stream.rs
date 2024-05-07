@@ -32,7 +32,7 @@ fn spawn_transcoding(
 ) -> StreamResponse {
     let span = tracing::Span::current();
 
-    let (tx, rx) = flume::bounded(0);
+    let (tx, rx) = kanal::bounded_async(0);
     rayon::spawn(move || {
         let _enter = span.enter();
         tracing::debug!("start transcoding");
@@ -45,7 +45,7 @@ fn spawn_transcoding(
             output_bit_rate,
             output_time_offset,
             buffer_size,
-            tx,
+            tx.to_sync(),
         )
         .is_err()
         {
