@@ -202,6 +202,7 @@ pub async fn stream_handler(
 
 #[cfg(test)]
 mod tests {
+    use axum::http::header;
     use axum::response::IntoResponse;
     use strum::IntoEnumIterator;
 
@@ -247,28 +248,6 @@ mod tests {
         for fs_type in music_folders::FsType::iter() {
             let mut infra = Infra::new().await.add_folder(fs_type, true).await.add_user(None).await;
             infra.add_n_song(0, 1).await.scan(.., None).await;
-
-            let stream_bytes = to_bytes(
-                stream(
-                    infra.pool(),
-                    infra.fs.local(),
-                    infra.fs.s3_option(),
-                    None,
-                    infra.user_id(0),
-                    StreamParams {
-                        id: infra.song_ids(..).await[0],
-                        max_bit_rate: Some(32),
-                        format: Some(Format::Opus),
-                        time_offset: None,
-                    },
-                    infra.fs.transcoding_config.clone(),
-                )
-                .await
-                .unwrap()
-                .into_response(),
-            )
-            .await
-            .to_vec();
             let transcode_bytes = transcode_to_memory(
                 infra.fs.read_to_transcoding_input(&infra.song_fs_infos(..)[0]).await,
                 Format::Opus,
@@ -277,6 +256,34 @@ mod tests {
                 infra.fs.transcoding_config.buffer_size,
             )
             .await;
+
+            let response = stream(
+                infra.pool(),
+                infra.fs.local(),
+                infra.fs.s3_option(),
+                None,
+                infra.user_id(0),
+                StreamParams {
+                    id: infra.song_ids(..).await[0],
+                    max_bit_rate: Some(32),
+                    format: Some(Format::Opus),
+                    time_offset: None,
+                },
+                infra.fs.transcoding_config.clone(),
+            )
+            .await
+            .unwrap()
+            .into_response();
+
+            let headers = response.headers().clone();
+            let size = headers.get(header::CONTENT_LENGTH);
+            let encoding = headers.get(header::TRANSFER_ENCODING).unwrap().to_str().unwrap();
+            let accept = headers.get(header::ACCEPT_RANGES).unwrap().to_str().unwrap();
+            let stream_bytes = to_bytes(response).await.to_vec();
+
+            assert!(size.is_none(), "{:?} failed for streaming simple", fs_type);
+            assert_eq!(encoding, "chunked", "{:?} failed for streaming simple", fs_type);
+            assert_eq!(accept, "bytes", "{:?} failed for streaming simple", fs_type);
             assert_eq!(stream_bytes, transcode_bytes, "{:?} failed for streaming simple", fs_type);
         }
     }
@@ -286,28 +293,6 @@ mod tests {
         for fs_type in music_folders::FsType::iter() {
             let mut infra = Infra::new().await.add_folder(fs_type, true).await.add_user(None).await;
             infra.add_n_song(0, 1).await.scan(.., None).await;
-
-            let stream_bytes = to_bytes(
-                stream(
-                    infra.pool(),
-                    infra.fs.local(),
-                    infra.fs.s3_option(),
-                    None,
-                    infra.user_id(0),
-                    StreamParams {
-                        id: infra.song_ids(..).await[0],
-                        max_bit_rate: Some(32),
-                        format: Some(Format::Opus),
-                        time_offset: None,
-                    },
-                    TranscodingConfig { cache_dir: None, ..Default::default() },
-                )
-                .await
-                .unwrap()
-                .into_response(),
-            )
-            .await
-            .to_vec();
             let transcode_bytes = transcode_to_memory(
                 infra.fs.read_to_transcoding_input(&infra.song_fs_infos(..)[0]).await,
                 Format::Opus,
@@ -316,6 +301,34 @@ mod tests {
                 infra.fs.transcoding_config.buffer_size,
             )
             .await;
+
+            let response = stream(
+                infra.pool(),
+                infra.fs.local(),
+                infra.fs.s3_option(),
+                None,
+                infra.user_id(0),
+                StreamParams {
+                    id: infra.song_ids(..).await[0],
+                    max_bit_rate: Some(32),
+                    format: Some(Format::Opus),
+                    time_offset: None,
+                },
+                TranscodingConfig { cache_dir: None, ..Default::default() },
+            )
+            .await
+            .unwrap()
+            .into_response();
+
+            let headers = response.headers().clone();
+            let size = headers.get(header::CONTENT_LENGTH);
+            let encoding = headers.get(header::TRANSFER_ENCODING).unwrap().to_str().unwrap();
+            let accept = headers.get(header::ACCEPT_RANGES).unwrap().to_str().unwrap();
+            let stream_bytes = to_bytes(response).await.to_vec();
+
+            assert!(size.is_none(), "{:?} failed for streaming no cache", fs_type);
+            assert_eq!(encoding, "chunked", "{:?} failed for streaming no cache", fs_type);
+            assert_eq!(accept, "bytes", "{:?} failed for streaming no cache", fs_type);
             assert_eq!(
                 stream_bytes, transcode_bytes,
                 "{:?} failed for streaming no cache",
