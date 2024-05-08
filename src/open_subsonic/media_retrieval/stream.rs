@@ -277,13 +277,9 @@ mod tests {
 
             let headers = response.headers().clone();
             let size = headers.get(header::CONTENT_LENGTH);
-            let encoding = headers.get(header::TRANSFER_ENCODING).unwrap().to_str().unwrap();
-            let accept = headers.get(header::ACCEPT_RANGES).unwrap().to_str().unwrap();
             let stream_bytes = to_bytes(response).await.to_vec();
 
             assert!(size.is_none(), "{:?} failed for streaming simple", fs_type);
-            assert_eq!(encoding, "chunked", "{:?} failed for streaming simple", fs_type);
-            assert_eq!(accept, "bytes", "{:?} failed for streaming simple", fs_type);
             assert_eq!(stream_bytes, transcode_bytes, "{:?} failed for streaming simple", fs_type);
         }
     }
@@ -322,13 +318,9 @@ mod tests {
 
             let headers = response.headers().clone();
             let size = headers.get(header::CONTENT_LENGTH);
-            let encoding = headers.get(header::TRANSFER_ENCODING).unwrap().to_str().unwrap();
-            let accept = headers.get(header::ACCEPT_RANGES).unwrap().to_str().unwrap();
             let stream_bytes = to_bytes(response).await.to_vec();
 
             assert!(size.is_none(), "{:?} failed for streaming no cache", fs_type);
-            assert_eq!(encoding, "chunked", "{:?} failed for streaming no cache", fs_type);
-            assert_eq!(accept, "bytes", "{:?} failed for streaming no cache", fs_type);
             assert_eq!(
                 stream_bytes, transcode_bytes,
                 "{:?} failed for streaming no cache",

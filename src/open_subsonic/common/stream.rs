@@ -5,7 +5,7 @@ use anyhow::{Ok, Result};
 use axum::body::Body;
 use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum_extra::headers::{AcceptRanges, ContentLength, ContentRange, TransferEncoding};
+use axum_extra::headers::{AcceptRanges, ContentLength, ContentRange};
 use axum_extra::TypedHeader;
 use flume::r#async::RecvStream;
 use flume::Receiver;
@@ -93,7 +93,7 @@ impl StreamResponse {
             mime: Self::from_ext(ext),
             offset: 0,
             size: 0,
-            streamable: true,
+            streamable: false,
             body: Body::from_stream(RxStream(rx.into_stream())),
         }
     }
@@ -115,30 +115,22 @@ impl IntoResponse for StreamResponse {
             )
                 .into_response()
         } else if self.streamable {
-            if self.size > 0 {
-                (
-                    [(header::CONTENT_TYPE, self.mime.essence_str())],
-                    (TypedHeader(ContentLength(self.size))),
-                    (TypedHeader(AcceptRanges::bytes())),
-                    self.body,
-                )
-                    .into_response()
-            } else {
-                (
-                    [(header::CONTENT_TYPE, self.mime.essence_str())],
-                    (TypedHeader(TransferEncoding::chunked())),
-                    (TypedHeader(AcceptRanges::bytes())),
-                    self.body,
-                )
-                    .into_response()
-            }
-        } else {
+            (
+                [(header::CONTENT_TYPE, self.mime.essence_str())],
+                (TypedHeader(ContentLength(self.size))),
+                (TypedHeader(AcceptRanges::bytes())),
+                self.body,
+            )
+                .into_response()
+        } else if self.size > 0 {
             (
                 [(header::CONTENT_TYPE, self.mime.essence_str())],
                 (TypedHeader(ContentLength(self.size))),
                 self.body,
             )
                 .into_response()
+        } else {
+            ([(header::CONTENT_TYPE, self.mime.essence_str())], self.body).into_response()
         }
     }
 }
