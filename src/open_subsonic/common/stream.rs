@@ -35,7 +35,7 @@ pub struct StreamResponse {
     mime: Mime,
     offset: u64,
     size: u64,
-    streamable: bool,
+    seekable: bool,
     body: Body,
 }
 
@@ -48,7 +48,7 @@ impl StreamResponse {
         path: P,
         offset: O,
         size: S,
-        streamable: bool,
+        seekable: bool,
     ) -> Result<Self> {
         let path = path.as_ref();
         let mut file = tokio::fs::File::open(path.as_str()).await?;
@@ -67,7 +67,7 @@ impl StreamResponse {
             })?,
             offset,
             size,
-            streamable,
+            seekable,
             file,
         ))
     }
@@ -76,14 +76,14 @@ impl StreamResponse {
         ext: &str,
         offset: u64,
         size: u64,
-        streamable: bool,
+        seekable: bool,
         reader: R,
     ) -> Self {
         Self {
             mime: Self::from_ext(ext),
             offset,
             size,
-            streamable,
+            seekable,
             body: Body::from_stream(ReaderStream::new(reader)),
         }
     }
@@ -93,7 +93,7 @@ impl StreamResponse {
             mime: Self::from_ext(ext),
             offset: 0,
             size: 0,
-            streamable: false,
+            seekable: false,
             body: Body::from_stream(RxStream(rx.into_stream())),
         }
     }
@@ -114,7 +114,7 @@ impl IntoResponse for StreamResponse {
                 self.body,
             )
                 .into_response()
-        } else if self.streamable {
+        } else if self.seekable {
             (
                 [(header::CONTENT_TYPE, self.mime.essence_str())],
                 (TypedHeader(ContentLength(self.size))),
@@ -122,13 +122,15 @@ impl IntoResponse for StreamResponse {
                 self.body,
             )
                 .into_response()
-        } else {
+        } else if self.size > 0 {
             (
                 [(header::CONTENT_TYPE, self.mime.essence_str())],
                 (TypedHeader(ContentLength(self.size))),
                 self.body,
             )
                 .into_response()
+        } else {
+            ([(header::CONTENT_TYPE, self.mime.essence_str())], self.body).into_response()
         }
     }
 }
