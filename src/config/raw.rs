@@ -97,8 +97,6 @@ pub struct SpotifyConfig {
 #[derivative(Default)]
 pub struct S3Config {
     pub enable: bool,
-    #[derivative(Default(value = "std::env::var(\"AWS_ENDPOINT_URL\").ok()"))]
-    pub endpoint_url: Option<String>,
     #[derivative(Default(value = "std::env::var(\"AWS_USE_PATH_STYLE_ENDPOINT\").is_ok()"))]
     pub use_path_style_endpoint: bool,
     #[derivative(Default(value = "15"))]
