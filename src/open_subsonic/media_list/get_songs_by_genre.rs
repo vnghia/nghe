@@ -22,6 +22,8 @@ async fn get_songs_by_genre(
     params: GetSongsByGenreParams,
 ) -> Result<Vec<SongId3Db>> {
     let GetSongsByGenreParams { genre, count, offset, music_folder_ids } = params;
+    let count = count.unwrap_or(10);
+    let offset = offset.unwrap_or(0);
 
     check_permission(pool, user_id, &music_folder_ids).await?;
 
@@ -90,7 +92,7 @@ mod tests {
             infra.user_id(0),
             GetSongsByGenreParams {
                 genre: genre_values[0].to_string(),
-                count: None,
+                count: Some(20),
                 offset: None,
                 music_folder_ids: None,
             },

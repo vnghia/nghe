@@ -32,6 +32,8 @@ pub async fn get_album_list2(
         to_year,
         genre,
     } = params;
+    let count = count.unwrap_or(10);
+    let offset = offset.unwrap_or(0);
 
     check_permission(pool, user_id, &music_folder_ids).await?;
 

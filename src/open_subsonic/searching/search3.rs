@@ -8,8 +8,7 @@ use diesel_full_text_search::configuration::TsConfigurationByName;
 use diesel_full_text_search::*;
 use futures::{stream, StreamExt, TryStreamExt};
 use nghe_proc_macros::{
-    add_axum_response, add_common_validate, add_convert_types, add_count_offset,
-    add_permission_filter,
+    add_axum_response, add_common_validate, add_count_offset, add_permission_filter,
 };
 use uuid::Uuid;
 
@@ -23,17 +22,29 @@ const USIMPLE_TS_CONFIGURATION: TsConfigurationByName = TsConfigurationByName("u
 add_common_validate!(Search3Params);
 add_axum_response!(Search3Body);
 
-#[add_convert_types(from = &'a Search3Params, refs(query))]
 #[derive(Debug)]
-#[cfg_attr(test, derive(Default))]
 struct SearchQueryParams<'a> {
     query: Cow<'a, str>,
-    artist_count: Option<u32>,
-    artist_offset: Option<u32>,
-    album_count: Option<u32>,
-    album_offset: Option<u32>,
-    song_count: Option<u32>,
-    song_offset: Option<u32>,
+    artist_count: u32,
+    artist_offset: u32,
+    album_count: u32,
+    album_offset: u32,
+    song_count: u32,
+    song_offset: u32,
+}
+
+impl<'a> From<&'a Search3Params> for SearchQueryParams<'a> {
+    fn from(value: &'a Search3Params) -> Self {
+        Self {
+            query: value.query.as_str().into(),
+            artist_count: value.artist_count.unwrap_or(20),
+            artist_offset: value.artist_offset.unwrap_or(0),
+            album_count: value.album_count.unwrap_or(20),
+            album_offset: value.album_offset.unwrap_or(0),
+            song_count: value.song_count.unwrap_or(20),
+            song_offset: value.song_offset.unwrap_or(0),
+        }
+    }
 }
 
 async fn sync(
@@ -56,7 +67,7 @@ async fn sync(
         .order(artists::name.asc())
         .get_results(&mut pool.get().await?)
         .await?;
-    if !artists.is_empty() && artists.len() < artist_count.unwrap_or(20) as usize {
+    if !artists.is_empty() && artists.len() < artist_count as usize {
         // the number of artists with no album is relatively small, so we include it in the response
         // if the number of artists with album is smaller than the requested number.
         // if the number of artists with album is divisible by artist count, the artist with no
@@ -129,7 +140,7 @@ async fn full_text_search(
         )
         .get_results(&mut pool.get().await?)
         .await?;
-    if !artists.is_empty() && artists.len() < artist_count.unwrap_or(20) as usize {
+    if !artists.is_empty() && artists.len() < artist_count as usize {
         // the number of artists with no album is relatively small, so we include it in the response
         // if the number of artists with album is smaller than the requested number.
         // if the number of artists with album is divisible by artist count, the artist with no
@@ -222,12 +233,27 @@ mod tests {
     use super::*;
     use crate::utils::test::Infra;
 
+    fn default_search3_params() -> Search3Params {
+        Search3Params {
+            query: Default::default(),
+            artist_count: None,
+            artist_offset: None,
+            album_count: None,
+            album_offset: None,
+            song_count: None,
+            song_offset: None,
+            music_folder_ids: None,
+        }
+    }
+
     #[tokio::test]
     async fn test_sync() {
         let n_song = 10;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
         infra.add_n_song(0, n_song).await.scan(.., None).await;
-        sync(infra.pool(), infra.user_id(0), &None, Default::default()).await.unwrap();
+        sync(infra.pool(), infra.user_id(0), &None, (&default_search3_params()).into())
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -239,7 +265,7 @@ mod tests {
             infra.pool(),
             infra.user_id(0),
             &None,
-            SearchQueryParams { query: "search".into(), ..Default::default() },
+            (&Search3Params { query: "search".into(), ..default_search3_params() }).into(),
         )
         .await
         .unwrap();
