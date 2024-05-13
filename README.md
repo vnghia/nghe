@@ -18,6 +18,7 @@ An implementation of OpenSubsonic API in Rust
     - [Scan](#scan)
     - [Transcoding](#transcoding)
     - [Art](#art)
+    - [S3](#s3)
   - [Scan process](#scan-process)
     - [How a song is uniquely identified ?](#how-a-song-is-uniquely-identified--)
     - [Scan mode](#scan-mode)
@@ -41,6 +42,7 @@ An implementation of OpenSubsonic API in Rust
 - Multi-platform, runs on Linux, FreeBSD, MacOS and Windows. Docker images with two variants GNU or MUSL are also provided.
 - Bridging with `ffmpeg c api` for in-memory transcoding and smooth stream experience. Most common formats (opus, mp3, acc, wav, etc) are supported. Does not required any manual configuration beforehand, just `maxBitRate` and `format` in the request parameters are enough.
 - Synchoronized lyrics from external `lrc` files.
+- AWS S3 compatible storage support. Tested with Minio for every commit.
 
 ## Getting started
 
@@ -206,6 +208,17 @@ You should tweak this carefully to find the optimized value for your system. Som
 | :----: | :----------------------------------------- | :------------ | :--- |
 |   id   | Spotify client id to fetch information     |               |      |
 | secret | Spotify client secret to fetch information |               |      |
+
+### S3
+
+Credentials, region and endpoint configurations should be set by standard AWS environment variables. Authentication by profile and imds are also supported.
+
+|            Subkey            | Meaning                                                                                                                  | Default value                                          | Note                                       |
+| :--------------------------: | :----------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------- | :----------------------------------------- |
+|            enable            | Enable S3 integration                                                                                                    |                                                        |                                            |
+|   use_path_style_endpoint    | Use path style endpoint instead of virtual host                                                                          | whether `$AWS_USE_PATH_STYLE_ENDPOINT` is empty or not |                                            |
+|    presigned_url_duration    | Duration (in minutes) of the presigned url for transcoding                                                               | 15                                                     |                                            |
+| stalled_stream_grace_preriod | Grace period for [stalled stream protection](https://github.com/awslabs/aws-sdk-rust/discussions/956#discussion-5855380) | 0                                                      | Set 0 to disable stalled stream protection |
 
 ## Scan process
 
