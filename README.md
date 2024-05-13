@@ -1,5 +1,9 @@
 # Nghe
 
+[![Main](https://github.com/vnghia/nghe/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/vnghia/nghe/actions/workflows/main.yaml)
+[![Codecov](https://codecov.io/gh/vnghia/nghe/graph/badge.svg?token=WDYXQYQ3XY)](https://codecov.io/gh/vnghia/nghe)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+
 An implementation of OpenSubsonic API in Rust
 
 - [Nghe](#nghe)
