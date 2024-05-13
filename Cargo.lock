@@ -1554,9 +1554,9 @@ dependencies = [
 
 [[package]]
 name = "dioxus-logger"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c39140fb281606f471350fd0cd559c1472242b93d0e83f3995b745e987e03bda"
+checksum = "81fe09dc9773dc1f1bb0d38529203d6555d08f67aadca5cf955ac3d1a9e69880"
 dependencies = [
  "console_error_panic_hook",
  "tracing",
