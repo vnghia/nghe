@@ -3122,7 +3122,7 @@ dependencies = [
 
 [[package]]
 name = "lastfm-client"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "concat-string",
  "fake",
@@ -3141,7 +3141,7 @@ dependencies = [
 
 [[package]]
 name = "lastfm-proc-macros"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "concat-string",
  "convert_case",
@@ -3492,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "nghe"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3556,7 +3556,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-frontend"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "anyhow",
  "concat-string",
@@ -3586,7 +3586,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-proc_macros"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "concat-string",
  "convert_case",
@@ -3598,7 +3598,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-types"
-version = "0.9.5"
+version = "0.9.6"
 dependencies = [
  "built",
  "concat-string",
