@@ -10,15 +10,14 @@ use crate::DatabaseType;
 
 pub type GetBasicArtistId3Db = Select<artists::table, AsSelect<BasicArtistId3Db, DatabaseType>>;
 
+pub type GetAlbumArtistNoGroupById3Db = InnerJoinOn<
+    InnerJoin<GetBasicArtistId3Db, songs_album_artists::table>,
+    songs::table,
+    Eq<songs::id, songs_album_artists::song_id>,
+>;
+
 pub type GetAlbumArtistId3Db = Select<
-    GroupBy<
-        InnerJoinOn<
-            InnerJoin<GetBasicArtistId3Db, songs_album_artists::table>,
-            songs::table,
-            Eq<songs::id, songs_album_artists::song_id>,
-        >,
-        artists::id,
-    >,
+    GroupBy<GetAlbumArtistNoGroupById3Db, artists::id>,
     AsSelect<ArtistAlbumCountId3Db, DatabaseType>,
 >;
 
@@ -89,10 +88,14 @@ pub fn get_basic_artist_id3_db() -> GetBasicArtistId3Db {
     artists::table.select(BasicArtistId3Db::as_select())
 }
 
-pub fn get_album_artist_id3_db() -> GetAlbumArtistId3Db {
+pub fn get_album_artist_no_group_by_id3_db() -> GetAlbumArtistNoGroupById3Db {
     get_basic_artist_id3_db()
         .inner_join(songs_album_artists::table)
         .inner_join(songs::table.on(songs::id.eq(songs_album_artists::song_id)))
+}
+
+pub fn get_album_artist_id3_db() -> GetAlbumArtistId3Db {
+    get_album_artist_no_group_by_id3_db()
         .group_by(artists::id)
         .select(ArtistAlbumCountId3Db::as_select())
 }

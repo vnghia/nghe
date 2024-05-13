@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use anyhow::Result;
 use axum::extract::State;
+use diesel::dsl::count_distinct;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_full_text_search::configuration::TsConfigurationByName;
@@ -61,41 +62,62 @@ async fn sync(
         ..
     }: SearchQueryParams<'_>,
 ) -> Result<Search3Result> {
-    let mut artists = #[add_permission_filter]
-    #[add_count_offset(artist)]
-    get_album_artist_id3_db()
-        .order(artists::name.asc())
-        .get_results(&mut pool.get().await?)
-        .await?;
-    if !artists.is_empty() && artists.len() < artist_count as usize {
-        // the number of artists with no album is relatively small, so we include it in the response
-        // if the number of artists with album is smaller than the requested number.
-        // if the number of artists with album is divisible by artist count, the artist with no
-        // album will be ignored. In order to resolve this, we will need a continuation token.
-        artists.extend({
-            #[add_permission_filter]
-            get_no_album_artist_id3_db()
-                .order(artists::name.asc())
-                .get_results(&mut pool.get().await?)
-                .await?
-                .into_iter()
-                .map(ArtistId3Db::into)
-        });
+    let artists = if artist_count > 0 {
+        let mut artists = #[add_permission_filter]
+        #[add_count_offset(artist)]
+        get_album_artist_id3_db()
+            .order(artists::name.asc())
+            .get_results(&mut pool.get().await?)
+            .await?;
+
+        let artist_len = artists.len() as u32;
+        if artist_len < artist_count {
+            let artist_with_album_count = #[add_permission_filter]
+            get_album_artist_no_group_by_id3_db()
+                .select(count_distinct(artists::id))
+                .get_result::<i64>(&mut pool.get().await?)
+                .await?;
+
+            let artist_count = artist_count - artist_len;
+            let artist_offset = artist_len + artist_offset - artist_with_album_count as u32;
+            artists.extend({
+                #[add_permission_filter]
+                #[add_count_offset(artist)]
+                get_no_album_artist_id3_db()
+                    .order(artists::name.asc())
+                    .get_results(&mut pool.get().await?)
+                    .await?
+                    .into_iter()
+                    .map(ArtistId3Db::into)
+            });
+        };
+
+        artists
+    } else {
+        vec![]
     };
 
-    let albums = #[add_permission_filter]
-    #[add_count_offset(album)]
-    get_album_id3_db()
-        .order(albums::name.asc())
-        .get_results::<AlbumId3Db>(&mut pool.get().await?)
-        .await?;
+    let albums = if album_count > 0 {
+        #[add_permission_filter]
+        #[add_count_offset(album)]
+        get_album_id3_db()
+            .order(albums::name.asc())
+            .get_results::<AlbumId3Db>(&mut pool.get().await?)
+            .await?
+    } else {
+        vec![]
+    };
 
-    let songs = #[add_permission_filter]
-    #[add_count_offset(song)]
-    get_song_id3_db()
-        .order(songs::title.asc())
-        .get_results::<SongId3Db>(&mut pool.get().await?)
-        .await?;
+    let songs = if song_count > 0 {
+        #[add_permission_filter]
+        #[add_count_offset(song)]
+        get_song_id3_db()
+            .order(songs::title.asc())
+            .get_results::<SongId3Db>(&mut pool.get().await?)
+            .await?
+    } else {
+        vec![]
+    };
 
     Ok(Search3Result {
         artists: artists.into_iter().map(ArtistAlbumCountId3Db::into).collect(),
@@ -124,30 +146,11 @@ async fn full_text_search(
         song_offset,
     }: SearchQueryParams<'_>,
 ) -> Result<Search3Result> {
-    let mut artists = #[add_permission_filter]
-    #[add_count_offset(artist)]
-    get_album_artist_id3_db()
-        .filter(
-            artists::ts
-                .matches(websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query)),
-        )
-        .order(
-            ts_rank_cd(
-                artists::ts,
-                websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query),
-            )
-            .desc(),
-        )
-        .get_results(&mut pool.get().await?)
-        .await?;
-    if !artists.is_empty() && artists.len() < artist_count as usize {
-        // the number of artists with no album is relatively small, so we include it in the response
-        // if the number of artists with album is smaller than the requested number.
-        // if the number of artists with album is divisible by artist count, the artist with no
-        // album will be ignored. In order to resolve this, we will need a continuation token.
-        artists.extend({
+    let artists = if artist_count > 0 {
+        let mut artists =
             #[add_permission_filter]
-            get_no_album_artist_id3_db()
+            #[add_count_offset(artist)]
+            get_album_artist_id3_db()
                 .filter(artists::ts.matches(websearch_to_tsquery_with_search_config(
                     USIMPLE_TS_CONFIGURATION,
                     &query,
@@ -160,45 +163,95 @@ async fn full_text_search(
                     .desc(),
                 )
                 .get_results(&mut pool.get().await?)
+                .await?;
+
+        let artist_len = artists.len() as u32;
+        if artist_len < artist_count {
+            let artist_with_album_count = #[add_permission_filter]
+            get_album_artist_no_group_by_id3_db()
+                .filter(artists::ts.matches(websearch_to_tsquery_with_search_config(
+                    USIMPLE_TS_CONFIGURATION,
+                    &query,
+                )))
+                .select(count_distinct(artists::id))
+                .get_result::<i64>(&mut pool.get().await?)
+                .await?;
+
+            let artist_count = artist_count - artist_len;
+            let artist_offset = artist_len + artist_offset - artist_with_album_count as u32;
+            artists.extend({
+                #[add_permission_filter]
+                #[add_count_offset(artist)]
+                get_no_album_artist_id3_db()
+                    .filter(artists::ts.matches(websearch_to_tsquery_with_search_config(
+                        USIMPLE_TS_CONFIGURATION,
+                        &query,
+                    )))
+                    .order(
+                        ts_rank_cd(
+                            artists::ts,
+                            websearch_to_tsquery_with_search_config(
+                                USIMPLE_TS_CONFIGURATION,
+                                &query,
+                            ),
+                        )
+                        .desc(),
+                    )
+                    .get_results(&mut pool.get().await?)
+                    .await?
+                    .into_iter()
+                    .map(ArtistId3Db::into)
+            });
+        }
+
+        artists
+    } else {
+        vec![]
+    };
+
+    let albums =
+        if album_count > 0 {
+            #[add_permission_filter]
+            #[add_count_offset(album)]
+            get_basic_album_id3_db()
+                .filter(albums::ts.matches(websearch_to_tsquery_with_search_config(
+                    USIMPLE_TS_CONFIGURATION,
+                    &query,
+                )))
+                .order(
+                    ts_rank_cd(
+                        albums::ts,
+                        websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query),
+                    )
+                    .desc(),
+                )
+                .get_results::<BasicAlbumId3Db>(&mut pool.get().await?)
                 .await?
-                .into_iter()
-                .map(ArtistId3Db::into)
-        });
-    }
+        } else {
+            vec![]
+        };
 
-    let albums = #[add_permission_filter]
-    #[add_count_offset(album)]
-    get_basic_album_id3_db()
-        .filter(
-            albums::ts
-                .matches(websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query)),
-        )
-        .order(
-            ts_rank_cd(
-                albums::ts,
-                websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query),
-            )
-            .desc(),
-        )
-        .get_results::<BasicAlbumId3Db>(&mut pool.get().await?)
-        .await?;
-
-    let songs = #[add_permission_filter]
-    #[add_count_offset(song)]
-    get_song_id3_db()
-        .filter(
-            songs::ts
-                .matches(websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query)),
-        )
-        .order(
-            ts_rank_cd(
-                songs::ts,
-                websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query),
-            )
-            .desc(),
-        )
-        .get_results::<SongId3Db>(&mut pool.get().await?)
-        .await?;
+    let songs =
+        if song_count > 0 {
+            #[add_permission_filter]
+            #[add_count_offset(song)]
+            get_song_id3_db()
+                .filter(songs::ts.matches(websearch_to_tsquery_with_search_config(
+                    USIMPLE_TS_CONFIGURATION,
+                    &query,
+                )))
+                .order(
+                    ts_rank_cd(
+                        songs::ts,
+                        websearch_to_tsquery_with_search_config(USIMPLE_TS_CONFIGURATION, &query),
+                    )
+                    .desc(),
+                )
+                .get_results::<SongId3Db>(&mut pool.get().await?)
+                .await?
+        } else {
+            vec![]
+        };
 
     Ok(Search3Result {
         artists: artists.into_iter().map(ArtistAlbumCountId3Db::into).collect(),
@@ -230,7 +283,12 @@ pub async fn search3_handler(
 
 #[cfg(test)]
 mod tests {
+    use concat_string::concat_string;
+    use fake::{Fake, Faker};
+    use itertools::Itertools;
+
     use super::*;
+    use crate::utils::song::test::SongTag;
     use crate::utils::test::Infra;
 
     fn default_search3_params() -> Search3Params {
@@ -257,6 +315,132 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_sync_all_artists_divisible() {
+        let n_song = 10;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|i| SongTag {
+                        album_artists: vec![concat_string!("artist-", i.to_string()).into()],
+                        artists: vec![concat_string!("artist-no-album-", i.to_string()).into()],
+                        compilation: false,
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            )
+            .await
+            .scan(.., None)
+            .await;
+
+        let mut artist_names = vec![];
+        let count = 5;
+        let mut offset = 0;
+        loop {
+            let artists = sync(
+                infra.pool(),
+                infra.user_id(0),
+                &None,
+                (&Search3Params {
+                    artist_count: Some(count),
+                    artist_offset: Some(offset),
+                    album_count: Some(0),
+                    song_count: Some(0),
+                    ..default_search3_params()
+                })
+                    .into(),
+            )
+            .await
+            .unwrap()
+            .artists;
+
+            if artists.is_empty() {
+                break;
+            } else {
+                offset += count;
+            }
+            assert_eq!(artists.len(), count as usize);
+
+            artist_names.extend(artists.into_iter().map(|a| a.name));
+        }
+
+        assert_eq!(artist_names.len(), 20);
+        assert_eq!(
+            artist_names,
+            (0..n_song)
+                .map(|i| concat_string!("artist-", i.to_string()))
+                .chain((0..n_song).map(|i| concat_string!("artist-no-album-", i.to_string())))
+                .collect_vec()
+        )
+    }
+
+    #[tokio::test]
+    async fn test_sync_all_artists_non_divisible() {
+        let n_song = 10;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|i| SongTag {
+                        album_artists: vec![concat_string!("artist-", i.to_string()).into()],
+                        artists: vec![concat_string!("artist-no-album-", i.to_string()).into()],
+                        compilation: false,
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            )
+            .await
+            .scan(.., None)
+            .await;
+
+        let mut artist_names = vec![];
+        let count = 7;
+        let mut offset = 0;
+        loop {
+            let artists = sync(
+                infra.pool(),
+                infra.user_id(0),
+                &None,
+                (&Search3Params {
+                    artist_count: Some(count),
+                    artist_offset: Some(offset),
+                    album_count: Some(0),
+                    song_count: Some(0),
+                    ..default_search3_params()
+                })
+                    .into(),
+            )
+            .await
+            .unwrap()
+            .artists;
+
+            if artists.is_empty() {
+                break;
+            } else {
+                offset += count;
+            }
+
+            // 7 + 7 + 6 = 20
+            if artists.len() != 6 {
+                assert_eq!(artists.len(), count as usize);
+            }
+
+            artist_names.extend(artists.into_iter().map(|a| a.name));
+        }
+
+        assert_eq!(artist_names.len(), 20);
+        assert_eq!(
+            artist_names,
+            (0..n_song)
+                .map(|i| concat_string!("artist-", i.to_string()))
+                .chain((0..n_song).map(|i| concat_string!("artist-no-album-", i.to_string())))
+                .collect_vec()
+        )
+    }
+
+    #[tokio::test]
     async fn test_full_text_search() {
         let n_song = 10;
         let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
@@ -269,5 +453,141 @@ mod tests {
         )
         .await
         .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_full_text_search_all_artists_divisible() {
+        let n_song = 10;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|i| SongTag {
+                        album_artists: vec![concat_string!("search artist-", i.to_string()).into()],
+                        artists: vec![
+                            concat_string!("search artist-no-album-", i.to_string()).into(),
+                        ],
+                        compilation: false,
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            )
+            .await
+            .scan(.., None)
+            .await;
+
+        let mut artist_names = vec![];
+        let count = 5;
+        let mut offset = 0;
+        loop {
+            let artists = full_text_search(
+                infra.pool(),
+                infra.user_id(0),
+                &None,
+                (&Search3Params {
+                    query: "search".into(),
+                    artist_count: Some(count),
+                    artist_offset: Some(offset),
+                    album_count: Some(0),
+                    song_count: Some(0),
+                    ..default_search3_params()
+                })
+                    .into(),
+            )
+            .await
+            .unwrap()
+            .artists;
+
+            if artists.is_empty() {
+                break;
+            } else {
+                offset += count;
+            }
+            assert_eq!(artists.len(), count as usize);
+
+            artist_names.extend(artists.into_iter().map(|a| a.name));
+        }
+
+        assert_eq!(artist_names.len(), 20);
+        assert_eq!(
+            artist_names.into_iter().sorted().collect_vec(),
+            (0..n_song)
+                .map(|i| concat_string!("search artist-", i.to_string()))
+                .chain(
+                    (0..n_song).map(|i| concat_string!("search artist-no-album-", i.to_string()))
+                )
+                .collect_vec()
+        )
+    }
+
+    #[tokio::test]
+    async fn test_full_text_search_all_artists_non_divisible() {
+        let n_song = 10;
+        let mut infra = Infra::new().await.n_folder(1).await.add_user(None).await;
+        infra
+            .add_songs(
+                0,
+                (0..n_song)
+                    .map(|i| SongTag {
+                        album_artists: vec![concat_string!("search artist-", i.to_string()).into()],
+                        artists: vec![
+                            concat_string!("search artist-no-album-", i.to_string()).into(),
+                        ],
+                        compilation: false,
+                        ..Faker.fake()
+                    })
+                    .collect(),
+            )
+            .await
+            .scan(.., None)
+            .await;
+
+        let mut artist_names = vec![];
+        let count = 7;
+        let mut offset = 0;
+        loop {
+            let artists = full_text_search(
+                infra.pool(),
+                infra.user_id(0),
+                &None,
+                (&Search3Params {
+                    query: "search".into(),
+                    artist_count: Some(count),
+                    artist_offset: Some(offset),
+                    album_count: Some(0),
+                    song_count: Some(0),
+                    ..default_search3_params()
+                })
+                    .into(),
+            )
+            .await
+            .unwrap()
+            .artists;
+
+            if artists.is_empty() {
+                break;
+            } else {
+                offset += count;
+            }
+
+            // 7 + 7 + 6 = 20
+            if artists.len() != 6 {
+                assert_eq!(artists.len(), count as usize);
+            }
+
+            artist_names.extend(artists.into_iter().map(|a| a.name));
+        }
+
+        assert_eq!(artist_names.len(), 20);
+        assert_eq!(
+            artist_names.into_iter().sorted().collect_vec(),
+            (0..n_song)
+                .map(|i| concat_string!("search artist-", i.to_string()))
+                .chain(
+                    (0..n_song).map(|i| concat_string!("search artist-no-album-", i.to_string()))
+                )
+                .collect_vec()
+        )
     }
 }
