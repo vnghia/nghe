@@ -94,7 +94,7 @@ pub fn add_count_offset(args: TokenStream, input: TokenStream) -> Result<TokenSt
     let mut expr: Expr = syn::parse2(input).unwrap();
     modify_head_call_expr(&mut expr, |head_expr| {
         Expr::MethodCall(parse_quote! {
-            #head_expr.limit(#count.unwrap_or(20) as _).offset(#offset.unwrap_or(0) as _)
+            #head_expr.limit(#count as _).offset(#offset as _)
         })
     })?;
 
