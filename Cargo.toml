@@ -17,7 +17,7 @@ version = { workspace = true }
 edition = { workspace = true }
 
 [workspace.dependencies]
-anyhow = { version = "1.0.82", features = ["backtrace"] }
+anyhow = { version = "1.0.83", features = ["backtrace"] }
 concat-string = { version = "1.0.1" }
 constcat = { version = "0.5.0" }
 derivative = { version = "2.2.0" }
@@ -25,7 +25,7 @@ hex = { version = "0.4.3" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
-serde = { version = "1.0.200", features = ["derive"] }
+serde = { version = "1.0.201", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
 serde_with = { version = "3.8.1", features = ["hex"] }
 strum = { version = "0.26.2", features = ["derive"] }
@@ -37,12 +37,12 @@ reqwest = { version = "0.12.4", default-features = false, features = [
   "json",
   "http2",
 ] }
-thiserror = { version = "1.0.59" }
+thiserror = { version = "1.0.60" }
 tokio = { version = "1.37.0", features = ["full"] }
 url = { version = "2.5.0" }
 
 # Dev
-serde_json = { version = "1.0.116" }
+serde_json = { version = "1.0.117" }
 fake = { version = "2.9.2", features = [
   "derive",
   "uuid",
@@ -75,14 +75,14 @@ nghe-proc_macros = { path = "proc_macros" }
 nghe-types = { path = "types" }
 
 async-trait = { version = "0.1.80" }
-aws-config = { version = "1.3.0", default-features = false, features = [
+aws-config = { version = "1.4.0", default-features = false, features = [
   "client-hyper",
   "rustls",
   "rt-tokio",
   "credentials-process",
   "behavior-version-latest",
 ] }
-aws-sdk-s3 = { version = "1.26.0", features = ["rt-tokio"] }
+aws-sdk-s3 = { version = "1.28.0", features = ["rt-tokio"] }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form", "typed-header"] }
 diesel = { version = "2.1.6", features = ["64-column-tables", "time", "uuid"] }
