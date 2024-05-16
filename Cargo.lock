@@ -2046,9 +2046,9 @@ dependencies = [
 
 [[package]]
 name = "futures-buffered"
-version = "0.2.4"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de8419e65098e54c06f5ae8a130a79e8ba2e391ff995d260ca5d77ea72ab2fe3"
+checksum = "02dcae03ee5afa5ea17b1aebc793806b8ddfc6dc500e0b8e8e1eb30b9dad22c0"
 dependencies = [
  "futures-core",
  "futures-util",
