@@ -23,7 +23,7 @@ constcat = { version = "0.5.0" }
 derivative = { version = "2.2.0" }
 hex = { version = "0.4.3" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
-itertools = { version = "0.12.1" }
+itertools = { version = "0.13.0" }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.201", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
