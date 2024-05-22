@@ -22,7 +22,7 @@ fn open_input_file(path: &CStr) -> Result<(AVFormatContextInput, AVCodecContext,
         AVFormatContextInput::open(path, None, &mut None).context("could not open input file")?;
 
     let (audio_idx, dec_codec) = input_fmt_ctx
-        .find_best_stream(ffi::AVMediaType_AVMEDIA_TYPE_AUDIO)?
+        .find_best_stream(ffi::AVMEDIA_TYPE_AUDIO)?
         .context("could not file audio index")?;
     let stream = &input_fmt_ctx.streams()[audio_idx];
 
@@ -95,7 +95,7 @@ fn open_output_file(
 
     let enc_codec = AVCodec::find_encoder(output_fmt_ctx.oformat().audio_codec)
         .context("could not find output codec")?;
-    let output_sample_rate = if enc_codec.id == ffi::AVCodecID_AV_CODEC_ID_OPUS {
+    let output_sample_rate = if enc_codec.id == ffi::AV_CODEC_ID_OPUS {
         48000 // libopus recommended sample rate
     } else {
         dec_ctx.sample_rate
