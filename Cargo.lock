@@ -1747,9 +1747,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.11.0"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a47c1c47d2f5964e29c61246e81db715514cd532db6b5116a25ea3c03d6780a2"
+checksum = "3dca9240753cf90908d7e4aac30f630662b02aebaa1b58a3cadabdb23385b58b"
 
 [[package]]
 name = "elliptic-curve"
@@ -3170,9 +3170,9 @@ checksum = "82903360c009b816f5ab72a9b68158c27c301ee2c3f20655b55c5e589e7d3bb7"
 
 [[package]]
 name = "libc"
-version = "0.2.154"
+version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae743338b92ff9146ce83992f766a31066a91a8c84a45e0e9f21e7cf6de6d346"
+checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
 name = "libgit2-sys"
@@ -3444,9 +3444,9 @@ checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
 name = "miniz_oxide"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d811f3e15f28568be3407c8e7fdb6514c1cda3cb30683f15b6a1a1dc4ea14a7"
+checksum = "87dfd01fe195c66b572b37921ad8803d010623c0aca821bea2302239d155cdae"
 dependencies = [
  "adler",
  "simd-adler32",
@@ -4341,10 +4341,10 @@ dependencies = [
 
 [[package]]
 name = "rsmpeg"
-version = "0.14.2+ffmpeg.6.1"
-source = "git+https://github.com/vnghia/rsmpeg.git?rev=e34a83a#e34a83a86f6218bd2fc48e011311522bff06e699"
+version = "0.15.0+ffmpeg.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fd06356fe9f1b77b8e6a5cfd771c124515a30d36cfb785f3fc7f135572ef4ba"
 dependencies = [
- "libc",
  "paste",
  "rusty_ffmpeg",
  "thiserror",
@@ -4534,9 +4534,9 @@ checksum = "80af6f9131f277a45a3fba6ce8e2258037bb0477a67e610d3c1fe046ab31de47"
 
 [[package]]
 name = "rusty_ffmpeg"
-version = "0.13.3+ffmpeg.6.1"
+version = "0.14.1+ffmpeg.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "716adffa5f909c8533611b1dab9ab5666bece35687845865b75ed6a990fc239c"
+checksum = "40f4db8e3e23d4a3044d53a41aba5324eae70d3e7fe82375ce833521533bc315"
 dependencies = [
  "bindgen",
  "camino",
