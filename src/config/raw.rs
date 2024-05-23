@@ -102,6 +102,8 @@ pub struct S3Config {
     #[derivative(Default(value = "15"))]
     pub presigned_url_duration: u64,
     pub stalled_stream_grace_preriod: u64,
+    #[derivative(Default(value = "5"))]
+    pub connect_timeout: u64,
 }
 
 #[derive(Debug, Deserialize)]

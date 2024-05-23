@@ -223,6 +223,7 @@ Credentials, region and endpoint configurations should be set by standard AWS en
 |   use_path_style_endpoint    | Use path style endpoint instead of virtual host                                                                          | whether `$AWS_USE_PATH_STYLE_ENDPOINT` is empty or not |                                            |
 |    presigned_url_duration    | Duration (in minutes) of the presigned url for transcoding                                                               | 15                                                     |                                            |
 | stalled_stream_grace_preriod | Grace period for [stalled stream protection](https://github.com/awslabs/aws-sdk-rust/discussions/956#discussion-5855380) | 0                                                      | Set 0 to disable stalled stream protection |
+|       connect_timeout        | The maximum time (in seconds) it takes to initiate a socket connection.                                                  | 5                                                      |                                            |
 
 ## Scan process
 
