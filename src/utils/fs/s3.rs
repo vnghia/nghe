@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
+use aws_config::timeout::TimeoutConfig;
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::AggregatedBytes;
 use aws_sdk_s3::Client;
@@ -41,8 +42,14 @@ impl S3Fs {
         let client = Client::from_conf(
             aws_sdk_s3::config::Builder::from(&config_loader.load().await)
                 .force_path_style(config.use_path_style_endpoint)
+                .timeout_config(
+                    TimeoutConfig::builder()
+                        .connect_timeout(Duration::from_secs(config.connect_timeout))
+                        .build(),
+                )
                 .build(),
         );
+        dbg!(client.config().timeout_config());
         Self { client, presigned_url_duration: config.presigned_url_duration }
     }
 
