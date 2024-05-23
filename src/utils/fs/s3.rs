@@ -49,7 +49,6 @@ impl S3Fs {
                 )
                 .build(),
         );
-        dbg!(client.config().timeout_config());
         Self { client, presigned_url_duration: config.presigned_url_duration }
     }
 
