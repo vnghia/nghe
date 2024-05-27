@@ -25,7 +25,7 @@ hex = { version = "0.4.3" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
-serde = { version = "1.0.202", features = ["derive"] }
+serde = { version = "1.0.203", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
 serde_with = { version = "3.8.1", features = ["hex"] }
 strum = { version = "0.26.2", features = ["derive"] }
@@ -82,7 +82,7 @@ aws-config = { version = "1.5.0", default-features = false, features = [
   "credentials-process",
   "behavior-version-latest",
 ] }
-aws-sdk-s3 = { version = "1.29.0", features = ["rt-tokio"] }
+aws-sdk-s3 = { version = "1.31.0", features = ["rt-tokio"] }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form", "typed-header"] }
 diesel = { version = "2.1.6", features = ["64-column-tables", "time", "uuid"] }
