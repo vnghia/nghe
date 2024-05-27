@@ -55,6 +55,7 @@ jobs:
         uses: taiki-e/cache-cargo-install-action@v2
         with:
           tool: dioxus-cli
+          locked: false
       - name: Build frontend
         env:
           RUST_LOG: info
@@ -179,7 +180,8 @@ jobs:
         with:
           tool: cross
           git: https://github.com/cross-rs/cross
-          rev: 085092c
+          rev: 19be834
+          locked: false
 
       - name: Build and test
         run: |
