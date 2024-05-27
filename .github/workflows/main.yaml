@@ -177,6 +177,8 @@ jobs:
       - name: Install cross
         if: ${{ matrix.platform.command == 'cross' }}
         uses: taiki-e/cache-cargo-install-action@v2
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: true
         with:
           tool: cross
           git: https://github.com/cross-rs/cross
