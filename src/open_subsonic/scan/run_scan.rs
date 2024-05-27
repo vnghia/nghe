@@ -109,7 +109,7 @@ pub async fn process_path<Fs: FsTrait>(
                         Some(song_id_db)
                     } else {
                         if let Ok(lrc_content) =
-                            fs.read_to_string(&song_path.with_extension("lrc")).await
+                            fs.read_to_string(song_path.with_extension("lrc")).await
                         {
                             SongLyric::from_str(&lrc_content, true)?
                                 .upsert_lyric(pool, song_id_db)
