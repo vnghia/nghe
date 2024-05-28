@@ -392,6 +392,8 @@ jobs:
             sudo chown -R $(id -u):$(id -g) /root/
             export PATH="/root/.cargo/bin/:$PATH"
 
+            mkdir -p target/vcpkg-archives
+            ln -s target/vcpkg-archives ~/.cache/vcpkg/archives
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
 
