@@ -384,7 +384,7 @@ jobs:
         with:
           operating_system: freebsd
           version: ${{ matrix.version }}
-          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG VCPKG_BINARY_SOURCES ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
+          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
           shell: "bash"
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.12/freebsd-${{ matrix.version }}-x86-64.qcow2
@@ -392,6 +392,9 @@ jobs:
             sudo chown -R $(id -u):$(id -g) /root/
             export PATH="/root/.cargo/bin/:$PATH"
 
+            mkdir -p target/vcpkg-archives
+            mkdir -p ~/.cache/vcpkg/
+            ln -s target/vcpkg-archives ~/.cache/vcpkg/archives
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
 
