@@ -4,7 +4,7 @@ use std::str::{FromStr, Split};
 use anyhow::Result;
 use isolang::Language;
 use itertools::Itertools;
-use lofty::id3::v2::{FrameId, FrameValue, Id3v2Tag, Id3v2Version};
+use lofty::id3::v2::{Frame, FrameId, Id3v2Tag, Id3v2Version};
 use lofty::picture::Picture;
 use uuid::Uuid;
 
@@ -102,8 +102,8 @@ impl SongTag {
         tag.remove(&PICTURE_FRAME_ID)
             .next()
             .map(|f| {
-                if let FrameValue::Picture(p) = f.content() {
-                    Ok(p.picture.clone())
+                if let Frame::Picture(p) = f {
+                    Ok(p.picture)
                 } else {
                     Err(OSError::InvalidParameter("Picture frame in id3v2".into()))
                 }
@@ -130,19 +130,14 @@ impl MediaDateMbz {
 #[cfg(test)]
 mod test {
     use concat_string::concat_string;
-    use lofty::id3::v2::{Frame, FrameFlags, TextInformationFrame};
+    use lofty::id3::v2::TextInformationFrame;
 
     use super::*;
 
     fn write_id3v2_text_tag(tag: &mut Id3v2Tag, key: FrameIdOrUserText, value: String) {
         match key {
             FrameIdOrUserText::FrameId(frame_id) => tag.insert(
-                Frame::new(
-                    frame_id,
-                    TextInformationFrame { encoding: lofty::TextEncoding::UTF8, value },
-                    FrameFlags::default(),
-                )
-                .unwrap(),
+                TextInformationFrame::new(frame_id, lofty::TextEncoding::UTF8, value).into(),
             ),
             FrameIdOrUserText::UserText(user_text) => tag.insert_user_text(user_text, value),
         };
