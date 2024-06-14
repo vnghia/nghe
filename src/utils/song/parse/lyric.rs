@@ -9,7 +9,7 @@ use fake::{Dummy, Fake, Faker};
 use isolang::Language;
 #[cfg(test)]
 use itertools::Itertools;
-use lofty::id3::v2::{Id3v2Version, SynchronizedText, UnsynchronizedTextFrame};
+use lofty::id3::v2::{FrameFlags, Id3v2Version, SynchronizedTextFrame, UnsynchronizedTextFrame};
 use lrc::Lyrics;
 use uuid::Uuid;
 use xxhash_rust::xxh3::xxh3_64;
@@ -50,7 +50,10 @@ impl SongLyric {
         let lyric_hash = xxh3_64(data);
         let lyric_size = data.len() as _;
 
-        let parsed = SynchronizedText::parse(data)?;
+        let parsed = SynchronizedTextFrame::parse(
+            data,
+            FrameFlags { unsynchronisation: false, ..Default::default() },
+        )?;
         let lines = parsed.content.into();
         Ok(Self {
             description: parsed.description.unwrap_or_default(),
@@ -68,8 +71,12 @@ impl SongLyric {
         let lyric_hash = xxh3_64(data);
         let lyric_size = data.len() as _;
 
-        let parsed = UnsynchronizedTextFrame::parse(&mut BufReader::new(data), version)?
-            .ok_or_else(|| OSError::NotFound("USLT".into()))?;
+        let parsed = UnsynchronizedTextFrame::parse(
+            &mut BufReader::new(data),
+            FrameFlags { unsynchronisation: true, ..Default::default() },
+            version,
+        )?
+        .ok_or_else(|| OSError::NotFound("USLT".into()))?;
         let lines = parsed.content.lines().collect();
         Ok(Self {
             description: parsed.description,
