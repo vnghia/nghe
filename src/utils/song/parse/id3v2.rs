@@ -130,7 +130,7 @@ impl MediaDateMbz {
 #[cfg(test)]
 mod test {
     use concat_string::concat_string;
-    use lofty::id3::v2::{Frame, FrameFlags, TextInformationFrame};
+    use lofty::id3::v2::TextInformationFrame;
 
     use super::*;
 
