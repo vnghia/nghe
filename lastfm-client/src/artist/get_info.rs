@@ -45,7 +45,7 @@ mod tests {
     async fn test_artist_get_info() {
         let client = Client::new_from_env();
         let params = Params { artist: Some("Cher".into()), mbid: None };
-        let artist = client.send::<_, Response>(&params).await.unwrap().artist;
+        let artist = client.send::<Response>(&params).await.unwrap().artist;
         assert_eq!(artist.artist.name, "Cher");
         assert_eq!(
             artist.artist.mbid.unwrap(),
@@ -59,7 +59,7 @@ mod tests {
     async fn test_artist_get_info_missing_mbid() {
         let client = Client::new_from_env();
         let params = Params { artist: Some("non-existent girl".into()), mbid: None };
-        let artist = client.send::<_, Response>(&params).await.unwrap().artist;
+        let artist = client.send::<Response>(&params).await.unwrap().artist;
         assert_eq!(artist.artist.name, "non-existent girl");
         assert!(artist.artist.mbid.is_none());
         assert_eq!(artist.artist.url, "https://www.last.fm/music/non-existent+girl");

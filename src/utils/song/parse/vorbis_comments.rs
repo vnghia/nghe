@@ -65,7 +65,7 @@ impl SongTag {
         })
     }
 
-    pub fn extract_ogg_picture<O: OggPictureStorage>(o: &mut O) -> Option<Picture> {
+    pub fn extract_ogg_picture(o: &mut impl OggPictureStorage) -> Option<Picture> {
         if !o.pictures().is_empty() { Some(o.remove_picture(0).0) } else { None }
     }
 }

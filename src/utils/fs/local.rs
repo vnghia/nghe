@@ -54,8 +54,8 @@ impl LocalFs {
     }
 
     #[instrument(skip(tx))]
-    fn walkdir<P: AsRef<Utf8Path<<Self as FsTrait>::E>> + Debug + Send + Sync>(
-        prefix: P,
+    fn walkdir(
+        prefix: impl AsRef<Utf8Path<<Self as FsTrait>::E>> + Debug + Send + Sync,
         tx: Sender<PathInfo<Self>>,
         scan_parallel: bool,
     ) {
@@ -118,37 +118,37 @@ impl FsTrait for LocalFs {
         }
     }
 
-    async fn read<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(&self, path: P) -> Result<Vec<u8>> {
+    async fn read(&self, path: impl AsRef<Utf8Path<Self::E>> + Send + Sync) -> Result<Vec<u8>> {
         tokio::fs::read(path.as_ref().as_str()).await.map_err(anyhow::Error::from)
     }
 
-    async fn read_to_string<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(
+    async fn read_to_string(
         &self,
-        path: P,
+        path: impl AsRef<Utf8Path<Self::E>> + Send + Sync,
     ) -> Result<String> {
         tokio::fs::read_to_string(path.as_ref().as_str()).await.map_err(anyhow::Error::from)
     }
 
-    async fn read_to_stream<P: AsRef<Utf8Path<Self::E>> + Send + Sync>(
+    async fn read_to_stream(
         &self,
-        path: P,
+        path: impl AsRef<Utf8Path<Self::E>> + Send + Sync,
         offset: u64,
         size: u64,
     ) -> Result<StreamResponse> {
         StreamResponse::try_from_path(path, offset, size, true).await
     }
 
-    async fn read_to_transcoding_input<P: Into<Utf8PathBuf<Self::E>> + Send + Sync>(
+    async fn read_to_transcoding_input(
         &self,
-        path: P,
+        path: impl Into<Utf8PathBuf<Self::E>> + Send + Sync,
     ) -> Result<String> {
         Ok(path.into().into_string())
     }
 
     #[instrument(skip_all)]
-    fn scan_songs<P: AsRef<Utf8Path<Self::E>> + Debug + Send + Sync + 'static>(
+    fn scan_songs(
         &self,
-        prefix: P,
+        prefix: impl AsRef<Utf8Path<Self::E>> + Debug + Send + Sync + 'static,
         tx: Sender<PathInfo<Self>>,
     ) -> JoinHandle<()> {
         let span = tracing::Span::current();

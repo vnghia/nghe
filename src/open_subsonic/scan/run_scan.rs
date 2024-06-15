@@ -246,9 +246,9 @@ pub async fn process_path<Fs: FsTrait>(
 }
 
 #[instrument(skip(pool, fs, ignored_prefixes, parsing_config, scan_config, art_config), ret, err)]
-pub async fn run_scan<Fs: FsTrait + 'static>(
+pub async fn run_scan(
     pool: &DatabasePool,
-    fs: &Fs,
+    fs: &(impl FsTrait + 'static),
     scan_started_at: time::OffsetDateTime,
     scan_mode: ScanMode,
     music_folder: music_folders::MusicFolder,

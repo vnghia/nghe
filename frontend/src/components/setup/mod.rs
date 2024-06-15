@@ -21,7 +21,7 @@ pub fn Setup() -> Element {
             let result: Result<_, anyhow::Error> = try {
                 let server_url = server_url();
 
-                CommonState::send::<_, SetupBody>(
+                CommonState::send::<SetupBody>(
                     &server_url,
                     "rest/setup",
                     SetupParams {

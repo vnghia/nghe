@@ -75,8 +75,8 @@ pub async fn insert_ignored_articles_config(
     Ok(())
 }
 
-fn compute_artist_index<S: AsRef<str>>(
-    ignored_prefixes: &[S],
+fn compute_artist_index(
+    ignored_prefixes: &[impl AsRef<str>],
     name: &str,
 ) -> Result<Cow<'static, str>> {
     let mut iter = ignored_prefixes.iter();
@@ -119,10 +119,10 @@ mod tests {
     use super::*;
     use crate::utils::test::Infra;
 
-    async fn assert_artist_indexes<S: AsRef<str>>(
+    async fn assert_artist_indexes(
         pool: &DatabasePool,
         artist_no_ids: &[artists::ArtistNoId],
-        ignored_prefixes: &[S],
+        ignored_prefixes: &[impl AsRef<str>],
     ) {
         assert_eq!(
             artist_no_ids

@@ -26,8 +26,8 @@ pub struct SongInformation {
 
 impl SongInformation {
     #[instrument(skip_all, err(Debug))]
-    pub fn read_from<R: Read + Seek>(
-        reader: &mut R,
+    pub fn read_from(
+        reader: &mut (impl Read + Seek),
         file_type: FileType,
         lrc_content: Option<&str>,
         parsing_config: &ParsingConfig,

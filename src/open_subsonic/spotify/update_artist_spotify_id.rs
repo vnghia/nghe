@@ -13,9 +13,9 @@ use crate::{Database, DatabasePool, OSError};
 add_common_validate!(UpdateArtistSpotifyIdParams);
 add_axum_response!(UpdateArtistSpotifyIdBody);
 
-async fn update_artist_spotify_id<P: AsRef<LocalPath>>(
+async fn update_artist_spotify_id(
     pool: &DatabasePool,
-    artist_art_dir: P,
+    artist_art_dir: impl AsRef<LocalPath>,
     client: &rspotify::ClientCredsSpotify,
     id: Uuid,
     spotify_url: &str,

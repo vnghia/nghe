@@ -248,9 +248,9 @@ fn flush_encoder(
 }
 
 #[instrument(skip_all, err(Debug))]
-pub fn transcode<I: Into<Vec<u8>>, PO: AsRef<LocalPath>>(
-    input: I,
-    output_path: PO,
+pub fn transcode(
+    input: impl Into<Vec<u8>>,
+    output_path: impl AsRef<LocalPath>,
     write_to_file: bool,
     output_bit_rate: u32,
     output_time_offset: u32,
@@ -359,8 +359,8 @@ pub mod test {
 
     use super::*;
 
-    pub async fn transcode_to_memory<I: Into<Vec<u8>> + Send + Sync + 'static>(
-        input: I,
+    pub async fn transcode_to_memory(
+        input: impl Into<Vec<u8>> + Send + Sync + 'static,
         output_format: Format,
         output_bit_rate: u32,
         output_time_offset: u32,

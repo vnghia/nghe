@@ -7,14 +7,14 @@ use crate::OSError;
 
 const IV_LEN: usize = 16;
 
-pub fn encrypt_password<D: AsRef<[u8]>>(key: &EncryptionKey, data: D) -> Vec<u8> {
+pub fn encrypt_password(key: &EncryptionKey, data: impl AsRef<[u8]>) -> Vec<u8> {
     let data = data.as_ref();
 
     let iv: [u8; IV_LEN] = rand::random();
     [iv.as_slice(), Cipher::new_128(key).cbc_encrypt(&iv, data).as_slice()].concat()
 }
 
-pub fn decrypt_password<D: AsRef<[u8]>>(key: &EncryptionKey, data: D) -> Result<Vec<u8>> {
+pub fn decrypt_password(key: &EncryptionKey, data: impl AsRef<[u8]>) -> Result<Vec<u8>> {
     let data = data.as_ref();
 
     let cipher_text = &data[IV_LEN..];
@@ -22,9 +22,9 @@ pub fn decrypt_password<D: AsRef<[u8]>>(key: &EncryptionKey, data: D) -> Result<
     Ok(Cipher::new_128(key).cbc_decrypt(iv, cipher_text))
 }
 
-pub fn check_password<P: AsRef<[u8]>, S: AsRef<[u8]>>(
-    password: P,
-    salt: S,
+pub fn check_password(
+    password: impl AsRef<[u8]>,
+    salt: impl AsRef<[u8]>,
     token: &MD5Token,
 ) -> Result<()> {
     let password = password.as_ref();

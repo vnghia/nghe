@@ -21,7 +21,7 @@ pub fn Users() -> Element {
         if let Some(common_state) = common_state() {
             users.set(
                 common_state
-                    .send_with_common::<_, GetUsersBody>("/rest/getUsers", GetUsersParams {})
+                    .send_with_common::<GetUsersBody>("/rest/getUsers", GetUsersParams {})
                     .await
                     .toast()
                     .map_or_else(Default::default, |r| {
@@ -43,7 +43,7 @@ pub fn Users() -> Element {
             delete_idx.set(None);
             let user = users.remove(idx);
             common_state
-                .send_with_common::<_, DeleteUserBody>(
+                .send_with_common::<DeleteUserBody>(
                     "/rest/deleteUser",
                     DeleteUserParams { id: user.id },
                 )

@@ -33,7 +33,7 @@ pub fn Login() -> Element {
                     role: Default::default(),
                 };
                 let LoginBody { id, role } = common_state_inner
-                    .send_with_common::<_, LoginBody>("/rest/login", LoginParams {})
+                    .send_with_common::<LoginBody>("/rest/login", LoginParams {})
                     .await?;
 
                 common_state.set(Some(CommonState { id, role, ..common_state_inner }));

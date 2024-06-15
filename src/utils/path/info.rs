@@ -17,7 +17,7 @@ pub struct PathInfo<Fs: FsTrait> {
 }
 
 impl<Fs: FsTrait> PathInfo<Fs> {
-    pub fn new<P: Into<Utf8PathBuf<Fs::E>>, M: Into<PathMetadata>>(path: P, metadata: M) -> Self {
+    pub fn new(path: impl Into<Utf8PathBuf<Fs::E>>, metadata: impl Into<PathMetadata>) -> Self {
         Self { path: path.into(), metadata: metadata.into() }
     }
 }

@@ -57,10 +57,10 @@ pub async fn update_song<'a>(
     Ok(())
 }
 
-pub async fn upsert_song_cover_art<P: AsRef<LocalPath>>(
+pub async fn upsert_song_cover_art(
     pool: &DatabasePool,
     picture: &Picture,
-    song_art_dir: P,
+    song_art_dir: impl AsRef<LocalPath>,
 ) -> Result<Uuid> {
     upsert_cover_art_from_data(
         pool,

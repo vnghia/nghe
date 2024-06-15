@@ -16,9 +16,9 @@ add_common_validate!(ScanArtistSpotifyImageParams);
 add_axum_response!(ScanArtistSpotifyImageBody);
 
 #[tracing::instrument(skip_all)]
-pub async fn scan_artist_spotify_image<P: AsRef<LocalPath>>(
+pub async fn scan_artist_spotify_image(
     pool: &DatabasePool,
-    artist_art_dir: P,
+    artist_art_dir: impl AsRef<LocalPath>,
     client: &rspotify::ClientCredsSpotify,
     artist_updated_at: Option<OffsetDateTime>,
 ) -> Result<()> {

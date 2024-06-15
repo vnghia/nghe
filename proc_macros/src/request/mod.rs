@@ -90,8 +90,8 @@ pub fn add_common_convert(input: TokenStream) -> Result<TokenStream, Error> {
         impl<#lt> #with_common_path<#lt> for #item_ident {
             type Out = #common_item_ident<#lt>;
 
-            fn with_common<T: Into<std::borrow::Cow<#lt, #common_path>>>(
-                self, common: T
+            fn with_common(
+                self, common: impl Into<std::borrow::Cow<#lt, #common_path>>
             ) -> #common_item_ident<#lt> {
                 let value = self;
                 let common = common.into();

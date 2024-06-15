@@ -30,10 +30,7 @@ pub struct TypedId<T> {
 pub type MediaTypedId = TypedId<MediaType>;
 
 impl<T: AsRef<str>> Serialize for TypedId<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut uuid_buffer = Uuid::encode_buffer();
         let uuid_str = self.id.hyphenated().encode_lower(&mut uuid_buffer);
 
@@ -46,10 +43,7 @@ impl<T: AsRef<str>> Serialize for TypedId<T> {
 }
 
 impl<'de, T: FromStr> Deserialize<'de> for TypedId<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         if let Some((t, id)) = s.split_once(TYPED_ID_SEPARATOR) {
             Ok(Self {

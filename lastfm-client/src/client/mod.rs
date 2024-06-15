@@ -45,9 +45,9 @@ impl Client {
             .map_err(ClientError::from)
     }
 
-    pub async fn send<P: Serialize + MethodName, R: DeserializeOwned>(
+    pub async fn send<R: DeserializeOwned>(
         &self,
-        params: &P,
+        params: &(impl Serialize + MethodName),
     ) -> Result<R, ClientError> {
         self.client
             .get(concat_string!(Self::LASTFM_ROOT_URL, self.to_query_str(params)?))
@@ -81,7 +81,7 @@ mod tests {
 
         assert!(
             Client::new("invalid-api-key".into())
-                .send::<_, ()>(&TestParams { ..Faker.fake() })
+                .send::<()>(&TestParams { ..Faker.fake() })
                 .await
                 .is_err()
         )

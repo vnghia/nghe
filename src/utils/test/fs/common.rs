@@ -202,7 +202,7 @@ impl TemporaryFs {
         fs.read_to_transcoding_input(path).await
     }
 
-    pub async fn write<D: AsRef<[u8]>>(&self, fs: music_folders::FsType, path: &str, data: D) {
+    pub async fn write(&self, fs: music_folders::FsType, path: &str, data: impl AsRef<[u8]>) {
         let fs = self.fs(fs);
         let path = self.absolute_path(fs, path);
         fs.write(&path, data.as_ref()).await;
@@ -296,11 +296,11 @@ impl TemporaryFs {
         }
     }
 
-    pub async fn mksongs<S: AsRef<str>>(
+    pub async fn mksongs(
         &self,
         fs: music_folders::FsType,
         music_folder_path: &str,
-        relative_paths: &[S],
+        relative_paths: &[impl AsRef<str>],
         tags: Vec<SongTag>,
         mklrc: bool,
     ) -> Vec<SongFsInformation> {
@@ -313,12 +313,12 @@ impl TemporaryFs {
             .await
     }
 
-    pub fn mkrelpaths<S: AsRef<str>>(
+    pub fn mkrelpaths(
         &self,
         fs: music_folders::FsType,
         n_path: usize,
         max_depth: usize,
-        exts: &[S],
+        exts: &[impl AsRef<str>],
     ) -> Vec<String> {
         let fs = self.fs(fs);
 
@@ -336,12 +336,12 @@ impl TemporaryFs {
             .collect()
     }
 
-    pub async fn mkpathssongs<S: AsRef<str>>(
+    pub async fn mkpathssongs(
         &self,
         fs: music_folders::FsType,
         music_folder_path: &str,
         song_tags: Vec<SongTag>,
-        exts: &[S],
+        exts: &[impl AsRef<str>],
     ) -> Vec<SongFsInformation> {
         self.mksongs(
             fs,
