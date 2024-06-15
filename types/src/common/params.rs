@@ -22,7 +22,7 @@ pub struct CommonParams {
     pub token: MD5Token,
 }
 
-pub fn to_password_token<P: AsRef<[u8]>, S: AsRef<[u8]>>(password: P, salt: S) -> MD5Token {
+pub fn to_password_token(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> MD5Token {
     let password = password.as_ref();
     let salt = salt.as_ref();
 
@@ -53,5 +53,5 @@ impl<'common> From<&'common CommonParams> for Cow<'common, CommonParams> {
 pub trait WithCommon<'common> {
     type Out;
 
-    fn with_common<T: Into<Cow<'common, CommonParams>>>(self, common: T) -> Self::Out;
+    fn with_common(self, common: impl Into<Cow<'common, CommonParams>>) -> Self::Out;
 }

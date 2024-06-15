@@ -25,7 +25,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
         if let Some(common_state) = common_state() {
             let result: Result<_, anyhow::Error> = try {
                 let allowed_ids = common_state
-                    .send_with_common::<_, GetAllowedUsersBody>(
+                    .send_with_common::<GetAllowedUsersBody>(
                         "/rest/getAllowedUsers",
                         GetAllowedUsersParams { id },
                     )
@@ -35,7 +35,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
                     .collect::<HashSet<_>>();
                 users.set(
                     common_state
-                        .send_with_common::<_, GetBasicUserIdsBody>(
+                        .send_with_common::<GetBasicUserIdsBody>(
                             "/rest/getBasicUserIds",
                             GetBasicUserIdsParams {},
                         )
@@ -62,7 +62,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
 
             if allow {
                 common_state
-                    .send_with_common::<_, AddPermissionBody>(
+                    .send_with_common::<AddPermissionBody>(
                         "/rest/addPermission",
                         AddPermissionParams { user_id: Some(user_id), music_folder_id: Some(id) },
                     )
@@ -70,7 +70,7 @@ pub fn FolderPermission(id: Uuid) -> Element {
                     .toast();
             } else {
                 common_state
-                    .send_with_common::<_, RemovePermissionBody>(
+                    .send_with_common::<RemovePermissionBody>(
                         "/rest/removePermission",
                         RemovePermissionParams {
                             user_id: Some(user_id),

@@ -15,9 +15,9 @@ use crate::models::*;
 use crate::utils::password::*;
 use crate::{Database, OSError};
 
-async fn validate<P: AsRef<CommonParams>, const REQUIRED_ROLE: users::Role>(
+async fn validate<const REQUIRED_ROLE: users::Role>(
     Database { pool, key }: &Database,
-    common_params: P,
+    common_params: impl AsRef<CommonParams>,
 ) -> Result<(Uuid, users::Role)> {
     let common_params = common_params.as_ref();
     let (user_id, user_password, user_role) = match users::table
@@ -67,7 +67,7 @@ where
                     .await
                     .map_err(std::convert::Into::<OSError>::into)?;
                 let database = Database::from_ref(state);
-                let (user_id, user_role) = validate::<_, REQUIRED_ROLE>(&database, &params).await?;
+                let (user_id, user_role) = validate::<REQUIRED_ROLE>(&database, &params).await?;
                 (user_id, user_role, params.into())
             }
             Method::POST => {
@@ -82,7 +82,7 @@ where
                     .await
                     .map_err(std::convert::Into::<OSError>::into)?;
                 let database = Database::from_ref(state);
-                let (user_id, user_role) = validate::<_, REQUIRED_ROLE>(&database, &common).await?;
+                let (user_id, user_role) = validate::<REQUIRED_ROLE>(&database, &common).await?;
                 (user_id, user_role, params)
             }
             _ => unreachable!("method is not allowed"),
@@ -120,7 +120,7 @@ mod tests {
     async fn test_validate_success() {
         let infra = Infra::new().await.add_user(None).await;
         assert!(
-            validate::<_, { users::Role::const_default() }>(
+            validate::<{ users::Role::const_default() }>(
                 infra.database(),
                 TestParams {}.with_common(infra.to_common_params(0))
             )
@@ -134,7 +134,7 @@ mod tests {
         let infra = Infra::new().await.add_user(None).await;
         let wrong_username: String = Username().fake();
         assert!(matches!(
-            validate::<_, { users::Role::const_default() }>(
+            validate::<{ users::Role::const_default() }>(
                 infra.database(),
                 TestParams {}.with_common(CommonParams {
                     username: wrong_username,
@@ -159,7 +159,7 @@ mod tests {
         let client_token = to_password_token(Password(16..32).fake::<String>(), &client_salt);
 
         assert!(matches!(
-            validate::<_, { users::Role::const_default() }>(
+            validate::<{ users::Role::const_default() }>(
                 infra.database(),
                 TestParams {}.with_common(CommonParams {
                     username,
@@ -183,7 +183,7 @@ mod tests {
             .add_user(Some(users::Role { admin_role: true, ..users::Role::const_default() }))
             .await;
         assert!(
-            validate::<_, { users::Role { admin_role: true, ..users::Role::const_default() } }>(
+            validate::<{ users::Role { admin_role: true, ..users::Role::const_default() } }>(
                 infra.database(),
                 TestParams {}.with_common(infra.to_common_params(0))
             )
@@ -196,7 +196,7 @@ mod tests {
     async fn test_validate_no_admin() {
         let infra = Infra::new().await.add_user(None).await;
         assert!(matches!(
-            validate::<_, { users::Role { admin_role: true, ..users::Role::const_default() } }>(
+            validate::<{ users::Role { admin_role: true, ..users::Role::const_default() } }>(
                 infra.database(),
                 TestParams {}.with_common(infra.to_common_params(0))
             )

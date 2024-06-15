@@ -10,10 +10,10 @@ use crate::utils::fs::path::hash_size_to_path;
 use crate::utils::fs::LocalPath;
 use crate::DatabasePool;
 
-pub async fn upsert_cover_art_from_data<P: AsRef<LocalPath>, D: AsRef<[u8]>>(
+pub async fn upsert_cover_art_from_data(
     pool: &DatabasePool,
-    art_dir: P,
-    file_data: D,
+    art_dir: impl AsRef<LocalPath>,
+    file_data: impl AsRef<[u8]>,
     file_format: &str,
 ) -> Result<Uuid> {
     let file_data = file_data.as_ref();

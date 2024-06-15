@@ -28,7 +28,7 @@ struct Folder {
 
 async fn get_scan_status(common_state: &CommonState, id: Uuid) -> Result<Option<ScanStatus>> {
     common_state
-        .send_with_common::<_, GetScanStatusBody>("/rest/getScanStatus", GetScanStatusParams { id })
+        .send_with_common::<GetScanStatusBody>("/rest/getScanStatus", GetScanStatusParams { id })
         .await
         .map(|r| r.scan)
 }
@@ -45,7 +45,7 @@ pub fn Folders() -> Element {
     use_future(move || async move {
         if let Some(common_state) = common_state() {
             let ids = common_state
-                .send_with_common::<_, GetMusicFolderIdsBody>(
+                .send_with_common::<GetMusicFolderIdsBody>(
                     "/rest/getMusicFolderIds",
                     GetMusicFolderIdsParams {},
                 )
@@ -57,7 +57,7 @@ pub fn Folders() -> Element {
                 let result: Result<()> = try {
                     folders.push(Folder {
                         stat: common_state
-                            .send_with_common::<_, GetMusicFolderStatBody>(
+                            .send_with_common::<GetMusicFolderStatBody>(
                                 "/rest/getMusicFolderStat",
                                 GetMusicFolderStatParams { id },
                             )
@@ -86,7 +86,7 @@ pub fn Folders() -> Element {
             let result: Result<()> = try {
                 let id = folders.get(idx).expect("folder should not be none").stat.music_folder.id;
                 folders.get_mut(idx).expect("folder stat should not be none").scan = common_state
-                    .send_with_common::<_, StartScanBody>(
+                    .send_with_common::<StartScanBody>(
                         "/rest/startScan",
                         StartScanParams { id, mode },
                     )
@@ -106,7 +106,7 @@ pub fn Folders() -> Element {
             remove_idx.set(None);
             let folder = folders.remove(idx);
             common_state
-                .send_with_common::<_, RemoveMusicFolderBody>(
+                .send_with_common::<RemoveMusicFolderBody>(
                     "/rest/removeMusicFolder",
                     RemoveMusicFolderParams { id: folder.stat.music_folder.id },
                 )

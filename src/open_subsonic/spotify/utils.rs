@@ -12,9 +12,9 @@ use crate::open_subsonic::cover_art::upsert_cover_art_from_url;
 use crate::utils::fs::LocalPath;
 use crate::DatabasePool;
 
-pub async fn upsert_artist_spotify_image<P: AsRef<LocalPath>>(
+pub async fn upsert_artist_spotify_image(
     pool: &DatabasePool,
-    artist_art_dir: P,
+    artist_art_dir: impl AsRef<LocalPath>,
     id: Uuid,
     artist: &FullArtist,
 ) -> Result<()> {
@@ -43,9 +43,9 @@ pub async fn upsert_artist_spotify_image<P: AsRef<LocalPath>>(
     Ok(())
 }
 
-pub async fn search_and_upsert_artist_spotify_image<P: AsRef<LocalPath>>(
+pub async fn search_and_upsert_artist_spotify_image(
     pool: &DatabasePool,
-    artist_art_dir: P,
+    artist_art_dir: impl AsRef<LocalPath>,
     client: &rspotify::ClientCredsSpotify,
     id: Uuid,
     name: &str,

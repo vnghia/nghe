@@ -8,9 +8,9 @@ use super::upsert_cover_art_from_data;
 use crate::utils::fs::LocalPath;
 use crate::{DatabasePool, OSError};
 
-pub async fn upsert_cover_art_from_url<P: AsRef<LocalPath>>(
+pub async fn upsert_cover_art_from_url(
     pool: &DatabasePool,
-    art_dir: P,
+    art_dir: impl AsRef<LocalPath>,
     url: &str,
 ) -> Result<Uuid> {
     let response = reqwest::get(url).await?.error_for_status()?;

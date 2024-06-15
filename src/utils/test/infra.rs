@@ -112,10 +112,10 @@ impl Infra {
         self
     }
 
-    pub async fn add_permission<U: Into<Option<usize>>, M: Into<Option<usize>>>(
+    pub async fn add_permission(
         &self,
-        user_idx: U,
-        music_folder_idx: M,
+        user_idx: impl Into<Option<usize>>,
+        music_folder_idx: impl Into<Option<usize>>,
     ) -> &Self {
         add_permission(
             self.pool(),
@@ -142,10 +142,10 @@ impl Infra {
         self
     }
 
-    pub async fn remove_permission<U: Into<Option<usize>>, M: Into<Option<usize>>>(
+    pub async fn remove_permission(
         &self,
-        user_idx: U,
-        music_folder_idx: M,
+        user_idx: impl Into<Option<usize>>,
+        music_folder_idx: impl Into<Option<usize>>,
     ) -> &Self {
         remove_permission(
             self.pool(),

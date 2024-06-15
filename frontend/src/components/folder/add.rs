@@ -26,7 +26,7 @@ pub fn AddFolder() -> Element {
     {
         spawn(async move {
             if common_state
-                .send_with_common::<_, AddMusicFolderBody>(
+                .send_with_common::<AddMusicFolderBody>(
                     "/rest/addMusicFolder",
                     AddMusicFolderParams {
                         name: name().expect("name should not be none"),

@@ -34,7 +34,7 @@ pub fn CreateUser() -> Element {
             let Role { admin_role, stream_role, download_role, share_role } = role();
 
             if common_state
-                .send_with_common::<_, CreateUserBody>(
+                .send_with_common::<CreateUserBody>(
                     "/rest/createUser",
                     CreateUserParams {
                         username: username(),

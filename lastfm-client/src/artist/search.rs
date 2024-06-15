@@ -42,7 +42,7 @@ mod tests {
         let client = Client::new_from_env();
         let params = Params { artist: "cher".into(), limit: Some(1), page: Some(1) };
         let mut artists =
-            client.send::<_, Response>(&params).await.unwrap().results.artist_matches.artist;
+            client.send::<Response>(&params).await.unwrap().results.artist_matches.artist;
         assert_eq!(artists.len(), 1);
         let artist = artists.remove(0);
         assert_eq!(artist.name, "Cher");

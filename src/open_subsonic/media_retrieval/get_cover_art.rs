@@ -18,11 +18,11 @@ use crate::{Database, DatabasePool, OSError, ServerError};
 
 add_common_validate!(GetCoverArtParams);
 
-pub async fn get_song_cover_art<P: AsRef<LocalPath>>(
+pub async fn get_song_cover_art(
     pool: &DatabasePool,
     user_id: Uuid,
     cover_art_id: Uuid,
-    song_art_dir: P,
+    song_art_dir: impl AsRef<LocalPath>,
 ) -> Result<StreamResponse> {
     let song_cover_art = songs::table
         .inner_join(cover_arts::table)
@@ -42,11 +42,11 @@ pub async fn get_song_cover_art<P: AsRef<LocalPath>>(
     .await
 }
 
-pub async fn get_album_cover_art<P: AsRef<LocalPath>>(
+pub async fn get_album_cover_art(
     pool: &DatabasePool,
     user_id: Uuid,
     album_id: Uuid,
-    song_art_dir: P,
+    song_art_dir: impl AsRef<LocalPath>,
 ) -> Result<StreamResponse> {
     let album_cover_art = songs::table
         .inner_join(cover_arts::table)
@@ -76,10 +76,10 @@ pub async fn get_album_cover_art<P: AsRef<LocalPath>>(
     .await
 }
 
-pub async fn get_artist_cover_art<P: AsRef<LocalPath>>(
+pub async fn get_artist_cover_art(
     pool: &DatabasePool,
     cover_art_id: Uuid,
-    artist_art_dir: P,
+    artist_art_dir: impl AsRef<LocalPath>,
 ) -> Result<StreamResponse> {
     let artist_cover_art = artists::table
         .inner_join(cover_arts::table)

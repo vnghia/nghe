@@ -8,7 +8,7 @@ static ERROR_SIGNAL: GlobalSignal<Option<Cow<'static, str>>> = Signal::global(De
 pub struct ErrorToast;
 
 impl ErrorToast {
-    pub fn write<E: Into<Cow<'static, str>>>(e: E) {
+    pub fn write(e: impl Into<Cow<'static, str>>) {
         *ERROR_SIGNAL.write() = Some(e.into());
     }
 

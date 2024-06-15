@@ -18,7 +18,7 @@ pub async fn upsert_artist_lastfm_info(
         (Some(name.into()), Some(mbz_id))
     } else {
         let mut artists = client
-            .send::<_, artist::search::Response>(&artist::search::Params {
+            .send::<artist::search::Response>(&artist::search::Params {
                 artist: name.into(),
                 limit: Some(1),
                 page: Some(1),
@@ -36,7 +36,7 @@ pub async fn upsert_artist_lastfm_info(
     };
 
     let artist = client
-        .send::<_, artist::get_info::Response>(&artist::get_info::Params { artist, mbid })
+        .send::<artist::get_info::Response>(&artist::get_info::Params { artist, mbid })
         .await?
         .artist;
 

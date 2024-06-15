@@ -18,7 +18,7 @@ pub struct NewCoverArt<'a> {
 }
 
 impl<'a> NewCoverArt<'a> {
-    pub fn to_path<P: AsRef<LocalPath>>(&'a self, song_art_dir: P) -> LocalPathBuf {
+    pub fn to_path(&'a self, song_art_dir: impl AsRef<LocalPath>) -> LocalPathBuf {
         hash_size_to_path(song_art_dir, self.file_hash as _, self.file_size as _)
             .join(concat_string!("cover.", self.format))
     }

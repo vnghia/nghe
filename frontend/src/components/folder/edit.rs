@@ -28,7 +28,7 @@ pub fn Folder(id: Uuid) -> Element {
     {
         spawn(async move {
             if common_state
-                .send_with_common::<_, UpdateMusicFolderBody>(
+                .send_with_common::<UpdateMusicFolderBody>(
                     "/rest/updateMusicFolder",
                     UpdateMusicFolderParams { id, name: name(), path: path(), fs_type: fs_type() },
                 )

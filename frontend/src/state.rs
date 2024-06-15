@@ -60,34 +60,30 @@ impl CommonState {
         common_state
     }
 
-    pub fn build_url_with_common<'common, P: WithCommon<'common, Out = impl Serialize>>(
+    pub fn build_url_with_common<'common>(
         &'common self,
-        params: P,
+        params: impl WithCommon<'common, Out = impl Serialize>,
     ) -> String {
         Self::build_url(params.with_common(&self.common))
     }
 
-    pub fn build_url<P: Serialize>(params: P) -> String {
+    pub fn build_url(params: impl Serialize) -> String {
         serde_html_form::to_string(params)
             .expect("failed to serialize params which is not possible")
     }
 
-    pub async fn send_with_common<
-        'common,
-        P: WithCommon<'common, Out = impl Serialize>,
-        B: DeserializeOwned,
-    >(
+    pub async fn send_with_common<'common, B: DeserializeOwned>(
         &'common self,
         url: &'static str,
-        params: P,
+        params: impl WithCommon<'common, Out = impl Serialize>,
     ) -> Result<B> {
         Self::send_with_query(&self.server_url, url, &self.build_url_with_common(params)).await
     }
 
-    pub async fn send<P: Serialize, B: DeserializeOwned>(
+    pub async fn send<B: DeserializeOwned>(
         server_url: &Option<Url>,
         url: &'static str,
-        params: P,
+        params: impl Serialize,
     ) -> Result<B> {
         Self::send_with_query(server_url, url, &Self::build_url(params)).await
     }

@@ -44,10 +44,10 @@ impl StreamResponse {
         mime_guess::from_ext(ext).first_or_octet_stream()
     }
 
-    pub async fn try_from_path<P: AsRef<LocalPath>, O: Into<Option<u64>>, S: Into<Option<u64>>>(
-        path: P,
-        offset: O,
-        size: S,
+    pub async fn try_from_path(
+        path: impl AsRef<LocalPath>,
+        offset: impl Into<Option<u64>>,
+        size: impl Into<Option<u64>>,
         seekable: bool,
     ) -> Result<Self> {
         let path = path.as_ref();
@@ -72,12 +72,12 @@ impl StreamResponse {
         ))
     }
 
-    pub fn from_async_read<R: AsyncRead + Send + Sync + 'static>(
+    pub fn from_async_read(
         ext: &str,
         offset: u64,
         size: u64,
         seekable: bool,
-        reader: R,
+        reader: impl AsyncRead + Send + Sync + 'static,
     ) -> Self {
         Self {
             mime: Self::from_ext(ext),
