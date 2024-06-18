@@ -3292,7 +3292,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4493,9 +4493,9 @@ dependencies = [
 
 [[package]]
 name = "rsmpeg"
-version = "0.15.0+ffmpeg.7.0"
+version = "0.15.1+ffmpeg.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fd06356fe9f1b77b8e6a5cfd771c124515a30d36cfb785f3fc7f135572ef4ba"
+checksum = "d3ffbead667d06e0c77c4363f83d49a3481cc3838bc9a61882aa07b01e3f63e1"
 dependencies = [
  "paste",
  "rusty_ffmpeg",
