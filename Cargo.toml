@@ -27,22 +27,22 @@ itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
-serde_with = { version = "3.8.1", features = ["hex"] }
-strum = { version = "0.26.2", features = ["derive"] }
+serde_with = { version = "3.8.2", features = ["hex"] }
+strum = { version = "0.26.3", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }
-uuid = { version = "1.8.0", features = ["serde"] }
-reqwest = { version = "0.12.4", default-features = false, features = [
+uuid = { version = "1.9.1", features = ["serde"] }
+reqwest = { version = "0.12.5", default-features = false, features = [
   "rustls-tls",
   "json",
   "http2",
 ] }
 thiserror = { version = "1.0.61" }
-tokio = { version = "1.37.0", features = ["full"] }
-url = { version = "2.5.0" }
+tokio = { version = "1.38.0", features = ["full"] }
+url = { version = "2.5.2" }
 
 # Dev
-serde_json = { version = "1.0.117" }
+serde_json = { version = "1.0.120" }
 fake = { version = "2.9.2", features = [
   "derive",
   "uuid",
@@ -75,14 +75,14 @@ nghe-proc_macros = { path = "proc_macros" }
 nghe-types = { path = "types" }
 
 async-trait = { version = "0.1.80" }
-aws-config = { version = "1.5.0", default-features = false, features = [
+aws-config = { version = "1.5.3", default-features = false, features = [
   "client-hyper",
   "rustls",
   "rt-tokio",
   "credentials-process",
   "behavior-version-latest",
 ] }
-aws-sdk-s3 = { version = "1.31.0", features = ["rt-tokio"] }
+aws-sdk-s3 = { version = "1.39.0", features = ["rt-tokio"] }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 axum-extra = { version = "0.9.3", features = ["form", "typed-header"] }
 diesel = { version = "2.1.6", features = ["64-column-tables", "time", "uuid"] }
@@ -99,17 +99,17 @@ futures = { version = "0.3.30" }
 futures-buffered = { version = "0.2.6" }
 ignore = { version = "0.4.22" }
 libaes = { version = "0.7.0" }
-lofty = { version = "0.20.0" }
+lofty = { version = "0.20.1" }
 lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }
-mimalloc = { version = "0.1.42" }
-mime_guess = { version = "2.0.4" }
+mimalloc = { version = "0.1.43" }
+mime_guess = { version = "2.0.5" }
 phf = { version = "0.11.2", features = ["macros"] }
 rayon = { version = "1.10.0" }
-rsmpeg = { version = "0.15.0", default-features = false, features = [
+rsmpeg = { version = "0.15.1", default-features = false, features = [
   "ffmpeg6",
   "link_system_ffmpeg",
 ] }
-rspotify = { version = "0.13.1", default-features = false, features = [
+rspotify = { version = "0.13.2", default-features = false, features = [
   "client-reqwest",
   "reqwest-rustls-tls",
 ] }
@@ -127,13 +127,13 @@ fake = { workspace = true }
 serde_json = { workspace = true }
 url = { workspace = true }
 
-http-body-util = { version = "0.1.1" }
+http-body-util = { version = "0.1.2" }
 image = { version = "0.25.1", default-features = false, features = [
   "jpeg",
   "png",
 ] }
 tempfile = { version = "3.10.1" }
-uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
+uuid = { version = "1.9.1", features = ["v4", "fast-rng"] }
 
 [target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
 diesel = { version = "2.1.6", features = ["postgres"] }
