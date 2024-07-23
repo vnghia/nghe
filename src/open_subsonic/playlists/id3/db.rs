@@ -8,11 +8,9 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::models::*;
-use crate::open_subsonic::common::sql::greatest;
-use crate::open_subsonic::common::sql::greatest::HelperType as Greatest;
+use crate::open_subsonic::common::sql::greatest_tz;
 use crate::open_subsonic::id3::*;
-use crate::open_subsonic::sql::coalescef;
-use crate::open_subsonic::sql::coalescef::HelperType as CoalesceF;
+use crate::open_subsonic::sql::coalesce_f32;
 use crate::DatabasePool;
 
 #[derive(Debug, Queryable, Selectable)]
@@ -35,10 +33,10 @@ pub struct PlaylistId3Db {
     #[diesel(embed)]
     pub basic: BasicPlaylistId3Db,
     #[diesel(select_expression =
-        greatest(max(playlists_songs::created_at.nullable()), playlists::updated_at)
+        greatest_tz(max(playlists_songs::created_at.nullable()), playlists::updated_at)
     )]
     #[diesel(select_expression_type =
-        Greatest<
+        greatest_tz<
             helper_types::max<Nullable<playlists_songs::created_at>>,
             playlists::updated_at
         >
@@ -47,8 +45,10 @@ pub struct PlaylistId3Db {
     #[diesel(select_expression = count(songs::id.nullable()))]
     #[diesel(select_expression_type = count<Nullable<songs::id>>)]
     pub song_count: i64,
-    #[diesel(select_expression = coalescef(sum(songs::duration.nullable()), 0_f32))]
-    #[diesel(select_expression_type = CoalesceF<helper_types::sum<Nullable<songs::duration>>, f32>)]
+    #[diesel(select_expression = coalesce_f32(sum(songs::duration.nullable()), 0_f32))]
+    #[diesel(select_expression_type =
+        coalesce_f32<helper_types::sum<Nullable<songs::duration>>, f32>
+    )]
     pub duration: f32,
 }
 

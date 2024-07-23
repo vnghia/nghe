@@ -6,8 +6,7 @@ use nghe_types::browsing::get_artist_info2::ArtistInfo;
 use nghe_types::id3::InfoId3;
 use uuid::Uuid;
 
-use crate::open_subsonic::sql::coalesceid;
-use crate::open_subsonic::sql::coalesceid::HelperType as CoalesceId;
+use crate::open_subsonic::sql::coalesce_uuid;
 pub use crate::schema::artists;
 
 #[derive(Debug, Insertable, Queryable, Selectable)]
@@ -36,8 +35,7 @@ pub struct NewArtistWithIndex<'a> {
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
 pub struct LastfmInfo<'a> {
     pub lastfm_url: Option<Cow<'a, str>>,
-    #[diesel(select_expression = coalesceid(mbz_id, lastfm_mbz_id))]
-    #[diesel(select_expression_type = CoalesceId<mbz_id, lastfm_mbz_id>)]
+    #[diesel(select_expression = coalesce_uuid(mbz_id, lastfm_mbz_id))]
     pub lastfm_mbz_id: Option<Uuid>,
     pub lastfm_biography: Option<Cow<'a, str>>,
 }

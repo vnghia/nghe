@@ -17,7 +17,6 @@ use uuid::Uuid;
 use super::get_basic_artist_id3_db;
 use crate::models::*;
 use crate::open_subsonic::sql::any_value_text;
-use crate::open_subsonic::sql::any_value_text::HelperType as AnyValueText;
 use crate::DatabasePool;
 
 #[derive(Debug, Queryable, Selectable)]
@@ -46,7 +45,6 @@ pub struct ArtistAlbumCountId3Db {
     #[diesel(embed)]
     pub artist: ArtistId3Db,
     #[diesel(select_expression = count_distinct(songs::album_id))]
-    #[diesel(select_expression_type = count_distinct<songs::album_id>)]
     pub album_count: i64,
 }
 
@@ -58,7 +56,6 @@ pub struct BasicAlbumId3Db {
     #[diesel(embed)]
     pub no_id: albums::AlbumNoId,
     #[diesel(select_expression = count_distinct(songs::id))]
-    #[diesel(select_expression_type = count_distinct<songs::id>)]
     pub song_count: i64,
     #[diesel(select_expression = sum(songs::duration).assume_not_null())]
     #[diesel(select_expression_type = AssumeNotNull<helper_types::sum<songs::duration>>)]
@@ -110,7 +107,6 @@ pub struct SongId3Db {
     #[diesel(embed)]
     pub basic: BasicSongId3Db,
     #[diesel(select_expression = any_value_text(albums::name))]
-    #[diesel(select_expression_type = AnyValueText<albums::name>)]
     pub album: String,
     #[diesel(select_expression = sql("array_agg(distinct(songs_artists.artist_id)) artist_ids"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
@@ -129,10 +125,8 @@ pub struct GenreId3Db {
     #[diesel(embed)]
     pub value: BasicGenreId3Db,
     #[diesel(select_expression = count_distinct(songs::album_id))]
-    #[diesel(select_expression_type = count_distinct<songs::album_id>)]
     pub album_count: i64,
     #[diesel(select_expression = count_distinct(songs::id))]
-    #[diesel(select_expression_type = count_distinct<songs::id>)]
     pub song_count: i64,
 }
 
