@@ -36,7 +36,6 @@ pub struct NewArtistWithIndex<'a> {
 pub struct LastfmInfo<'a> {
     pub lastfm_url: Option<Cow<'a, str>>,
     #[diesel(select_expression = coalesce_uuid(mbz_id, lastfm_mbz_id))]
-    #[diesel(select_expression_type = coalesce_uuid<mbz_id, lastfm_mbz_id>)]
     pub lastfm_mbz_id: Option<Uuid>,
     pub lastfm_biography: Option<Cow<'a, str>>,
 }
