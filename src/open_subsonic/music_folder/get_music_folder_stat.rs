@@ -11,8 +11,7 @@ use nghe_proc_macros::{add_axum_response, add_common_validate, add_convert_types
 use uuid::Uuid;
 
 use crate::models::*;
-use crate::open_subsonic::sql::coalesce;
-use crate::open_subsonic::sql::coalesce::HelperType as Coalesce;
+use crate::open_subsonic::sql::coalesce_i64;
 use crate::{Database, DatabasePool};
 
 add_common_validate!(GetMusicFolderStatParams, admin);
@@ -44,7 +43,7 @@ pub struct MusicFolderStatDb {
     pub user_count: i64,
     #[diesel(select_expression = songs_total_size
         .filter(songs_total_size.field(songs::music_folder_id).eq(music_folders::id))
-        .select(coalesce(sum(songs_total_size.field(songs::file_size)), 0))
+        .select(coalesce_i64(sum(songs_total_size.field(songs::file_size)), 0))
         .single_value()
         .assume_not_null()
     )]
@@ -55,7 +54,9 @@ pub struct MusicFolderStatDb {
                     Alias<SongsTotalSize>,
                     Eq<AliasedField<SongsTotalSize, songs::music_folder_id>, music_folders::id>,
                 >,
-                Coalesce<helper_types::sum<AliasedField<SongsTotalSize, songs::file_size>>, i64>,
+                coalesce_i64<
+                    helper_types::sum<AliasedField<SongsTotalSize, songs::file_size>>, i64
+                >,
             >,
         >,
     >)]
