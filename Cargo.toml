@@ -106,7 +106,7 @@ mime_guess = { version = "2.0.5" }
 phf = { version = "0.11.2", features = ["macros"] }
 rayon = { version = "1.10.0" }
 rsmpeg = { version = "0.15.1", default-features = false, features = [
-  "ffmpeg6",
+  "ffmpeg7",
   "link_system_ffmpeg",
 ] }
 rspotify = { version = "0.13.2", default-features = false, features = [
@@ -155,7 +155,7 @@ dependencies = [
   "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis,openssl]",
 ]
 git = "https://github.com/microsoft/vcpkg"
-rev = "072bc1790b19de5f01effbfd07aef2a2512ea1db"
+rev = "fe1cde61e971d53c9687cf9a46308f8f55da19fa"
 overlay-triplets-path = "vcpkg/triplets/"
 
 [package.metadata.vcpkg.target]
