@@ -1,0 +1,11 @@
+[package]
+name = "nghe_backend"
+version = { workspace = true }
+edition = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+
+nghe_api = { path = "../nghe-api" }

@@ -5,11 +5,17 @@ members = [
   "lastfm-proc-macros",
   "proc_macros",
   "types",
+  "nghe-api",
+  "nghe-proc-macro",
+  "nghe-backend",
 ]
 
 [workspace.package]
 version = "0.9.10"
 edition = "2021"
+
+[workspace.lints.clippy]
+pedantic = "deny"
 
 [package]
 name = "nghe"
