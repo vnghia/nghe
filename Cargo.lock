@@ -3667,6 +3667,8 @@ dependencies = [
 name = "nghe_proc_macro"
 version = "0.9.10"
 dependencies = [
+ "concat-string",
+ "deluxe",
  "proc-macro2",
  "quote",
  "syn 2.0.74",
