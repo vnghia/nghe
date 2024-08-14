@@ -15,7 +15,7 @@ impl IntoTokenStream for Result<proc_macro2::TokenStream, syn::Error> {
     }
 }
 
-#[proc_macro_derive(Endpoint)]
-pub fn derive_endpoint(_: TokenStream) -> TokenStream {
-    api::derive_endpoint().into_token_stream()
+#[proc_macro_derive(Endpoint, attributes(endpoint))]
+pub fn derive_endpoint(item: TokenStream) -> TokenStream {
+    api::derive_endpoint(item.into()).into_token_stream()
 }
