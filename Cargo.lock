@@ -3648,6 +3648,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "nghe_api"
+version = "0.9.10"
+dependencies = [
+ "nghe_proc_macro",
+ "serde",
+ "serde_with",
+]
+
+[[package]]
+name = "nghe_backend"
+version = "0.9.10"
+dependencies = [
+ "nghe_api",
+]
+
+[[package]]
+name = "nghe_proc_macro"
+version = "0.9.10"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
+]
+
+[[package]]
 name = "nom"
 version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

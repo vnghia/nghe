@@ -1,0 +1,13 @@
+[package]
+name = "nghe_api"
+version = { workspace = true }
+edition = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_with = { workspace = true }
+
+nghe_proc_macro = { path = "../nghe-proc-macro" }
