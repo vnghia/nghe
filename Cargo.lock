@@ -3132,7 +3132,7 @@ dependencies = [
  "concat-string",
  "fake",
  "lastfm-proc-macros",
- "reqwest 0.12.6",
+ "reqwest 0.12.7",
  "serde",
  "serde_html_form",
  "serde_json",
@@ -3198,7 +3198,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -3547,7 +3547,7 @@ dependencies = [
  "phf",
  "rand",
  "rayon",
- "reqwest 0.12.6",
+ "reqwest 0.12.7",
  "rsmpeg",
  "rspotify",
  "serde",
@@ -4331,9 +4331,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.6"
+version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6f6ddd79dc661ade721873783d159ec87d91d556ce92933e342bae8b87c48c0"
+checksum = "f8f4955649ef5c38cc7f9e8aa41761d48fb9677197daea9984dc54f56aad5e63"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -4443,7 +4443,7 @@ dependencies = [
  "async-trait",
  "log",
  "maybe-async",
- "reqwest 0.12.6",
+ "reqwest 0.12.7",
  "serde_json",
  "thiserror",
 ]
