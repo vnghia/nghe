@@ -1,6 +1,6 @@
 #![allow(clippy::unused_async)]
 
-use nghe_api::user::setup::{Request, Response};
+pub use nghe_api::user::setup::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::app::error::Error;
