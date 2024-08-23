@@ -3660,7 +3660,10 @@ dependencies = [
 name = "nghe_backend"
 version = "0.9.10"
 dependencies = [
+ "anyhow",
+ "axum",
  "nghe_api",
+ "tokio",
 ]
 
 [[package]]
@@ -3671,7 +3674,7 @@ dependencies = [
  "deluxe",
  "proc-macro2",
  "quote",
- "syn 2.0.74",
+ "syn 2.0.75",
 ]
 
 [[package]]
