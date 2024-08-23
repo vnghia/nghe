@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_str, Error, Ident};
 
-#[derive(deluxe::ExtractAttributes)]
+#[derive(Debug, deluxe::ExtractAttributes)]
 #[deluxe(attributes(endpoint))]
 struct Endpoint {
     path: String,
@@ -26,6 +26,12 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let Endpoint { path, response } = deluxe::extract_attributes(&mut input)?;
 
     let ident = &input.ident;
+    if ident != "Request" {
+        return Err(syn::Error::new(
+            ident.span(),
+            "Struct derived with `Endpoint` should be named `Request`",
+        ));
+    }
 
     let endpoint = concat_string!("/rest/", &path);
     let endpoint_view = concat_string!("/rest/", &path, ".view");
