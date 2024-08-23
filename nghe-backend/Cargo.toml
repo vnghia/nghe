@@ -7,10 +7,20 @@ edition = { workspace = true }
 workspace = true
 
 [dependencies]
-
-anyhow = { workspace = true }
+color-eyre = { workspace = true }
+const_format = { workspace = true }
 tokio = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
 
 nghe_api = { path = "../nghe-api" }
+nghe_proc_macro = { path = "../nghe-proc-macro" }
 
 axum = { version = "0.7.5", features = ["http2", "macros"] }
+diesel = { version = "2.2.2", features = ["64-column-tables", "time", "uuid"] }
+diesel-async = { version = "0.5.0", features = [
+  "postgres",
+  "deadpool",
+  "async-connection-wrapper",
+] }
+libaes = { version = "0.7.0" }

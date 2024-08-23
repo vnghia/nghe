@@ -1,6 +1,8 @@
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_with::serde_as;
+
+use super::constant;
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
@@ -16,9 +18,66 @@ pub struct Auth<'u, 's> {
     pub token: AuthToken,
 }
 
+#[derive(Serialize, Deserialize)]
+struct RootResponse<B> {
+    #[serde(serialize_with = "emit_open_subsonic_version", skip_deserializing)]
+    version: (),
+    #[serde(serialize_with = "emit_server_type", skip_deserializing)]
+    r#type: (),
+    #[serde(serialize_with = "emit_server_version", skip_deserializing)]
+    server_version: (),
+    #[serde(serialize_with = "emit_open_subsonic", skip_deserializing)]
+    open_subsonic: (),
+    #[serde(serialize_with = "emit_status_ok", skip_deserializing)]
+    status: (),
+    #[serde(flatten)]
+    body: B,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SubsonicResponse<B> {
+    #[serde(rename = "subsonic-response")]
+    root: RootResponse<B>,
+}
+
 pub trait Endpoint {
     const ENDPOINT: &'static str;
     const ENDPOINT_VIEW: &'static str;
 
     type Response: Serialize + DeserializeOwned;
 }
+
+impl<B> SubsonicResponse<B> {
+    pub fn new(body: B) -> Self {
+        Self {
+            root: RootResponse {
+                version: (),
+                r#type: (),
+                server_version: (),
+                open_subsonic: (),
+                status: (),
+                body,
+            },
+        }
+    }
+
+    pub fn body(self) -> B {
+        self.root.body
+    }
+}
+
+macro_rules! emit_constant_serialize {
+    ($constant_name:ident, $constant_type:ty, $constant_value:expr) => {
+        paste::paste! {
+            fn [<emit_ $constant_name>]<S: Serializer>(_: &(), s: S) -> Result<S::Ok, S::Error> {
+                s.[<serialize_ $constant_type>]($constant_value)
+            }
+        }
+    };
+}
+
+emit_constant_serialize!(open_subsonic_version, str, constant::OPEN_SUBSONIC_VERSION);
+emit_constant_serialize!(server_type, str, constant::SERVER_NAME);
+emit_constant_serialize!(server_version, str, constant::SERVER_VERSION);
+emit_constant_serialize!(open_subsonic, bool, true);
+emit_constant_serialize!(status_ok, str, "ok");
