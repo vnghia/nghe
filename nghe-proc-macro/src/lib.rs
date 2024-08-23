@@ -22,6 +22,11 @@ pub fn derive_endpoint(item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
+pub fn api_derive(attr: TokenStream, item: TokenStream) -> TokenStream {
+    api::derive(attr.into(), item.into()).into_token_stream()
+}
+
+#[proc_macro_attribute]
 pub fn handler(attr: TokenStream, item: TokenStream) -> TokenStream {
     backend::handler(attr.into(), item.into()).into_token_stream()
 }

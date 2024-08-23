@@ -4,7 +4,8 @@ use syn::Error;
 
 #[derive(deluxe::ParseMetaItem)]
 struct Handler {
-    ret_level: Option<String>,
+    #[deluxe(default = "trace".into())]
+    ret_level: String,
 }
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
@@ -13,8 +14,6 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
 
     let handler_ident = &handler.sig.ident;
     let json_handler_ident = format_ident!("json_{}", &handler_ident);
-
-    let ret_level = ret_level.unwrap_or("trace".into());
 
     Ok(quote! {
         #[tracing::instrument(skip(database), ret(level = #ret_level), err)]

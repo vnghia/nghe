@@ -1,14 +1,17 @@
-use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize, Serializer};
+use bitcode::{DecodeOwned, Encode};
+use nghe_proc_macro::api_derive;
+use serde::{Serialize, Serializer};
 use serde_with::serde_as;
 
 use super::constant;
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[api_derive]
+#[derive(Clone, Copy)]
 pub struct AuthToken(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[api_derive]
+#[derive(Clone, Copy)]
 pub struct Auth<'u, 's> {
     #[serde(rename = "u")]
     pub username: &'u str,
@@ -18,23 +21,23 @@ pub struct Auth<'u, 's> {
     pub token: AuthToken,
 }
 
-#[derive(Serialize, Deserialize)]
+#[api_derive(debug = false, bitcode = false)]
 struct RootResponse<B> {
-    #[serde(serialize_with = "emit_open_subsonic_version", skip_deserializing)]
+    #[serde(serialize_with = "emit_open_subsonic_version")]
     version: (),
-    #[serde(serialize_with = "emit_server_type", skip_deserializing)]
+    #[serde(serialize_with = "emit_server_type")]
     r#type: (),
-    #[serde(serialize_with = "emit_server_version", skip_deserializing)]
+    #[serde(serialize_with = "emit_server_version")]
     server_version: (),
-    #[serde(serialize_with = "emit_open_subsonic", skip_deserializing)]
+    #[serde(serialize_with = "emit_open_subsonic")]
     open_subsonic: (),
-    #[serde(serialize_with = "emit_status_ok", skip_deserializing)]
+    #[serde(serialize_with = "emit_status_ok")]
     status: (),
     #[serde(flatten)]
     body: B,
 }
 
-#[derive(Serialize, Deserialize)]
+#[api_derive(debug = false, bitcode = false)]
 pub struct SubsonicResponse<B> {
     #[serde(rename = "subsonic-response")]
     root: RootResponse<B>,
@@ -44,7 +47,7 @@ pub trait Endpoint {
     const ENDPOINT: &'static str;
     const ENDPOINT_VIEW: &'static str;
 
-    type Response: Serialize + DeserializeOwned;
+    type Response: Serialize + Encode + DecodeOwned;
 }
 
 impl<B> SubsonicResponse<B> {
