@@ -8,4 +8,9 @@ workspace = true
 
 [dependencies]
 
+anyhow = { workspace = true }
+tokio = { workspace = true }
+
 nghe_api = { path = "../nghe-api" }
+
+axum = { version = "0.7.5", features = ["http2", "macros"] }
