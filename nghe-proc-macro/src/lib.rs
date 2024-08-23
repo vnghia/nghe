@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 use proc_macro::TokenStream;
 
 mod api;
@@ -29,4 +31,9 @@ pub fn api_derive(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn handler(attr: TokenStream, item: TokenStream) -> TokenStream {
     backend::handler(attr.into(), item.into()).into_token_stream()
+}
+
+#[proc_macro]
+pub fn build_router(item: TokenStream) -> TokenStream {
+    backend::build_router(item.into()).into_token_stream()
 }
