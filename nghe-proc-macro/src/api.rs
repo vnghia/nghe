@@ -11,7 +11,7 @@ struct Endpoint {
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
-    let mut input = syn::parse2::<syn::DeriveInput>(item)?;
+    let mut input: syn::DeriveInput = syn::parse2(item)?;
     let Endpoint { path, response } = deluxe::extract_attributes(&mut input)?;
 
     let ident = &input.ident;

@@ -1,6 +1,7 @@
 use proc_macro::TokenStream;
 
 mod api;
+mod backend;
 
 trait IntoTokenStream {
     fn into_token_stream(self) -> TokenStream;
@@ -18,4 +19,9 @@ impl IntoTokenStream for Result<proc_macro2::TokenStream, syn::Error> {
 #[proc_macro_derive(Endpoint, attributes(endpoint))]
 pub fn derive_endpoint(item: TokenStream) -> TokenStream {
     api::derive_endpoint(item.into()).into_token_stream()
+}
+
+#[proc_macro_attribute]
+pub fn handler(attr: TokenStream, item: TokenStream) -> TokenStream {
+    backend::handler(attr.into(), item.into()).into_token_stream()
 }
