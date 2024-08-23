@@ -7,6 +7,7 @@ edition = { workspace = true }
 workspace = true
 
 [dependencies]
+bitcode = { workspace = true }
 const_format = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }

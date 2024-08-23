@@ -1,7 +1,6 @@
-use nghe_proc_macro::Endpoint;
-use serde::{Deserialize, Serialize};
+use nghe_proc_macro::api_derive;
 
-#[derive(Debug, Serialize, Deserialize, Endpoint)]
+#[api_derive(endpoint = true)]
 #[endpoint(path = "setupUser")]
 pub struct Request {
     pub username: String,
@@ -9,5 +8,5 @@ pub struct Request {
     pub email: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[api_derive]
 pub struct Response {}

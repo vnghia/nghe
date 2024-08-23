@@ -24,6 +24,7 @@ edition = { workspace = true }
 
 [workspace.dependencies]
 anyhow = { version = "1.0.86", features = ["backtrace"] }
+bitcode = { version = "0.6.3" }
 color-eyre = { version = "0.6.3" }
 concat-string = { version = "1.0.1" }
 const_format = { version = "0.2.32", features = ["fmt"] }
