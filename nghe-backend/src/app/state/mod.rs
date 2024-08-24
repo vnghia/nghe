@@ -3,6 +3,7 @@ use diesel_async::AsyncPgConnection;
 use libaes::Cipher;
 
 use super::error::Error;
+use crate::config;
 
 type Connection = AsyncDieselConnectionManager<AsyncPgConnection>;
 type Pool = deadpool::Pool<AsyncPgConnection>;
@@ -23,11 +24,11 @@ pub struct App {
 impl Database {
     const IV_LEN: usize = 16;
 
-    pub fn new() -> Self {
-        let pool = Pool::builder(Connection::new(env!("DATABASE_URL")))
+    pub fn new(config: &config::Database) -> Self {
+        let pool = Pool::builder(Connection::new(&config.url))
             .build()
             .expect("Could not build database connection pool");
-        Self { pool, key: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+        Self { pool, key: config.key }
     }
 
     pub async fn get(&self) -> Result<deadpool::Object<AsyncPgConnection>, Error> {
@@ -61,8 +62,8 @@ impl Database {
 }
 
 impl App {
-    pub fn new() -> Self {
-        Self { database: Database::new() }
+    pub fn new(database: &config::Database) -> Self {
+        Self { database: Database::new(database) }
     }
 }
 
