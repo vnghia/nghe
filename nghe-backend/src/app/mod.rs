@@ -10,10 +10,9 @@ use crate::config::Config;
 mod auth;
 mod common;
 mod error;
-mod state;
+pub mod migration;
+pub mod state;
 mod user;
-
-pub use state::Key;
 
 pub fn build(config: Config) -> Router {
     Router::new().merge(user::router()).with_state(state::App::new(&config.database)).layer(
