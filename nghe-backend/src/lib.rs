@@ -6,4 +6,4 @@ mod fs;
 mod orm;
 mod schema;
 
-pub use app::build;
+pub use app::{build, migration};
