@@ -26,7 +26,7 @@ pub struct PostUser<R> {
 }
 
 #[derive(Debug)]
-pub struct BinaryUser<R, const NEED_AUTH: bool = true> {
+pub struct BinaryUser<R, const NEED_AUTH: bool> {
     pub id: Uuid,
     pub role: users::Role,
     pub request: R,
