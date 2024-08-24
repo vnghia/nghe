@@ -18,7 +18,7 @@ struct Derive {
     #[deluxe(default = true)]
     serde: bool,
     #[deluxe(default = true)]
-    bitcode: bool,
+    binary: bool,
     #[deluxe(default = false)]
     endpoint: bool,
     #[deluxe(default = true)]
@@ -71,7 +71,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     if args.debug {
         derives.push(parse_str("Debug")?);
     }
-    if args.bitcode {
+    if args.binary {
         derives.push(parse_str("bitcode::Encode")?);
         derives.push(parse_str("bitcode::Decode")?);
     }

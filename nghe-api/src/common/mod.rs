@@ -5,7 +5,7 @@ use serde::{Serialize, Serializer};
 
 use super::constant;
 
-#[api_derive(debug = false, bitcode = false)]
+#[api_derive(debug = false, binary = false)]
 struct RootResponse<B> {
     #[serde(serialize_with = "emit_open_subsonic_version")]
     version: (),
@@ -21,7 +21,7 @@ struct RootResponse<B> {
     body: B,
 }
 
-#[api_derive(debug = false, bitcode = false)]
+#[api_derive(debug = false, binary = false)]
 pub struct SubsonicResponse<B> {
     #[serde(rename = "subsonic-response")]
     root: RootResponse<B>,
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_serialize_empty() {
-        #[api_derive(debug = false, bitcode = false)]
+        #[api_derive(debug = false, binary = false)]
         struct TestBody {}
 
         assert_eq!(
@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn test_serialize() {
-        #[api_derive(debug = false, bitcode = false)]
+        #[api_derive(debug = false, binary = false)]
         struct TestBody {
             field: u16,
         }
@@ -120,7 +120,7 @@ mod tests {
 
     #[test]
     fn test_serialize_case() {
-        #[api_derive(debug = false, bitcode = false)]
+        #[api_derive(debug = false, binary = false)]
         struct TestBody {
             snake_case: u16,
         }
