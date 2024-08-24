@@ -6,6 +6,7 @@ use syn::Error;
 struct Handler {
     #[deluxe(default = "trace".into())]
     ret_level: String,
+    role: Option<syn::Ident>,
 }
 
 #[derive(Debug, deluxe::ParseMetaItem)]
@@ -15,7 +16,7 @@ struct BuildRouter {
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemFn = syn::parse2(item)?;
-    let Handler { ret_level } = deluxe::parse2(attr)?;
+    let Handler { ret_level, role } = deluxe::parse2(attr)?;
 
     let ident = &input.sig.ident;
     if ident != "handler" {
@@ -25,6 +26,16 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         ));
     }
 
+    let (authorize_fn, missing_role) = if let Some(role) = role {
+        if role == "admin" {
+            (quote! { role.admin }, role.to_string())
+        } else {
+            (quote! { role.admin || role.#role }, role.to_string())
+        }
+    } else {
+        (quote! { true }, String::default())
+    };
+
     Ok(quote! {
         #[tracing::instrument(skip(database), ret(level = #ret_level), err)]
         #input
@@ -32,13 +43,23 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract::State;
         use nghe_api::common::{Endpoint, SubsonicResponse};
 
-        use crate::app::auth::{Get};
+        use crate::app::auth::{Authorize, Get};
+
+        impl Authorize for Request {
+            fn authorize(self, role: crate::orm::users::Role) -> Result<Self, Error> {
+                if #authorize_fn {
+                    Ok(self)
+                } else {
+                    Err(Error::Unauthorized(#missing_role))
+                }
+            }
+        }
 
         pub async fn json_handler(
             State(app): State<crate::app::state::App>,
-            request: Get<Request>,
+            authorized: Get<Request>,
         ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
-            let response = #ident(&app.database, request.request).await?;
+            let response = #ident(&app.database, authorized.request).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
         }
     })
