@@ -10,6 +10,7 @@ workspace = true
 bitcode = { workspace = true }
 color-eyre = { workspace = true }
 const_format = { workspace = true }
+derivative = { workspace = true }
 rand = { workspace = true }
 serde_html_form = { workspace = true }
 serde = { workspace = true }
@@ -31,9 +32,11 @@ diesel-async = { version = "0.5.0", features = [
 ] }
 diesel_full_text_search = { version = "2.2.0", default-features = false }
 diesel_migrations = { version = "2.2.0", features = ["postgres"] }
+figment = { version = "0.10.19", features = ["env"] }
 libaes = { version = "0.7.0" }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+typed-path = { version = "0.9.0" }
 
 [dev-dependencies]
 fake = { workspace = true }
