@@ -17,11 +17,11 @@ async fn main() {
         .try_init()
         .expect("Could not install tracing handler");
 
-    tracing::info!(server_version = constant::SERVER_VERSION);
+    tracing::info!(server_version =% constant::SERVER_VERSION);
 
     let config = config::Config::default();
     tracing::info!(?config);
 
     let listener = tokio::net::TcpListener::bind(config.server.to_socket_addr()).await.unwrap();
-    axum::serve(listener, build()).await.unwrap();
+    axum::serve(listener, build(config)).await.unwrap();
 }
