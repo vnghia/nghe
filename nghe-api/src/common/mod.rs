@@ -1,5 +1,6 @@
 use bitcode::{DecodeOwned, Encode};
 use nghe_proc_macro::api_derive;
+use serde::de::DeserializeOwned;
 use serde::{Serialize, Serializer};
 use serde_with::serde_as;
 
@@ -7,16 +8,16 @@ use super::constant;
 
 #[serde_as]
 #[api_derive(response = false)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct AuthToken(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
 
 #[api_derive(response = false)]
 #[derive(Clone, Copy)]
-pub struct Auth<'u, 's> {
+pub struct Auth<'u, 't> {
     #[serde(rename = "u")]
     pub username: &'u str,
     #[serde(rename = "s")]
-    pub salt: &'s str,
+    pub salt: &'t str,
     #[serde(rename = "t")]
     pub token: AuthToken,
 }
@@ -43,11 +44,31 @@ pub struct SubsonicResponse<B> {
     root: RootResponse<B>,
 }
 
-pub trait Endpoint {
+pub trait Endpoint: DeserializeOwned + Encode + DecodeOwned {
     const ENDPOINT: &'static str;
     const ENDPOINT_VIEW: &'static str;
 
     type Response: Serialize + Encode + DecodeOwned;
+}
+
+impl<'u, 't> Auth<'u, 't> {
+    pub fn tokenize(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> AuthToken {
+        let password = password.as_ref();
+        let salt = salt.as_ref();
+
+        let mut data = Vec::with_capacity(password.len() + salt.len());
+        data.extend_from_slice(password);
+        data.extend_from_slice(salt);
+        AuthToken(md5::compute(data).into())
+    }
+
+    pub fn check(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>, token: &AuthToken) -> bool {
+        let password = password.as_ref();
+        let salt = salt.as_ref();
+
+        let password_token = Self::tokenize(password, salt);
+        &password_token == token
+    }
 }
 
 impl<B> SubsonicResponse<B> {
