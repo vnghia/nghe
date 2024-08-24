@@ -3743,6 +3743,7 @@ dependencies = [
  "bitcode",
  "built",
  "const_format",
+ "md5",
  "nghe_proc_macro",
  "paste",
  "serde",
@@ -3771,6 +3772,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

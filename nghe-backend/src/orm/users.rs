@@ -2,6 +2,10 @@ use diesel::prelude::*;
 
 use crate::schema::users;
 
+pub mod dsl {
+    pub use super::users::*;
+}
+
 #[derive(Debug, Clone, Copy, Queryable, Selectable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(super::Type))]

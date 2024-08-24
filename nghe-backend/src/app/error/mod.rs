@@ -6,23 +6,30 @@ pub enum Error {
     #[error("Could not parse request due to {0}")]
     BadRequest(&'static str),
 
+    #[error("Could not checkout a connection from connection pool")]
+    CheckoutConnectionPool,
+    #[error("Could not decrypt value from database")]
+    DecryptDatabaseValue,
+
     #[error("Could not login due to bad credentials")]
     Unauthenticated,
     #[error("You need to have {0} role to perform this action")]
     Unauthorized(&'static str),
 
-    #[error("Internal server error")]
+    #[error(transparent)]
     Internal(#[from] color_eyre::Report),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        let status_code = match &self {
-            Error::BadRequest(_) => StatusCode::BAD_REQUEST,
-            Error::Unauthenticated => StatusCode::FORBIDDEN,
-            Error::Unauthorized(_) => StatusCode::UNAUTHORIZED,
-            Error::Internal(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        let (status_code, status_message) = match &self {
+            Error::BadRequest(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            Error::Unauthenticated => (StatusCode::FORBIDDEN, self.to_string()),
+            Error::Unauthorized(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
+            Error::Internal(_) | Error::CheckoutConnectionPool | Error::DecryptDatabaseValue => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into())
+            }
         };
-        (status_code, self.to_string()).into_response()
+        (status_code, status_message).into_response()
     }
 }

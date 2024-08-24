@@ -43,7 +43,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract::State;
         use nghe_api::common::{Endpoint, SubsonicResponse};
 
-        use crate::app::auth::{Authorize, Get};
+        use crate::app::auth::{Authorize, GetUser};
 
         impl Authorize for Request {
             fn authorize(self, role: crate::orm::users::Role) -> Result<Self, Error> {
@@ -57,9 +57,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
 
         pub async fn json_handler(
             State(app): State<crate::app::state::App>,
-            authorized: Get<Request>,
+            user: GetUser<Request>,
         ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
-            let response = #ident(&app.database, authorized.request).await?;
+            let response = #ident(&app.database, user.request).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
         }
     })
