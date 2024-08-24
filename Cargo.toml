@@ -26,7 +26,9 @@ edition = { workspace = true }
 
 [workspace.dependencies]
 anyhow = { version = "1.0.86", features = ["backtrace"] }
-bitcode = { version = "0.6.3" }
+bitcode = { git = "https://github.com/vnghia/bitcode.git", rev = "5f6a56f", features = [
+  "uuid",
+] }
 color-eyre = { version = "0.6.3" }
 concat-string = { version = "1.0.1" }
 const_format = { version = "0.2.32", features = ["fmt"] }
