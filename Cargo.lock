@@ -662,21 +662,20 @@ dependencies = [
 [[package]]
 name = "bitcode"
 version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee1bce7608560cd4bf0296a4262d0dbf13e6bcec5ff2105724c8ab88cc7fc784"
+source = "git+https://github.com/vnghia/bitcode.git?rev=5f6a56f#5f6a56fb717ab470bc0ae017cbfe1d1870610f56"
 dependencies = [
  "arrayvec",
  "bitcode_derive",
  "bytemuck",
  "glam",
  "serde",
+ "uuid",
 ]
 
 [[package]]
 name = "bitcode_derive"
 version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a539389a13af092cd345a2b47ae7dec12deb306d660b2223d25cd3419b253ebe"
+source = "git+https://github.com/vnghia/bitcode.git?rev=5f6a56f#5f6a56fb717ab470bc0ae017cbfe1d1870610f56"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3750,6 +3749,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "uuid",
 ]
 
 [[package]]

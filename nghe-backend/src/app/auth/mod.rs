@@ -40,13 +40,13 @@ async fn authenticate(
     database: &Database,
     data: Auth<'_, '_>,
 ) -> Result<(Uuid, users::Role), Error> {
-    let (id, encrypted_password, role) = users::dsl::table
+    let users::Auth { id, password, role } = users::dsl::table
         .filter(users::dsl::username.eq(data.username))
-        .select((users::dsl::id, users::dsl::password, users::Role::as_select()))
-        .first::<(Uuid, Vec<u8>, users::Role)>(&mut database.get().await?)
+        .select(users::Auth::as_select())
+        .first(&mut database.get().await?)
         .await
         .map_err(|_| Error::Unauthenticated)?;
-    let password = database.decrypt(encrypted_password)?;
+    let password = database.decrypt(password)?;
 
     if Auth::check(password, data.salt, &data.token) {
         Ok((id, role))
