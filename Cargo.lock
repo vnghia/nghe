@@ -3759,6 +3759,8 @@ dependencies = [
  "const_format",
  "diesel",
  "diesel-async",
+ "diesel_full_text_search",
+ "diesel_migrations",
  "libaes",
  "nghe_api",
  "nghe_proc_macro",

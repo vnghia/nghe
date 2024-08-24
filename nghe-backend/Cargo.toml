@@ -26,6 +26,8 @@ diesel-async = { version = "0.5.0", features = [
   "deadpool",
   "async-connection-wrapper",
 ] }
+diesel_full_text_search = { version = "2.2.0", default-features = false }
+diesel_migrations = { version = "2.2.0", features = ["postgres"] }
 libaes = { version = "0.7.0" }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
