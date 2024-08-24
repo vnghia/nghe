@@ -5,6 +5,8 @@ use axum::response::{IntoResponse, Response};
 pub enum Error {
     #[error("Could not parse request due to {0}")]
     BadRequest(&'static str),
+    #[error(transparent)]
+    ExtractRequestBody(#[from] axum::extract::rejection::BytesRejection),
 
     #[error("Could not checkout a connection from connection pool")]
     CheckoutConnectionPool,
@@ -24,6 +26,9 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status_code, status_message) = match &self {
             Error::BadRequest(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            Error::ExtractRequestBody(_) => {
+                (StatusCode::BAD_REQUEST, "Could not extract request body".into())
+            }
             Error::Unauthenticated => (StatusCode::FORBIDDEN, self.to_string()),
             Error::Unauthorized(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
             Error::Internal(_) | Error::CheckoutConnectionPool | Error::DecryptDatabaseValue => {
