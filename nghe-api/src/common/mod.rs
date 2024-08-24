@@ -2,25 +2,8 @@ use bitcode::{DecodeOwned, Encode};
 use nghe_proc_macro::api_derive;
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Serializer};
-use serde_with::serde_as;
 
 use super::constant;
-
-#[serde_as]
-#[api_derive(response = false)]
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct AuthToken(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
-
-#[api_derive(response = false)]
-#[derive(Clone, Copy)]
-pub struct Auth<'u, 't> {
-    #[serde(rename = "u")]
-    pub username: &'u str,
-    #[serde(rename = "s")]
-    pub salt: &'t str,
-    #[serde(rename = "t")]
-    pub token: AuthToken,
-}
 
 #[api_derive(debug = false, bitcode = false)]
 struct RootResponse<B> {
@@ -38,7 +21,7 @@ struct RootResponse<B> {
     body: B,
 }
 
-#[api_derive(debug = false, bitcode = false, response = true)]
+#[api_derive(debug = false, bitcode = false)]
 pub struct SubsonicResponse<B> {
     #[serde(rename = "subsonic-response")]
     root: RootResponse<B>,
@@ -49,26 +32,6 @@ pub trait Endpoint: DeserializeOwned + Encode + DecodeOwned {
     const ENDPOINT_VIEW: &'static str;
 
     type Response: Serialize + Encode + DecodeOwned;
-}
-
-impl<'u, 't> Auth<'u, 't> {
-    pub fn tokenize(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> AuthToken {
-        let password = password.as_ref();
-        let salt = salt.as_ref();
-
-        let mut data = Vec::with_capacity(password.len() + salt.len());
-        data.extend_from_slice(password);
-        data.extend_from_slice(salt);
-        AuthToken(md5::compute(data).into())
-    }
-
-    pub fn check(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>, token: &AuthToken) -> bool {
-        let password = password.as_ref();
-        let salt = salt.as_ref();
-
-        let password_token = Self::tokenize(password, salt);
-        &password_token == token
-    }
 }
 
 impl<B> SubsonicResponse<B> {
@@ -105,3 +68,75 @@ emit_constant_serialize!(server_type, str, constant::SERVER_NAME);
 emit_constant_serialize!(server_version, str, constant::SERVER_VERSION);
 emit_constant_serialize!(open_subsonic, bool, true);
 emit_constant_serialize!(status_ok, str, "ok");
+
+#[cfg(test)]
+mod tests {
+    use serde_json::{json, to_value};
+
+    use super::*;
+
+    #[test]
+    fn test_serialize_empty() {
+        #[api_derive(debug = false, bitcode = false)]
+        struct TestBody {}
+
+        assert_eq!(
+            to_value(SubsonicResponse::new(TestBody {})).unwrap(),
+            json!({
+                "subsonic-response": {
+                    "status": "ok",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_NAME,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn test_serialize() {
+        #[api_derive(debug = false, bitcode = false)]
+        struct TestBody {
+            field: u16,
+        }
+        let field = 10;
+
+        assert_eq!(
+            to_value(SubsonicResponse::new(TestBody { field })).unwrap(),
+            json!({
+                "subsonic-response": {
+                    "field": field,
+                    "status": "ok",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_NAME,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn test_serialize_case() {
+        #[api_derive(debug = false, bitcode = false)]
+        struct TestBody {
+            snake_case: u16,
+        }
+        let snake_case = 10;
+
+        assert_eq!(
+            to_value(SubsonicResponse::new(TestBody { snake_case })).unwrap(),
+            json!({
+                "subsonic-response": {
+                    "snakeCase": snake_case,
+                    "status": "ok",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_NAME,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
+                }
+            })
+        );
+    }
+}
