@@ -52,7 +52,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 if #authorize_fn {
                     Ok(self)
                 } else {
-                    Err(Error::Unauthorized(#missing_role))
+                    Err(Error::MissingRole(#missing_role))
                 }
             }
         }

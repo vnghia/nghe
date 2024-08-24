@@ -22,8 +22,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         })
         .returning(users::dsl::id)
         .get_result(&mut database.get().await?)
-        .await
-        .map_err(color_eyre::Report::new)?;
+        .await?;
 
     Ok(Response { user_id })
 }
