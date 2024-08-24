@@ -32,11 +32,13 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract::State;
         use nghe_api::common::{Endpoint, SubsonicResponse};
 
+        use crate::app::auth::{Get};
+
         pub async fn json_handler(
             State(app): State<crate::app::state::App>,
-            request: Request,
+            request: Get<Request>,
         ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
-            let response = #ident(&app.database, request).await?;
+            let response = #ident(&app.database, request.request).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
         }
     })

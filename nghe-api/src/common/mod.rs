@@ -6,11 +6,11 @@ use serde_with::serde_as;
 use super::constant;
 
 #[serde_as]
-#[api_derive]
+#[api_derive(response = false)]
 #[derive(Clone, Copy)]
 pub struct AuthToken(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
 
-#[api_derive]
+#[api_derive(response = false)]
 #[derive(Clone, Copy)]
 pub struct Auth<'u, 's> {
     #[serde(rename = "u")]
@@ -37,7 +37,7 @@ struct RootResponse<B> {
     body: B,
 }
 
-#[api_derive(debug = false, bitcode = false)]
+#[api_derive(debug = false, bitcode = false, response = true)]
 pub struct SubsonicResponse<B> {
     #[serde(rename = "subsonic-response")]
     root: RootResponse<B>,
