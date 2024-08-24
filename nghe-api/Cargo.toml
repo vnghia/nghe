@@ -17,5 +17,9 @@ nghe_proc_macro = { path = "../nghe-proc-macro" }
 md5 = { version = "0.7.0" }
 paste = { version = "1.0.15" }
 
+[dev-dependencies]
+fake = { workspace = true }
+serde_json = { workspace = true }
+
 [build-dependencies]
 built = { version = "0.7.3", features = ["git2"] }
