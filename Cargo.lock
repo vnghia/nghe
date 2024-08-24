@@ -3742,6 +3742,7 @@ dependencies = [
 name = "nghe_backend"
 version = "0.9.10"
 dependencies = [
+ "async-trait",
  "axum",
  "color-eyre",
  "const_format",
@@ -3750,9 +3751,13 @@ dependencies = [
  "libaes",
  "nghe_api",
  "nghe_proc_macro",
+ "serde",
+ "serde_html_form",
  "thiserror",
  "tokio",
+ "tower-http",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

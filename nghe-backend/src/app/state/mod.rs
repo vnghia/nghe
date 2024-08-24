@@ -16,3 +16,18 @@ pub struct Database {
 pub struct App {
     pub database: Database,
 }
+
+impl Database {
+    pub fn new() -> Self {
+        let pool = Pool::builder(Connection::new(env!("DATABASE_URL")))
+            .build()
+            .expect("Could not build database connection pool");
+        Self { pool, key: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+    }
+}
+
+impl App {
+    pub fn new() -> Self {
+        Self { database: Database::new() }
+    }
+}
