@@ -3743,10 +3743,12 @@ dependencies = [
  "bitcode",
  "built",
  "const_format",
+ "fake",
  "md5",
  "nghe_proc_macro",
  "paste",
  "serde",
+ "serde_json",
  "serde_with",
 ]
 

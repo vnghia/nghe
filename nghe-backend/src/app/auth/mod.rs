@@ -1,7 +1,8 @@
 use axum::extract::{FromRef, FromRequest, Request};
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_api::common::{Auth, Endpoint};
+use nghe_api::auth::Auth;
+use nghe_api::common::Endpoint;
 use uuid::Uuid;
 
 use super::error::Error;
