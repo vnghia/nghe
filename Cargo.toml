@@ -15,7 +15,8 @@ version = "0.9.10"
 edition = "2021"
 
 [workspace.lints.clippy]
-pedantic = "deny"
+pedantic = { level = "deny", priority = -1 }
+struct_excessive_bools = { level = "allow", priority = 0 }
 
 [package]
 name = "nghe"
