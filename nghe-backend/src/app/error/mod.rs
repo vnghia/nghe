@@ -13,10 +13,12 @@ pub enum Error {
     #[error("Could not decrypt value from database")]
     DecryptDatabaseValue,
 
+    #[error("{0}")]
+    Unauthorized(&'static str),
     #[error("Could not login due to bad credentials")]
     Unauthenticated,
     #[error("You need to have {0} role to perform this action")]
-    Unauthorized(&'static str),
+    MissingRole(&'static str),
 
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
@@ -30,11 +32,19 @@ impl IntoResponse for Error {
                 (StatusCode::BAD_REQUEST, "Could not extract request body".into())
             }
             Error::Unauthenticated => (StatusCode::FORBIDDEN, self.to_string()),
-            Error::Unauthorized(_) => (StatusCode::UNAUTHORIZED, self.to_string()),
+            Error::Unauthorized(_) | Error::MissingRole(_) => {
+                (StatusCode::UNAUTHORIZED, self.to_string())
+            }
             Error::Internal(_) | Error::CheckoutConnectionPool | Error::DecryptDatabaseValue => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into())
             }
         };
         (status_code, status_message).into_response()
+    }
+}
+
+impl From<diesel::result::Error> for Error {
+    fn from(value: diesel::result::Error) -> Self {
+        Self::Internal(value.into())
     }
 }
