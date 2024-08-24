@@ -3760,6 +3760,7 @@ dependencies = [
  "axum",
  "bitcode",
  "color-eyre",
+ "concat-string",
  "const_format",
  "derivative",
  "diesel",
@@ -3781,6 +3782,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "typed-path",
+ "url",
  "uuid",
 ]
 

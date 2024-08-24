@@ -23,6 +23,8 @@ struct Derive {
     endpoint: bool,
     #[deluxe(default = true)]
     response: bool,
+    #[deluxe(default = true)]
+    fake: bool,
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
@@ -85,9 +87,16 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         quote! {}
     };
 
+    let fake_derive = if is_request && args.fake {
+        quote! { #[cfg_attr(feature = "fake", derive(fake::Dummy))] }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         #[derive(#(#derives),*)]
         #serde_rename
+        #fake_derive
         #input
     })
 }

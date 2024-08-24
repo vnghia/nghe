@@ -6,7 +6,7 @@ use serde_with::serde_as;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Token(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
 
-#[api_derive(response = false)]
+#[api_derive(response = false, fake = false)]
 #[derive(Clone, Copy)]
 pub struct Auth<'u, 't> {
     #[serde(rename = "u")]
@@ -17,7 +17,7 @@ pub struct Auth<'u, 't> {
     pub token: Token,
 }
 
-#[api_derive(serde = false, response = false)]
+#[api_derive(serde = false, response = false, fake = false)]
 pub struct BinaryRequest<'u, 't, R> {
     pub auth: Auth<'u, 't>,
     pub request: R,
