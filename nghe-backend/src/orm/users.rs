@@ -6,7 +6,7 @@ pub mod dsl {
     pub use super::users::*;
 }
 
-#[derive(Debug, Clone, Copy, Queryable, Selectable)]
+#[derive(Debug, Default, Clone, Copy, Queryable, Selectable)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(super::Type))]
 pub struct Role {

@@ -16,6 +16,8 @@ struct Derive {
     #[deluxe(default = true)]
     debug: bool,
     #[deluxe(default = true)]
+    serde: bool,
+    #[deluxe(default = true)]
     bitcode: bool,
     #[deluxe(default = false)]
     endpoint: bool,
@@ -56,11 +58,14 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
 
     let mut derives: Vec<syn::Expr> = vec![];
 
-    if is_request {
-        derives.push(parse_str("serde::Deserialize")?);
-    } else {
-        derives.push(parse_str("serde::Serialize")?);
+    if args.serde {
+        if is_request {
+            derives.push(parse_str("serde::Deserialize")?);
+        } else {
+            derives.push(parse_str("serde::Serialize")?);
+        }
     }
+
     if args.debug {
         derives.push(parse_str("Debug")?);
     }
@@ -72,9 +77,15 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         derives.push(parse_str("nghe_proc_macro::Endpoint")?);
     }
 
+    let serde_rename = if args.serde {
+        quote! { #[serde(rename_all = "camelCase")] }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         #[derive(#(#derives),*)]
-        #[serde(rename_all = "camelCase")]
+        #serde_rename
         #input
     })
 }

@@ -3758,6 +3758,7 @@ version = "0.9.10"
 dependencies = [
  "async-trait",
  "axum",
+ "bitcode",
  "color-eyre",
  "const_format",
  "diesel",

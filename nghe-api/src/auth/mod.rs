@@ -17,6 +17,12 @@ pub struct Auth<'u, 't> {
     pub token: Token,
 }
 
+#[api_derive(serde = false, response = false)]
+pub struct BinaryRequest<'u, 't, R> {
+    pub auth: Auth<'u, 't>,
+    pub request: R,
+}
+
 impl<'u, 't> Auth<'u, 't> {
     pub fn tokenize(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Token {
         let password = password.as_ref();
