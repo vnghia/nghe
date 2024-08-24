@@ -1,21 +1,25 @@
 use axum::extract::{FromRef, FromRequest, Request};
-use nghe_api::common::Auth;
-use serde::de::DeserializeOwned;
+use nghe_api::common::{Auth, Endpoint};
 
 use super::error::Error;
 use super::state::App;
+use crate::orm::users::Role;
 
 #[derive(Debug)]
 pub struct Get<R> {
     pub request: R,
 }
 
+pub trait Authorize: Sized {
+    fn authorize(self, role: Role) -> Result<Self, Error>;
+}
+
 #[async_trait::async_trait]
-impl<R, S> FromRequest<S> for Get<R>
+impl<S, R> FromRequest<S> for Get<R>
 where
-    R: DeserializeOwned + Send,
     S: Send + Sync,
     App: FromRef<S>,
+    R: Endpoint + Authorize + Send,
 {
     type Rejection = Error;
 
@@ -30,6 +34,13 @@ where
         let request: R = serde_html_form::from_str(query)
             .map_err(|_| Error::BadRequest("invalid request parameters"))?;
 
-        Ok(Self { request })
+        Ok(Self {
+            request: request.authorize(Role {
+                admin: false,
+                stream: false,
+                download: false,
+                share: false,
+            })?,
+        })
     }
 }
