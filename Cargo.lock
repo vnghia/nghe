@@ -3761,11 +3761,13 @@ dependencies = [
  "bitcode",
  "color-eyre",
  "const_format",
+ "derivative",
  "diesel",
  "diesel-async",
  "diesel_full_text_search",
  "diesel_migrations",
  "fake",
+ "figment",
  "libaes",
  "nghe_api",
  "nghe_proc_macro",
@@ -3777,6 +3779,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "typed-path",
  "uuid",
 ]
 

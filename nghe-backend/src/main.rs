@@ -1,7 +1,7 @@
 #![feature(const_mut_refs)]
 
 use nghe_api::constant;
-use nghe_backend::build;
+use nghe_backend::{build, config};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -19,6 +19,9 @@ async fn main() {
 
     tracing::info!(server_version = constant::SERVER_VERSION);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let config = config::Config::default();
+    tracing::info!(?config);
+
+    let listener = tokio::net::TcpListener::bind(config.server.to_socket_addr()).await.unwrap();
     axum::serve(listener, build()).await.unwrap();
 }
