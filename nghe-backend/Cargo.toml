@@ -13,6 +13,7 @@ const_format = { workspace = true }
 derivative = { workspace = true }
 rand = { workspace = true }
 serde_html_form = { workspace = true }
+serde_with = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
 thiserror = { workspace = true }

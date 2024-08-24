@@ -1,5 +1,7 @@
+mod database;
 mod server;
 
+pub use database::Database;
 use figment::providers::{Env, Serialized};
 use figment::Figment;
 use nghe_api::constant;
@@ -9,6 +11,7 @@ pub use server::Server;
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub server: Server,
+    pub database: Database,
 }
 
 impl Default for Config {
