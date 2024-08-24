@@ -1,4 +1,7 @@
+use std::borrow::Cow;
+
 use diesel::prelude::*;
+use uuid::Uuid;
 
 use crate::schema::users;
 
@@ -6,9 +9,8 @@ pub mod dsl {
     pub use super::users::*;
 }
 
-#[derive(Debug, Default, Clone, Copy, Queryable, Selectable)]
-#[diesel(table_name = users)]
-#[diesel(check_for_backend(super::Type))]
+#[derive(Debug, Default, Clone, Copy, Queryable, Selectable, Insertable)]
+#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
 pub struct Role {
     #[diesel(column_name = admin_role)]
     pub admin: bool,
@@ -18,4 +20,38 @@ pub struct Role {
     pub download: bool,
     #[diesel(column_name = share_role)]
     pub share: bool,
+}
+
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+pub struct Auth<'a> {
+    pub id: Uuid,
+    pub password: Cow<'a, [u8]>,
+    #[diesel(embed)]
+    pub role: Role,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable)]
+#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+pub struct Data<'a> {
+    pub username: Cow<'a, str>,
+    pub email: Cow<'a, str>,
+    #[diesel(embed)]
+    pub role: Role,
+}
+
+#[derive(Debug, Queryable, Selectable, Identifiable)]
+#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+pub struct User<'a> {
+    pub id: Uuid,
+    #[diesel(embed)]
+    pub data: Data<'a>,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+pub struct New<'a> {
+    pub password: Cow<'a, [u8]>,
+    #[diesel(embed)]
+    pub data: Data<'a>,
 }
