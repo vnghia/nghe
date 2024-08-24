@@ -34,17 +34,28 @@ impl Database {
         self.pool.get().await.map_err(|_| Error::CheckoutConnectionPool)
     }
 
-    pub fn decrypt(&self, data: impl AsRef<[u8]>) -> Result<Vec<u8>, Error> {
-        Self::decrypt_impl(self.key, data)
+    pub fn encrypt(&self, data: impl AsRef<[u8]>) -> Vec<u8> {
+        Self::encrypt_impl(&self.key, data)
     }
 
-    fn decrypt_impl(key: Key, data: impl AsRef<[u8]>) -> Result<Vec<u8>, Error> {
+    pub fn decrypt(&self, data: impl AsRef<[u8]>) -> Result<Vec<u8>, Error> {
+        Self::decrypt_impl(&self.key, data)
+    }
+
+    fn encrypt_impl(key: &Key, data: impl AsRef<[u8]>) -> Vec<u8> {
+        let data = data.as_ref();
+
+        let iv: [u8; Self::IV_LEN] = rand::random();
+        [iv.as_slice(), Cipher::new_128(key).cbc_encrypt(&iv, data).as_slice()].concat()
+    }
+
+    fn decrypt_impl(key: &Key, data: impl AsRef<[u8]>) -> Result<Vec<u8>, Error> {
         let data = data.as_ref();
 
         let cipher_text = &data[Self::IV_LEN..];
         let iv = &data[..Self::IV_LEN];
 
-        let output = Cipher::new_128(&key).cbc_decrypt(iv, cipher_text);
+        let output = Cipher::new_128(key).cbc_decrypt(iv, cipher_text);
         if output.is_empty() { Err(Error::DecryptDatabaseValue) } else { Ok(output) }
     }
 }
@@ -52,5 +63,22 @@ impl Database {
 impl App {
     pub fn new() -> Self {
         Self { database: Database::new() }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::*;
+
+    #[test]
+    fn test_roundtrip() {
+        let key: Key = Faker.fake();
+        let data = (16..32).fake::<String>().into_bytes();
+        assert_eq!(
+            data,
+            Database::decrypt_impl(&key, Database::encrypt_impl(&key, &data)).unwrap()
+        );
     }
 }
