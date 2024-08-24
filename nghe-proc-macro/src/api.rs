@@ -39,11 +39,13 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
     let endpoint = concat_string!("/rest/", &path);
     let endpoint_view = concat_string!("/rest/", &path, ".view");
+    let endpoint_binary = concat_string!("/rest/", &path, ".bin");
 
     Ok(quote! {
         impl crate::common::Endpoint for #ident {
             const ENDPOINT: &'static str = #endpoint;
             const ENDPOINT_VIEW: &'static str = #endpoint_view;
+            const ENDPOINT_BINARY: &'static str = #endpoint_binary;
 
             type Response = #response;
         }

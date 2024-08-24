@@ -7,6 +7,8 @@ struct Handler {
     #[deluxe(default = "trace".into())]
     ret_level: String,
     role: Option<syn::Ident>,
+    #[deluxe(default = true)]
+    need_auth: bool,
 }
 
 #[derive(Debug, deluxe::ParseMetaItem)]
@@ -16,7 +18,7 @@ struct BuildRouter {
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemFn = syn::parse2(item)?;
-    let Handler { ret_level, role } = deluxe::parse2(attr)?;
+    let Handler { ret_level, role, need_auth } = deluxe::parse2(attr)?;
 
     let ident = &input.sig.ident;
     if ident != "handler" {
@@ -43,7 +45,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract::State;
         use nghe_api::common::{Endpoint, SubsonicResponse};
 
-        use crate::app::auth::{Authorize, GetUser};
+        use crate::app::auth::{Authorize, BinaryUser, GetUser, PostUser};
 
         impl Authorize for Request {
             fn authorize(self, role: crate::orm::users::Role) -> Result<Self, Error> {
@@ -55,12 +57,28 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             }
         }
 
-        pub async fn json_handler(
+        pub async fn json_get_handler(
             State(app): State<crate::app::state::App>,
             user: GetUser<Request>,
         ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
             let response = #ident(&app.database, user.request).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
+        }
+
+        pub async fn json_post_handler(
+            State(app): State<crate::app::state::App>,
+            user: PostUser<Request>,
+        ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
+            let response = #ident(&app.database, user.request).await?;
+            Ok(axum::Json(SubsonicResponse::new(response)))
+        }
+
+        pub async fn binary_handler(
+            State(app): State<crate::app::state::App>,
+            user: BinaryUser<Request, #need_auth>,
+        ) -> Result<Vec<u8>, Error> {
+            let response = #ident(&app.database, user.request).await?;
+            Ok(bitcode::encode(&response))
         }
     })
 }
@@ -71,20 +89,29 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         .into_iter()
         .flat_map(|module| {
             let module = format_ident!("{module}");
-            let request = quote! {<#module::Request as nghe_api::common::Endpoint>};
-            let json_handler = quote! {#module::json_handler};
+            let request = quote! { <#module::Request as nghe_api::common::Endpoint> };
+
+            let json_get_handler = quote! { #module::json_get_handler };
+            let json_post_handler = quote! { #module::json_post_handler };
+            let binary_handler = quote! { #module::binary_handler };
 
             vec![
                 quote! {
                     route(
                         #request::ENDPOINT,
-                        axum::routing::get(#json_handler).post(#json_handler)
+                        axum::routing::get(#json_get_handler).post(#json_post_handler)
                     )
                 },
                 quote! {
                     route(
                         #request::ENDPOINT_VIEW,
-                        axum::routing::get(#json_handler).post(#json_handler)
+                        axum::routing::get(#json_get_handler).post(#json_post_handler)
+                    )
+                },
+                quote! {
+                    route(
+                        #request::ENDPOINT_BINARY,
+                        axum::routing::post(#binary_handler)
                     )
                 },
             ]

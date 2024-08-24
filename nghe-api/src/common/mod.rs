@@ -30,6 +30,7 @@ pub struct SubsonicResponse<B> {
 pub trait Endpoint: DeserializeOwned + Encode + DecodeOwned {
     const ENDPOINT: &'static str;
     const ENDPOINT_VIEW: &'static str;
+    const ENDPOINT_BINARY: &'static str;
 
     type Response: Serialize + Encode + DecodeOwned;
 }
