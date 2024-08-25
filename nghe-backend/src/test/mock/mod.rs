@@ -40,10 +40,9 @@ impl Mock {
         role: users::Role,
         #[builder(default = true)] allow: bool,
     ) -> Self {
-        let users::Role { admin, stream, download, share } = role;
         app::user::create::handler(
             self.database(),
-            app::user::create::Request { admin, stream, download, share, allow, ..Faker.fake() },
+            app::user::create::Request { role: role.into(), allow, ..Faker.fake() },
         )
         .await
         .unwrap();
