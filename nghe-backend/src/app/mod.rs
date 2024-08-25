@@ -13,14 +13,16 @@ mod error;
 pub mod migration;
 pub mod permission;
 pub mod state;
-mod user;
+pub mod user;
 
 pub fn build(config: Config) -> Router {
-    Router::new().merge(user::router()).with_state(state::App::new(&config.database)).layer(
-        TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
+    Router::new()
+        .merge(permission::router())
+        .merge(user::router())
+        .with_state(state::App::new(&config.database))
+        .layer(TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
             tracing::info_span!(
                 "request", method = %request.method(), uri = %request.uri()
             )
-        }),
-    )
+        }))
 }
