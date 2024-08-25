@@ -11,7 +11,7 @@ pub mod schema {
 
 pub use schema::table;
 
-#[derive(Debug, Default, Clone, Copy, Queryable, Selectable, Insertable)]
+#[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable)]
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]
 pub struct Role {
     #[diesel(column_name = admin_role)]
