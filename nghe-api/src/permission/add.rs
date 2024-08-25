@@ -1,11 +1,11 @@
 use nghe_proc_macro::api_derive;
+use uuid::Uuid;
 
 #[api_derive(endpoint = true)]
-#[endpoint(path = "setupUser")]
+#[endpoint(path = "addPermission")]
 pub struct Request {
-    pub username: String,
-    pub password: String,
-    pub email: String,
+    pub user_id: Option<Uuid>,
+    pub music_folder_id: Option<Uuid>,
 }
 
 #[api_derive]

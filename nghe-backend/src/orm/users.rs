@@ -5,9 +5,11 @@ use uuid::Uuid;
 
 use crate::schema::users;
 
-pub mod dsl {
+pub mod schema {
     pub use super::users::*;
 }
+
+pub use schema::table;
 
 #[derive(Debug, Default, Clone, Copy, Queryable, Selectable, Insertable)]
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]

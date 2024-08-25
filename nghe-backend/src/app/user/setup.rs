@@ -12,7 +12,7 @@ use crate::orm::users;
 
 #[handler]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
-    if users::dsl::table.count().first::<i64>(&mut database.get().await?).await? > 0 {
+    if users::table.count().first::<i64>(&mut database.get().await?).await? > 0 {
         Err(Error::Unauthorized("Could not access setup endpoint when there is already one user"))
     } else {
         let Request { username, password, email } = request;
@@ -30,7 +30,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
             },
         )
         .await?;
-        Ok(Response {})
+        Ok(Response)
     }
 }
 

@@ -3,8 +3,10 @@ use axum::response::{IntoResponse, Response};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Could not parse request due to {0}")]
-    BadRequest(&'static str),
+    #[error("{0}")]
+    InvalidParameter(&'static str),
+    #[error("Could not serialize request due to {0}")]
+    SerializeRequest(&'static str),
     #[error(transparent)]
     ExtractRequestBody(#[from] axum::extract::rejection::BytesRejection),
 
@@ -27,7 +29,9 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status_code, status_message) = match &self {
-            Error::BadRequest(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            Error::InvalidParameter(_) | Error::SerializeRequest(_) => {
+                (StatusCode::BAD_REQUEST, self.to_string())
+            }
             Error::ExtractRequestBody(_) => {
                 (StatusCode::BAD_REQUEST, "Could not extract request body".into())
             }

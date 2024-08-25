@@ -3,4 +3,5 @@
 pub mod auth;
 pub mod common;
 pub mod constant;
+pub mod permission;
 pub mod user;
