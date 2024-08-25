@@ -9,7 +9,6 @@ use crate::config::Config;
 
 mod auth;
 mod common;
-mod error;
 pub mod migration;
 pub mod permission;
 pub mod state;
