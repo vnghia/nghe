@@ -10,7 +10,7 @@ pub mod schema {
 pub use schema::table;
 
 #[derive(Insertable)]
-#[diesel(table_name = user_music_folder_permissions, check_for_backend(crate::orm::Type))]
+#[diesel(table_name = user_music_folder_permissions, check_for_backend(super::Type))]
 pub struct New {
     pub user_id: Uuid,
     pub music_folder_id: Uuid,
