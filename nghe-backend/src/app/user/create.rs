@@ -13,13 +13,11 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
     let password = database.encrypt(password);
 
     let user_id = diesel::insert_into(users::table)
-        .values(users::New {
+        .values(users::Data {
+            username: username.into(),
+            email: email.into(),
             password: password.into(),
-            data: users::Data {
-                username: username.into(),
-                email: email.into(),
-                role: users::Role { admin, stream, download, share },
-            },
+            role: users::Role { admin, stream, download, share },
         })
         .returning(users::schema::id)
         .get_result(&mut database.get().await?)
