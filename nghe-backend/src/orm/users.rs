@@ -12,7 +12,7 @@ pub mod schema {
 pub use schema::table;
 
 #[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable)]
-#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+#[diesel(table_name = users, check_for_backend(super::Type))]
 pub struct Role {
     #[diesel(column_name = admin_role)]
     pub admin: bool,
@@ -25,7 +25,7 @@ pub struct Role {
 }
 
 #[derive(Debug, Queryable, Selectable)]
-#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+#[diesel(table_name = users, check_for_backend(super::Type))]
 pub struct Auth<'a> {
     pub id: Uuid,
     pub password: Cow<'a, [u8]>,
@@ -34,7 +34,7 @@ pub struct Auth<'a> {
 }
 
 #[derive(Debug, Queryable, Selectable, Insertable)]
-#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+#[diesel(table_name = users, check_for_backend(super::Type))]
 pub struct Data<'a> {
     pub username: Cow<'a, str>,
     pub email: Cow<'a, str>,
@@ -44,7 +44,7 @@ pub struct Data<'a> {
 }
 
 #[derive(Debug, Queryable, Selectable, Identifiable)]
-#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
+#[diesel(table_name = users, check_for_backend(super::Type))]
 pub struct User<'a> {
     pub id: Uuid,
     #[diesel(embed)]
