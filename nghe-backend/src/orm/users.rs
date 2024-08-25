@@ -38,6 +38,7 @@ pub struct Auth<'a> {
 pub struct Data<'a> {
     pub username: Cow<'a, str>,
     pub email: Cow<'a, str>,
+    pub password: Cow<'a, [u8]>,
     #[diesel(embed)]
     pub role: Role,
 }
@@ -46,14 +47,6 @@ pub struct Data<'a> {
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]
 pub struct User<'a> {
     pub id: Uuid,
-    #[diesel(embed)]
-    pub data: Data<'a>,
-}
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = users, check_for_backend(crate::orm::Type))]
-pub struct New<'a> {
-    pub password: Cow<'a, [u8]>,
     #[diesel(embed)]
     pub data: Data<'a>,
 }

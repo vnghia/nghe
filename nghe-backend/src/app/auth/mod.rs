@@ -145,3 +145,37 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::*;
+    use crate::test::Mock;
+
+    #[tokio::test]
+    async fn test_authenticate() {
+        let mock = Mock::new().await.add_user().call().await;
+        assert!(authenticate(mock.database(), mock.user(0).await.auth().borrow()).await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_authenticate_wrong_username() {
+        let mock = Mock::new().await.add_user().call().await;
+        let auth = mock.user(0).await.auth();
+
+        let username: String = Faker.fake();
+        let auth = Auth { username: &username, ..auth.borrow() };
+        assert!(authenticate(mock.database(), auth).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_authenticate_wrong_password() {
+        let mock = Mock::new().await.add_user().call().await;
+        let auth = mock.user(0).await.auth();
+
+        let token = Auth::tokenize(Faker.fake::<String>(), &auth.salt);
+        let auth = Auth { token, ..auth.borrow() };
+        assert!(authenticate(mock.database(), auth).await.is_err());
+    }
+}

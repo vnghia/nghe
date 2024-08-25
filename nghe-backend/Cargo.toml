@@ -46,5 +46,7 @@ url = { workspace = true }
 
 nghe_api = { path = "../nghe-api", features = ["fake"] }
 
+bon = { version = "1.2.1" }
+
 [target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
 diesel = { version = "2.2.2", features = ["postgres"] }
