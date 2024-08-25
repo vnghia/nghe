@@ -2,8 +2,7 @@ use diesel_async::pooled_connection::{deadpool, AsyncDieselConnectionManager};
 use diesel_async::AsyncPgConnection;
 use libaes::Cipher;
 
-use super::error::Error;
-use crate::config;
+use crate::{config, Error};
 
 type Connection = AsyncDieselConnectionManager<AsyncPgConnection>;
 type Pool = deadpool::Pool<AsyncPgConnection>;
