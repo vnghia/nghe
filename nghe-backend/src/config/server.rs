@@ -2,8 +2,8 @@ use std::net::{IpAddr, SocketAddr};
 
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
-
-use crate::fs::path::LocalPathBuf;
+use typed_path::utils::utf8_current_dir;
+use typed_path::Utf8TypedPathBuf;
 
 #[derive(Debug, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
@@ -13,11 +13,11 @@ pub struct Server {
     pub host: IpAddr,
     #[derivative(Default(value = "3000"))]
     pub port: u16,
-    #[serde(with = "crate::fs::path::serde")]
-    #[derivative(Default(value = "std::env::current_dir().unwrap().join(\"frontend\").join(\"\
-                                  dist\").into_os_string().into_string().expect(\"Non UTF-8 \
-                                  path encountered\").into()"))]
-    pub frontend_dir: LocalPathBuf,
+    #[serde(with = "crate::fs::path")]
+    #[derivative(Default(
+        value = "utf8_current_dir().unwrap().join(\"frontend\").join(\"dist\").to_typed_path_buf()"
+    ))]
+    pub frontend_dir: Utf8TypedPathBuf,
 }
 
 impl Server {
