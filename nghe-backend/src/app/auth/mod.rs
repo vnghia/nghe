@@ -7,9 +7,9 @@ use nghe_api::auth::{Auth, BinaryRequest};
 use nghe_api::common::Endpoint;
 use uuid::Uuid;
 
-use super::error::Error;
 use super::state::{App, Database};
 use crate::orm::users;
+use crate::Error;
 
 #[derive(Debug)]
 pub struct GetUser<R> {

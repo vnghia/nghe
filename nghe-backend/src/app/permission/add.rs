@@ -3,9 +3,9 @@ use diesel_async::RunQueryDsl;
 pub use nghe_api::permission::add::{Request, Response};
 use nghe_proc_macro::handler;
 
-use crate::app::error::Error;
 use crate::app::state::Database;
 use crate::orm::{music_folders, user_music_folder_permissions, users};
+use crate::Error;
 
 #[handler(role = admin)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {

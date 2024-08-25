@@ -5,10 +5,10 @@ use diesel_async::RunQueryDsl;
 pub use nghe_api::user::setup::{Request, Response};
 use nghe_proc_macro::handler;
 
-use crate::app::error::Error;
 use crate::app::state::Database;
 use crate::app::user::create;
 use crate::orm::users;
+use crate::Error;
 
 #[handler]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
