@@ -14,21 +14,18 @@ use crate::orm::users;
 #[derive(Debug)]
 pub struct GetUser<R> {
     pub id: Uuid,
-    pub role: users::Role,
     pub request: R,
 }
 
 #[derive(Debug)]
 pub struct PostUser<R> {
     pub id: Uuid,
-    pub role: users::Role,
     pub request: R,
 }
 
 #[derive(Debug)]
 pub struct BinaryUser<R, const NEED_AUTH: bool> {
     pub id: Uuid,
-    pub role: users::Role,
     pub request: R,
 }
 
@@ -88,7 +85,7 @@ where
         let (_, id, role) = json_authenticate(query, state).await?;
         let request: R = serde_html_form::from_str(query)
             .map_err(|_| Error::SerializeRequest("invalid request parameters"))?;
-        Ok(Self { id, role, request: request.authorize(role)? })
+        Ok(Self { id, request: request.authorize(role)? })
     }
 }
 
@@ -111,7 +108,7 @@ where
         let (_, id, role) = json_authenticate(query, state).await?;
         let request: R = serde_html_form::from_bytes(&request.extract::<Bytes, _>().await?)
             .map_err(|_| Error::SerializeRequest("invalid request body"))?;
-        Ok(Self { id, role, request: request.authorize(role)? })
+        Ok(Self { id, request: request.authorize(role)? })
     }
 }
 
@@ -134,11 +131,10 @@ where
 
             let app = App::from_ref(state);
             let (id, role) = authenticate(&app.database, auth).await?;
-            Ok(Self { id, role, request: request.authorize(role)? })
+            Ok(Self { id, request: request.authorize(role)? })
         } else {
             Ok(Self {
                 id: Uuid::default(),
-                role: users::Role::default(),
                 request: bitcode::decode(&bytes)
                     .map_err(|_| Error::SerializeRequest("invalid request body"))?,
             })
