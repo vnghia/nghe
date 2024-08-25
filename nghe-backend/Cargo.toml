@@ -16,8 +16,9 @@ rand = { workspace = true }
 serde_html_form = { workspace = true }
 serde_with = { workspace = true }
 serde = { workspace = true }
-tokio = { workspace = true }
+strum = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 
@@ -36,6 +37,7 @@ diesel_full_text_search = { version = "2.2.0", default-features = false }
 diesel_migrations = { version = "2.2.0", features = ["postgres"] }
 figment = { version = "0.10.19", features = ["env"] }
 libaes = { version = "0.7.0" }
+o2o = { version = "0.4.9" }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 typed-path = { version = "0.9.0" }

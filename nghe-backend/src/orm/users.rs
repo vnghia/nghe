@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use diesel::prelude::*;
+use o2o::o2o;
 use uuid::Uuid;
 
 use crate::schema::users;
@@ -11,8 +12,9 @@ pub mod schema {
 
 pub use schema::table;
 
-#[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable)]
+#[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable, o2o)]
 #[diesel(table_name = users, check_for_backend(super::Type))]
+#[map_owned(nghe_api::user::Role)]
 pub struct Role {
     #[diesel(column_name = admin_role)]
     pub admin: bool,
@@ -37,8 +39,8 @@ pub struct Auth<'a> {
 #[diesel(table_name = users, check_for_backend(super::Type))]
 pub struct Data<'a> {
     pub username: Cow<'a, str>,
-    pub email: Cow<'a, str>,
     pub password: Cow<'a, [u8]>,
+    pub email: Cow<'a, str>,
     #[diesel(embed)]
     pub role: Role,
 }

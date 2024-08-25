@@ -3795,10 +3795,12 @@ dependencies = [
  "libaes",
  "nghe_api",
  "nghe_proc_macro",
+ "o2o",
  "rand",
  "serde",
  "serde_html_form",
  "serde_with",
+ "strum",
  "thiserror",
  "tokio",
  "tower-http",
@@ -3872,6 +3874,37 @@ checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
 dependencies = [
  "hermit-abi",
  "libc",
+]
+
+[[package]]
+name = "o2o"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f49c6a7629bb7a0e4574ce1a5a81462cee6a14ae0ade868726c715e84cab6976"
+dependencies = [
+ "o2o-impl",
+ "o2o-macros",
+]
+
+[[package]]
+name = "o2o-impl"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "234af0f0f8d8ccf18bd95b10482c25e6e8e36e666596e718826daa27f79b3d7d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "o2o-macros"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b02b0a5afd6b284bd5b97f425ab2201a91212648d1ecc9c2e98f79d1dc3bac1"
+dependencies = [
+ "o2o-impl",
+ "syn 1.0.109",
 ]
 
 [[package]]

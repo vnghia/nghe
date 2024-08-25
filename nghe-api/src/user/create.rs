@@ -1,18 +1,15 @@
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
+use super::Role;
+
 #[api_derive(endpoint = true)]
 #[endpoint(path = "createUser")]
 pub struct Request {
     pub username: String,
     pub password: String,
     pub email: String,
-
-    pub admin: bool,
-    pub stream: bool,
-    pub download: bool,
-    pub share: bool,
-
+    pub role: Role,
     pub allow: bool,
 }
 

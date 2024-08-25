@@ -1,8 +1,7 @@
-#![allow(clippy::unused_async)]
-
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
 pub use nghe_api::user::setup::{Request, Response};
+use nghe_api::user::Role;
 use nghe_proc_macro::handler;
 
 use crate::app::state::Database;
@@ -22,10 +21,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
                 username,
                 password,
                 email,
-                admin: true,
-                stream: true,
-                download: true,
-                share: true,
+                role: Role { admin: true, stream: true, download: true, share: true },
                 allow: false,
             },
         )

@@ -9,15 +9,15 @@ use crate::Error;
 
 #[handler(role = admin)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
-    let Request { username, password, email, admin, stream, download, share, allow } = request;
+    let Request { username, password, email, role, allow } = request;
     let password = database.encrypt(password);
 
     let user_id = diesel::insert_into(users::table)
         .values(users::Data {
             username: username.into(),
-            email: email.into(),
             password: password.into(),
-            role: users::Role { admin, stream, download, share },
+            email: email.into(),
+            role: role.into(),
         })
         .returning(users::schema::id)
         .get_result(&mut database.get().await?)
