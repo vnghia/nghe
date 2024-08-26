@@ -4,8 +4,9 @@ use typed_path::Utf8TypedPath;
 use crate::Error;
 
 #[enum_dispatch]
-pub enum Impl {
-    Local(super::local::Filesystem),
+#[derive(Debug)]
+pub enum Impl<'fs> {
+    Local(&'fs super::local::Filesystem),
 }
 
 #[enum_dispatch(Impl)]
