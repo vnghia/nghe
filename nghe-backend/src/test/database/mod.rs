@@ -10,7 +10,7 @@ pub struct Mock {
     name: String,
     url: String,
 
-    pub state: state::Database,
+    state: state::Database,
 }
 
 impl Mock {
@@ -45,6 +45,10 @@ impl Mock {
             url,
             state: state::Database::new(&config::Database { url: mock_url, key: rand::random() }),
         }
+    }
+
+    pub fn state(&self) -> &state::Database {
+        &self.state
     }
 }
 

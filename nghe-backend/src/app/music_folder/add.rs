@@ -15,11 +15,12 @@ async fn handler_impl<'fs>(
     request: Request,
 ) -> Result<Response, Error> {
     let Request { name, path, filesystem_type, allow } = request;
+    filesystem.check_folder(path.as_str().into()).await?;
 
     let music_folder_id = diesel::insert_into(music_folders::table)
         .values(music_folders::Upsert {
             name: Some(name.into()),
-            path: Some(filesystem.check_folder(path.as_str().into()).await?.as_str().into()),
+            path: Some(path.as_str().into()),
             filesystem_type: Some(filesystem_type.into()),
         })
         .returning(music_folders::schema::id)

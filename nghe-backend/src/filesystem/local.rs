@@ -8,9 +8,9 @@ use crate::Error;
 pub struct Filesystem;
 
 impl<B: Borrow<Filesystem>> super::Trait for B {
-    async fn check_folder<'a>(&self, path: Utf8TypedPath<'a>) -> Result<Utf8TypedPath<'a>, Error> {
+    async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         if path.is_absolute() && tokio::fs::metadata(path.as_str()).await?.is_dir() {
-            Ok(path)
+            Ok(())
         } else {
             Err(Error::InvalidParameter("Folder path must be absolute and be a directory"))
         }
