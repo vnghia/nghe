@@ -8,9 +8,9 @@ use crate::error::Error;
 use crate::filesystem::{self, Trait as _};
 use crate::orm::music_folders;
 
-async fn handler_impl(
+async fn handler_impl<'fs>(
     database: &Database,
-    filesystem: filesystem::Impl,
+    filesystem: filesystem::Impl<'fs>,
     request: Request,
 ) -> Result<Response, Error> {
     let Request { name, path, filesystem_type, allow } = request;
