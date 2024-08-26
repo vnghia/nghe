@@ -16,7 +16,10 @@ pub mod state;
 pub mod user;
 
 pub fn build(config: Config) -> Router {
+    let filesystem = state::Filesystem::new();
+
     Router::new()
+        .merge(music_folder::router(filesystem))
         .merge(permission::router())
         .merge(user::router())
         .with_state(state::App::new(&config.database))

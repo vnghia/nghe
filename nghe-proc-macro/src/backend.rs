@@ -1,6 +1,7 @@
+use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::Error;
+use syn::{parse_quote, Error};
 
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct Handler {
@@ -14,6 +15,8 @@ struct Handler {
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct BuildRouter {
     modules: Vec<syn::Ident>,
+    #[deluxe(default = vec![])]
+    states: Vec<syn::Ident>,
 }
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
@@ -27,6 +30,33 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             "Function derived with `handler` should be named `handler`",
         ));
     }
+
+    let mut common_args: Vec<syn::FnArg> =
+        vec![parse_quote!(extract::State(app): extract::State<crate::app::state::App>)];
+    let mut pass_args: Vec<syn::Expr> = vec![parse_quote!(&app.database)];
+
+    for arg in &input.sig.inputs {
+        if let syn::FnArg::Typed(arg) = arg
+            && let syn::Pat::Ident(pat) = arg.pat.as_ref()
+            && pat.ident != "database"
+            && pat.ident != "request"
+        {
+            if let syn::Type::Reference(ty) = arg.ty.as_ref() {
+                let ty = ty.elem.as_ref();
+                common_args.push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
+                pass_args.push(parse_quote!(&#pat));
+            }
+        }
+    }
+
+    let json_get_args =
+        [common_args.as_slice(), [parse_quote!(user: GetUser<Request>)].as_slice()].concat();
+    let json_post_args =
+        [common_args.as_slice(), [parse_quote!(user: PostUser<Request>)].as_slice()].concat();
+    let binary_args =
+        [common_args.as_slice(), [parse_quote!(user: BinaryUser<Request, #need_auth>)].as_slice()]
+            .concat();
+    pass_args.push(parse_quote!(user.request));
 
     let (authorize_fn, missing_role) = if let Some(role) = role {
         if role == "admin" {
@@ -42,7 +72,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         #[tracing::instrument(skip(database), ret(level = #ret_level), err)]
         #input
 
-        use axum::extract::State;
+        use axum::extract;
         use nghe_api::common::{Endpoint, SubsonicResponse};
 
         use crate::app::auth::{Authorize, BinaryUser, GetUser, PostUser};
@@ -58,33 +88,31 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         }
 
         pub async fn json_get_handler(
-            State(app): State<crate::app::state::App>,
-            user: GetUser<Request>,
+            #( #json_get_args ),*
         ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
-            let response = #ident(&app.database, user.request).await?;
+            let response = #ident(#( #pass_args ),*).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
         }
 
         pub async fn json_post_handler(
-            State(app): State<crate::app::state::App>,
-            user: PostUser<Request>,
+            #( #json_post_args ),*
         ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
-            let response = #ident(&app.database, user.request).await?;
+            let response = #ident(#( #pass_args ),*).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
         }
 
         pub async fn binary_handler(
-            State(app): State<crate::app::state::App>,
-            user: BinaryUser<Request, #need_auth>,
+            #( #binary_args ),*
         ) -> Result<Vec<u8>, Error> {
-            let response = #ident(&app.database, user.request).await?;
+            let response = #ident(#( #pass_args ),*).await?;
             Ok(bitcode::encode(&response))
         }
     })
 }
 
 pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
-    let endpoints: Vec<_> = deluxe::parse2::<BuildRouter>(item)?
+    let input = deluxe::parse2::<BuildRouter>(item)?;
+    let endpoints: Vec<_> = input
         .modules
         .into_iter()
         .flat_map(|module| {
@@ -118,9 +146,25 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         })
         .collect();
 
+    let mut router_args: Vec<syn::FnArg> = vec![];
+    let mut router_layers: Vec<syn::Expr> = vec![];
+
+    for state in input.states {
+        let ty = format_ident!("{}", state.to_string().to_case(Case::Pascal));
+        let pat = state;
+        router_args.push(parse_quote!(#pat: crate::app::state::#ty));
+        router_layers.push(parse_quote!(layer(axum::Extension(#pat))));
+    }
+
+    let router_body: syn::Expr = if router_layers.is_empty() {
+        parse_quote!(axum::Router::new().#( #endpoints ).*)
+    } else {
+        parse_quote!(axum::Router::new().#( #endpoints ).*.#( #router_layers ).*)
+    };
+
     Ok(quote! {
-        pub fn router() -> axum::Router<crate::app::state::App> {
-            axum::Router::new().#( #endpoints ).*
+        pub fn router(#( #router_args ),*) -> axum::Router<crate::app::state::App> {
+            #router_body
         }
     })
 }

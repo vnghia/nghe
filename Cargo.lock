@@ -3817,6 +3817,7 @@ name = "nghe_proc_macro"
 version = "0.9.10"
 dependencies = [
  "concat-string",
+ "convert_case",
  "deluxe",
  "proc-macro2",
  "quote",
