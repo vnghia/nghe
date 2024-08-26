@@ -3779,6 +3779,7 @@ dependencies = [
  "diesel-async",
  "diesel_full_text_search",
  "diesel_migrations",
+ "enum_dispatch",
  "fake",
  "figment",
  "libaes",

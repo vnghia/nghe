@@ -4,7 +4,7 @@
 mod app;
 pub mod config;
 mod error;
-mod fs;
+mod filesystem;
 mod orm;
 mod schema;
 
