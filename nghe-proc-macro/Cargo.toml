@@ -11,6 +11,7 @@ proc-macro = true
 
 [dependencies]
 concat-string = { workspace = true }
+convert_case = { workspace = true }
 
 deluxe = { version = "0.5.0" }
 proc-macro2 = { version = "1.0.86" }
