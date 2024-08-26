@@ -21,7 +21,7 @@ impl Mock {
     }
 
     pub fn database(&self) -> &app::state::Database {
-        &self.database.state
+        self.database.state()
     }
 
     pub async fn get(&self) -> deadpool::Object<AsyncPgConnection> {
