@@ -13,7 +13,7 @@ pub struct Server {
     pub host: IpAddr,
     #[derivative(Default(value = "3000"))]
     pub port: u16,
-    #[serde(with = "crate::fs::path")]
+    #[serde(with = "crate::filesystem::path")]
     #[derivative(Default(
         value = "utf8_current_dir().unwrap().join(\"frontend\").join(\"dist\").to_typed_path_buf()"
     ))]

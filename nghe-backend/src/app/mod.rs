@@ -10,6 +10,7 @@ use crate::config::Config;
 mod auth;
 mod common;
 pub mod migration;
+pub mod music_folder;
 pub mod permission;
 pub mod state;
 pub mod user;
