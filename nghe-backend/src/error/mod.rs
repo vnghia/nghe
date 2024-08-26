@@ -52,3 +52,9 @@ impl From<diesel::result::Error> for Error {
         Self::Internal(value.into())
     }
 }
+
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Self::Internal(value.into())
+    }
+}

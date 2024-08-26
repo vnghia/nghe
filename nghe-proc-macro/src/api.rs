@@ -56,7 +56,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
 pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let args: Derive = deluxe::parse2(args)?;
-    let input: syn::ItemStruct = syn::parse2(item)?;
+    let input: syn::DeriveInput = syn::parse2(item)?;
 
     let is_request = args.endpoint || !args.response;
 
