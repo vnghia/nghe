@@ -44,5 +44,5 @@ pub async fn handler(
     filesystem: &state::Filesystem,
     request: Request,
 ) -> Result<Response, Error> {
-    handler_impl(database, filesystem.to_impl(request.filesystem_type.into()), request).await
+    handler_impl(database, filesystem.to_impl(request.filesystem_type), request).await
 }

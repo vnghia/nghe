@@ -1,5 +1,6 @@
+use nghe_api::music_folder::FilesystemType;
+
 use crate::filesystem::{local, Impl};
-use crate::orm::music_folders::FilesystemType;
 
 #[derive(Debug, Clone)]
 pub struct Filesystem {
