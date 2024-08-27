@@ -4,10 +4,10 @@ mod common;
 mod local;
 
 pub use common::{MockImpl, MockTrait};
+use nghe_api::music_folder::FilesystemType;
 
 use crate::app::state;
 use crate::filesystem;
-use crate::orm::music_folders::FilesystemType;
 
 #[derive(Debug)]
 pub struct Mock {
