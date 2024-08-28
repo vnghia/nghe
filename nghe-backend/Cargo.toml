@@ -39,6 +39,7 @@ enum_dispatch = { version = "0.3.13" }
 figment = { version = "0.10.19", features = ["env"] }
 libaes = { version = "0.7.0" }
 o2o = { version = "0.4.9" }
+rust-s3 = { version = "0.35.0-alpha.3" }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 typed-path = { version = "0.9.0" }
