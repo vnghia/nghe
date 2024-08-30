@@ -14,7 +14,7 @@ strum = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }
 
-derive-new = "0.6.0"
+derive-new = "0.7.0"
 
 md5 = "0.7.0"
 nghe-proc_macros = { path = "../proc_macros" }
