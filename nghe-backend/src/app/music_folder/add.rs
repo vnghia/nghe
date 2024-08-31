@@ -14,20 +14,15 @@ async fn handler_impl<'fs>(
     filesystem: filesystem::Impl<'fs>,
     request: Request,
 ) -> Result<Response, Error> {
-    let Request { name, path, filesystem_type, allow } = request;
-    filesystem.check_folder(path.as_str().into()).await?;
+    filesystem.check_folder(request.path.as_str().into()).await?;
 
     let music_folder_id = diesel::insert_into(music_folders::table)
-        .values(music_folders::Upsert {
-            name: Some(name.into()),
-            path: Some(path.as_str().into()),
-            filesystem_type: Some(filesystem_type.into()),
-        })
+        .values(music_folders::Upsert::from(&request))
         .returning(music_folders::schema::id)
         .get_result::<Uuid>(&mut database.get().await?)
         .await?;
 
-    if allow {
+    if request.allow {
         permission::add::handler(
             database,
             permission::add::Request { user_id: None, music_folder_id: Some(music_folder_id) },
