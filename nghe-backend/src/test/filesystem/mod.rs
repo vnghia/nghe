@@ -29,8 +29,8 @@ impl Mock {
 
     pub fn to_impl(&self, filesystem_type: FilesystemType) -> MockImpl<'_> {
         match filesystem_type {
-            FilesystemType::Local => (&self.local).into(),
-            FilesystemType::S3 => todo!(),
+            // TODO: Add s3 support to the new filesystem
+            FilesystemType::Local | FilesystemType::S3 => (&self.local).into(),
         }
     }
 }
