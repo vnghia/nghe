@@ -145,19 +145,28 @@ where
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use rstest::rstest;
 
     use super::*;
-    use crate::test::Mock;
+    use crate::test::{mock, Mock};
 
+    #[rstest]
     #[tokio::test]
-    async fn test_authenticate() {
-        let mock = Mock::new().await.add_user().call().await;
+    async fn test_authenticate(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+    ) {
         assert!(authenticate(mock.database(), mock.user(0).await.auth().borrow()).await.is_ok());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_authenticate_wrong_username() {
-        let mock = Mock::new().await.add_user().call().await;
+    async fn test_authenticate_wrong_username(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+    ) {
         let auth = mock.user(0).await.auth();
 
         let username: String = Faker.fake();
@@ -165,9 +174,13 @@ mod tests {
         assert!(authenticate(mock.database(), auth).await.is_err());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_authenticate_wrong_password() {
-        let mock = Mock::new().await.add_user().call().await;
+    async fn test_authenticate_wrong_password(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+    ) {
         let auth = mock.user(0).await.auth();
 
         let token = Auth::tokenize(Faker.fake::<String>(), &auth.salt);

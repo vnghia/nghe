@@ -4,7 +4,9 @@ use diesel_async::pooled_connection::deadpool;
 use diesel_async::AsyncPgConnection;
 use fake::{Fake, Faker};
 use nghe_api::music_folder::FilesystemType;
+use rstest::fixture;
 
+use super::filesystem::MockTrait;
 use super::{database, filesystem};
 use crate::app;
 use crate::orm::users;
@@ -70,13 +72,34 @@ impl Mock {
         #[builder(default = Faker.fake::<FilesystemType>())] filesystem_type: FilesystemType,
         #[builder(default = true)] allow: bool,
     ) -> Self {
+        let filesystem = self.to_impl(filesystem_type);
         app::music_folder::add::handler(
             self.database(),
             self.filesystem(),
-            app::music_folder::add::Request { filesystem_type, allow, ..Faker.fake() },
+            app::music_folder::add::Request {
+                filesystem_type,
+                allow,
+                path: filesystem
+                    .create_dir(Faker.fake::<String>().as_str().into())
+                    .await
+                    .into_string(),
+                ..Faker.fake()
+            },
         )
         .await
         .unwrap();
         self
     }
+}
+
+#[fixture]
+pub async fn mock(#[default(1)] n_user: usize, #[default(1)] n_folder: usize) -> Mock {
+    let mut mock = Mock::new().await;
+    for _ in 0..n_user {
+        mock = mock.add_user().call().await;
+    }
+    for _ in 0..n_folder {
+        mock = mock.add_folder().filesystem_type(Faker.fake::<FilesystemType>()).call().await;
+    }
+    mock
 }

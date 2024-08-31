@@ -33,19 +33,18 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use rstest::rstest;
 
     use super::*;
-    use crate::test::Mock;
+    use crate::test::{mock, Mock};
 
+    #[rstest]
     #[tokio::test]
-    async fn test_setup_no_user() {
-        let mock = Mock::new().await;
-        assert!(handler(mock.database(), Faker.fake()).await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_setup_with_user() {
-        let mock = Mock::new().await;
+    async fn test_setup(
+        #[future(awt)]
+        #[with(0, 0)]
+        mock: Mock,
+    ) {
         assert!(handler(mock.database(), Faker.fake()).await.is_ok());
         assert!(handler(mock.database(), Faker.fake()).await.is_err());
     }
