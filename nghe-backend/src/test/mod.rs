@@ -1,5 +1,5 @@
 mod database;
 pub mod filesystem;
-mod mock;
+mod mock_impl;
 
-pub use mock::Mock;
+pub use mock_impl::{mock, Mock};
