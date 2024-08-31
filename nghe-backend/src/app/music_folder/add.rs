@@ -41,3 +41,31 @@ pub async fn handler(
 ) -> Result<Response, Error> {
     handler_impl(database, filesystem.to_impl(request.filesystem_type), request).await
 }
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+    use nghe_api::music_folder::FilesystemType;
+    use strum::IntoEnumIterator;
+
+    use super::*;
+    use crate::test::filesystem::MockTrait;
+    use crate::test::Mock;
+
+    #[tokio::test]
+    async fn test_add() {
+        let mock = Mock::new().await.add_user().call().await;
+        for filesystem_type in FilesystemType::iter() {
+            let filesystem = mock.to_impl(filesystem_type);
+            let request = Request {
+                filesystem_type,
+                path: filesystem
+                    .create_dir(Faker.fake::<String>().as_str().into())
+                    .await
+                    .into_string(),
+                ..Faker.fake()
+            };
+            assert!(handler(mock.database(), mock.filesystem(), request).await.is_ok());
+        }
+    }
+}

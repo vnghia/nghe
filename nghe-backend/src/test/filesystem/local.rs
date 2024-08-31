@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 
 use nghe_api::constant;
 use tempfile::{Builder, TempDir};
-use typed_path::Utf8TypedPath;
+use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::filesystem::{self, local};
 
@@ -41,8 +41,10 @@ impl<B: Borrow<Mock> + filesystem::Trait> super::MockTrait for B {
         self.borrow().root.path().to_str().unwrap().into()
     }
 
-    async fn create_dir(&self, path: Utf8TypedPath<'_>) {
+    async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf {
+        let path = self.borrow().prefix().join(path);
         tokio::fs::create_dir_all(path.as_str()).await.unwrap();
+        path
     }
 
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
