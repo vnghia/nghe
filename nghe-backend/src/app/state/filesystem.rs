@@ -15,8 +15,7 @@ impl Filesystem {
 
     pub fn to_impl(&self, filesystem_type: FilesystemType) -> Impl<'_> {
         match filesystem_type {
-            FilesystemType::Local => (&self.local).into(),
-            FilesystemType::S3 => todo!(),
+            FilesystemType::Local | FilesystemType::S3 => (&self.local).into(),
         }
     }
 }
