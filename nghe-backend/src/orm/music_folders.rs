@@ -7,6 +7,7 @@ use diesel::pg::PgValue;
 use diesel::prelude::*;
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Int2;
+use nghe_api::music_folder::add::Request as AddRequest;
 use o2o::o2o;
 use strum::FromRepr;
 use uuid::Uuid;
@@ -45,11 +46,15 @@ pub struct MusicFolder<'a> {
     pub data: Data<'a>,
 }
 
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Insertable, AsChangeset, o2o)]
+#[from_ref(AddRequest)]
 #[diesel(table_name = music_folders, check_for_backend(crate::orm::Type))]
 pub struct Upsert<'a> {
+    #[from(AddRequest| Some((&~).into()))]
     pub name: Option<Cow<'a, str>>,
+    #[from(AddRequest| Some((&~).into()))]
     pub path: Option<Cow<'a, str>>,
+    #[from(AddRequest| Some(~.into()))]
     #[diesel(column_name = fs_type)]
     pub filesystem_type: Option<FilesystemType>,
 }

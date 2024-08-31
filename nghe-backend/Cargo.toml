@@ -38,7 +38,7 @@ diesel_migrations = { version = "2.2.0", features = ["postgres"] }
 enum_dispatch = { version = "0.3.13" }
 figment = { version = "0.10.19", features = ["env"] }
 libaes = { version = "0.7.0" }
-o2o = { version = "0.4.9" }
+o2o = { git = "https://github.com/Artem-Romanenia/o2o", rev = "9b68218" }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 typed-path = { version = "0.9.0" }
