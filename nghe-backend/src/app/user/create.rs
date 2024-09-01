@@ -32,3 +32,23 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
     }
     Ok(Response { user_id })
 }
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_create_user(
+        #[future(awt)]
+        #[with(0, 0)]
+        mock: Mock,
+    ) {
+        let user_id = handler(mock.database(), Faker.fake()).await.unwrap().user_id;
+        assert_eq!(mock.user(0).await.user.id, user_id);
+    }
+}
