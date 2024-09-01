@@ -69,3 +69,34 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
 
     Ok(Response)
 }
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+    use crate::app::permission::test::{count, reset};
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[case(true, true, 1)]
+    #[case(true, false, 3)]
+    #[case(false, true, 2)]
+    #[case(false, false, 6)]
+    #[tokio::test]
+    async fn test_add(
+        #[future(awt)]
+        #[with(2, 3)]
+        mock: Mock,
+        #[case] with_user: bool,
+        #[case] with_music_folder: bool,
+        #[case] permission_count: usize,
+    ) {
+        reset(&mock).await;
+        let user_id = if with_user { Some(mock.user(0).await.user.id) } else { None };
+        let music_folder_id =
+            if with_music_folder { Some(mock.music_folder(0).await.music_folder.id) } else { None };
+        assert!(handler(mock.database(), Request { user_id, music_folder_id }).await.is_ok());
+        assert_eq!(count(&mock).await, permission_count);
+    }
+}

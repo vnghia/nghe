@@ -14,7 +14,7 @@ pub struct Auth {
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
-    user: users::User<'static>,
+    pub user: users::User<'static>,
 }
 
 impl Auth {
