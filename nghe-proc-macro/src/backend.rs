@@ -73,7 +73,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         #input
 
         use axum::extract;
-        use nghe_api::common::{Endpoint, SubsonicResponse};
+        use nghe_api::common::{EncodableEndpoint, SubsonicResponse};
 
         use crate::app::auth::{Authorize, BinaryUser, GetUser, PostUser};
 
@@ -89,14 +89,14 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
 
         pub async fn json_get_handler(
             #( #json_get_args ),*
-        ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
+        ) -> Result<axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>>, Error> {
             let response = #ident(#( #pass_args ),*).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
         }
 
         pub async fn json_post_handler(
             #( #json_post_args ),*
-        ) -> Result<axum::Json<SubsonicResponse<<Request as Endpoint>::Response>>, Error> {
+        ) -> Result<axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>>, Error> {
             let response = #ident(#( #pass_args ),*).await?;
             Ok(axum::Json(SubsonicResponse::new(response)))
         }

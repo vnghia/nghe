@@ -52,7 +52,9 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             const ENDPOINT: &'static str = #endpoint;
             const ENDPOINT_VIEW: &'static str = #endpoint_view;
             const ENDPOINT_BINARY: &'static str = #endpoint_binary;
+        }
 
+        impl #crate_path::common::EncodableEndpoint for #ident {
             type Response = #response;
         }
     })
