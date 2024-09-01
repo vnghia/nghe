@@ -1,3 +1,4 @@
+mod music_folder;
 mod user;
 
 use diesel_async::pooled_connection::deadpool;
@@ -54,7 +55,7 @@ impl Mock {
         self
     }
 
-    pub async fn user(&self, index: usize) -> user::Mock {
+    pub async fn user(&self, index: usize) -> user::Mock<'_> {
         user::Mock::new(self, index).await
     }
 
@@ -67,7 +68,7 @@ impl Mock {
     }
 
     #[builder]
-    pub async fn add_folder(
+    pub async fn add_music_folder(
         self,
         #[builder(default = Faker.fake::<FilesystemType>())] filesystem_type: FilesystemType,
         #[builder(default = true)] allow: bool,
@@ -90,16 +91,20 @@ impl Mock {
         .unwrap();
         self
     }
+
+    pub async fn music_folder(&self, index: usize) -> music_folder::Mock<'_> {
+        music_folder::Mock::new(self, index).await
+    }
 }
 
 #[fixture]
-pub async fn mock(#[default(1)] n_user: usize, #[default(1)] n_folder: usize) -> Mock {
+pub async fn mock(#[default(1)] n_user: usize, #[default(1)] n_music_folder: usize) -> Mock {
     let mut mock = Mock::new().await;
     for _ in 0..n_user {
         mock = mock.add_user().call().await;
     }
-    for _ in 0..n_folder {
-        mock = mock.add_folder().filesystem_type(Faker.fake::<FilesystemType>()).call().await;
+    for _ in 0..n_music_folder {
+        mock = mock.add_music_folder().filesystem_type(Faker.fake::<FilesystemType>()).call().await;
     }
     mock
 }

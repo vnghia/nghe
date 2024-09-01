@@ -59,6 +59,6 @@ mod tests {
         mock: Mock,
         #[case] filesystem_type: FilesystemType,
     ) {
-        mock.add_folder().filesystem_type(filesystem_type).call().await;
+        mock.add_music_folder().filesystem_type(filesystem_type).call().await;
     }
 }
