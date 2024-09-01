@@ -9,6 +9,8 @@ struct Endpoint {
     path: String,
     #[deluxe(default = format_ident!("Response"))]
     response: Ident,
+    #[deluxe(default = true)]
+    same_crate: bool,
 }
 
 #[derive(Debug, deluxe::ParseMetaItem)]
@@ -29,7 +31,7 @@ struct Derive {
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let mut input: syn::DeriveInput = syn::parse2(item)?;
-    let Endpoint { path, response } = deluxe::extract_attributes(&mut input)?;
+    let Endpoint { path, response, same_crate } = deluxe::extract_attributes(&mut input)?;
 
     let ident = &input.ident;
     if ident != "Request" {
@@ -43,8 +45,10 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let endpoint_view = concat_string!("/rest/", &path, ".view");
     let endpoint_binary = concat_string!("/rest/", &path, ".bin");
 
+    let crate_path = if same_crate { format_ident!("crate") } else { format_ident!("nghe_api") };
+
     Ok(quote! {
-        impl crate::common::Endpoint for #ident {
+        impl #crate_path::common::Endpoint for #ident {
             const ENDPOINT: &'static str = #endpoint;
             const ENDPOINT_VIEW: &'static str = #endpoint_view;
             const ENDPOINT_BINARY: &'static str = #endpoint_binary;
