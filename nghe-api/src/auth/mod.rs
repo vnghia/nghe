@@ -4,10 +4,12 @@ use serde_with::serde_as;
 #[serde_as]
 #[api_derive(response = false)]
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "test", derive(serde::Serialize))]
 pub struct Token(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
 
 #[api_derive(response = false, fake = false)]
 #[derive(Clone, Copy)]
+#[cfg_attr(feature = "test", derive(serde::Serialize))]
 pub struct Auth<'u, 't> {
     #[serde(rename = "u")]
     pub username: &'u str,

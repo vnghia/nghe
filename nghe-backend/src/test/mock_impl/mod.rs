@@ -26,6 +26,10 @@ impl Mock {
         Self { database, filesystem }
     }
 
+    pub fn state(&self) -> app::state::App {
+        app::state::App { database: self.database.state().clone() }
+    }
+
     pub fn database(&self) -> &app::state::Database {
         self.database.state()
     }

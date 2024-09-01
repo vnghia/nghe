@@ -144,11 +144,34 @@ where
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
+    use axum::body::Body;
+    use axum::http;
+    use concat_string::concat_string;
+    use fake::{Dummy, Fake, Faker};
+    use nghe_proc_macro::api_derive;
     use rstest::rstest;
+    use serde::Serialize;
 
     use super::*;
     use crate::test::{mock, Mock};
+
+    #[api_derive(endpoint = true)]
+    #[endpoint(path = "test", same_crate = false)]
+    #[derive(Clone, Copy, Serialize, Dummy, PartialEq, Eq)]
+    struct Request {
+        param_one: i32,
+        param_two: u32,
+    }
+
+    #[api_derive]
+    #[allow(dead_code)]
+    struct Response;
+
+    impl Authorize for Request {
+        fn authorize(self, _: users::Role) -> Result<Self, Error> {
+            Ok(self)
+        }
+    }
 
     #[rstest]
     #[tokio::test]
@@ -157,7 +180,9 @@ mod tests {
         #[with(1, 0)]
         mock: Mock,
     ) {
-        assert!(authenticate(mock.database(), mock.user(0).await.auth().borrow()).await.is_ok());
+        let id =
+            authenticate(mock.database(), (&mock.user(0).await.auth()).into()).await.unwrap().0;
+        assert_eq!(id, mock.user(0).await.user.id);
     }
 
     #[rstest]
@@ -170,7 +195,7 @@ mod tests {
         let auth = mock.user(0).await.auth();
 
         let username: String = Faker.fake();
-        let auth = Auth { username: &username, ..auth.borrow() };
+        let auth = Auth { username: &username, ..(&auth).into() };
         assert!(authenticate(mock.database(), auth).await.is_err());
     }
 
@@ -184,7 +209,117 @@ mod tests {
         let auth = mock.user(0).await.auth();
 
         let token = Auth::tokenize(Faker.fake::<String>(), &auth.salt);
-        let auth = Auth { token, ..auth.borrow() };
+        let auth = Auth { token, ..(&auth).into() };
         assert!(authenticate(mock.database(), auth).await.is_err());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_json_get(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+    ) {
+        #[derive(Debug, Serialize)]
+        struct RequestAuth<'u, 't> {
+            #[serde(flatten, borrow)]
+            auth: Auth<'u, 't>,
+            #[serde(flatten)]
+            request: Request,
+        }
+
+        let request: Request = Faker.fake();
+
+        let user = mock.user(0).await;
+        let auth = user.auth();
+        let auth = (&auth).into();
+
+        let http_request = http::Request::builder()
+            .method(http::Method::GET)
+            .uri(concat_string!(
+                Request::ENDPOINT,
+                "?",
+                serde_html_form::to_string(RequestAuth { auth, request }).unwrap()
+            ))
+            .body(Body::empty())
+            .unwrap();
+
+        let test_request =
+            GetUser::<Request>::from_request(http_request, &mock.state()).await.unwrap();
+        assert_eq!(user.user.id, test_request.id);
+        assert_eq!(request, test_request.request);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_json_post(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+    ) {
+        let request: Request = Faker.fake();
+
+        let user = mock.user(0).await;
+        let auth = user.auth();
+        let auth = (&auth).into();
+
+        let http_request = http::Request::builder()
+            .method(http::Method::POST)
+            .uri(concat_string!(
+                Request::ENDPOINT,
+                "?",
+                serde_html_form::to_string::<Auth>(auth).unwrap()
+            ))
+            .body(Body::from(serde_html_form::to_string(request).unwrap()))
+            .unwrap();
+
+        let test_request =
+            PostUser::<Request>::from_request(http_request, &mock.state()).await.unwrap();
+        assert_eq!(user.user.id, test_request.id);
+        assert_eq!(request, test_request.request);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_binary_auth(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+    ) {
+        let request: Request = Faker.fake();
+
+        let user = mock.user(0).await;
+        let auth = user.auth();
+        let auth = (&auth).into();
+
+        let http_request = http::Request::builder()
+            .method(http::Method::POST)
+            .body(Body::from(bitcode::encode(&BinaryRequest { auth, request })))
+            .unwrap();
+
+        let test_request =
+            BinaryUser::<Request, true>::from_request(http_request, &mock.state()).await.unwrap();
+        assert_eq!(user.user.id, test_request.id);
+        assert_eq!(request, test_request.request);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_binary_no_auth(
+        #[future(awt)]
+        #[with(0, 0)]
+        mock: Mock,
+    ) {
+        let request: Request = Faker.fake();
+
+        let http_request = http::Request::builder()
+            .method(http::Method::POST)
+            .body(Body::from(bitcode::encode(&request)))
+            .unwrap();
+
+        let test_request =
+            BinaryUser::<Request, false>::from_request(http_request, &mock.state()).await.unwrap();
+        assert_eq!(Uuid::default(), test_request.id);
+        assert_eq!(request, test_request.request);
     }
 }
