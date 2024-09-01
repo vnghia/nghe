@@ -31,7 +31,9 @@ pub trait Endpoint: DeserializeOwned + Encode + DecodeOwned {
     const ENDPOINT: &'static str;
     const ENDPOINT_VIEW: &'static str;
     const ENDPOINT_BINARY: &'static str;
+}
 
+pub trait EncodableEndpoint: Endpoint {
     type Response: Serialize + Encode + DecodeOwned;
 }
 
