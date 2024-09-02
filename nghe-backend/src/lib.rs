@@ -1,4 +1,5 @@
 #![feature(const_mut_refs)]
+#![feature(let_chains)]
 #![feature(try_blocks)]
 
 mod app;
