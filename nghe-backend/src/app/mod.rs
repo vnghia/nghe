@@ -15,8 +15,8 @@ pub mod permission;
 pub mod state;
 pub mod user;
 
-pub fn build(config: Config) -> Router {
-    let filesystem = state::Filesystem::new();
+pub async fn build(config: Config) -> Router {
+    let filesystem = state::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
 
     Router::new()
         .merge(music_folder::router(filesystem))

@@ -1,25 +1,28 @@
-use nghe_api::constant;
-use tempfile::{Builder, TempDir};
+use aws_sdk_s3::Client;
+use concat_string::concat_string;
+use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::filesystem::{self, local};
+use crate::filesystem::{self, s3};
 use crate::Error;
 
 #[derive(Debug)]
 pub struct Mock {
-    root: TempDir,
-    filesystem: local::Filesystem,
+    bucket: Utf8TypedPathBuf,
+    filesystem: s3::Filesystem,
 }
 
 impl Mock {
-    pub fn new(filesystem: local::Filesystem) -> Self {
-        Self {
-            root: Builder::new()
-                .prefix(&const_format::concatc!(constant::SERVER_NAME, "."))
-                .tempdir()
-                .unwrap(),
-            filesystem,
-        }
+    pub async fn new(filesystem: s3::Filesystem) -> Self {
+        let bucket = Faker.fake::<String>().to_lowercase();
+        filesystem.client().create_bucket().bucket(&bucket).send().await.unwrap();
+        let bucket = Utf8TypedPathBuf::from_unix(concat_string!("/", bucket));
+        assert!(bucket.is_absolute());
+        Self { bucket, filesystem }
+    }
+
+    pub fn client(&self) -> &Client {
+        self.filesystem.client()
     }
 }
 
@@ -37,23 +40,28 @@ impl filesystem::Trait for &Mock {
 
 impl super::MockTrait for Mock {
     fn prefix(&self) -> Utf8TypedPath<'_> {
-        self.root.path().to_str().unwrap().into()
+        self.bucket.to_path()
     }
 
     async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf {
-        let path = self.prefix().join(path);
-        tokio::fs::create_dir_all(path.as_str()).await.unwrap();
-        path
+        self.prefix().join(path)
     }
 
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
-        let path = path.as_str();
-        self.create_dir(path.into()).await;
-        tokio::fs::write(path, data).await.unwrap();
+        let s3::Path { bucket, key } = s3::Filesystem::split(path).unwrap();
+        self.client()
+            .put_object()
+            .bucket(bucket)
+            .key(key)
+            .body(aws_sdk_s3::primitives::ByteStream::from(data.to_vec()))
+            .send()
+            .await
+            .unwrap();
     }
 
     async fn delete(&self, path: Utf8TypedPath<'_>) {
-        tokio::fs::remove_file(path.as_str()).await.unwrap();
+        let s3::Path { bucket, key } = s3::Filesystem::split(path).unwrap();
+        self.client().delete_object().bucket(bucket).key(key).send().await.unwrap();
     }
 }
 
