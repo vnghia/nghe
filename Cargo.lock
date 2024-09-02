@@ -679,7 +679,7 @@ source = "git+https://github.com/vnghia/bitcode.git?rev=5f6a56f#5f6a56fb717ab470
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.75",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -738,7 +738,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "syn 2.0.75",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -3786,6 +3786,9 @@ name = "nghe_backend"
 version = "0.9.10"
 dependencies = [
  "async-trait",
+ "aws-config",
+ "aws-sdk-s3",
+ "aws-smithy-runtime",
  "axum",
  "bitcode",
  "bon",
@@ -3800,6 +3803,8 @@ dependencies = [
  "enum_dispatch",
  "fake",
  "figment",
+ "hyper 0.14.29",
+ "hyper-tls",
  "libaes",
  "nghe_api",
  "nghe_proc_macro",
@@ -3830,7 +3835,7 @@ dependencies = [
  "deluxe",
  "proc-macro2",
  "quote",
- "syn 2.0.75",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -4740,7 +4745,7 @@ dependencies = [
  "regex",
  "relative-path",
  "rustc_version",
- "syn 2.0.75",
+ "syn 2.0.77",
  "unicode-ident",
 ]
 

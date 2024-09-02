@@ -21,7 +21,7 @@ pub struct Mock {
 impl Mock {
     pub async fn new() -> Self {
         let database = database::Mock::new().await;
-        let filesystem = filesystem::Mock::new();
+        let filesystem = filesystem::Mock::new().await;
 
         Self { database, filesystem }
     }

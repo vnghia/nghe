@@ -1,26 +1,31 @@
-#![allow(clippy::unused_self)]
-
 mod common;
 mod local;
+mod s3;
 
 pub use common::{MockImpl, MockTrait};
 use nghe_api::music_folder::FilesystemType;
 
 use crate::app::state;
-use crate::filesystem;
+use crate::config;
 
 #[derive(Debug)]
 pub struct Mock {
-    local: local::Mock,
-
     state: state::Filesystem,
+    local: local::Mock,
+    s3: s3::Mock,
 }
 
 impl Mock {
-    pub fn new() -> Self {
-        let local = local::Mock::new(filesystem::local::Filesystem);
+    pub async fn new() -> Self {
+        let state = state::Filesystem::new(
+            &config::filesystem::Tls::default(),
+            &config::filesystem::S3::default(),
+        )
+        .await;
+        let local = local::Mock::new(state.local());
+        let s3 = s3::Mock::new(state.s3()).await;
 
-        Self { local, state: state::Filesystem::new() }
+        Self { state, local, s3 }
     }
 
     pub fn state(&self) -> &state::Filesystem {
@@ -29,8 +34,8 @@ impl Mock {
 
     pub fn to_impl(&self, filesystem_type: FilesystemType) -> MockImpl<'_> {
         match filesystem_type {
-            // TODO: Add s3 support to the new filesystem
-            FilesystemType::Local | FilesystemType::S3 => (&self.local).into(),
+            FilesystemType::Local => (&self.local).into(),
+            FilesystemType::S3 => (&self.s3).into(),
         }
     }
 }

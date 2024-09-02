@@ -7,6 +7,7 @@ use crate::Error;
 #[derive(Debug)]
 pub enum Impl<'fs> {
     Local(&'fs super::local::Filesystem),
+    S3(&'fs super::s3::Filesystem),
 }
 
 #[enum_dispatch(Impl)]

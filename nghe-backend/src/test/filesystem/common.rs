@@ -8,6 +8,7 @@ use crate::Error;
 #[derive(Debug)]
 pub enum MockImpl<'fs> {
     Local(&'fs super::local::Mock),
+    S3(&'fs super::s3::Mock),
 }
 
 #[enum_dispatch(MockImpl)]

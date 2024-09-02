@@ -1,9 +1,11 @@
 mod database;
+pub mod filesystem;
 mod server;
 
 pub use database::Database;
 use figment::providers::{Env, Serialized};
 use figment::Figment;
+use filesystem::Filesystem;
 use nghe_api::constant;
 use serde::Deserialize;
 pub use server::Server;
@@ -12,6 +14,7 @@ pub use server::Server;
 pub struct Config {
     pub server: Server,
     pub database: Database,
+    pub filesystem: Filesystem,
 }
 
 impl Default for Config {
@@ -19,6 +22,7 @@ impl Default for Config {
         Figment::new()
             .merge(Env::prefixed(const_format::concatc!(constant::SERVER_NAME, "_")).split("__"))
             .join(Serialized::default("server", Server::default()))
+            .join(Serialized::default("filesystem", Filesystem::default()))
             .extract()
             .expect("Could not parse config")
     }
