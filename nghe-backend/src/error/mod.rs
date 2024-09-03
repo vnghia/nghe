@@ -22,6 +22,9 @@ pub enum Error {
     #[error("You need to have {0} role to perform this action")]
     MissingRole(&'static str),
 
+    #[error("Could not parse date from {0:?}")]
+    MediaDateFormat(String),
+
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
 }
@@ -39,7 +42,10 @@ impl IntoResponse for Error {
             Error::Unauthorized(_) | Error::MissingRole(_) => {
                 (StatusCode::UNAUTHORIZED, self.to_string())
             }
-            Error::Internal(_) | Error::CheckoutConnectionPool | Error::DecryptDatabaseValue => {
+            Error::Internal(_)
+            | Error::CheckoutConnectionPool
+            | Error::DecryptDatabaseValue
+            | Error::MediaDateFormat(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into())
             }
         };

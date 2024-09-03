@@ -6,6 +6,7 @@ mod app;
 pub mod config;
 mod error;
 mod filesystem;
+mod media;
 mod orm;
 mod schema;
 
