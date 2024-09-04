@@ -24,6 +24,16 @@ pub enum Error {
 
     #[error("Could not parse date from {0:?}")]
     MediaDateFormat(String),
+    #[error(
+        "Could not parse position from track number {track_number:?}, track total \
+         {track_total:?}, disc number {disc_number:?} and disc total {disc_total:?}"
+    )]
+    MediaPositionFormat {
+        track_number: Option<String>,
+        track_total: Option<String>,
+        disc_number: Option<String>,
+        disc_total: Option<String>,
+    },
 
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
@@ -45,7 +55,8 @@ impl IntoResponse for Error {
             Error::Internal(_)
             | Error::CheckoutConnectionPool
             | Error::DecryptDatabaseValue
-            | Error::MediaDateFormat(_) => {
+            | Error::MediaDateFormat(_)
+            | Error::MediaPositionFormat { .. } => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into())
             }
         };
