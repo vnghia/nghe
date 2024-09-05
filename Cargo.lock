@@ -1338,6 +1338,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive-new"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cdc8d50f426189eef89dac62fabfa0abb27d5cc008f25bf4156a0203325becc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.75",
+]
+
+[[package]]
 name = "deunicode"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1807,8 +1818,7 @@ dependencies = [
 [[package]]
 name = "dummy"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e57e12b69e57fad516e01e2b3960f122696fdb13420e1a88ed8e210316f2876"
+source = "git+https://github.com/cksac/fake-rs?rev=854944a#854944aefe034ddbf4a498f505194419222b423f"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1994,8 +2004,7 @@ dependencies = [
 [[package]]
 name = "fake"
 version = "2.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c25829bde82205da46e1823b2259db6273379f626fc211f126f65654a2669be"
+source = "git+https://github.com/cksac/fake-rs?rev=854944a#854944aefe034ddbf4a498f505194419222b423f"
 dependencies = [
  "deunicode",
  "dummy",
@@ -3392,6 +3401,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "lofty"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8bc4717ff10833a623b009e9254ae8667c7a59edc3cfb01c37aeeef4b6d54a7"
+dependencies = [
+ "byteorder",
+ "data-encoding",
+ "flate2",
+ "lofty_attr",
+ "log",
+ "ogg_pager",
+ "paste",
+]
+
+[[package]]
 name = "lofty_attr"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3404,9 +3428,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.21"
+version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
+checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
 name = "longest-increasing-subsequence"
@@ -3665,7 +3689,7 @@ dependencies = [
  "itertools",
  "lastfm-client",
  "libaes",
- "lofty",
+ "lofty 0.20.1",
  "lrc",
  "mimalloc",
  "mime_guess",
@@ -3749,7 +3773,7 @@ dependencies = [
  "concat-string",
  "constcat 0.5.1",
  "derivative",
- "derive-new",
+ "derive-new 0.6.0",
  "fake",
  "isolang",
  "md5",
@@ -3796,6 +3820,7 @@ dependencies = [
  "concat-string",
  "const_format",
  "derivative",
+ "derive-new 0.7.0",
  "diesel",
  "diesel-async",
  "diesel_full_text_search",
@@ -3805,7 +3830,9 @@ dependencies = [
  "figment",
  "hyper 0.14.29",
  "hyper-tls",
+ "isolang",
  "libaes",
+ "lofty 0.21.1",
  "nghe_api",
  "nghe_proc_macro",
  "o2o",
