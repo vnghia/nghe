@@ -1,5 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use lofty::error::LoftyError;
+use lofty::file::FileType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -38,6 +40,10 @@ pub enum Error {
     MediaArtistMbzIdMoreThanArtistName,
     #[error("Song artist should not be empty")]
     MediaSongArtistEmpty,
+    #[error("Could not read vorbis comments from flac file")]
+    MediaFlacMissingVorbisComments,
+    #[error("File with {0:?} are not supported")]
+    MediaFileTypeNotSupported(FileType),
 
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
@@ -82,6 +88,12 @@ impl From<isolang::ParseLanguageError> for Error {
 
 impl From<uuid::Error> for Error {
     fn from(value: uuid::Error) -> Self {
+        Self::Internal(value.into())
+    }
+}
+
+impl From<LoftyError> for Error {
+    fn from(value: LoftyError) -> Self {
         Self::Internal(value.into())
     }
 }
