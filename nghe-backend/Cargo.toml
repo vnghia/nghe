@@ -12,6 +12,8 @@ concat-string = { workspace = true }
 color-eyre = { workspace = true }
 const_format = { workspace = true }
 derivative = { workspace = true }
+derive-new = { workspace = true }
+isolang = { workspace = true }
 rand = { workspace = true }
 serde_html_form = { workspace = true }
 serde_with = { workspace = true }
@@ -53,6 +55,7 @@ figment = { version = "0.10.19", features = ["env"] }
 hyper = { version = "0.14.29" }
 hyper-tls = { version = "0.5.0" }
 libaes = { version = "0.7.0" }
+lofty = { version = "0.21.1" }
 o2o = { git = "https://github.com/Artem-Romanenia/o2o", rev = "9b68218" }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
