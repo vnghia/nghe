@@ -6,9 +6,9 @@ use super::{artist, common, position};
 pub struct Metadata<'a> {
     pub song: common::Common<'a>,
     pub album: common::Common<'a>,
-    pub artist: artist::SongAlbum<'a>,
+    pub artists: artist::Artists<'a>,
     pub track_disc: position::TrackDisc,
     pub languages: Vec<Language>,
-    pub genres: Vec<String>,
+    pub genres: Vec<&'a str>,
     pub compilation: bool,
 }

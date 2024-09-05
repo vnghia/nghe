@@ -34,6 +34,10 @@ pub enum Error {
         disc_number: Option<String>,
         disc_total: Option<String>,
     },
+    #[error("There should not be more musicbrainz id than artist name")]
+    MediaArtistMbzIdMoreThanArtistName,
+    #[error("Song artist should not be empty")]
+    MediaSongArtistEmpty,
 
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
@@ -52,13 +56,7 @@ impl IntoResponse for Error {
             Error::Unauthorized(_) | Error::MissingRole(_) => {
                 (StatusCode::UNAUTHORIZED, self.to_string())
             }
-            Error::Internal(_)
-            | Error::CheckoutConnectionPool
-            | Error::DecryptDatabaseValue
-            | Error::MediaDateFormat(_)
-            | Error::MediaPositionFormat { .. } => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into())
-            }
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into()),
         };
         (status_code, status_message).into_response()
     }
@@ -72,6 +70,18 @@ impl From<diesel::result::Error> for Error {
 
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
+        Self::Internal(value.into())
+    }
+}
+
+impl From<isolang::ParseLanguageError> for Error {
+    fn from(value: isolang::ParseLanguageError) -> Self {
+        Self::Internal(value.into())
+    }
+}
+
+impl From<uuid::Error> for Error {
+    fn from(value: uuid::Error) -> Self {
         Self::Internal(value.into())
     }
 }
