@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
-use derive_new::new;
 use uuid::Uuid;
+
+use crate::Error;
 
 #[derive(Debug)]
 pub struct Artist<'a> {
@@ -9,13 +10,17 @@ pub struct Artist<'a> {
     pub mbz_id: Option<Uuid>,
 }
 
-#[derive(Debug, new)]
-pub struct SongAlbum<'a> {
+#[derive(Debug)]
+pub struct Artists<'a> {
     song: Vec<Artist<'a>>,
     album: Vec<Artist<'a>>,
 }
 
-impl<'a> SongAlbum<'a> {
+impl<'a> Artists<'a> {
+    pub fn try_new(song: Vec<Artist<'a>>, album: Vec<Artist<'a>>) -> Result<Self, Error> {
+        if song.is_empty() { Err(Error::MediaSongArtistEmpty) } else { Ok(Self { song, album }) }
+    }
+
     pub fn song(&self) -> &Vec<Artist<'a>> {
         &self.song
     }
