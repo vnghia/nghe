@@ -1,11 +1,11 @@
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 
-use super::{MetadataTrait, Property, PropertyTrait};
+use super::{MetadataExtractor, Property, PropertyExtractor};
 use crate::media::file::{Artists, Common, TrackDisc};
 use crate::{config, Error};
 
-impl MetadataTrait for FlacFile {
+impl MetadataExtractor for FlacFile {
     fn song<'a>(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.song(config)
     }
@@ -38,7 +38,7 @@ impl MetadataTrait for FlacFile {
     }
 }
 
-impl PropertyTrait for FlacFile {
+impl PropertyExtractor for FlacFile {
     fn property(&self) -> Result<Property, Error> {
         let properties = self.properties();
         Ok(Property {
