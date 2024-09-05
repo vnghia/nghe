@@ -17,7 +17,7 @@ pub struct Artists<'a> {
 }
 
 impl<'a> Artists<'a> {
-    pub fn try_new(song: Vec<Artist<'a>>, album: Vec<Artist<'a>>) -> Result<Self, Error> {
+    pub fn new(song: Vec<Artist<'a>>, album: Vec<Artist<'a>>) -> Result<Self, Error> {
         if song.is_empty() { Err(Error::MediaSongArtistEmpty) } else { Ok(Self { song, album }) }
     }
 

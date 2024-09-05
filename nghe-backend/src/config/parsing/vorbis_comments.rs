@@ -84,7 +84,7 @@ impl Common {
 
 impl Artist {
     fn default_song() -> Self {
-        Self { name: "ARTIST".into(), mbz_id: "ALBUMARTIST".into() }
+        Self { name: "ARTIST".into(), mbz_id: "MUSICBRAINZ_ARTISTID".into() }
     }
 
     fn default_album() -> Self {

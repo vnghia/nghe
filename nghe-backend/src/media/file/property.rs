@@ -1,8 +1,5 @@
-use lofty::file::FileType;
-
 #[derive(Debug)]
 pub struct Property {
-    pub format: FileType,
     pub duration: f32,
     pub bitrate: u32,
     pub bit_depth: Option<u8>,
