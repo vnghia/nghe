@@ -17,6 +17,7 @@ const YM_DOT_FORMAT: FormatDescription = format_description!("[year].[month]");
 const Y_FORMAT: FormatDescription = format_description!("[year]");
 
 #[derive(Debug, Default, Clone, Copy)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Date {
     pub year: Option<i32>,
     pub month: Option<Month>,
