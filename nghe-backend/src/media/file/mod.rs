@@ -12,7 +12,7 @@ pub use artist::{Artist, Artists};
 pub use common::Common;
 pub use date::Date;
 use enum_dispatch::enum_dispatch;
-use extract::{MetadataTrait, PropertyTrait};
+use extract::{MetadataExtractor, PropertyExtractor};
 use isolang::Language;
 use lofty::config::ParseOptions;
 use lofty::file::{AudioFile, FileType};

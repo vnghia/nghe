@@ -6,7 +6,7 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
-use super::super::MetadataTrait;
+use super::super::MetadataExtractor;
 use crate::media::file::{Artist, Artists, Common, Date, TrackDisc};
 use crate::{config, Error};
 
@@ -59,7 +59,7 @@ impl<'a> Artist<'a> {
     }
 }
 
-impl MetadataTrait for VorbisComments {
+impl MetadataExtractor for VorbisComments {
     fn song<'a>(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
         Common::extract_vorbis_comments(self, &config.vorbis_comments.song)
     }

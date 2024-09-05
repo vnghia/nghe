@@ -8,7 +8,7 @@ use super::{Artists, Common, Metadata, Property, TrackDisc};
 use crate::{config, Error};
 
 #[enum_dispatch(File)]
-pub trait MetadataTrait {
+pub trait MetadataExtractor {
     fn song<'a>(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error>;
     fn album<'a>(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error>;
     fn artists<'a>(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error>;
@@ -31,6 +31,6 @@ pub trait MetadataTrait {
 }
 
 #[enum_dispatch(File)]
-pub trait PropertyTrait {
+pub trait PropertyExtractor {
     fn property(&self) -> Result<Property, Error>;
 }
