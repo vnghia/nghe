@@ -1,11 +1,12 @@
 mod artist;
 mod common;
 mod date;
+mod extract;
 mod metadata;
 mod position;
 mod property;
 
-pub use artist::{Artist, SongAlbum};
+pub use artist::{Artist, Artists};
 pub use common::Common;
 pub use date::Date;
 pub use metadata::Metadata;

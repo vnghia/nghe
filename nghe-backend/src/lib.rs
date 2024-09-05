@@ -1,4 +1,5 @@
 #![feature(const_mut_refs)]
+#![feature(iterator_try_collect)]
 #![feature(let_chains)]
 #![feature(try_blocks)]
 

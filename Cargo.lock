@@ -3831,6 +3831,7 @@ dependencies = [
  "hyper 0.14.29",
  "hyper-tls",
  "isolang",
+ "itertools",
  "libaes",
  "lofty 0.21.1",
  "nghe_api",
