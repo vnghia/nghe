@@ -1,4 +1,4 @@
-mod assets;
+pub mod assets;
 mod database;
 pub mod filesystem;
 mod mock_impl;

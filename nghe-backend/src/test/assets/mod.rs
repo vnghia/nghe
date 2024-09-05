@@ -9,7 +9,7 @@ pub fn ext(file_type: FileType) -> &'static str {
 }
 
 pub fn dir() -> Utf8TypedPathBuf {
-    Utf8TypedPath::from(env!("CARGO_MANIFEST_DIR")).join("assets").join("test")
+    Utf8TypedPath::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("assets").join("test")
 }
 
 pub fn path(file_type: FileType) -> Utf8TypedPathBuf {
