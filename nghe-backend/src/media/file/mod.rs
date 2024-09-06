@@ -6,17 +6,12 @@ mod metadata;
 mod position;
 mod property;
 
-#[cfg(test)]
-mod dump;
-
 use std::borrow::Cow;
 use std::io::{Read, Seek};
 
 pub use artist::{Artist, Artists};
 pub use common::Common;
 pub use date::Date;
-#[cfg(test)]
-pub use dump::MetadataDumper;
 use enum_dispatch::enum_dispatch;
 use extract::{MetadataExtractor, PropertyExtractor};
 use isolang::Language;
@@ -74,7 +69,6 @@ mod test {
 
     use lofty::config::WriteOptions;
     use lofty::ogg::VorbisComments;
-    use lofty::tag::TagExt;
 
     use super::*;
 
@@ -82,6 +76,7 @@ mod test {
         pub fn clear(&mut self) -> &mut Self {
             match self {
                 File::Flac(flac_file) => {
+                    flac_file.remove_id3v2();
                     flac_file.set_vorbis_comments(VorbisComments::default());
                 }
             }
@@ -91,7 +86,7 @@ mod test {
         pub fn save_to(&self, cursor: &mut Cursor<Vec<u8>>, write_options: WriteOptions) {
             match self {
                 File::Flac(flac_file) => {
-                    flac_file.vorbis_comments().unwrap().save_to(cursor, write_options).unwrap();
+                    flac_file.save_to(cursor, write_options).unwrap();
                 }
             }
         }

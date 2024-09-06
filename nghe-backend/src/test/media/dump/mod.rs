@@ -6,8 +6,8 @@ use std::borrow::Cow;
 use enum_dispatch::enum_dispatch;
 use isolang::Language;
 
-use super::{Artists, Common, Metadata, TrackDisc};
 use crate::config;
+use crate::media::file::{Artists, Common, File, Metadata, TrackDisc};
 
 #[enum_dispatch(File)]
 pub trait MetadataDumper {
