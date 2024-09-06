@@ -4,17 +4,23 @@ mod user;
 use diesel_async::pooled_connection::deadpool;
 use diesel_async::AsyncPgConnection;
 use fake::{Fake, Faker};
+use lofty::config::{ParseOptions, WriteOptions};
 use nghe_api::music_folder::FilesystemType;
 use rstest::fixture;
 
 use super::filesystem::MockTrait;
 use super::{database, filesystem};
-use crate::app;
 use crate::orm::users;
+use crate::{app, config};
 
 pub struct Mock {
     pub database: database::Mock,
     pub filesystem: filesystem::Mock,
+
+    pub parsing_config: config::Parsing,
+
+    pub lofty_parse_options: ParseOptions,
+    pub lofty_write_options: WriteOptions,
 }
 
 #[bon::bon]
@@ -23,7 +29,13 @@ impl Mock {
         let database = database::Mock::new().await;
         let filesystem = filesystem::Mock::new().await;
 
-        Self { database, filesystem }
+        Self {
+            database,
+            filesystem,
+            parsing_config: config::Parsing::default(),
+            lofty_parse_options: ParseOptions::default(),
+            lofty_write_options: WriteOptions::default(),
+        }
     }
 
     pub fn state(&self) -> app::state::App {
@@ -40,7 +52,7 @@ impl Mock {
 
     #[builder]
     pub async fn add_user(
-        self,
+        &self,
         #[builder(default = users::Role {
             admin: false,
             stream: true,
@@ -49,7 +61,7 @@ impl Mock {
         })]
         role: users::Role,
         #[builder(default = true)] allow: bool,
-    ) -> Self {
+    ) -> &Self {
         app::user::create::handler(
             self.database(),
             app::user::create::Request { role: role.into(), allow, ..Faker.fake() },
@@ -73,10 +85,10 @@ impl Mock {
 
     #[builder]
     pub async fn add_music_folder(
-        self,
+        &self,
         #[builder(default = Faker.fake::<FilesystemType>())] filesystem_type: FilesystemType,
         #[builder(default = true)] allow: bool,
-    ) -> Self {
+    ) -> &Self {
         let filesystem = self.to_impl(filesystem_type);
         app::music_folder::add::handler(
             self.database(),
@@ -103,12 +115,12 @@ impl Mock {
 
 #[fixture]
 pub async fn mock(#[default(1)] n_user: usize, #[default(1)] n_music_folder: usize) -> Mock {
-    let mut mock = Mock::new().await;
+    let mock = Mock::new().await;
     for _ in 0..n_user {
-        mock = mock.add_user().call().await;
+        mock.add_user().call().await;
     }
     for _ in 0..n_music_folder {
-        mock = mock.add_music_folder().filesystem_type(Faker.fake::<FilesystemType>()).call().await;
+        mock.add_music_folder().filesystem_type(Faker.fake::<FilesystemType>()).call().await;
     }
     mock
 }

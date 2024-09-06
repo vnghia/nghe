@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::Error;
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq, Dummy))]
+#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Artist<'a> {
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub name: Cow<'a, str>,
@@ -15,7 +15,7 @@ pub struct Artist<'a> {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq, Dummy))]
+#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Artists<'a> {
     pub song: Vec<Artist<'a>>,
     pub album: Vec<Artist<'a>>,

@@ -1,14 +1,14 @@
 use crate::Error;
 
 #[derive(Debug, Default)]
-#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
+#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy, Clone, Copy))]
 pub struct Position {
     pub number: Option<u16>,
     pub total: Option<u16>,
 }
 
 #[derive(Debug, Default)]
-#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
+#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy, Clone, Copy))]
 pub struct TrackDisc {
     pub track: Position,
     pub disc: Position,

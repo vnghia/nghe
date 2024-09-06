@@ -1,3 +1,4 @@
+#![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(const_mut_refs)]
 #![feature(iterator_try_collect)]
 #![feature(let_chains)]

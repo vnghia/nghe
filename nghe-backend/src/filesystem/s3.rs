@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
+use aws_sdk_s3::primitives::AggregatedBytes;
 use aws_sdk_s3::Client;
 use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
 use hyper::client::HttpConnector;
@@ -97,10 +98,30 @@ impl super::Trait for Filesystem {
             .map_err(color_eyre::Report::new)?;
         Ok(())
     }
+
+    async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
+        let Path { bucket, key } = Self::split(path)?;
+        self.client
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .send()
+            .await
+            .map_err(color_eyre::Report::new)?
+            .body
+            .collect()
+            .await
+            .map(AggregatedBytes::to_vec)
+            .map_err(Error::from)
+    }
 }
 
 impl super::Trait for &Filesystem {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         (*self).check_folder(path).await
+    }
+
+    async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
+        (*self).read(path).await
     }
 }

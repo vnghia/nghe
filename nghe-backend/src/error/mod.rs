@@ -1,7 +1,9 @@
+use aws_sdk_s3::primitives::ByteStreamError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use lofty::error::LoftyError;
-use lofty::file::FileType;
+
+use crate::media::file;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -43,7 +45,7 @@ pub enum Error {
     #[error("Could not read vorbis comments from flac file")]
     MediaFlacMissingVorbisComments,
     #[error("File with {0:?} are not supported")]
-    MediaFileTypeNotSupported(FileType),
+    MediaFileTypeNotSupported(file::Type),
 
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
@@ -94,6 +96,12 @@ impl From<uuid::Error> for Error {
 
 impl From<LoftyError> for Error {
     fn from(value: LoftyError) -> Self {
+        Self::Internal(value.into())
+    }
+}
+
+impl From<ByteStreamError> for Error {
+    fn from(value: ByteStreamError) -> Self {
         Self::Internal(value.into())
     }
 }
