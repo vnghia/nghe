@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use isolang::Language;
 use lofty::ogg::VorbisComments;
+use uuid::Uuid;
 
 use super::super::MetadataDumper;
 use crate::config;
@@ -42,9 +43,7 @@ impl<'a> Artist<'a> {
     ) {
         for artist in artists {
             tag.push(config.name.clone(), artist.name.into_owned());
-            if let Some(mbz_id) = artist.mbz_id {
-                tag.push(config.mbz_id.clone(), mbz_id.to_string());
-            }
+            tag.push(config.mbz_id.clone(), artist.mbz_id.unwrap_or(Uuid::nil()).to_string());
         }
     }
 }

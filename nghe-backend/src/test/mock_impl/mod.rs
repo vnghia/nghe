@@ -32,7 +32,7 @@ impl Mock {
         Self {
             database,
             filesystem,
-            parsing_config: config::Parsing::default(),
+            parsing_config: config::Parsing::test(),
             lofty_parse_options: ParseOptions::default(),
             lofty_write_options: WriteOptions::default(),
         }

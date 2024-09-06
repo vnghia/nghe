@@ -49,9 +49,11 @@ impl<'a> Artist<'a> {
         let artists = names
             .zip_longest(mbz_ids)
             .map(|iter| match iter {
-                itertools::EitherOrBoth::Both(name, mbz_id) => {
-                    Ok(Self { name: name.into(), mbz_id: Some(mbz_id?) })
-                }
+                itertools::EitherOrBoth::Both(name, mbz_id) => Ok(Self {
+                    name: name.into(),
+                    mbz_id: mbz_id
+                        .map(|mbz_id| if mbz_id.is_nil() { None } else { Some(mbz_id) })?,
+                }),
                 itertools::EitherOrBoth::Left(name) => Ok(Self { name: name.into(), mbz_id: None }),
                 itertools::EitherOrBoth::Right(_) => Err(Error::MediaArtistMbzIdMoreThanArtistName),
             })
