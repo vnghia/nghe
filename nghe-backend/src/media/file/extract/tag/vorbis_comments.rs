@@ -23,7 +23,7 @@ impl Date {
 impl<'a> Common<'a> {
     fn extract_vorbis_comments(
         tag: &'a VorbisComments,
-        config: &'a config::parsing::Common,
+        config: &'a config::parsing::vorbis_comments::Common,
     ) -> Result<Self, Error> {
         Ok(Common {
             name: tag.get(&config.name).ok_or_eyre("Could not extract name")?.into(),
@@ -41,7 +41,7 @@ impl<'a> Common<'a> {
 impl<'a> Artist<'a> {
     fn extract_vorbis_comments(
         tag: &'a VorbisComments,
-        config: &'a config::parsing::Artist,
+        config: &'a config::parsing::vorbis_comments::Artist,
     ) -> Result<Vec<Self>, Error> {
         let names = tag.get_all(&config.name);
         let mbz_ids = tag.get_all(&config.mbz_id).map(Uuid::from_str);
@@ -76,8 +76,12 @@ impl MetadataExtractor for VorbisComments {
     }
 
     fn track_disc<'a>(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error> {
-        let config::parsing::TrackDisc { track_number, track_total, disc_number, disc_total } =
-            &config.vorbis_comments.track_disc;
+        let config::parsing::vorbis_comments::TrackDisc {
+            track_number,
+            track_total,
+            disc_number,
+            disc_total,
+        } = &config.vorbis_comments.track_disc;
         TrackDisc::parse(
             self.get(track_number),
             self.get(track_total),

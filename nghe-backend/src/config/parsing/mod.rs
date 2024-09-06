@@ -1,7 +1,7 @@
-mod vorbis_comments;
+pub mod vorbis_comments;
 
 use serde::{Deserialize, Serialize};
-pub use vorbis_comments::{Artist, Artists, Common, TrackDisc, VorbisComments};
+use vorbis_comments::VorbisComments;
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Parsing {
