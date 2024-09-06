@@ -9,6 +9,7 @@ mod property;
 #[cfg(test)]
 mod dump;
 
+use std::borrow::Cow;
 use std::io::{Read, Seek};
 
 pub use artist::{Artist, Artists};
@@ -29,7 +30,7 @@ pub use property::Property;
 use crate::{config, Error};
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(derivative::Derivative))]
+#[cfg_attr(test, derive(derivative::Derivative, fake::Dummy))]
 #[cfg_attr(test, derivative(PartialEq))]
 pub struct Media<'a> {
     pub metadata: Metadata<'a>,

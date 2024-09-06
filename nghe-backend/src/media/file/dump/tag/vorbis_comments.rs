@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use isolang::Language;
 use lofty::ogg::VorbisComments;
 
@@ -91,9 +93,9 @@ impl MetadataDumper for VorbisComments {
         }
     }
 
-    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<&str>) {
+    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) {
         for genre in genres {
-            self.push(config.vorbis_comments.genres.clone(), genre.to_string());
+            self.push(config.vorbis_comments.genres.clone(), genre.into_owned());
         }
     }
 

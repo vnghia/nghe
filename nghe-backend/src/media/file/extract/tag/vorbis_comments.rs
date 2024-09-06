@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::str::FromStr;
 
 use color_eyre::eyre::OptionExt;
@@ -97,8 +98,8 @@ impl MetadataExtractor for VorbisComments {
         Ok(self.get_all(&config.vorbis_comments.languages).map(Language::from_str).try_collect()?)
     }
 
-    fn genres<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<&'a str>, Error> {
-        Ok(self.get_all(&config.vorbis_comments.genres).collect())
+    fn genres<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
+        Ok(self.get_all(&config.vorbis_comments.genres).map(Cow::Borrowed).collect())
     }
 
     fn compilation<'a>(&'a self, config: &'a config::Parsing) -> Result<bool, Error> {

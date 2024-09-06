@@ -59,6 +59,8 @@ impl FromStr for Date {
 mod test {
     use std::fmt::{Display, Formatter};
 
+    use fake::{Dummy, Fake, Faker};
+
     use super::*;
 
     impl Display for Date {
@@ -76,6 +78,24 @@ mod test {
             } else {
                 Err(std::fmt::Error)
             }
+        }
+    }
+
+    impl Dummy<Faker> for Date {
+        fn dummy_with_rng<R: rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
+            let date: time::Date = config.fake_with_rng(rng);
+
+            let year =
+                if config.fake_with_rng(rng) { Some(date.year().clamp(0, 9999)) } else { None };
+            let month =
+                if year.is_some() && config.fake_with_rng(rng) { Some(date.month()) } else { None };
+            let day = if month.is_some() && config.fake_with_rng(rng) {
+                Some(date.day().try_into().unwrap())
+            } else {
+                None
+            };
+
+            Self { year, month, day }
         }
     }
 }

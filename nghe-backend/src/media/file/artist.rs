@@ -1,18 +1,21 @@
 use std::borrow::Cow;
 
+#[cfg(test)]
+use fake::{Dummy, Fake, Faker};
 use uuid::Uuid;
 
 use crate::Error;
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(test, derive(PartialEq, Eq, Dummy))]
 pub struct Artist<'a> {
+    #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub name: Cow<'a, str>,
     pub mbz_id: Option<Uuid>,
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(test, derive(PartialEq, Eq, Dummy))]
 pub struct Artists<'a> {
     pub song: Vec<Artist<'a>>,
     pub album: Vec<Artist<'a>>,

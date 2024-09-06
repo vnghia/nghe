@@ -61,7 +61,7 @@ url = { version = "2.5.2" }
 
 # Dev
 serde_json = { version = "1.0.120" }
-fake = { git = "https://github.com/cksac/fake-rs", rev = "854944a", features = [
+fake = { version = "2.9.2", features = [
   "derive",
   "uuid",
   "serde_json",
