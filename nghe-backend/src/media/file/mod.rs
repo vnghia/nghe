@@ -14,6 +14,8 @@ use std::io::{Read, Seek};
 pub use artist::{Artist, Artists};
 pub use common::Common;
 pub use date::Date;
+#[cfg(test)]
+use dump::MetadataDumper;
 use enum_dispatch::enum_dispatch;
 use extract::{MetadataExtractor, PropertyExtractor};
 use isolang::Language;
@@ -27,8 +29,11 @@ pub use property::Property;
 use crate::{config, Error};
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(derivative::Derivative))]
+#[cfg_attr(test, derivative(PartialEq))]
 pub struct Media<'a> {
     pub metadata: Metadata<'a>,
+    #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     pub property: Property,
 }
 
@@ -53,6 +58,39 @@ impl File {
 
     pub fn media<'a>(&'a self, config: &'a config::Parsing) -> Result<Media<'a>, Error> {
         Ok(Media { metadata: self.metadata(config)?, property: self.property()? })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::io::{Cursor, Write};
+
+    use lofty::config::WriteOptions;
+    use typed_path::Utf8TypedPath;
+
+    use super::*;
+
+    impl File {
+        pub fn save_to_bytes(&self, write_options: WriteOptions) -> Vec<u8> {
+            let mut cursor = Cursor::new(vec![]);
+            match self {
+                File::Flac(flac_file) => {
+                    flac_file.save_to(&mut cursor, write_options).unwrap();
+                }
+            }
+            cursor.into_inner()
+        }
+
+        pub fn save_to_path(&self, path: &Utf8TypedPath<'_>, write_options: WriteOptions) {
+            let bytes = self.save_to_bytes(write_options);
+            std::fs::OpenOptions::new()
+                .write(true)
+                .truncate(true)
+                .open(path.as_str())
+                .unwrap()
+                .write_all(&bytes)
+                .unwrap();
+        }
     }
 }
 
