@@ -6,13 +6,13 @@ use isolang::Language;
 #[cfg(test)]
 use itertools::Itertools;
 
-use super::{artist, common, position};
+use super::{artist, name_date_mbz, position};
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Metadata<'a> {
-    pub song: common::Common<'a>,
-    pub album: common::Common<'a>,
+    pub song: name_date_mbz::NameDateMbz<'a>,
+    pub album: name_date_mbz::NameDateMbz<'a>,
     pub artists: artist::Artists<'a>,
     pub track_disc: position::TrackDisc,
     #[cfg_attr(
