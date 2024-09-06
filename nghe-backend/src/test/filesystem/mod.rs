@@ -3,7 +3,7 @@ mod local;
 mod s3;
 
 pub use common::{MockImpl, MockTrait};
-use nghe_api::music_folder::FilesystemType;
+use nghe_api::common::filesystem;
 
 use crate::app::state;
 use crate::config;
@@ -32,10 +32,10 @@ impl Mock {
         &self.state
     }
 
-    pub fn to_impl(&self, filesystem_type: FilesystemType) -> MockImpl<'_> {
+    pub fn to_impl(&self, filesystem_type: filesystem::Type) -> MockImpl<'_> {
         match filesystem_type {
-            FilesystemType::Local => (&self.local).into(),
-            FilesystemType::S3 => (&self.s3).into(),
+            filesystem::Type::Local => (&self.local).into(),
+            filesystem::Type::S3 => (&self.s3).into(),
         }
     }
 }

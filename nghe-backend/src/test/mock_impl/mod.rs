@@ -5,7 +5,7 @@ use diesel_async::pooled_connection::deadpool;
 use diesel_async::AsyncPgConnection;
 use fake::{Fake, Faker};
 use lofty::config::{ParseOptions, WriteOptions};
-use nghe_api::music_folder::FilesystemType;
+use nghe_api::common;
 use rstest::fixture;
 
 use super::filesystem::MockTrait;
@@ -79,14 +79,15 @@ impl Mock {
         self.filesystem.state()
     }
 
-    pub fn to_impl(&self, filesystem_type: FilesystemType) -> filesystem::MockImpl<'_> {
+    pub fn to_impl(&self, filesystem_type: common::filesystem::Type) -> filesystem::MockImpl<'_> {
         self.filesystem.to_impl(filesystem_type)
     }
 
     #[builder]
     pub async fn add_music_folder(
         &self,
-        #[builder(default = Faker.fake::<FilesystemType>())] filesystem_type: FilesystemType,
+        #[builder(default = Faker.fake::<common::filesystem::Type>())]
+        filesystem_type: common::filesystem::Type,
         #[builder(default = true)] allow: bool,
     ) -> &Self {
         let filesystem = self.to_impl(filesystem_type);
@@ -120,7 +121,10 @@ pub async fn mock(#[default(1)] n_user: usize, #[default(1)] n_music_folder: usi
         mock.add_user().call().await;
     }
     for _ in 0..n_music_folder {
-        mock.add_music_folder().filesystem_type(Faker.fake::<FilesystemType>()).call().await;
+        mock.add_music_folder()
+            .filesystem_type(Faker.fake::<common::filesystem::Type>())
+            .call()
+            .await;
     }
     mock
 }
