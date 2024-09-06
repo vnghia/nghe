@@ -7,7 +7,7 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
-use crate::media::file::{extract, Artist, Artists, Common, Date, TrackDisc};
+use crate::media::file::{extract, Artist, Artists, Date, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl Date {
@@ -20,12 +20,12 @@ impl Date {
     }
 }
 
-impl<'a> Common<'a> {
+impl<'a> NameDateMbz<'a> {
     fn extract_vorbis_comments(
         tag: &'a VorbisComments,
         config: &'a config::parsing::vorbis_comments::Common,
     ) -> Result<Self, Error> {
-        Ok(Common {
+        Ok(Self {
             name: tag.get(&config.name).ok_or_eyre("Could not extract name")?.into(),
             date: Date::extract_vorbis_comments(tag, &config.date)?,
             release_date: Date::extract_vorbis_comments(tag, &config.release_date)?,
@@ -62,12 +62,12 @@ impl<'a> Artist<'a> {
 }
 
 impl<'a> extract::Metadata<'a> for VorbisComments {
-    fn song(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
-        Common::extract_vorbis_comments(self, &config.vorbis_comments.song)
+    fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
+        NameDateMbz::extract_vorbis_comments(self, &config.vorbis_comments.song)
     }
 
-    fn album(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
-        Common::extract_vorbis_comments(self, &config.vorbis_comments.album)
+    fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
+        NameDateMbz::extract_vorbis_comments(self, &config.vorbis_comments.album)
     }
 
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {

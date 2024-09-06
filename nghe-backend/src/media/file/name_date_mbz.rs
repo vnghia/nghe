@@ -8,7 +8,7 @@ use super::date::Date;
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
-pub struct Common<'a> {
+pub struct NameDateMbz<'a> {
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub name: Cow<'a, str>,
     pub date: Date,

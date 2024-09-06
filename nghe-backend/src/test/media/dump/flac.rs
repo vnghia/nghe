@@ -4,15 +4,15 @@ use lofty::flac::FlacFile;
 
 use super::Metadata;
 use crate::config;
-use crate::media::file::{Artists, Common, TrackDisc};
+use crate::media::file::{Artists, NameDateMbz, TrackDisc};
 
 impl Metadata for FlacFile {
-    fn dump_song(&mut self, config: &config::Parsing, song: Common<'_>) -> &mut Self {
+    fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self {
         self.vorbis_comments_mut().unwrap().dump_song(config, song);
         self
     }
 
-    fn dump_album(&mut self, config: &config::Parsing, album: Common<'_>) -> &mut Self {
+    fn dump_album(&mut self, config: &config::Parsing, album: NameDateMbz<'_>) -> &mut Self {
         self.vorbis_comments_mut().unwrap().dump_album(config, album);
         self
     }
