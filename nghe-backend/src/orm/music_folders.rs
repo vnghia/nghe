@@ -23,7 +23,7 @@ pub use schema::table;
 #[repr(i16)]
 #[derive(Debug, Clone, Copy, FromRepr, AsExpression, FromSqlRow, PartialEq, Eq, o2o)]
 #[diesel(sql_type = Int2)]
-#[map_owned(nghe_api::music_folder::FilesystemType)]
+#[map_owned(nghe_api::common::filesystem::Type)]
 pub enum FilesystemType {
     Local = 1,
     S3 = 2,

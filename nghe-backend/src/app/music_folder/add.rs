@@ -44,20 +44,20 @@ pub async fn handler(
 
 #[cfg(test)]
 mod tests {
-    use nghe_api::music_folder::FilesystemType;
+    use nghe_api::common::filesystem;
     use rstest::rstest;
 
     use crate::test::{mock, Mock};
 
     #[rstest]
-    #[case(FilesystemType::Local)]
-    #[case(FilesystemType::S3)]
+    #[case(filesystem::Type::Local)]
+    #[case(filesystem::Type::S3)]
     #[tokio::test]
     async fn test_add(
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
-        #[case] filesystem_type: FilesystemType,
+        #[case] filesystem_type: filesystem::Type,
     ) {
         mock.add_music_folder().filesystem_type(filesystem_type).call().await;
     }
