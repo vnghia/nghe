@@ -1,6 +1,8 @@
 mod flac;
 mod tag;
 
+use std::borrow::Cow;
+
 use enum_dispatch::enum_dispatch;
 use isolang::Language;
 
@@ -14,7 +16,7 @@ pub trait MetadataDumper {
     fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>);
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc);
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>);
-    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<&str>);
+    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>);
     fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool);
 
     fn dump_metadata(&mut self, config: &config::Parsing, metadata: Metadata<'_>) {

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use lofty::flac::FlacFile;
 
 use super::MetadataDumper;
@@ -25,7 +27,7 @@ impl MetadataDumper for FlacFile {
         self.vorbis_comments_mut().unwrap().dump_languages(config, languages);
     }
 
-    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<&str>) {
+    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) {
         self.vorbis_comments_mut().unwrap().dump_genres(config, genres);
     }
 

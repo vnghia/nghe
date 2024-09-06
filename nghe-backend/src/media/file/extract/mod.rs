@@ -1,6 +1,8 @@
 mod flac;
 mod tag;
 
+use std::borrow::Cow;
+
 use enum_dispatch::enum_dispatch;
 use isolang::Language;
 
@@ -14,7 +16,7 @@ pub trait MetadataExtractor {
     fn artists<'a>(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error>;
     fn track_disc<'a>(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error>;
     fn languages<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error>;
-    fn genres<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<&'a str>, Error>;
+    fn genres<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error>;
     fn compilation<'a>(&'a self, config: &'a config::Parsing) -> Result<bool, Error>;
 
     fn metadata<'a>(&'a self, config: &'a config::Parsing) -> Result<Metadata<'a>, Error> {
