@@ -5,12 +5,12 @@ use std::borrow::Cow;
 
 use isolang::Language;
 
-use super::{Artists, Common, File, TrackDisc};
+use super::{Artists, File, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 pub trait Metadata<'a> {
-    fn song(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error>;
-    fn album(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error>;
+    fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error>;
+    fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error>;
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error>;
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error>;
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error>;
@@ -35,13 +35,13 @@ pub trait Property {
 }
 
 impl<'a> Metadata<'a> for File {
-    fn song(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
+    fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         match self {
             File::Flac(file) => file.song(config),
         }
     }
 
-    fn album(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
+    fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         match self {
             File::Flac(file) => file.album(config),
         }

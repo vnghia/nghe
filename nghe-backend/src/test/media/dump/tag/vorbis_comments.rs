@@ -5,7 +5,7 @@ use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
 use crate::config;
-use crate::media::file::{Artist, Artists, Common, Date, Position, TrackDisc};
+use crate::media::file::{Artist, Artists, Date, NameDateMbz, Position, TrackDisc};
 use crate::test::media::dump;
 
 impl Date {
@@ -18,7 +18,7 @@ impl Date {
     }
 }
 
-impl<'a> Common<'a> {
+impl<'a> NameDateMbz<'a> {
     fn dump_vorbis_comments(
         self,
         tag: &mut VorbisComments,
@@ -60,12 +60,12 @@ impl Position {
 }
 
 impl dump::Metadata for VorbisComments {
-    fn dump_song(&mut self, config: &config::Parsing, song: Common<'_>) -> &mut Self {
+    fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self {
         song.dump_vorbis_comments(self, &config.vorbis_comments.song);
         self
     }
 
-    fn dump_album(&mut self, config: &config::Parsing, album: Common<'_>) -> &mut Self {
+    fn dump_album(&mut self, config: &config::Parsing, album: NameDateMbz<'_>) -> &mut Self {
         album.dump_vorbis_comments(self, &config.vorbis_comments.album);
         self
     }

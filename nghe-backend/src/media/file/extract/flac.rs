@@ -4,15 +4,15 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 
 use super::{Metadata, Property};
-use crate::media::file::{self, Artists, Common, TrackDisc};
+use crate::media::file::{self, Artists, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl<'a> Metadata<'a> for FlacFile {
-    fn song(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
+    fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.song(config)
     }
 
-    fn album(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
+    fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.album(config)
     }
 
