@@ -96,7 +96,7 @@ mod test {
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
-    use nghe_api::music_folder::FilesystemType;
+    use nghe_api::common::filesystem;
     use rstest::rstest;
     use time::Month;
 
@@ -169,7 +169,7 @@ mod tests {
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
-        #[values(FilesystemType::Local, FilesystemType::S3)] filesystem_type: FilesystemType,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
         #[values(Type::Flac)] file_type: Type,
     ) {
         mock.add_music_folder().filesystem_type(filesystem_type).call().await;

@@ -1,5 +1,5 @@
 use color_eyre::eyre::OptionExt;
-use nghe_api::music_folder::FilesystemType;
+use nghe_api::common::filesystem;
 
 use crate::filesystem::{local, s3, Impl};
 use crate::{config, Error};
@@ -17,10 +17,10 @@ impl Filesystem {
         Self { local, s3 }
     }
 
-    pub fn to_impl(&self, filesystem_type: FilesystemType) -> Result<Impl<'_>, Error> {
+    pub fn to_impl(&self, filesystem_type: filesystem::Type) -> Result<Impl<'_>, Error> {
         Ok(match filesystem_type {
-            FilesystemType::Local => (&self.local).into(),
-            FilesystemType::S3 => {
+            filesystem::Type::Local => (&self.local).into(),
+            filesystem::Type::S3 => {
                 self.s3.as_ref().ok_or_eyre("S3 filesystem is not enabled")?.into()
             }
         })
