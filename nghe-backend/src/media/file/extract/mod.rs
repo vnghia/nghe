@@ -37,43 +37,43 @@ pub trait Property {
 impl<'a> Metadata<'a> for File {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         match self {
-            File::Flac(file) => file.song(config),
+            File::Flac { file, .. } => file.song(config),
         }
     }
 
     fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         match self {
-            File::Flac(file) => file.album(config),
+            File::Flac { file, .. } => file.album(config),
         }
     }
 
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {
         match self {
-            File::Flac(file) => file.artists(config),
+            File::Flac { file, .. } => file.artists(config),
         }
     }
 
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error> {
         match self {
-            File::Flac(file) => file.track_disc(config),
+            File::Flac { file, .. } => file.track_disc(config),
         }
     }
 
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error> {
         match self {
-            File::Flac(file) => file.languages(config),
+            File::Flac { file, .. } => file.languages(config),
         }
     }
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
         match self {
-            File::Flac(file) => file.genres(config),
+            File::Flac { file, .. } => file.genres(config),
         }
     }
 
     fn compilation(&'a self, config: &'a config::Parsing) -> Result<bool, Error> {
         match self {
-            File::Flac(file) => file.compilation(config),
+            File::Flac { file, .. } => file.compilation(config),
         }
     }
 }
@@ -81,7 +81,7 @@ impl<'a> Metadata<'a> for File {
 impl Property for File {
     fn property(&self) -> Result<super::Property, Error> {
         match self {
-            File::Flac(file) => file.property(),
+            File::Flac { file, .. } => file.property(),
         }
     }
 }
