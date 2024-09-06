@@ -17,6 +17,7 @@ pub struct Artist<'a> {
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Artists<'a> {
+    #[cfg_attr(test, dummy(faker = "(Faker, 1..4)"))]
     pub song: Vec<Artist<'a>>,
     pub album: Vec<Artist<'a>>,
 }

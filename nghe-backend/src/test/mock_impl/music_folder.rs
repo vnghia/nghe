@@ -58,8 +58,9 @@ impl<'a> Mock<'a> {
             Cursor::new(tokio::fs::read(assets::path(file_type).as_str()).await.unwrap());
         let mut file =
             file::File::read_from(&mut asset, self.mock.lofty_parse_options, file_type).unwrap();
-        file.clear().dump_metadata(&self.mock.parsing_config, media.metadata);
         asset.set_position(0);
+
+        file.clear().dump_metadata(&self.mock.parsing_config, media.metadata);
         file.save_to(&mut asset, self.mock.lofty_write_options);
 
         asset.flush().unwrap();

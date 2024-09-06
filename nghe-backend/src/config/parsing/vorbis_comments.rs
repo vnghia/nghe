@@ -91,3 +91,22 @@ impl Artist {
         Self { name: "ALBUMARTIST".into(), mbz_id: "MUSICBRAINZ_ALBUMARTISTID".into() }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    impl VorbisComments {
+        pub fn test() -> Self {
+            Self {
+                song: Common {
+                    date: Some("SDATE".into()),
+                    release_date: Some("SRELEASEDATE".into()),
+                    original_release_date: Some("SORIGYEAR".into()),
+                    ..Common::default_song()
+                },
+                ..Self::default()
+            }
+        }
+    }
+}
