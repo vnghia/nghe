@@ -6,15 +6,12 @@ mod metadata;
 mod position;
 mod property;
 
-use std::borrow::Cow;
 use std::io::{Read, Seek};
 
 pub use artist::{Artist, Artists};
 pub use common::Common;
 pub use date::Date;
-use enum_dispatch::enum_dispatch;
 use extract::{MetadataExtractor, PropertyExtractor};
-use isolang::Language;
 use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
@@ -39,7 +36,6 @@ pub enum Type {
     Flac,
 }
 
-#[enum_dispatch]
 pub enum File {
     Flac(FlacFile),
 }
@@ -52,7 +48,7 @@ impl File {
     ) -> Result<Self, Error> {
         match file_type {
             Type::Flac => {
-                FlacFile::read_from(reader, parse_options).map(Self::from).map_err(Error::from)
+                FlacFile::read_from(reader, parse_options).map(Self::Flac).map_err(Error::from)
             }
             _ => Err(Error::MediaFileTypeNotSupported(file_type)),
         }
@@ -96,6 +92,7 @@ mod test {
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use isolang::Language;
     use nghe_api::common::filesystem;
     use rstest::rstest;
     use time::Month;

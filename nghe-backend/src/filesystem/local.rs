@@ -18,13 +18,3 @@ impl super::Trait for Filesystem {
         tokio::fs::read(path.as_str()).await.map_err(Error::from)
     }
 }
-
-impl super::Trait for &Filesystem {
-    async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
-        (*self).check_folder(path).await
-    }
-
-    async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
-        (*self).read(path).await
-    }
-}

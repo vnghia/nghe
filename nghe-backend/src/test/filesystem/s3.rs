@@ -36,16 +36,6 @@ impl filesystem::Trait for Mock {
     }
 }
 
-impl filesystem::Trait for &Mock {
-    async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
-        self.filesystem.check_folder(path).await
-    }
-
-    async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
-        self.filesystem.read(path).await
-    }
-}
-
 impl super::MockTrait for Mock {
     fn prefix(&self) -> Utf8TypedPath<'_> {
         self.bucket.to_path()
@@ -70,23 +60,5 @@ impl super::MockTrait for Mock {
     async fn delete(&self, path: Utf8TypedPath<'_>) {
         let s3::Path { bucket, key } = s3::Filesystem::split(path).unwrap();
         self.client().delete_object().bucket(bucket).key(key).send().await.unwrap();
-    }
-}
-
-impl super::MockTrait for &Mock {
-    fn prefix(&self) -> Utf8TypedPath<'_> {
-        (*self).prefix()
-    }
-
-    async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf {
-        (*self).create_dir(path).await
-    }
-
-    async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
-        (*self).write(path, data).await;
-    }
-
-    async fn delete(&self, path: Utf8TypedPath<'_>) {
-        (*self).delete(path).await;
     }
 }
