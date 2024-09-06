@@ -37,7 +37,7 @@ pub trait Metadata {
 impl Metadata for File {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self {
         match self {
-            File::Flac(file) => {
+            File::Flac { file, .. } => {
                 file.dump_song(config, song);
             }
         }
@@ -46,7 +46,7 @@ impl Metadata for File {
 
     fn dump_album(&mut self, config: &config::Parsing, album: NameDateMbz<'_>) -> &mut Self {
         match self {
-            File::Flac(file) => {
+            File::Flac { file, .. } => {
                 file.dump_album(config, album);
             }
         }
@@ -55,7 +55,7 @@ impl Metadata for File {
 
     fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) -> &mut Self {
         match self {
-            File::Flac(file) => {
+            File::Flac { file, .. } => {
                 file.dump_artists(config, artists);
             }
         }
@@ -64,7 +64,7 @@ impl Metadata for File {
 
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self {
         match self {
-            File::Flac(file) => {
+            File::Flac { file, .. } => {
                 file.dump_track_disc(config, track_disc);
             }
         }
@@ -73,7 +73,7 @@ impl Metadata for File {
 
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self {
         match self {
-            File::Flac(file) => {
+            File::Flac { file, .. } => {
                 file.dump_languages(config, languages);
             }
         }
@@ -82,7 +82,7 @@ impl Metadata for File {
 
     fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self {
         match self {
-            File::Flac(file) => {
+            File::Flac { file, .. } => {
                 file.dump_genres(config, genres);
             }
         }
@@ -91,7 +91,7 @@ impl Metadata for File {
 
     fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool) -> &mut Self {
         match self {
-            File::Flac(file) => {
+            File::Flac { file, .. } => {
                 file.dump_compilation(config, compilation);
             }
         }

@@ -44,8 +44,6 @@ pub enum Error {
     MediaSongArtistEmpty,
     #[error("Could not read vorbis comments from flac file")]
     MediaFlacMissingVorbisComments,
-    #[error("File with {0:?} are not supported")]
-    MediaFileTypeNotSupported(file::Type),
 
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
