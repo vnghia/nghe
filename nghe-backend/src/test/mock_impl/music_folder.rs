@@ -5,12 +5,12 @@ use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::filesystem::Trait;
+use crate::filesystem::Trait as _;
 use crate::media::file;
 use crate::orm::music_folders;
 use crate::test::assets;
-use crate::test::filesystem::{self, MockTrait};
-use crate::test::media::MetadataDumper;
+use crate::test::filesystem::{self, Trait as _};
+use crate::test::media::dump::Metadata as _;
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
@@ -41,7 +41,7 @@ impl<'a> Mock<'a> {
         }
     }
 
-    pub fn to_impl(&self) -> filesystem::MockImpl<'_> {
+    pub fn to_impl(&self) -> filesystem::Impl<'_> {
         self.mock.to_impl(self.music_folder.data.filesystem_type.into())
     }
 
@@ -60,8 +60,9 @@ impl<'a> Mock<'a> {
             file::File::read_from(&mut asset, self.mock.lofty_parse_options, file_type).unwrap();
         asset.set_position(0);
 
-        file.clear().dump_metadata(&self.mock.parsing_config, media.metadata);
-        file.save_to(&mut asset, self.mock.lofty_write_options);
+        file.clear()
+            .dump_metadata(&self.mock.parsing_config, media.metadata)
+            .save_to(&mut asset, self.mock.lofty_write_options);
 
         asset.flush().unwrap();
         asset.set_position(0);

@@ -7,8 +7,7 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
-use super::super::MetadataExtractor;
-use crate::media::file::{Artist, Artists, Common, Date, TrackDisc};
+use crate::media::file::{extract, Artist, Artists, Common, Date, TrackDisc};
 use crate::{config, Error};
 
 impl Date {
@@ -62,23 +61,23 @@ impl<'a> Artist<'a> {
     }
 }
 
-impl MetadataExtractor for VorbisComments {
-    fn song<'a>(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
+impl<'a> extract::Metadata<'a> for VorbisComments {
+    fn song(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
         Common::extract_vorbis_comments(self, &config.vorbis_comments.song)
     }
 
-    fn album<'a>(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
+    fn album(&'a self, config: &'a config::Parsing) -> Result<Common<'a>, Error> {
         Common::extract_vorbis_comments(self, &config.vorbis_comments.album)
     }
 
-    fn artists<'a>(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {
+    fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {
         Artists::new(
             Artist::extract_vorbis_comments(self, &config.vorbis_comments.artists.song)?,
             Artist::extract_vorbis_comments(self, &config.vorbis_comments.artists.album)?,
         )
     }
 
-    fn track_disc<'a>(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error> {
+    fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error> {
         let config::parsing::vorbis_comments::TrackDisc {
             track_number,
             track_total,
@@ -93,18 +92,15 @@ impl MetadataExtractor for VorbisComments {
         )
     }
 
-    fn languages<'a>(
-        &'a self,
-        config: &'a config::Parsing,
-    ) -> Result<Vec<isolang::Language>, Error> {
+    fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<isolang::Language>, Error> {
         Ok(self.get_all(&config.vorbis_comments.languages).map(Language::from_str).try_collect()?)
     }
 
-    fn genres<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
+    fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
         Ok(self.get_all(&config.vorbis_comments.genres).map(Cow::Borrowed).collect())
     }
 
-    fn compilation<'a>(&'a self, config: &'a config::Parsing) -> Result<bool, Error> {
+    fn compilation(&'a self, config: &'a config::Parsing) -> Result<bool, Error> {
         Ok(self.get(&config.vorbis_comments.compilation).is_some_and(|s| !s.is_empty()))
     }
 }

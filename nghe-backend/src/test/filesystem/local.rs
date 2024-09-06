@@ -33,7 +33,7 @@ impl filesystem::Trait for Mock {
     }
 }
 
-impl super::MockTrait for Mock {
+impl super::Trait for Mock {
     fn prefix(&self) -> Utf8TypedPath<'_> {
         self.root.path().to_str().unwrap().into()
     }
