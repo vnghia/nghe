@@ -1,15 +1,14 @@
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::filesystem::Trait;
-use crate::Error;
+use crate::{filesystem, Error};
 
 #[derive(Debug)]
-pub enum MockImpl<'fs> {
+pub enum Impl<'fs> {
     Local(&'fs super::local::Mock),
     S3(&'fs super::s3::Mock),
 }
 
-pub trait MockTrait: Trait {
+pub trait Trait: filesystem::Trait {
     fn prefix(&self) -> Utf8TypedPath<'_>;
 
     async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf;
@@ -17,48 +16,48 @@ pub trait MockTrait: Trait {
     async fn delete(&self, path: Utf8TypedPath<'_>);
 }
 
-impl<'fs> Trait for MockImpl<'fs> {
+impl<'fs> filesystem::Trait for Impl<'fs> {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         match self {
-            MockImpl::Local(filesystem) => filesystem.check_folder(path).await,
-            MockImpl::S3(filesystem) => filesystem.check_folder(path).await,
+            Impl::Local(filesystem) => filesystem.check_folder(path).await,
+            Impl::S3(filesystem) => filesystem.check_folder(path).await,
         }
     }
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         match self {
-            MockImpl::Local(filesystem) => filesystem.read(path).await,
-            MockImpl::S3(filesystem) => filesystem.read(path).await,
+            Impl::Local(filesystem) => filesystem.read(path).await,
+            Impl::S3(filesystem) => filesystem.read(path).await,
         }
     }
 }
 
-impl<'fs> MockTrait for MockImpl<'fs> {
+impl<'fs> Trait for Impl<'fs> {
     fn prefix(&self) -> Utf8TypedPath<'_> {
         match self {
-            MockImpl::Local(filesystem) => filesystem.prefix(),
-            MockImpl::S3(filesystem) => filesystem.prefix(),
+            Impl::Local(filesystem) => filesystem.prefix(),
+            Impl::S3(filesystem) => filesystem.prefix(),
         }
     }
 
     async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf {
         match self {
-            MockImpl::Local(filesystem) => filesystem.create_dir(path).await,
-            MockImpl::S3(filesystem) => filesystem.create_dir(path).await,
+            Impl::Local(filesystem) => filesystem.create_dir(path).await,
+            Impl::S3(filesystem) => filesystem.create_dir(path).await,
         }
     }
 
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
         match self {
-            MockImpl::Local(filesystem) => filesystem.write(path, data).await,
-            MockImpl::S3(filesystem) => filesystem.write(path, data).await,
+            Impl::Local(filesystem) => filesystem.write(path, data).await,
+            Impl::S3(filesystem) => filesystem.write(path, data).await,
         }
     }
 
     async fn delete(&self, path: Utf8TypedPath<'_>) {
         match self {
-            MockImpl::Local(filesystem) => filesystem.delete(path).await,
-            MockImpl::S3(filesystem) => filesystem.delete(path).await,
+            Impl::Local(filesystem) => filesystem.delete(path).await,
+            Impl::S3(filesystem) => filesystem.delete(path).await,
         }
     }
 }

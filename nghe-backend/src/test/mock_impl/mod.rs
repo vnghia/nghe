@@ -8,7 +8,7 @@ use lofty::config::{ParseOptions, WriteOptions};
 use nghe_api::common;
 use rstest::fixture;
 
-use super::filesystem::MockTrait;
+use super::filesystem::Trait;
 use super::{database, filesystem};
 use crate::orm::users;
 use crate::{app, config};
@@ -79,7 +79,7 @@ impl Mock {
         self.filesystem.state()
     }
 
-    pub fn to_impl(&self, filesystem_type: common::filesystem::Type) -> filesystem::MockImpl<'_> {
+    pub fn to_impl(&self, filesystem_type: common::filesystem::Type) -> filesystem::Impl<'_> {
         self.filesystem.to_impl(filesystem_type)
     }
 
