@@ -9,3 +9,25 @@ pub struct Property {
     pub sample_rate: u32,
     pub channel_count: u8,
 }
+
+#[cfg(test)]
+mod test {
+    use lofty::file::FileType;
+
+    use super::*;
+
+    impl Property {
+        pub fn default(file_type: FileType) -> Self {
+            match file_type {
+                FileType::Flac => Self {
+                    duration: 0f32,
+                    bitrate: 585,
+                    bit_depth: Some(24),
+                    sample_rate: 32000,
+                    channel_count: 2,
+                },
+                _ => unreachable!(),
+            }
+        }
+    }
+}

@@ -6,6 +6,9 @@ mod metadata;
 mod position;
 mod property;
 
+#[cfg(test)]
+mod dump;
+
 use std::io::{Read, Seek};
 
 pub use artist::{Artist, Artists};
@@ -62,11 +65,8 @@ mod tests {
     use crate::test::assets;
 
     #[rstest]
-    #[case(
-        FileType::Flac,
-        Property { duration: 0f32, bitrate: 585, bit_depth: Some(24), sample_rate: 32000, channel_count: 2
-    })]
-    fn test_media(#[case] file_type: FileType, #[case] property: Property) {
+    #[case(FileType::Flac)]
+    fn test_media(#[case] file_type: FileType) {
         let mut file = std::fs::File::open(assets::path(file_type).as_str()).unwrap();
         let file = File::read_from(&mut file, ParseOptions::default(), file_type).unwrap();
 
@@ -98,7 +98,7 @@ mod tests {
         );
         assert_eq!(album.mbz_id, None);
 
-        let song = metadata.artists.song();
+        let song = metadata.artists.song;
         assert_eq!(
             song,
             &[
@@ -106,7 +106,7 @@ mod tests {
                 "Artist2".into()
             ]
         );
-        let album = metadata.artists.album();
+        let album = metadata.artists.album;
         assert_eq!(album, &["Artist1".into(), "Artist3".into()]);
 
         assert_eq!(
@@ -121,6 +121,6 @@ mod tests {
         assert!(metadata.genres.is_empty());
         assert!(metadata.compilation);
 
-        assert_eq!(media.property, property);
+        assert_eq!(media.property, Property::default(file_type));
     }
 }

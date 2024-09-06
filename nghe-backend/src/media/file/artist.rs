@@ -13,8 +13,8 @@ pub struct Artist<'a> {
 
 #[derive(Debug)]
 pub struct Artists<'a> {
-    song: Vec<Artist<'a>>,
-    album: Vec<Artist<'a>>,
+    pub song: Vec<Artist<'a>>,
+    pub album: Vec<Artist<'a>>,
 }
 
 impl<'a> Artists<'a> {

@@ -24,6 +24,12 @@ pub struct Date {
     pub day: Option<NonZeroU8>,
 }
 
+impl Date {
+    pub fn is_some(&self) -> bool {
+        self.year.is_some()
+    }
+}
+
 impl FromStr for Date {
     type Err = Error;
 
@@ -46,6 +52,31 @@ impl FromStr for Date {
         }
 
         Ok(Self { year: parsed.year(), month: parsed.month(), day: parsed.day() })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::fmt::{Display, Formatter};
+
+    use super::*;
+
+    impl Display for Date {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            if let Some(year) = self.year {
+                let mut result = format!("{year:04}");
+                if let Some(month) = self.month {
+                    let month = month as u8;
+                    result += &format!("-{month:02}");
+                    if let Some(day) = self.day {
+                        result += &format!("-{day:02}");
+                    }
+                }
+                write!(f, "{result}")
+            } else {
+                Err(std::fmt::Error)
+            }
+        }
     }
 }
 
@@ -87,5 +118,22 @@ mod tests {
     #[case("31")]
     fn test_parse_error(#[case] input: &'static str) {
         assert!(input.parse::<Date>().is_err());
+    }
+
+    #[rstest]
+    #[case(Some(2000), Some(Month::December), Some(31), "2000-12-31")]
+    #[case(Some(2000), Some(Month::December), None, "2000-12")]
+    #[case(Some(2000), None, Some(31), "2000")]
+    #[case(Some(2000), None, None, "2000")]
+    fn test_display(
+        #[case] year: Option<i32>,
+        #[case] month: Option<Month>,
+        #[case] day: Option<u8>,
+        #[case] str: &str,
+    ) {
+        assert_eq!(
+            Date { year, month, day: day.map(u8::try_into).transpose().unwrap() }.to_string(),
+            str
+        );
     }
 }
