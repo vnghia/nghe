@@ -55,9 +55,8 @@ impl super::MockTrait for Mock {
     }
 
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
-        let path = path.as_str();
-        self.create_dir(path.into()).await;
-        tokio::fs::write(path, data).await.unwrap();
+        self.create_dir(path.parent().unwrap()).await;
+        tokio::fs::write(path.as_str(), data).await.unwrap();
     }
 
     async fn delete(&self, path: Utf8TypedPath<'_>) {
