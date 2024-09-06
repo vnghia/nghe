@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 
@@ -29,7 +31,7 @@ impl MetadataExtractor for FlacFile {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.languages(config)
     }
 
-    fn genres<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<&'a str>, Error> {
+    fn genres<'a>(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.genres(config)
     }
 
