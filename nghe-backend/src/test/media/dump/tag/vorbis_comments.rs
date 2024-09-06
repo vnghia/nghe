@@ -4,9 +4,9 @@ use isolang::Language;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
-use super::super::MetadataDumper;
 use crate::config;
 use crate::media::file::{Artist, Artists, Common, Date, Position, TrackDisc};
+use crate::test::media::dump;
 
 impl Date {
     fn dump_vorbis_comments(self, tag: &mut VorbisComments, key: &Option<String>) {
@@ -59,21 +59,24 @@ impl Position {
     }
 }
 
-impl MetadataDumper for VorbisComments {
-    fn dump_song(&mut self, config: &config::Parsing, song: Common<'_>) {
+impl dump::Metadata for VorbisComments {
+    fn dump_song(&mut self, config: &config::Parsing, song: Common<'_>) -> &mut Self {
         song.dump_vorbis_comments(self, &config.vorbis_comments.song);
+        self
     }
 
-    fn dump_album(&mut self, config: &config::Parsing, album: Common<'_>) {
+    fn dump_album(&mut self, config: &config::Parsing, album: Common<'_>) -> &mut Self {
         album.dump_vorbis_comments(self, &config.vorbis_comments.album);
+        self
     }
 
-    fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) {
+    fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) -> &mut Self {
         Artist::dump_vorbis_comments(artists.song, self, &config.vorbis_comments.artists.song);
         Artist::dump_vorbis_comments(artists.album, self, &config.vorbis_comments.artists.album);
+        self
     }
 
-    fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) {
+    fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self {
         track_disc.track.dump_vorbis_comments(
             self,
             &config.vorbis_comments.track_disc.track_number,
@@ -84,23 +87,27 @@ impl MetadataDumper for VorbisComments {
             &config.vorbis_comments.track_disc.disc_number,
             &config.vorbis_comments.track_disc.disc_total,
         );
+        self
     }
 
-    fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) {
+    fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self {
         for language in languages {
             self.push(config.vorbis_comments.languages.clone(), language.to_string());
         }
+        self
     }
 
-    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) {
+    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self {
         for genre in genres {
             self.push(config.vorbis_comments.genres.clone(), genre.into_owned());
         }
+        self
     }
 
-    fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool) {
+    fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool) -> &mut Self {
         if compilation {
             self.push(config.vorbis_comments.compilation.clone(), "1".to_string());
         }
+        self
     }
 }

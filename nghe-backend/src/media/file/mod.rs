@@ -11,7 +11,7 @@ use std::io::{Read, Seek};
 pub use artist::{Artist, Artists};
 pub use common::Common;
 pub use date::Date;
-use extract::{MetadataExtractor, PropertyExtractor};
+use extract::{Metadata as _, Property as _};
 use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
