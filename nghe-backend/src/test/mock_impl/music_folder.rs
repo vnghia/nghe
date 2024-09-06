@@ -7,10 +7,10 @@ use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::filesystem::Trait;
 use crate::media::file;
-use crate::media::file::MetadataDumper;
 use crate::orm::music_folders;
 use crate::test::assets;
 use crate::test::filesystem::{self, MockTrait};
+use crate::test::media::MetadataDumper;
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
