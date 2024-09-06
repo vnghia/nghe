@@ -37,7 +37,7 @@ pub enum Type {
 }
 
 pub enum File {
-    Flac(FlacFile),
+    Flac { file_type: Type, file: FlacFile },
 }
 
 impl File {
@@ -48,9 +48,8 @@ impl File {
     ) -> Result<Self, Error> {
         match file_type {
             Type::Flac => {
-                FlacFile::read_from(reader, parse_options).map(Self::Flac).map_err(Error::from)
+                Ok(Self::Flac { file_type, file: FlacFile::read_from(reader, parse_options)? })
             }
-            _ => Err(Error::MediaFileTypeNotSupported(file_type)),
         }
     }
 
@@ -71,9 +70,9 @@ mod test {
     impl File {
         pub fn clear(&mut self) -> &mut Self {
             match self {
-                File::Flac(flac_file) => {
-                    flac_file.remove_id3v2();
-                    flac_file.set_vorbis_comments(VorbisComments::default());
+                File::Flac { file, .. } => {
+                    file.remove_id3v2();
+                    file.set_vorbis_comments(VorbisComments::default());
                 }
             }
             self
@@ -81,8 +80,8 @@ mod test {
 
         pub fn save_to(&self, cursor: &mut Cursor<Vec<u8>>, write_options: WriteOptions) {
             match self {
-                File::Flac(flac_file) => {
-                    flac_file.save_to(cursor, write_options).unwrap();
+                File::Flac { file, .. } => {
+                    file.save_to(cursor, write_options).unwrap();
                 }
             }
         }
