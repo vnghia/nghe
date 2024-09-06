@@ -27,11 +27,19 @@ impl filesystem::Trait for Mock {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         self.filesystem.check_folder(path).await
     }
+
+    async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
+        self.filesystem.read(path).await
+    }
 }
 
 impl filesystem::Trait for &Mock {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         self.filesystem.check_folder(path).await
+    }
+
+    async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
+        self.filesystem.read(path).await
     }
 }
 

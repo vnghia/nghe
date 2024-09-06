@@ -50,7 +50,7 @@ impl<'a> Artist<'a> {
 }
 
 impl Position {
-    fn dump_vorbis_comments(&self, tag: &mut VorbisComments, number_key: &str, total_key: &str) {
+    fn dump_vorbis_comments(self, tag: &mut VorbisComments, number_key: &str, total_key: &str) {
         if let Some(number) = self.number {
             tag.push(number_key.to_owned(), number.to_string());
         }

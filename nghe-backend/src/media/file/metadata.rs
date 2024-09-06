@@ -9,7 +9,7 @@ use itertools::Itertools;
 use super::{artist, common, position};
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq, Dummy))]
+#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Metadata<'a> {
     pub song: common::Common<'a>,
     pub album: common::Common<'a>,

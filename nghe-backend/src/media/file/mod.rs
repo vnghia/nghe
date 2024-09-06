@@ -16,12 +16,12 @@ pub use artist::{Artist, Artists};
 pub use common::Common;
 pub use date::Date;
 #[cfg(test)]
-use dump::MetadataDumper;
+pub use dump::MetadataDumper;
 use enum_dispatch::enum_dispatch;
 use extract::{MetadataExtractor, PropertyExtractor};
 use isolang::Language;
 use lofty::config::ParseOptions;
-use lofty::file::{AudioFile, FileType};
+use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 pub use metadata::Metadata;
 pub use position::{Position, TrackDisc};
@@ -30,12 +30,18 @@ pub use property::Property;
 use crate::{config, Error};
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(derivative::Derivative, fake::Dummy))]
+#[cfg_attr(test, derive(derivative::Derivative, fake::Dummy, Clone))]
 #[cfg_attr(test, derivative(PartialEq))]
 pub struct Media<'a> {
     pub metadata: Metadata<'a>,
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     pub property: Property,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(test, derive(fake::Dummy))]
+pub enum Type {
+    Flac,
 }
 
 #[enum_dispatch]
@@ -47,10 +53,10 @@ impl File {
     pub fn read_from(
         reader: &mut (impl Read + Seek),
         parse_options: ParseOptions,
-        file_type: FileType,
+        file_type: Type,
     ) -> Result<Self, Error> {
         match file_type {
-            FileType::Flac => {
+            Type::Flac => {
                 FlacFile::read_from(reader, parse_options).map(Self::from).map_err(Error::from)
             }
             _ => Err(Error::MediaFileTypeNotSupported(file_type)),
@@ -64,48 +70,47 @@ impl File {
 
 #[cfg(test)]
 mod test {
-    use std::io::{Cursor, Write};
+    use std::io::Cursor;
 
     use lofty::config::WriteOptions;
-    use typed_path::Utf8TypedPath;
+    use lofty::ogg::VorbisComments;
+    use lofty::tag::TagExt;
 
     use super::*;
 
     impl File {
-        pub fn save_to_bytes(&self, write_options: WriteOptions) -> Vec<u8> {
-            let mut cursor = Cursor::new(vec![]);
+        pub fn clear(&mut self) -> &mut Self {
             match self {
                 File::Flac(flac_file) => {
-                    flac_file.save_to(&mut cursor, write_options).unwrap();
+                    flac_file.set_vorbis_comments(VorbisComments::default());
                 }
             }
-            cursor.into_inner()
+            self
         }
 
-        pub fn save_to_path(&self, path: &Utf8TypedPath<'_>, write_options: WriteOptions) {
-            let bytes = self.save_to_bytes(write_options);
-            std::fs::OpenOptions::new()
-                .write(true)
-                .truncate(true)
-                .open(path.as_str())
-                .unwrap()
-                .write_all(&bytes)
-                .unwrap();
+        pub fn save_to(&self, cursor: &mut Cursor<Vec<u8>>, write_options: WriteOptions) {
+            match self {
+                File::Flac(flac_file) => {
+                    flac_file.vorbis_comments().unwrap().save_to(cursor, write_options).unwrap();
+                }
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use fake::{Fake, Faker};
+    use nghe_api::music_folder::FilesystemType;
     use rstest::rstest;
     use time::Month;
 
     use super::*;
-    use crate::test::assets;
+    use crate::test::{assets, mock, Mock};
 
     #[rstest]
-    #[case(FileType::Flac)]
-    fn test_media(#[case] file_type: FileType) {
+    #[case(Type::Flac)]
+    fn test_media(#[case] file_type: Type) {
         let mut file = std::fs::File::open(assets::path(file_type).as_str()).unwrap();
         let file = File::read_from(&mut file, ParseOptions::default(), file_type).unwrap();
 
@@ -161,5 +166,30 @@ mod tests {
         assert!(metadata.compilation);
 
         assert_eq!(media.property, Property::default(file_type));
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_roundtrip(
+        #[future(awt)]
+        #[with(0, 0)]
+        mock: Mock,
+        #[values(FilesystemType::Local, FilesystemType::S3)] filesystem_type: FilesystemType,
+        #[values(Type::Flac)] file_type: Type,
+    ) {
+        mock.add_music_folder().filesystem_type(filesystem_type).call().await;
+        let music_folder = mock.music_folder(0).await;
+        let media: Media = Faker.fake();
+        let roundtrip_file = music_folder
+            .add_media()
+            .path("test".into())
+            .file_type(file_type)
+            .media(media.clone())
+            .call()
+            .await
+            .file("test".into(), file_type)
+            .await;
+        let roundtrip_media = roundtrip_file.media(&mock.parsing_config).unwrap();
+        assert_eq!(roundtrip_media, media);
     }
 }
