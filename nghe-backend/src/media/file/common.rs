@@ -5,6 +5,7 @@ use uuid::Uuid;
 use super::date::Date;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Common<'a> {
     pub name: Cow<'a, str>,
     pub date: Date,

@@ -1,10 +1,13 @@
+mod flac;
 mod tag;
 
+use enum_dispatch::enum_dispatch;
 use isolang::Language;
 
 use super::{Artists, Common, Metadata, TrackDisc};
 use crate::config;
 
+#[enum_dispatch(File)]
 pub trait MetadataDumper {
     fn dump_song(&mut self, config: &config::Parsing, song: Common<'_>);
     fn dump_album(&mut self, config: &config::Parsing, album: Common<'_>);

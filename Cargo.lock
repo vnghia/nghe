@@ -1328,6 +1328,17 @@ dependencies = [
 
 [[package]]
 name = "derive-new"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d150dea618e920167e5973d70ae6ece4385b7164e0d799fe7c122dd0a5d912ad"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.77",
+]
+
+[[package]]
+name = "derive-new"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2cdc8d50f426189eef89dac62fabfa0abb27d5cc008f25bf4156a0203325becc"
@@ -3762,7 +3773,7 @@ dependencies = [
  "concat-string",
  "constcat 0.5.1",
  "derivative",
- "derive-new",
+ "derive-new 0.7.0",
  "fake",
  "isolang",
  "md5",
@@ -3809,7 +3820,7 @@ dependencies = [
  "concat-string",
  "const_format",
  "derivative",
- "derive-new",
+ "derive-new 0.6.0",
  "diesel",
  "diesel-async",
  "diesel_full_text_search",

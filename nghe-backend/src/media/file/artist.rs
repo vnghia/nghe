@@ -12,6 +12,7 @@ pub struct Artist<'a> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Artists<'a> {
     pub song: Vec<Artist<'a>>,
     pub album: Vec<Artist<'a>>,
