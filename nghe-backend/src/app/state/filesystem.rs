@@ -19,9 +19,9 @@ impl Filesystem {
 
     pub fn to_impl(&self, filesystem_type: filesystem::Type) -> Result<Impl<'_>, Error> {
         Ok(match filesystem_type {
-            filesystem::Type::Local => (&self.local).into(),
+            filesystem::Type::Local => Impl::Local(&self.local),
             filesystem::Type::S3 => {
-                self.s3.as_ref().ok_or_eyre("S3 filesystem is not enabled")?.into()
+                Impl::S3(self.s3.as_ref().ok_or_eyre("S3 filesystem is not enabled")?)
             }
         })
     }

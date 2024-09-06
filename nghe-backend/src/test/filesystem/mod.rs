@@ -34,8 +34,8 @@ impl Mock {
 
     pub fn to_impl(&self, filesystem_type: filesystem::Type) -> MockImpl<'_> {
         match filesystem_type {
-            filesystem::Type::Local => (&self.local).into(),
-            filesystem::Type::S3 => (&self.s3).into(),
+            filesystem::Type::Local => MockImpl::Local(&self.local),
+            filesystem::Type::S3 => MockImpl::S3(&self.s3),
         }
     }
 }
