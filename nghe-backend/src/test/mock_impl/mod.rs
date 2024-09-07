@@ -1,6 +1,7 @@
 mod music_folder;
 mod user;
 
+use derivative::Derivative;
 use diesel_async::pooled_connection::deadpool;
 use diesel_async::AsyncPgConnection;
 use fake::{Fake, Faker};
@@ -13,29 +14,31 @@ use super::{database, filesystem};
 use crate::orm::users;
 use crate::{app, config};
 
+#[derive(Debug, Derivative)]
+#[derivative(Default)]
+pub struct Config {
+    pub filesystem: config::filesystem::Filesystem,
+    #[derivative(Default(value = "config::Parsing::test()"))]
+    pub parsing: config::Parsing,
+
+    pub lofty_parse: ParseOptions,
+    pub lofty_write: WriteOptions,
+}
+
 pub struct Mock {
+    pub config: Config,
+
     pub database: database::Mock,
     pub filesystem: filesystem::Mock,
-
-    pub parsing_config: config::Parsing,
-
-    pub lofty_parse_options: ParseOptions,
-    pub lofty_write_options: WriteOptions,
 }
 
 #[bon::bon]
 impl Mock {
-    pub async fn new() -> Self {
+    async fn new(config: Config) -> Self {
         let database = database::Mock::new().await;
-        let filesystem = filesystem::Mock::new().await;
+        let filesystem = filesystem::Mock::new(&config).await;
 
-        Self {
-            database,
-            filesystem,
-            parsing_config: config::Parsing::test(),
-            lofty_parse_options: ParseOptions::default(),
-            lofty_write_options: WriteOptions::default(),
-        }
+        Self { config, database, filesystem }
     }
 
     pub fn state(&self) -> app::state::App {
@@ -115,8 +118,12 @@ impl Mock {
 }
 
 #[fixture]
-pub async fn mock(#[default(1)] n_user: usize, #[default(1)] n_music_folder: usize) -> Mock {
-    let mock = Mock::new().await;
+pub async fn mock(
+    #[default(1)] n_user: usize,
+    #[default(1)] n_music_folder: usize,
+    #[default(Config::default())] config: Config,
+) -> Mock {
+    let mock = Mock::new(config).await;
     for _ in 0..n_user {
         mock.add_user().call().await;
     }

@@ -182,7 +182,7 @@ mod tests {
             .await
             .file("test".into(), file_type)
             .await;
-        let roundtrip_media = roundtrip_file.media(&mock.parsing_config).unwrap();
+        let roundtrip_media = roundtrip_file.media(&mock.config.parsing).unwrap();
         assert_eq!(roundtrip_media.metadata.artists.song, media.metadata.artists.song);
     }
 }
