@@ -1,3 +1,7 @@
+use std::borrow::Cow;
+
+use aws_sdk_s3::error::SdkError;
+use aws_sdk_s3::operation::create_bucket::CreateBucketError;
 use aws_sdk_s3::Client;
 use concat_string::concat_string;
 use fake::{Fake, Faker};
@@ -14,9 +18,21 @@ pub struct Mock {
 }
 
 impl Mock {
-    pub async fn new(filesystem: s3::Filesystem) -> Self {
-        let bucket = Faker.fake::<String>().to_lowercase();
-        filesystem.client().create_bucket().bucket(&bucket).send().await.unwrap();
+    pub async fn new(prefix: Option<&str>, filesystem: s3::Filesystem) -> Self {
+        let bucket =
+            prefix.map_or_else(|| Faker.fake::<String>().to_lowercase().into(), Cow::Borrowed);
+
+        let result = filesystem.client().create_bucket().bucket(bucket.clone()).send().await;
+        if result.is_err() {
+            if let Err(SdkError::ServiceError(err)) =
+                filesystem.client().create_bucket().bucket(bucket.clone()).send().await
+                && let CreateBucketError::BucketAlreadyOwnedByYou(_) = err.into_err()
+            {
+            } else {
+                panic!("Could not create bucket {bucket}")
+            }
+        }
+
         let bucket = Utf8TypedPathBuf::from_unix(concat_string!("/", bucket));
         assert!(bucket.is_absolute());
         Self { bucket, filesystem }
