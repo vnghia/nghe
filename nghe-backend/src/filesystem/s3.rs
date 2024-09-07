@@ -73,14 +73,14 @@ impl Filesystem {
         if let Utf8TypedPath::Unix(path) = path
             && path.is_absolute()
             && let Some(path) = path.as_str().strip_prefix('/')
-            && let Some((bucket, key)) = path.split_once('/')
         {
-            Ok(Path { bucket, key })
+            if let Some((bucket, key)) = path.split_once('/') {
+                Ok(Path { bucket, key })
+            } else {
+                Ok(Path { bucket: path, key: "" })
+            }
         } else {
-            Err(color_eyre::eyre::eyre!(
-                "S3 path must be an unix path and have at least two components"
-            )
-            .into())
+            Err(color_eyre::eyre::eyre!("S3 path must be an unix path").into())
         }
     }
 
@@ -107,7 +107,7 @@ impl super::Trait for Filesystem {
     async fn scan_folder(
         &self,
         path: Utf8TypedPath<'_>,
-        minimum_size: u64,
+        minimum_size: usize,
         tx: Sender<Entry>,
     ) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
@@ -119,26 +119,27 @@ impl super::Trait for Filesystem {
                 for content in contents {
                     if let Some(key) = content.key()
                         && let Some(size) = content.size()
-                        && let Ok(size) = size.try_into()
-                        && size > minimum_size
                     {
-                        let path =
-                            Utf8TypedPathBuf::from_unix(concat_string!("/", bucket, "/", key));
-                        if let Some(extension) = path.extension()
-                            && let Ok(file_type) = file::Type::try_from(extension)
-                        {
-                            tx.send(Entry {
-                                file_type,
-                                path,
-                                size,
-                                last_modified: content
-                                    .last_modified()
-                                    .map(DateTime::as_nanos)
-                                    .map(OffsetDateTime::from_unix_timestamp_nanos)
-                                    .transpose()
-                                    .map_err(color_eyre::Report::new)?,
-                            })
-                            .await?;
+                        let size = size.try_into()?;
+                        if size >= minimum_size {
+                            let path =
+                                Utf8TypedPathBuf::from_unix(concat_string!("/", bucket, "/", key));
+                            if let Some(extension) = path.extension()
+                                && let Ok(file_type) = file::Type::try_from(extension)
+                            {
+                                tx.send(Entry {
+                                    file_type,
+                                    path,
+                                    size,
+                                    last_modified: content
+                                        .last_modified()
+                                        .map(DateTime::as_nanos)
+                                        .map(OffsetDateTime::from_unix_timestamp_nanos)
+                                        .transpose()
+                                        .map_err(color_eyre::Report::new)?,
+                                })
+                                .await?;
+                            }
                         }
                     }
                 }
