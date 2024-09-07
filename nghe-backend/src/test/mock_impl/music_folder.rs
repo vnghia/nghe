@@ -52,7 +52,7 @@ impl<'a> Mock<'a> {
         #[builder(default = Faker.fake::<file::Type>())] file_type: file::Type,
         #[builder(default = Faker.fake::<file::Media>())] media: file::Media<'_>,
     ) -> &Self {
-        let path = self.absolutize(path).with_extension(assets::ext(file_type));
+        let path = self.absolutize(path).with_extension(file_type.as_ref());
 
         let mut asset =
             Cursor::new(tokio::fs::read(assets::path(file_type).as_str()).await.unwrap());
@@ -72,7 +72,7 @@ impl<'a> Mock<'a> {
     }
 
     pub async fn file(&self, path: Utf8TypedPath<'_>, file_type: file::Type) -> file::File {
-        let path = self.absolutize(path).with_extension(assets::ext(file_type));
+        let path = self.absolutize(path).with_extension(file_type.as_ref());
         let mut data = Cursor::new(self.to_impl().read(path.to_path()).await.unwrap());
         file::File::read_from(&mut data, self.mock.config.lofty_parse, file_type).unwrap()
     }
