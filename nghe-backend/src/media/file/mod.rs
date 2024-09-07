@@ -18,7 +18,7 @@ pub use metadata::Metadata;
 pub use name_date_mbz::NameDateMbz;
 pub use position::{Position, TrackDisc};
 pub use property::Property;
-use strum::EnumString;
+use strum::{AsRefStr, EnumString};
 
 use crate::{config, Error};
 
@@ -31,7 +31,7 @@ pub struct Media<'a> {
     pub property: Property,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumString)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumString, AsRefStr)]
 #[strum(serialize_all = "snake_case")]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub enum Type {
@@ -102,8 +102,7 @@ mod tests {
     use crate::test::{assets, mock, Mock};
 
     #[rstest]
-    #[case(Type::Flac)]
-    fn test_media(#[case] file_type: Type) {
+    fn test_media(#[values(Type::Flac)] file_type: Type) {
         let mut file = std::fs::File::open(assets::path(file_type).as_str()).unwrap();
         let file = File::read_from(&mut file, ParseOptions::default(), file_type).unwrap();
 

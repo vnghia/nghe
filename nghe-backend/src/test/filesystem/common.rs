@@ -29,7 +29,7 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
     async fn scan_folder(
         &self,
         path: Utf8TypedPath<'_>,
-        minimum_size: u64,
+        minimum_size: usize,
         tx: Sender<filesystem::Entry>,
     ) -> Result<(), Error> {
         match self {

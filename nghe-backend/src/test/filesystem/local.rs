@@ -34,7 +34,7 @@ impl filesystem::Trait for Mock {
     async fn scan_folder(
         &self,
         path: Utf8TypedPath<'_>,
-        minimum_size: u64,
+        minimum_size: usize,
         tx: Sender<filesystem::Entry>,
     ) -> Result<(), Error> {
         self.filesystem.scan_folder(path, minimum_size, tx).await

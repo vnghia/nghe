@@ -50,14 +50,12 @@ mod tests {
     use crate::test::{mock, Mock};
 
     #[rstest]
-    #[case(filesystem::Type::Local)]
-    #[case(filesystem::Type::S3)]
     #[tokio::test]
     async fn test_add(
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
-        #[case] filesystem_type: filesystem::Type,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
     ) {
         mock.add_music_folder().filesystem_type(filesystem_type).call().await;
     }

@@ -47,7 +47,7 @@ impl super::Trait for Filesystem {
     async fn scan_folder(
         &self,
         path: Utf8TypedPath<'_>,
-        minimum_size: u64,
+        minimum_size: usize,
         tx: tokio::sync::mpsc::Sender<super::Entry>,
     ) -> Result<(), Error> {
         let mut stream = WalkDir::new(path.as_ref());
@@ -56,7 +56,8 @@ impl super::Trait for Filesystem {
             match entry {
                 Ok(entry) => match entry.metadata().await {
                     Ok(metadata) => {
-                        if metadata.is_file() && metadata.len() > minimum_size {
+                        let size = metadata.len().try_into()?;
+                        if metadata.is_file() && size >= minimum_size {
                             let path = entry
                                 .path()
                                 .into_os_string()
@@ -69,7 +70,7 @@ impl super::Trait for Filesystem {
                                 tx.send(Entry {
                                     file_type,
                                     path,
-                                    size: metadata.len(),
+                                    size,
                                     last_modified: metadata
                                         .modified()
                                         .ok()
