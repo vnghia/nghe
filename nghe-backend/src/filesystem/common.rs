@@ -59,15 +59,22 @@ mod tests {
     use crate::test::{mock, Mock};
 
     #[rstest]
-    #[case(filesystem::Type::Local, "tmp", false)]
+    #[case(filesystem::Type::Local, "usr/bin", false)]
+    #[case(filesystem::Type::Local, "Windows\\Sys64", false)]
     #[cfg_attr(unix, case(filesystem::Type::Local, "/tmp/", true))]
     #[cfg_attr(unix, case(filesystem::Type::Local, "C:\\Windows", false))]
     #[cfg_attr(windows, case(filesystem::Type::Local, "C:\\Windows", true))]
     #[cfg_attr(windows, case(filesystem::Type::Local, "/tmp/", false))]
+    #[case(filesystem::Type::S3, "usr/bin", false)]
+    #[case(filesystem::Type::S3, "Windows\\Sys64", false)]
+    #[case(filesystem::Type::S3, "/tmp", false)]
+    #[case(filesystem::Type::S3, "C:\\Windows", false)]
+    #[case(filesystem::Type::S3, "/nghe-bucket", false)]
+    #[case(filesystem::Type::S3, "/nghe-bucket/test/", true)]
     #[tokio::test]
     async fn test_check_folder(
         #[future(awt)]
-        #[with(0, 0)]
+        #[with(0, 0, Some("nghe-bucket"))]
         mock: Mock,
         #[case] filesystem_type: filesystem::Type,
         #[case] path: &str,

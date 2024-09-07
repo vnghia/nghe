@@ -34,9 +34,9 @@ pub struct Mock {
 
 #[bon::bon]
 impl Mock {
-    async fn new(config: Config) -> Self {
+    async fn new(prefix: Option<&str>, config: Config) -> Self {
         let database = database::Mock::new().await;
-        let filesystem = filesystem::Mock::new(&config).await;
+        let filesystem = filesystem::Mock::new(prefix, &config).await;
 
         Self { config, database, filesystem }
     }
@@ -121,9 +121,10 @@ impl Mock {
 pub async fn mock(
     #[default(1)] n_user: usize,
     #[default(1)] n_music_folder: usize,
+    #[default(None)] prefix: Option<&str>,
     #[default(Config::default())] config: Config,
 ) -> Mock {
-    let mock = Mock::new(config).await;
+    let mock = Mock::new(prefix, config).await;
     for _ in 0..n_user {
         mock.add_user().call().await;
     }
