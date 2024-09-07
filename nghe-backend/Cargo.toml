@@ -30,6 +30,7 @@ nghe_api = { path = "../nghe-api" }
 nghe_proc_macro = { path = "../nghe-proc-macro" }
 
 async-trait = { version = "0.1.80" }
+async-walkdir = { version = "2.0.0" }
 aws-config = { version = "1.5.5", default-features = false, features = [
   "rt-tokio",
   "behavior-version-latest",
@@ -52,6 +53,7 @@ diesel-async = { version = "0.5.0", features = [
 diesel_full_text_search = { version = "2.2.0", default-features = false }
 diesel_migrations = { version = "2.2.0", features = ["postgres"] }
 figment = { version = "0.10.19", features = ["env"] }
+futures-lite = { version = "2.3.0" }
 hyper = { version = "0.14.29" }
 hyper-tls = { version = "0.5.0" }
 libaes = { version = "0.7.0" }

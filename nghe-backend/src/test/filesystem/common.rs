@@ -1,3 +1,4 @@
+use tokio::sync::mpsc::Sender;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::{filesystem, Error};
@@ -21,6 +22,18 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
         match self {
             Impl::Local(filesystem) => filesystem.check_folder(path).await,
             Impl::S3(filesystem) => filesystem.check_folder(path).await,
+        }
+    }
+
+    async fn list_folder(
+        &self,
+        path: Utf8TypedPath<'_>,
+        minimum_size: u64,
+        tx: Sender<filesystem::Entry>,
+    ) -> Result<(), Error> {
+        match self {
+            Impl::Local(filesystem) => filesystem.list_folder(path, minimum_size, tx).await,
+            Impl::S3(filesystem) => filesystem.list_folder(path, minimum_size, tx).await,
         }
     }
 
