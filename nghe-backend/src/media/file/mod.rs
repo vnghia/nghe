@@ -18,6 +18,7 @@ pub use metadata::Metadata;
 pub use name_date_mbz::NameDateMbz;
 pub use position::{Position, TrackDisc};
 pub use property::Property;
+use strum::EnumString;
 
 use crate::{config, Error};
 
@@ -30,7 +31,8 @@ pub struct Media<'a> {
     pub property: Property,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumString)]
+#[strum(serialize_all = "snake_case")]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub enum Type {
     Flac,

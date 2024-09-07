@@ -1,9 +1,11 @@
+use std::ffi::OsString;
+use std::num::TryFromIntError;
+
 use aws_sdk_s3::primitives::ByteStreamError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use lofty::error::LoftyError;
-
-use crate::media::file;
+use tokio::sync::mpsc::error::SendError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -45,6 +47,8 @@ pub enum Error {
     #[error("Could not read vorbis comments from flac file")]
     MediaFlacMissingVorbisComments,
 
+    #[error("Non UTF-8 path encountered: {0:?}")]
+    NonUTF8PathEncountered(OsString),
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
 }
@@ -100,6 +104,18 @@ impl From<LoftyError> for Error {
 
 impl From<ByteStreamError> for Error {
     fn from(value: ByteStreamError) -> Self {
+        Self::Internal(value.into())
+    }
+}
+
+impl From<TryFromIntError> for Error {
+    fn from(value: TryFromIntError) -> Self {
+        Self::Internal(value.into())
+    }
+}
+
+impl<T: Send + Sync + 'static> From<SendError<T>> for Error {
+    fn from(value: SendError<T>) -> Self {
         Self::Internal(value.into())
     }
 }

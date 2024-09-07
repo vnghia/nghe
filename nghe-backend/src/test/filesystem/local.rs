@@ -1,5 +1,6 @@
 use nghe_api::constant;
 use tempfile::{Builder, TempDir};
+use tokio::sync::mpsc::Sender;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::filesystem::{self, local};
@@ -26,6 +27,15 @@ impl Mock {
 impl filesystem::Trait for Mock {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         self.filesystem.check_folder(path).await
+    }
+
+    async fn list_folder(
+        &self,
+        path: Utf8TypedPath<'_>,
+        minimum_size: u64,
+        tx: Sender<filesystem::Entry>,
+    ) -> Result<(), Error> {
+        self.filesystem.list_folder(path, minimum_size, tx).await
     }
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {

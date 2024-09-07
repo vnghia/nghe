@@ -93,6 +93,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-fs"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebcd09b382f40fcd159c2d695175b2ae620ffa5f3bd6f664131efff4e8b9e04a"
+dependencies = [
+ "async-lock",
+ "blocking",
+ "futures-lite",
+]
+
+[[package]]
+name = "async-lock"
+version = "3.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff6e472cdea888a4bd64f342f09b3f50e1886d32afe8df3d663c01140b811b18"
+dependencies = [
+ "event-listener",
+ "event-listener-strategy",
+ "pin-project-lite",
+]
+
+[[package]]
 name = "async-stream"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -129,6 +151,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.82",
+]
+
+[[package]]
+name = "async-walkdir"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20235b6899dd1cb74a9afac0abf5b4a20c0e500dd6537280f4096e1b9f14da20"
+dependencies = [
+ "async-fs",
+ "futures-lite",
+ "thiserror",
 ]
 
 [[package]]
@@ -2184,7 +2217,10 @@ version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52527eb5074e35e9339c6b4e8d12600c7128b68fb25dcb9fa9dec18f7c25f3a5"
 dependencies = [
+ "fastrand",
  "futures-core",
+ "futures-io",
+ "parking",
  "pin-project-lite",
 ]
 
@@ -3811,6 +3847,7 @@ name = "nghe_backend"
 version = "0.9.10"
 dependencies = [
  "async-trait",
+ "async-walkdir",
  "aws-config",
  "aws-sdk-s3",
  "aws-smithy-runtime",
@@ -3828,6 +3865,7 @@ dependencies = [
  "diesel_migrations",
  "fake",
  "figment",
+ "futures-lite",
  "hyper 0.14.29",
  "hyper-tls",
  "isolang",
