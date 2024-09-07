@@ -11,6 +11,7 @@ pub enum Impl<'fs> {
 
 pub trait Trait: filesystem::Trait {
     fn prefix(&self) -> Utf8TypedPath<'_>;
+    fn main(&self) -> filesystem::Impl<'_>;
 
     async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf;
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]);
@@ -25,15 +26,15 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
         }
     }
 
-    async fn list_folder(
+    async fn scan_folder(
         &self,
         path: Utf8TypedPath<'_>,
         minimum_size: u64,
         tx: Sender<filesystem::Entry>,
     ) -> Result<(), Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.list_folder(path, minimum_size, tx).await,
-            Impl::S3(filesystem) => filesystem.list_folder(path, minimum_size, tx).await,
+            Impl::Local(filesystem) => filesystem.scan_folder(path, minimum_size, tx).await,
+            Impl::S3(filesystem) => filesystem.scan_folder(path, minimum_size, tx).await,
         }
     }
 
@@ -50,6 +51,13 @@ impl<'fs> Trait for Impl<'fs> {
         match self {
             Impl::Local(filesystem) => filesystem.prefix(),
             Impl::S3(filesystem) => filesystem.prefix(),
+        }
+    }
+
+    fn main(&self) -> filesystem::Impl<'_> {
+        match self {
+            Impl::Local(filesystem) => filesystem.main(),
+            Impl::S3(filesystem) => filesystem.main(),
         }
     }
 

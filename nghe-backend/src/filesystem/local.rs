@@ -44,7 +44,7 @@ impl super::Trait for Filesystem {
         }
     }
 
-    async fn list_folder(
+    async fn scan_folder(
         &self,
         path: Utf8TypedPath<'_>,
         minimum_size: u64,

@@ -48,13 +48,13 @@ impl filesystem::Trait for Mock {
         self.filesystem.check_folder(path).await
     }
 
-    async fn list_folder(
+    async fn scan_folder(
         &self,
         path: Utf8TypedPath<'_>,
         minimum_size: u64,
         tx: Sender<filesystem::Entry>,
     ) -> Result<(), Error> {
-        self.filesystem.list_folder(path, minimum_size, tx).await
+        self.filesystem.scan_folder(path, minimum_size, tx).await
     }
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
@@ -65,6 +65,10 @@ impl filesystem::Trait for Mock {
 impl super::Trait for Mock {
     fn prefix(&self) -> Utf8TypedPath<'_> {
         self.bucket.to_path()
+    }
+
+    fn main(&self) -> filesystem::Impl<'_> {
+        filesystem::Impl::S3(Cow::Borrowed(&self.filesystem))
     }
 
     async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf {
