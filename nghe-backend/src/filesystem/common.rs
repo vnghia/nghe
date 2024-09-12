@@ -122,23 +122,22 @@ mod tests {
         for _ in 0..n_txt {}
 
         for _ in 0..n_smaller {
-            let content = fake::vec![u8; 0..minimum_size];
-            let path = prefix
-                .join(Faker.fake::<String>())
+            let relative_path = filesystem
+                .fake_path((0..3).fake())
                 .with_extension(Faker.fake::<file::Type>().as_ref());
-            filesystem.write(path.to_path(), &content).await;
+            let content = fake::vec![u8; 0..minimum_size];
+            filesystem.write(relative_path.to_path(), &content).await;
         }
 
         for _ in 0..n_larger {
-            for level in 1..=3 {
-                let file_type: file::Type = Faker.fake();
-                let relative_path = filesystem.fake_path(level).with_extension(file_type.as_ref());
+            let file_type: file::Type = Faker.fake();
+            let relative_path =
+                filesystem.fake_path((0..3).fake()).with_extension(file_type.as_ref());
 
-                let size = ((minimum_size + 1)..(2 * minimum_size)).fake();
-                let content = fake::vec![u8; size];
-                filesystem.write(prefix.join(&relative_path).to_path(), &content).await;
-                entries.push(Entry { file_type, relative_path, size, last_modified: None });
-            }
+            let size = ((minimum_size + 1)..(2 * minimum_size)).fake();
+            let content = fake::vec![u8; size];
+            filesystem.write(relative_path.to_path(), &content).await;
+            entries.push(Entry { file_type, relative_path, size, last_modified: None });
         }
 
         let (tx, rx) = tokio::sync::mpsc::channel(mock.config.filesystem.scan.channel_size);
@@ -149,7 +148,7 @@ mod tests {
         let scanned_entries: Vec<_> = ReceiverStream::new(rx).collect().await;
         scan_handle.await.unwrap();
 
-        assert_eq!(scanned_entries.len(), 3 * n_larger);
+        assert_eq!(scanned_entries.len(), n_larger);
         assert_eq!(
             scanned_entries.into_iter().sorted().collect_vec(),
             entries.into_iter().sorted().collect_vec()
