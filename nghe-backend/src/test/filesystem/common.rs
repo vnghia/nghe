@@ -1,4 +1,3 @@
-use tokio::sync::mpsc::Sender;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::{filesystem, Error};
@@ -7,6 +6,17 @@ use crate::{filesystem, Error};
 pub enum Impl<'fs> {
     Local(&'fs super::local::Mock),
     S3(&'fs super::s3::Mock),
+}
+
+impl<'fs> Impl<'fs> {
+    pub fn fake_path(&self, level: usize) -> Utf8TypedPathBuf {
+        let mut relative_path = self.prefix().to_path_buf();
+        relative_path.clear();
+        for component in fake::vec![String; level] {
+            relative_path = relative_path.join(component);
+        }
+        relative_path
+    }
 }
 
 pub trait Trait: filesystem::Trait {
@@ -28,13 +38,12 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
 
     async fn scan_folder(
         &self,
-        path: Utf8TypedPath<'_>,
-        minimum_size: usize,
-        tx: Sender<filesystem::Entry>,
+        sender: filesystem::entry::Sender,
+        prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.scan_folder(path, minimum_size, tx).await,
-            Impl::S3(filesystem) => filesystem.scan_folder(path, minimum_size, tx).await,
+            Impl::Local(filesystem) => filesystem.scan_folder(sender, prefix).await,
+            Impl::S3(filesystem) => filesystem.scan_folder(sender, prefix).await,
         }
     }
 
