@@ -5,7 +5,6 @@ use aws_sdk_s3::operation::create_bucket::CreateBucketError;
 use aws_sdk_s3::Client;
 use concat_string::concat_string;
 use fake::{Fake, Faker};
-use tokio::sync::mpsc::Sender;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::filesystem::{self, s3};
@@ -50,11 +49,10 @@ impl filesystem::Trait for Mock {
 
     async fn scan_folder(
         &self,
-        path: Utf8TypedPath<'_>,
-        minimum_size: usize,
-        tx: Sender<filesystem::Entry>,
+        sender: filesystem::entry::Sender,
+        prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
-        self.filesystem.scan_folder(path, minimum_size, tx).await
+        self.filesystem.scan_folder(sender, prefix).await
     }
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {

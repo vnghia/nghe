@@ -6,6 +6,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use lofty::error::LoftyError;
 use tokio::sync::mpsc::error::SendError;
+use typed_path::StripPrefixError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -47,8 +48,11 @@ pub enum Error {
     #[error("Could not read vorbis comments from flac file")]
     MediaFlacMissingVorbisComments,
 
+    #[error("S3 object does not have size information")]
+    FilesystemS3MissingObjectSize,
     #[error("Non UTF-8 path encountered: {0:?}")]
-    NonUTF8PathEncountered(OsString),
+    FilesystemLocalNonUTF8PathEncountered(OsString),
+
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
 }
@@ -116,6 +120,12 @@ impl From<TryFromIntError> for Error {
 
 impl<T: Send + Sync + 'static> From<SendError<T>> for Error {
     fn from(value: SendError<T>) -> Self {
+        Self::Internal(value.into())
+    }
+}
+
+impl From<StripPrefixError> for Error {
+    fn from(value: StripPrefixError) -> Self {
         Self::Internal(value.into())
     }
 }
