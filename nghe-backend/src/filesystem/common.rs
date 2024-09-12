@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
-use tokio::sync::mpsc::Sender;
 use typed_path::Utf8TypedPath;
 
-use super::Entry;
+use super::entry;
 use crate::Error;
 
 #[derive(Debug, Clone)]
@@ -25,9 +24,8 @@ pub trait Trait {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error>;
     async fn scan_folder(
         &self,
-        path: Utf8TypedPath<'_>,
-        minimum_size: usize,
-        tx: Sender<Entry>,
+        sender: entry::Sender,
+        prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error>;
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error>;
@@ -43,13 +41,12 @@ impl<'fs> Trait for Impl<'fs> {
 
     async fn scan_folder(
         &self,
-        path: Utf8TypedPath<'_>,
-        minimum_size: usize,
-        tx: Sender<Entry>,
+        sender: entry::Sender,
+        prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.scan_folder(path, minimum_size, tx).await,
-            Impl::S3(filesystem) => filesystem.scan_folder(path, minimum_size, tx).await,
+            Impl::Local(filesystem) => filesystem.scan_folder(sender, prefix).await,
+            Impl::S3(filesystem) => filesystem.scan_folder(sender, prefix).await,
         }
     }
 
@@ -71,7 +68,7 @@ mod tests {
     use tokio_stream::wrappers::ReceiverStream;
 
     use super::Trait as _;
-    use crate::filesystem::Entry;
+    use crate::filesystem::{entry, Entry};
     use crate::media::file;
     use crate::test::filesystem::Trait as _;
     use crate::test::{mock, Mock};
@@ -92,7 +89,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_folder(
         #[future(awt)]
-        #[with(0, 0, Some("nghe-bucket"))]
+        #[with(0, 0, Some("nghe-backend-test-check-folder-bucket"))]
         mock: Mock,
         #[case] filesystem_type: filesystem::Type,
         #[case] path: &str,
@@ -103,8 +100,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case(20, 15, 10)]
-    #[case(50, 10, 40)]
+    #[case(20, 10, 15, 5)]
+    #[case(50, 5, 10, 10)]
     #[tokio::test]
     async fn test_scan_folder(
         #[future(awt)]
@@ -112,6 +109,7 @@ mod tests {
         mock: Mock,
         #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
         #[case] minimum_size: usize,
+        #[case] n_txt: usize,
         #[case] n_smaller: usize,
         #[case] n_larger: usize,
     ) {
@@ -120,6 +118,8 @@ mod tests {
         let main_filesystem = filesystem.main().into_owned();
 
         let mut entries = vec![];
+
+        for _ in 0..n_txt {}
 
         for _ in 0..n_smaller {
             let content = fake::vec![u8; 0..minimum_size];
@@ -130,27 +130,26 @@ mod tests {
         }
 
         for _ in 0..n_larger {
-            let content = fake::vec![u8; (minimum_size + 1)..(2 * minimum_size)];
-            let path = prefix
-                .join(Faker.fake::<String>())
-                .with_extension(Faker.fake::<file::Type>().as_ref());
-            filesystem.write(path.to_path(), &content).await;
-            entries.push(Entry {
-                file_type: crate::media::file::Type::Flac,
-                path,
-                size: content.len(),
-                last_modified: None,
-            });
+            for level in 1..=3 {
+                let file_type: file::Type = Faker.fake();
+                let relative_path = filesystem.fake_path(level).with_extension(file_type.as_ref());
+
+                let size = ((minimum_size + 1)..(2 * minimum_size)).fake();
+                let content = fake::vec![u8; size];
+                filesystem.write(prefix.join(&relative_path).to_path(), &content).await;
+                entries.push(Entry { file_type, relative_path, size, last_modified: None });
+            }
         }
 
         let (tx, rx) = tokio::sync::mpsc::channel(mock.config.filesystem.scan.channel_size);
+        let sender = entry::Sender { tx, minimum_size };
         let scan_handle = tokio::spawn(async move {
-            main_filesystem.scan_folder(prefix.to_path(), minimum_size, tx).await.unwrap();
+            main_filesystem.scan_folder(sender, prefix.to_path()).await.unwrap();
         });
         let scanned_entries: Vec<_> = ReceiverStream::new(rx).collect().await;
         scan_handle.await.unwrap();
 
-        assert_eq!(scanned_entries.len(), n_larger);
+        assert_eq!(scanned_entries.len(), 3 * n_larger);
         assert_eq!(
             scanned_entries.into_iter().sorted().collect_vec(),
             entries.into_iter().sorted().collect_vec()

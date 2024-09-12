@@ -3,17 +3,15 @@ use std::time::Duration;
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
+use aws_sdk_s3::types::Object;
 use aws_sdk_s3::Client;
 use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
-use concat_string::concat_string;
 use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
 use time::OffsetDateTime;
-use tokio::sync::mpsc::Sender;
-use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
+use typed_path::Utf8TypedPath;
 
-use super::Entry;
-use crate::media::file;
+use super::entry;
 use crate::{config, Error};
 
 #[derive(Debug, Clone)]
@@ -106,41 +104,19 @@ impl super::Trait for Filesystem {
 
     async fn scan_folder(
         &self,
-        path: Utf8TypedPath<'_>,
-        minimum_size: usize,
-        tx: Sender<Entry>,
+        sender: entry::Sender,
+        prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
-        let Path { bucket, key } = Self::split(path)?;
+        let Path { bucket, key } = Self::split(prefix)?;
+        let prefix = key;
         let mut steam =
-            self.client.list_objects_v2().bucket(bucket).prefix(key).into_paginator().send();
+            self.client.list_objects_v2().bucket(bucket).prefix(prefix).into_paginator().send();
 
         while let Some(output) = steam.try_next().await.map_err(color_eyre::Report::new)? {
             if let Some(contents) = output.contents {
                 for content in contents {
-                    if let Some(key) = content.key()
-                        && let Some(size) = content.size()
-                    {
-                        let size = size.try_into()?;
-                        if size >= minimum_size {
-                            let path =
-                                Utf8TypedPathBuf::from_unix(concat_string!("/", bucket, "/", key));
-                            if let Some(extension) = path.extension()
-                                && let Ok(file_type) = file::Type::try_from(extension)
-                            {
-                                tx.send(Entry {
-                                    file_type,
-                                    path,
-                                    size,
-                                    last_modified: content
-                                        .last_modified()
-                                        .map(DateTime::as_nanos)
-                                        .map(OffsetDateTime::from_unix_timestamp_nanos)
-                                        .transpose()
-                                        .map_err(color_eyre::Report::new)?,
-                                })
-                                .await?;
-                            }
-                        }
+                    if let Some(path) = content.key() {
+                        sender.send(prefix, Utf8TypedPath::unix(path), &content).await?;
                     }
                 }
             }
@@ -163,5 +139,20 @@ impl super::Trait for Filesystem {
             .await
             .map(AggregatedBytes::to_vec)
             .map_err(Error::from)
+    }
+}
+
+impl entry::Metadata for Object {
+    fn size(&self) -> Result<usize, Error> {
+        Ok(self.size().ok_or_else(|| Error::FilesystemS3MissingObjectSize)?.try_into()?)
+    }
+
+    fn last_modified(&self) -> Result<Option<OffsetDateTime>, Error> {
+        Ok(self
+            .last_modified()
+            .map(DateTime::as_nanos)
+            .map(OffsetDateTime::from_unix_timestamp_nanos)
+            .transpose()
+            .map_err(color_eyre::Report::new)?)
     }
 }
