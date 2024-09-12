@@ -74,7 +74,8 @@ impl super::Trait for Mock {
     }
 
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
-        let s3::Path { bucket, key } = s3::Filesystem::split(path).unwrap();
+        let path = self.absolutize(path);
+        let s3::Path { bucket, key } = s3::Filesystem::split(path.to_path()).unwrap();
         self.client()
             .put_object()
             .bucket(bucket)
@@ -86,7 +87,8 @@ impl super::Trait for Mock {
     }
 
     async fn delete(&self, path: Utf8TypedPath<'_>) {
-        let s3::Path { bucket, key } = s3::Filesystem::split(path).unwrap();
+        let path = self.absolutize(path);
+        let s3::Path { bucket, key } = s3::Filesystem::split(path.to_path()).unwrap();
         self.client().delete_object().bucket(bucket).key(key).send().await.unwrap();
     }
 }
