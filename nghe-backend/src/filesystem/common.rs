@@ -100,8 +100,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case(20, 10, 15, 5)]
-    #[case(50, 5, 10, 10)]
+    #[case(20, 10, 20, 15, 5)]
+    #[case(50, 5, 15, 10, 10)]
     #[tokio::test]
     async fn test_scan_folder(
         #[future(awt)]
@@ -110,6 +110,7 @@ mod tests {
         #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
         #[case] minimum_size: usize,
         #[case] n_txt: usize,
+        #[case] n_dir: usize,
         #[case] n_smaller: usize,
         #[case] n_larger: usize,
     ) {
@@ -119,7 +120,23 @@ mod tests {
 
         let mut entries = vec![];
 
-        for _ in 0..n_txt {}
+        for _ in 0..n_txt {
+            let relative_path = filesystem.fake_path((0..3).fake()).with_extension("txt");
+            let content = fake::vec![u8; 0..(2 * minimum_size)];
+            filesystem.write(relative_path.to_path(), &content).await;
+        }
+
+        for _ in 0..n_dir {
+            let relative_path = filesystem.fake_path((0..3).fake());
+            filesystem.create_dir(relative_path.to_path()).await;
+        }
+
+        for _ in 0..n_dir {
+            let relative_path = filesystem
+                .fake_path((0..3).fake())
+                .with_extension(Faker.fake::<file::Type>().as_ref());
+            filesystem.create_dir(relative_path.to_path()).await;
+        }
 
         for _ in 0..n_smaller {
             let relative_path = filesystem

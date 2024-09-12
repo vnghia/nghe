@@ -10,12 +10,12 @@ pub enum Impl<'fs> {
 
 impl<'fs> Impl<'fs> {
     pub fn fake_path(&self, level: usize) -> Utf8TypedPathBuf {
-        let mut relative_path = self.prefix().to_path_buf();
-        relative_path.clear();
+        let mut path = self.prefix().to_path_buf();
+        path.clear();
         for component in fake::vec![String; level + 1] {
-            relative_path = relative_path.join(component);
+            path = path.join(component);
         }
-        relative_path
+        path
     }
 }
 
