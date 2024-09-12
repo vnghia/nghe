@@ -53,17 +53,19 @@ impl super::Trait for Mock {
     }
 
     async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf {
-        let path = self.prefix().join(path);
+        let path = self.absolutize(path);
         tokio::fs::create_dir_all(path.as_str()).await.unwrap();
         path
     }
 
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
+        let path = self.absolutize(path);
         self.create_dir(path.parent().unwrap()).await;
         tokio::fs::write(path.as_str(), data).await.unwrap();
     }
 
     async fn delete(&self, path: Utf8TypedPath<'_>) {
+        let path = self.absolutize(path);
         tokio::fs::remove_file(path.as_str()).await.unwrap();
     }
 }
