@@ -21,6 +21,7 @@ diesel::table! {
         original_release_day -> Nullable<Int2>,
         mbz_id -> Nullable<Uuid>,
         ts -> Tsvector,
+        music_folder_id -> Uuid,
     }
 }
 
@@ -209,7 +210,6 @@ diesel::table! {
         bitrate -> Int4,
         sample_rate -> Int4,
         channel_count -> Int2,
-        music_folder_id -> Uuid,
         relative_path -> Text,
         file_hash -> Int8,
         file_size -> Int4,
@@ -285,6 +285,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(albums -> music_folders (music_folder_id));
 diesel::joinable!(artists -> cover_arts (cover_art_id));
 diesel::joinable!(lyrics -> songs (song_id));
 diesel::joinable!(playbacks -> songs (song_id));
@@ -296,7 +297,6 @@ diesel::joinable!(playlists_users -> users (user_id));
 diesel::joinable!(scans -> music_folders (music_folder_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> cover_arts (cover_art_id));
-diesel::joinable!(songs -> music_folders (music_folder_id));
 diesel::joinable!(songs_album_artists -> artists (album_artist_id));
 diesel::joinable!(songs_album_artists -> songs (song_id));
 diesel::joinable!(songs_artists -> artists (artist_id));
