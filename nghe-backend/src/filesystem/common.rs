@@ -84,8 +84,8 @@ mod tests {
     #[case(filesystem::Type::S3, "Windows\\Sys64", false)]
     #[case(filesystem::Type::S3, "/tmp", false)]
     #[case(filesystem::Type::S3, "C:\\Windows", false)]
-    #[case(filesystem::Type::S3, "/nghe-bucket", true)]
-    #[case(filesystem::Type::S3, "/nghe-bucket/test/", true)]
+    #[case(filesystem::Type::S3, "/nghe-backend-test-check-folder-bucket", true)]
+    #[case(filesystem::Type::S3, "/nghe-backend-test-check-folder-bucket/test/", true)]
     #[tokio::test]
     async fn test_check_folder(
         #[future(awt)]
