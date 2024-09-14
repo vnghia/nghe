@@ -5,25 +5,25 @@ mod s3;
 pub use common::{Impl, Trait};
 use nghe_api::common::filesystem;
 
-use crate::app::state;
+use crate::filesystem::Filesystem;
 
 #[derive(Debug)]
 pub struct Mock {
-    state: state::Filesystem,
+    state: Filesystem,
     local: local::Mock,
     s3: s3::Mock,
 }
 
 impl Mock {
     pub async fn new(prefix: Option<&str>, config: &super::Config) -> Self {
-        let state = state::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
+        let state = Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
         let local = local::Mock::new(state.local());
         let s3 = s3::Mock::new(prefix, state.s3()).await;
 
         Self { state, local, s3 }
     }
 
-    pub fn state(&self) -> &state::Filesystem {
+    pub fn state(&self) -> &Filesystem {
         &self.state
     }
 
