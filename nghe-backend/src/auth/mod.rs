@@ -7,7 +7,7 @@ use nghe_api::auth::{Auth, BinaryRequest};
 use nghe_api::common::Endpoint;
 use uuid::Uuid;
 
-use super::state::{App, Database};
+use crate::database::Database;
 use crate::orm::users;
 use crate::Error;
 
@@ -52,24 +52,27 @@ async fn authenticate(
     }
 }
 
-async fn json_authenticate<S>(query: &str, state: &S) -> Result<(App, Uuid, users::Role), Error>
+async fn json_authenticate<S>(
+    query: &str,
+    state: &S,
+) -> Result<(Database, Uuid, users::Role), Error>
 where
-    App: FromRef<S>,
+    Database: FromRef<S>,
 {
     let auth: Auth = serde_html_form::from_str(query)
         .map_err(|_| Error::SerializeRequest("invalid auth parameters"))?;
 
-    let app = App::from_ref(state);
-    let (id, role) = authenticate(&app.database, auth).await?;
+    let database = Database::from_ref(state);
+    let (id, role) = authenticate(&database, auth).await?;
 
-    Ok((app, id, role))
+    Ok((database, id, role))
 }
 
 #[async_trait::async_trait]
 impl<S, R> FromRequest<S> for GetUser<R>
 where
     S: Send + Sync,
-    App: FromRef<S>,
+    Database: FromRef<S>,
     R: Endpoint + Authorize + Send,
 {
     type Rejection = Error;
@@ -93,7 +96,7 @@ where
 impl<S, R> FromRequest<S> for PostUser<R>
 where
     S: Send + Sync,
-    App: FromRef<S>,
+    Database: FromRef<S>,
     R: Endpoint + Authorize + Send,
 {
     type Rejection = Error;
@@ -116,7 +119,7 @@ where
 impl<S, R, const NEED_AUTH: bool> FromRequest<S> for BinaryUser<R, NEED_AUTH>
 where
     S: Send + Sync,
-    App: FromRef<S>,
+    Database: FromRef<S>,
     R: Endpoint + Authorize + Send,
 {
     type Rejection = Error;
@@ -129,8 +132,8 @@ where
             let BinaryRequest::<R> { auth, request } = bitcode::decode(&bytes)
                 .map_err(|_| Error::SerializeRequest("invalid request body"))?;
 
-            let app = App::from_ref(state);
-            let (id, role) = authenticate(&app.database, auth).await?;
+            let database = Database::from_ref(state);
+            let (id, role) = authenticate(&database, auth).await?;
             Ok(Self { id, request: request.authorize(role)? })
         } else {
             Ok(Self {
@@ -245,7 +248,7 @@ mod tests {
             .unwrap();
 
         let test_request =
-            GetUser::<Request>::from_request(http_request, &mock.state()).await.unwrap();
+            GetUser::<Request>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(user.user.id, test_request.id);
         assert_eq!(request, test_request.request);
     }
@@ -274,7 +277,7 @@ mod tests {
             .unwrap();
 
         let test_request =
-            PostUser::<Request>::from_request(http_request, &mock.state()).await.unwrap();
+            PostUser::<Request>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(user.user.id, test_request.id);
         assert_eq!(request, test_request.request);
     }
@@ -298,7 +301,7 @@ mod tests {
             .unwrap();
 
         let test_request =
-            BinaryUser::<Request, true>::from_request(http_request, &mock.state()).await.unwrap();
+            BinaryUser::<Request, true>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(user.user.id, test_request.id);
         assert_eq!(request, test_request.request);
     }
@@ -318,7 +321,7 @@ mod tests {
             .unwrap();
 
         let test_request =
-            BinaryUser::<Request, false>::from_request(http_request, &mock.state()).await.unwrap();
+            BinaryUser::<Request, false>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(Uuid::default(), test_request.id);
         assert_eq!(request, test_request.request);
     }

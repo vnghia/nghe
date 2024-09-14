@@ -3,7 +3,7 @@ use diesel_async::RunQueryDsl;
 pub use nghe_api::permission::add::{Request, Response};
 use nghe_proc_macro::handler;
 
-use crate::app::state::Database;
+use crate::database::Database;
 use crate::orm::{music_folders, user_music_folder_permissions, users};
 use crate::Error;
 
@@ -75,7 +75,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::app::test::permission::{count, reset};
+    use crate::test::route::permission::{count, reset};
     use crate::test::{mock, Mock};
 
     #[rstest]
