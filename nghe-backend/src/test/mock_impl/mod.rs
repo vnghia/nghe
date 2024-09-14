@@ -11,6 +11,7 @@ use rstest::fixture;
 
 use super::filesystem::Trait;
 use super::{database, filesystem};
+use crate::app::route;
 use crate::filesystem::Filesystem;
 use crate::orm::users;
 use crate::{app, config};
@@ -66,9 +67,9 @@ impl Mock {
         role: users::Role,
         #[builder(default = true)] allow: bool,
     ) -> &Self {
-        app::user::create::handler(
+        route::user::create::handler(
             self.database(),
-            app::user::create::Request { role: role.into(), allow, ..Faker.fake() },
+            route::user::create::Request { role: role.into(), allow, ..Faker.fake() },
         )
         .await
         .unwrap();
@@ -95,10 +96,10 @@ impl Mock {
         #[builder(default = true)] allow: bool,
     ) -> &Self {
         let filesystem = self.to_impl(filesystem_type);
-        app::music_folder::add::handler(
+        route::music_folder::add::handler(
             self.database(),
             self.filesystem(),
-            app::music_folder::add::Request {
+            route::music_folder::add::Request {
                 filesystem_type,
                 allow,
                 path: filesystem

@@ -4,8 +4,8 @@ pub use nghe_api::user::setup::{Request, Response};
 use nghe_api::user::Role;
 use nghe_proc_macro::handler;
 
+use super::create;
 use crate::app::state::Database;
-use crate::app::user::create;
 use crate::orm::users;
 use crate::Error;
 
