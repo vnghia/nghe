@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use color_eyre::eyre::OptionExt;
 use nghe_api::common::filesystem;
 
-use crate::filesystem::{local, s3, Impl};
+use super::{local, s3, Impl};
 use crate::{config, Error};
 
 #[derive(Debug, Clone)]

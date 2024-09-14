@@ -15,6 +15,8 @@ struct Handler {
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct BuildRouter {
     modules: Vec<syn::Ident>,
+    #[deluxe(default = false)]
+    filesystem: bool,
     #[deluxe(default = vec![])]
     states: Vec<syn::Ident>,
 }
@@ -148,6 +150,11 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
 
     let mut router_args: Vec<syn::FnArg> = vec![];
     let mut router_layers: Vec<syn::Expr> = vec![];
+
+    if input.filesystem {
+        router_args.push(parse_quote!(filesystem: crate::filesystem::Filesystem));
+        router_layers.push(parse_quote!(layer(axum::Extension(filesystem))));
+    }
 
     for state in input.states {
         let ty = format_ident!("{}", state.to_string().to_case(Case::Pascal));

@@ -1,8 +1,6 @@
 mod database;
-mod filesystem;
 
 pub use database::{Database, Key};
-pub use filesystem::Filesystem;
 
 use crate::config;
 

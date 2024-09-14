@@ -11,6 +11,7 @@ use rstest::fixture;
 
 use super::filesystem::Trait;
 use super::{database, filesystem};
+use crate::filesystem::Filesystem;
 use crate::orm::users;
 use crate::{app, config};
 
@@ -78,7 +79,7 @@ impl Mock {
         user::Mock::new(self, index).await
     }
 
-    pub fn filesystem(&self) -> &app::state::Filesystem {
+    pub fn filesystem(&self) -> &Filesystem {
         self.filesystem.state()
     }
 
