@@ -2,7 +2,7 @@ use diesel_async::RunQueryDsl;
 pub use nghe_api::user::create::{Request, Response};
 use nghe_proc_macro::handler;
 
-use crate::app::permission;
+use crate::app::route::permission;
 use crate::app::state::Database;
 use crate::orm::users;
 use crate::Error;

@@ -10,10 +10,11 @@ pub mod config;
 mod error;
 mod filesystem;
 mod media;
+pub mod migration;
 mod orm;
 mod schema;
 
-pub use app::{build, migration};
+pub use app::build;
 use error::Error;
 
 #[cfg(test)]
