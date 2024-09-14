@@ -7,7 +7,7 @@ use concat_string::concat_string;
 use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::filesystem::{self, s3};
+use crate::filesystem::{self, path, s3};
 use crate::Error;
 
 #[derive(Debug)]
@@ -32,7 +32,7 @@ impl Mock {
             }
         }
 
-        let bucket = Utf8TypedPathBuf::from_unix(concat_string!("/", bucket));
+        let bucket = path::S3::from_string(concat_string!("/", bucket));
         assert!(bucket.is_absolute());
         Self { bucket, filesystem }
     }

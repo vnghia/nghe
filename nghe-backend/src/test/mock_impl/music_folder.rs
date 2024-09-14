@@ -32,13 +32,8 @@ impl<'a> Mock<'a> {
         }
     }
 
-    pub fn absolutize(&self, path: impl Into<Option<Utf8TypedPath<'_>>>) -> Utf8TypedPathBuf {
-        let music_folder_path = Utf8TypedPath::from(self.music_folder.data.path.as_ref());
-        if let Some(path) = path.into() {
-            music_folder_path.join(path)
-        } else {
-            music_folder_path.join(Faker.fake::<String>())
-        }
+    pub fn absolutize(&self, path: impl AsRef<str>) -> Utf8TypedPathBuf {
+        self.to_impl().path().from_str(&self.music_folder.data.path).join(path)
     }
 
     pub fn to_impl(&self) -> filesystem::Impl<'_> {
@@ -52,7 +47,12 @@ impl<'a> Mock<'a> {
         #[builder(default = Faker.fake::<file::Type>())] file_type: file::Type,
         #[builder(default = Faker.fake::<file::Media>())] media: file::Media<'_>,
     ) -> &Self {
-        let path = self.absolutize(path).with_extension(file_type.as_ref());
+        let path = if let Some(path) = path {
+            self.absolutize(path)
+        } else {
+            self.absolutize(self.to_impl().fake_path((0..3).fake()))
+        }
+        .with_extension(file_type.as_ref());
 
         let mut asset =
             Cursor::new(tokio::fs::read(assets::path(file_type).as_str()).await.unwrap());

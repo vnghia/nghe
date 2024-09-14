@@ -1,17 +1,26 @@
 use std::borrow::Cow;
 
+use nghe_api::common::filesystem;
+use o2o::o2o;
 use typed_path::Utf8TypedPath;
 
-use super::entry;
+use super::{entry, path};
 use crate::Error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, o2o)]
+#[ref_into(filesystem::Type)]
 pub enum Impl<'fs> {
+    #[type_hint(as Unit)]
     Local(Cow<'fs, super::local::Filesystem>),
+    #[type_hint(as Unit)]
     S3(Cow<'fs, super::s3::Filesystem>),
 }
 
 impl<'fs> Impl<'fs> {
+    pub fn path(&self) -> path::Builder {
+        path::Builder(self.into())
+    }
+
     pub fn into_owned(self) -> Impl<'static> {
         match self {
             Impl::Local(filesystem) => Impl::Local(Cow::Owned(filesystem.into_owned())),

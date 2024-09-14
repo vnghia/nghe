@@ -11,7 +11,7 @@ use hyper_tls::HttpsConnector;
 use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
-use super::entry;
+use super::{entry, path};
 use crate::{config, Error};
 
 #[derive(Debug, Clone)]
@@ -116,7 +116,7 @@ impl super::Trait for Filesystem {
             if let Some(contents) = output.contents {
                 for content in contents {
                     if let Some(path) = content.key() {
-                        sender.send(prefix, Utf8TypedPath::unix(path), &content).await?;
+                        sender.send(prefix, path::S3::from_str(path), &content).await?;
                     }
                 }
             }

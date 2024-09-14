@@ -3,9 +3,9 @@ use std::fs::Metadata;
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
 use time::OffsetDateTime;
-use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
+use typed_path::Utf8TypedPath;
 
-use super::entry;
+use super::{entry, path};
 use crate::Error;
 
 #[derive(Debug, Clone, Copy)]
@@ -17,19 +17,9 @@ impl Filesystem {
         path.is_windows()
     }
 
-    #[cfg(windows)]
-    fn from_native(path: impl AsRef<str>) -> Utf8TypedPathBuf {
-        Utf8TypedPathBuf::from_windows(path)
-    }
-
     #[cfg(unix)]
     fn is_native(path: &Utf8TypedPath<'_>) -> bool {
         path.is_unix()
-    }
-
-    #[cfg(unix)]
-    fn from_native(path: impl AsRef<str>) -> Utf8TypedPathBuf {
-        Utf8TypedPathBuf::from_unix(path)
     }
 }
 
@@ -61,7 +51,7 @@ impl super::Trait for Filesystem {
                                 .path()
                                 .into_os_string()
                                 .into_string()
-                                .map(Self::from_native)
+                                .map(path::Local::from_string)
                                 .map_err(Error::FilesystemLocalNonUTF8PathEncountered)?;
                             sender.send(prefix.as_str(), path.to_path(), &metadata).await?;
                         }
