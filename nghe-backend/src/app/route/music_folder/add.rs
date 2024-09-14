@@ -3,7 +3,7 @@ pub use nghe_api::music_folder::add::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
-use crate::app::permission;
+use crate::app::route::permission;
 use crate::app::state::Database;
 use crate::error::Error;
 use crate::filesystem::{self, Filesystem, Trait as _};

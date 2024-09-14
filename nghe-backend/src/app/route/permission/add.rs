@@ -75,7 +75,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::app::permission::test::{count, reset};
+    use crate::app::test::permission::{count, reset};
     use crate::test::{mock, Mock};
 
     #[rstest]
