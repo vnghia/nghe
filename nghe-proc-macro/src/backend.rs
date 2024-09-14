@@ -1,4 +1,3 @@
-use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_quote, Error};
@@ -17,8 +16,6 @@ struct BuildRouter {
     modules: Vec<syn::Ident>,
     #[deluxe(default = false)]
     filesystem: bool,
-    #[deluxe(default = vec![])]
-    states: Vec<syn::Ident>,
 }
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
@@ -34,8 +31,8 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     }
 
     let mut common_args: Vec<syn::FnArg> =
-        vec![parse_quote!(extract::State(app): extract::State<crate::app::state::App>)];
-    let mut pass_args: Vec<syn::Expr> = vec![parse_quote!(&app.database)];
+        vec![parse_quote!(extract::State(database): extract::State<crate::database::Database>)];
+    let mut pass_args: Vec<syn::Expr> = vec![parse_quote!(&database)];
 
     for arg in &input.sig.inputs {
         if let syn::FnArg::Typed(arg) = arg
@@ -77,7 +74,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract;
         use nghe_api::common::{EncodableEndpoint, SubsonicResponse};
 
-        use crate::app::auth::{Authorize, BinaryUser, GetUser, PostUser};
+        use crate::auth::{Authorize, BinaryUser, GetUser, PostUser};
 
         impl Authorize for Request {
             fn authorize(self, role: crate::orm::users::Role) -> Result<Self, Error> {
@@ -156,13 +153,6 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         router_layers.push(parse_quote!(layer(axum::Extension(filesystem))));
     }
 
-    for state in input.states {
-        let ty = format_ident!("{}", state.to_string().to_case(Case::Pascal));
-        let pat = state;
-        router_args.push(parse_quote!(#pat: crate::app::state::#ty));
-        router_layers.push(parse_quote!(layer(axum::Extension(#pat))));
-    }
-
     let router_body: syn::Expr = if router_layers.is_empty() {
         parse_quote!(axum::Router::new().#( #endpoints ).*)
     } else {
@@ -170,7 +160,7 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
     };
 
     Ok(quote! {
-        pub fn router(#( #router_args ),*) -> axum::Router<crate::app::state::App> {
+        pub fn router(#( #router_args ),*) -> axum::Router<crate::database::Database> {
             #router_body
         }
     })
