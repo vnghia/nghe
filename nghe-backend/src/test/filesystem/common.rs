@@ -9,13 +9,14 @@ pub enum Impl<'fs> {
 }
 
 impl<'fs> Impl<'fs> {
+    pub fn path(&self) -> filesystem::path::Builder {
+        self.main().path()
+    }
+
     pub fn fake_path(&self, level: usize) -> Utf8TypedPathBuf {
-        let mut path = self.prefix().to_path_buf();
-        path.clear();
-        for component in fake::vec![String; level + 1] {
-            path = path.join(component);
-        }
-        path
+        fake::vec![String; level + 1]
+            .into_iter()
+            .fold(self.path().empty(), |path, component| path.join(component))
     }
 }
 

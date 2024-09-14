@@ -1,9 +1,11 @@
-use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
+use nghe_api::common::filesystem;
+use typed_path::Utf8TypedPathBuf;
 
+use crate::filesystem::path;
 use crate::media::file;
 
 pub fn dir() -> Utf8TypedPathBuf {
-    Utf8TypedPath::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("assets").join("test")
+    path::Local::from_str(&env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("assets").join("test")
 }
 
 pub fn path(file_type: file::Type) -> Utf8TypedPathBuf {
