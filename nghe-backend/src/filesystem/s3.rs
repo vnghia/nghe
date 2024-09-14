@@ -78,7 +78,7 @@ impl Filesystem {
                 Ok(Path { bucket: path, key: "" })
             }
         } else {
-            Err(color_eyre::eyre::eyre!("S3 path must be an unix path").into())
+            Err(Error::FilesystemS3InvalidPath(path.to_string()))
         }
     }
 

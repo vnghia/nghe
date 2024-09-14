@@ -48,6 +48,8 @@ pub enum Error {
     #[error("Could not read vorbis comments from flac file")]
     MediaFlacMissingVorbisComments,
 
+    #[error("S3 path is not an absolute unix path: {0}")]
+    FilesystemS3InvalidPath(String),
     #[error("S3 object does not have size information")]
     FilesystemS3MissingObjectSize,
     #[error("Non UTF-8 path encountered: {0:?}")]
