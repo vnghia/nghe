@@ -3,11 +3,11 @@ pub use nghe_api::music_folder::add::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
-use crate::app::route::permission;
-use crate::app::state::Database;
+use crate::database::Database;
 use crate::error::Error;
 use crate::filesystem::{self, Filesystem, Trait as _};
 use crate::orm::music_folders;
+use crate::route::permission;
 
 async fn handler_impl<'fs>(
     database: &Database,

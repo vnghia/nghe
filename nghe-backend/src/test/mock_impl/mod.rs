@@ -11,10 +11,10 @@ use rstest::fixture;
 
 use super::filesystem::Trait;
 use super::{database, filesystem};
-use crate::app::route;
+use crate::database::Database;
 use crate::filesystem::Filesystem;
 use crate::orm::users;
-use crate::{app, config};
+use crate::{config, route};
 
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
@@ -43,11 +43,11 @@ impl Mock {
         Self { config, database, filesystem }
     }
 
-    pub fn state(&self) -> app::state::App {
-        app::state::App { database: self.database.state().clone() }
+    pub fn state(&self) -> &Database {
+        self.database()
     }
 
-    pub fn database(&self) -> &app::state::Database {
+    pub fn database(&self) -> &Database {
         self.database.state()
     }
 

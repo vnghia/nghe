@@ -5,7 +5,7 @@ use nghe_api::user::Role;
 use nghe_proc_macro::handler;
 
 use super::create;
-use crate::app::state::Database;
+use crate::database::Database;
 use crate::orm::users;
 use crate::Error;
 

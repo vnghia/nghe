@@ -3,14 +3,14 @@ use diesel_async::{AsyncConnection, AsyncPgConnection};
 use url::Url;
 use uuid::Uuid;
 
-use crate::app::state;
+use crate::database::Database;
 use crate::{config, migration};
 
 pub struct Mock {
     name: String,
     url: String,
 
-    state: state::Database,
+    state: Database,
 }
 
 impl Mock {
@@ -43,11 +43,11 @@ impl Mock {
         Self {
             name,
             url,
-            state: state::Database::new(&config::Database { url: mock_url, key: rand::random() }),
+            state: Database::new(&config::Database { url: mock_url, key: rand::random() }),
         }
     }
 
-    pub fn state(&self) -> &state::Database {
+    pub fn state(&self) -> &Database {
         &self.state
     }
 }

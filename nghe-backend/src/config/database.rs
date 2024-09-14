@@ -2,7 +2,7 @@ use derivative::Derivative;
 use serde::Deserialize;
 use serde_with::serde_as;
 
-use crate::app::state::Key;
+use crate::database::Key;
 
 #[serde_as]
 #[derive(Derivative, Deserialize)]
