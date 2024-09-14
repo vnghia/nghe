@@ -3,10 +3,10 @@ pub use nghe_api::music_folder::add::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::app::permission;
 use crate::app::state::Database;
-use crate::app::{permission, state};
 use crate::error::Error;
-use crate::filesystem::{self, Trait as _};
+use crate::filesystem::{self, Filesystem, Trait as _};
 use crate::orm::music_folders;
 
 async fn handler_impl<'fs>(
@@ -36,7 +36,7 @@ async fn handler_impl<'fs>(
 #[handler(role = admin)]
 pub async fn handler(
     database: &Database,
-    filesystem: &state::Filesystem,
+    filesystem: &Filesystem,
     request: Request,
 ) -> Result<Response, Error> {
     handler_impl(database, filesystem.to_impl(request.filesystem_type)?, request).await

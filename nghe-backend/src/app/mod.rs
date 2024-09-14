@@ -6,6 +6,7 @@ use axum::Router;
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
+use crate::filesystem::Filesystem;
 
 mod auth;
 mod common;
@@ -16,7 +17,7 @@ pub mod state;
 pub mod user;
 
 pub async fn build(config: Config) -> Router {
-    let filesystem = state::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
+    let filesystem = Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
 
     Router::new()
         .merge(music_folder::router(filesystem))
