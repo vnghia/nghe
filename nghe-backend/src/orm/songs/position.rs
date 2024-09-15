@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use diesel_derives::AsChangeset; // TODO: remove this when diesel is released
+use diesel_derives::AsChangeset;
 
 use super::songs;
 
