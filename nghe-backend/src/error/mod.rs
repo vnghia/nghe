@@ -1,14 +1,20 @@
 use std::ffi::OsString;
-use std::num::TryFromIntError;
 
-use aws_sdk_s3::primitives::ByteStreamError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use lofty::error::LoftyError;
+use o2o::o2o;
 use tokio::sync::mpsc::error::SendError;
-use typed_path::StripPrefixError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, o2o)]
+#[from_owned(diesel::result::Error| repeat(), return Self::Internal(@.into()))]
+#[from_owned(std::io::Error)]
+#[from_owned(isolang::ParseLanguageError)]
+#[from_owned(uuid::Error)]
+#[from_owned(lofty::error::LoftyError)]
+#[from_owned(aws_sdk_s3::primitives::ByteStreamError)]
+#[from_owned(std::num::TryFromIntError)]
+#[from_owned(typed_path::StripPrefixError)]
+#[from_owned(time::error::ComponentRange)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),
@@ -78,62 +84,8 @@ impl IntoResponse for Error {
     }
 }
 
-impl From<diesel::result::Error> for Error {
-    fn from(value: diesel::result::Error) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(value: std::io::Error) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<isolang::ParseLanguageError> for Error {
-    fn from(value: isolang::ParseLanguageError) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<uuid::Error> for Error {
-    fn from(value: uuid::Error) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<LoftyError> for Error {
-    fn from(value: LoftyError) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<ByteStreamError> for Error {
-    fn from(value: ByteStreamError) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<TryFromIntError> for Error {
-    fn from(value: TryFromIntError) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
 impl<T: Send + Sync + 'static> From<SendError<T>> for Error {
     fn from(value: SendError<T>) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<StripPrefixError> for Error {
-    fn from(value: StripPrefixError) -> Self {
-        Self::Internal(value.into())
-    }
-}
-
-impl From<time::error::ComponentRange> for Error {
-    fn from(value: time::error::ComponentRange) -> Self {
         Self::Internal(value.into())
     }
 }
