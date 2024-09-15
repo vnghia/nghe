@@ -20,11 +20,6 @@ pub struct Song<'a> {
                       map(Language::from_usize).collect::<Option<_>>().unwrap()")
     )]
     pub languages: Vec<Language>,
-    #[cfg_attr(
-        test,
-        dummy(expr = "fake::vec![String; 0..=2].into_iter().map(String::into).collect()")
-    )]
-    pub genres: Vec<Cow<'a, str>>,
     pub compilation: bool,
 }
 
@@ -34,4 +29,9 @@ pub struct Metadata<'a> {
     pub song: Song<'a>,
     pub album: name_date_mbz::NameDateMbz<'a>,
     pub artists: artist::Artists<'a>,
+    #[cfg_attr(
+        test,
+        dummy(expr = "fake::vec![String; 0..=2].into_iter().map(String::into).collect()")
+    )]
+    pub genres: Vec<Cow<'a, str>>,
 }
