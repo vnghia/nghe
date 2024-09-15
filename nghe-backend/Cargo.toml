@@ -22,7 +22,6 @@ serde = { workspace = true }
 strum = { workspace = true }
 thiserror = { workspace = true }
 time = { workspace = true }
-tokio = { workspace = true }
 tracing = { workspace = true }
 uuid = { workspace = true }
 
@@ -59,6 +58,12 @@ hyper-tls = { version = "0.5.0" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.21.1" }
 o2o = { version = "0.4.10" }
+tokio = { version = "1.40.0", features = [
+  "fs",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+] }
 tokio-stream = { version = "0.1.16", default-features = false }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
