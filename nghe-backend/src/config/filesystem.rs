@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct Scan {
     // 100 KiB in bytes
     #[derivative(Default(value = "102400"))]
-    pub minimum_size: u64,
+    pub minimum_size: usize,
     #[derivative(Default(value = "10"))]
     pub channel_size: usize,
     #[derivative(Default(value = "10"))]
