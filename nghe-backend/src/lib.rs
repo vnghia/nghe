@@ -14,6 +14,7 @@ mod media;
 pub mod migration;
 mod orm;
 mod route;
+mod scan;
 mod schema;
 
 #[cfg(test)]
