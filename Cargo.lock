@@ -1405,7 +1405,7 @@ checksum = "158fe8e2e68695bd615d7e4f3227c0727b151330d3e253b525086c348d055d5e"
 dependencies = [
  "bitflags 2.5.0",
  "byteorder",
- "diesel_derives",
+ "diesel_derives 2.2.2",
  "itoa",
  "pq-sys",
  "time",
@@ -1429,12 +1429,24 @@ dependencies = [
 
 [[package]]
 name = "diesel_derives"
+version = "2.2.0"
+source = "git+https://github.com/diesel-rs/diesel?rev=ecf6e9215a898045ed096f905f4a0e7e4a999dba#ecf6e9215a898045ed096f905f4a0e7e4a999dba"
+dependencies = [
+ "diesel_table_macro_syntax 0.2.0 (git+https://github.com/diesel-rs/diesel?rev=ecf6e9215a898045ed096f905f4a0e7e4a999dba)",
+ "dsl_auto_type 0.1.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.76",
+]
+
+[[package]]
+name = "diesel_derives"
 version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6ff2be1e7312c858b2ef974f5c7089833ae57b5311b334b30923af58e5718d8"
 dependencies = [
- "diesel_table_macro_syntax",
- "dsl_auto_type",
+ "diesel_table_macro_syntax 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dsl_auto_type 0.1.2",
  "proc-macro2",
  "quote",
  "syn 2.0.82",
@@ -1467,6 +1479,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "209c735641a413bc68c4923a9d6ad4bcb3ca306b794edaa7eb0b3228a99ffb25"
 dependencies = [
  "syn 2.0.82",
+]
+
+[[package]]
+name = "diesel_table_macro_syntax"
+version = "0.2.0"
+source = "git+https://github.com/diesel-rs/diesel?rev=ecf6e9215a898045ed096f905f4a0e7e4a999dba#ecf6e9215a898045ed096f905f4a0e7e4a999dba"
+dependencies = [
+ "syn 2.0.76",
 ]
 
 [[package]]
@@ -1832,6 +1852,19 @@ dependencies = [
  "libc",
  "redox_users",
  "winapi",
+]
+
+[[package]]
+name = "dsl_auto_type"
+version = "0.1.0"
+source = "git+https://github.com/diesel-rs/diesel?rev=ecf6e9215a898045ed096f905f4a0e7e4a999dba#ecf6e9215a898045ed096f905f4a0e7e4a999dba"
+dependencies = [
+ "darling",
+ "either",
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.76",
 ]
 
 [[package]]
@@ -3861,6 +3894,7 @@ dependencies = [
  "derive-new 0.6.0",
  "diesel",
  "diesel-async",
+ "diesel_derives 2.2.0",
  "diesel_full_text_search",
  "diesel_migrations",
  "fake",

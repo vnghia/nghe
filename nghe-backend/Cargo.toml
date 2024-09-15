@@ -44,6 +44,7 @@ aws-smithy-runtime = { version = "1.7.1", default-features = false, features = [
 ] }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
 diesel = { version = "2.2.2", features = ["64-column-tables", "time", "uuid"] }
+diesel_derives = { git = "https://github.com/diesel-rs/diesel", rev = "ecf6e9215a898045ed096f905f4a0e7e4a999dba" }
 diesel-async = { version = "0.5.0", features = [
   "postgres",
   "deadpool",

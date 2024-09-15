@@ -131,3 +131,9 @@ impl From<StripPrefixError> for Error {
         Self::Internal(value.into())
     }
 }
+
+impl From<time::error::ComponentRange> for Error {
+    fn from(value: time::error::ComponentRange) -> Self {
+        Self::Internal(value.into())
+    }
+}
