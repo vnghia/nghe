@@ -39,10 +39,7 @@ macro_rules! builder_from_string {
 macro_rules! builder_empty {
     ($filesystem_type:expr) => {
         match $filesystem_type {
-            filesystem::Type::Local if cfg!(windows) => {
-                // TODO: use `new` after https://github.com/chipsenkbeil/typed-path/pull/30
-                Utf8TypedPathBuf::Windows(typed_path::Utf8WindowsPathBuf::new())
-            }
+            filesystem::Type::Local if cfg!(windows) => Utf8TypedPathBuf::new(PathType::Windows),
             _ => Utf8TypedPathBuf::new(PathType::Unix),
         }
     };
