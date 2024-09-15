@@ -1,4 +1,5 @@
 use diesel::prelude::*;
+use diesel_derives::AsChangeset;
 
 use super::songs;
 

@@ -1,4 +1,5 @@
 pub mod date;
+pub mod name_date_mbz;
 pub mod position;
 
 use crate::schema::songs;
