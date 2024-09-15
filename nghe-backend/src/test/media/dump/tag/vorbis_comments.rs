@@ -73,6 +73,9 @@ impl dump::Metadata for VorbisComments {
     fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) -> &mut Self {
         Artist::dump_vorbis_comments(artists.song, self, &config.vorbis_comments.artists.song);
         Artist::dump_vorbis_comments(artists.album, self, &config.vorbis_comments.artists.album);
+        if artists.compilation {
+            self.push(config.vorbis_comments.compilation.clone(), "1".to_string());
+        }
         self
     }
 
@@ -100,13 +103,6 @@ impl dump::Metadata for VorbisComments {
     fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self {
         for genre in genres {
             self.push(config.vorbis_comments.genres.clone(), genre.into_owned());
-        }
-        self
-    }
-
-    fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool) -> &mut Self {
-        if compilation {
-            self.push(config.vorbis_comments.compilation.clone(), "1".to_string());
         }
         self
     }

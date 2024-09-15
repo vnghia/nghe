@@ -74,6 +74,7 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
         Artists::new(
             Artist::extract_vorbis_comments(self, &config.vorbis_comments.artists.song)?,
             Artist::extract_vorbis_comments(self, &config.vorbis_comments.artists.album)?,
+            self.get(&config.vorbis_comments.compilation).is_some_and(|s| !s.is_empty()),
         )
     }
 
@@ -98,9 +99,5 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
         Ok(self.get_all(&config.vorbis_comments.genres).map(Cow::Borrowed).collect())
-    }
-
-    fn compilation(&'a self, config: &'a config::Parsing) -> Result<bool, Error> {
-        Ok(self.get(&config.vorbis_comments.compilation).is_some_and(|s| !s.is_empty()))
     }
 }
