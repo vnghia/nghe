@@ -1,16 +1,28 @@
+use o2o::o2o;
+
+use crate::orm::songs;
 use crate::Error;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, o2o)]
+#[try_map_owned(songs::position::Track, Error)]
+#[try_map_owned(songs::position::Disc, Error)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy, Clone, Copy))]
 pub struct Position {
+    #[from(~.map(u16::try_from).transpose()?)]
+    #[into(~.map(u16::into))]
     pub number: Option<u16>,
+    #[from(~.map(u16::try_from).transpose()?)]
+    #[into(~.map(u16::into))]
     pub total: Option<u16>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, o2o)]
+#[try_map_owned(songs::position::TrackDisc, Error)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy, Clone, Copy))]
 pub struct TrackDisc {
+    #[map(~.try_into()?)]
     pub track: Position,
+    #[map(~.try_into()?)]
     pub disc: Position,
 }
 
