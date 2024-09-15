@@ -127,7 +127,6 @@ mod tests {
         );
 
         assert_eq!(song.languages, &[Language::Eng, Language::Vie]);
-        assert!(song.compilation);
 
         let album = metadata.album;
         assert_eq!(album.name, "Album");
@@ -146,7 +145,8 @@ mod tests {
         );
         assert_eq!(album.mbz_id, None);
 
-        let song = metadata.artists.song;
+        let artists = metadata.artists;
+        let song = artists.song;
         assert_eq!(
             song,
             &[
@@ -154,8 +154,9 @@ mod tests {
                 "Artist2".into()
             ]
         );
-        let album = metadata.artists.album;
+        let album = artists.album;
         assert_eq!(album, &["Artist1".into(), "Artist3".into()]);
+        assert!(artists.compilation);
 
         assert!(metadata.genres.is_empty());
 

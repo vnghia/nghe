@@ -15,7 +15,6 @@ pub trait Metadata {
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self;
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self;
     fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self;
-    fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool) -> &mut Self;
 
     fn dump_metadata(
         &mut self,
@@ -23,14 +22,13 @@ pub trait Metadata {
         metadata: file::Metadata<'_>,
     ) -> &mut Self {
         let file::Metadata { song, album, artists, genres } = metadata;
-        let file::Song { main, track_disc, languages, compilation } = song;
+        let file::Song { main, track_disc, languages } = song;
         self.dump_song(config, main)
             .dump_album(config, album)
             .dump_artists(config, artists)
             .dump_track_disc(config, track_disc)
             .dump_languages(config, languages)
             .dump_genres(config, genres)
-            .dump_compilation(config, compilation)
     }
 }
 
@@ -84,15 +82,6 @@ impl Metadata for File {
         match self {
             File::Flac { file, .. } => {
                 file.dump_genres(config, genres);
-            }
-        }
-        self
-    }
-
-    fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool) -> &mut Self {
-        match self {
-            File::Flac { file, .. } => {
-                file.dump_compilation(config, compilation);
             }
         }
         self

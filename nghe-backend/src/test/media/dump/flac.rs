@@ -40,9 +40,4 @@ impl Metadata for FlacFile {
         self.vorbis_comments_mut().unwrap().dump_genres(config, genres);
         self
     }
-
-    fn dump_compilation(&mut self, config: &config::Parsing, compilation: bool) -> &mut Self {
-        self.vorbis_comments_mut().unwrap().dump_compilation(config, compilation);
-        self
-    }
 }

@@ -20,11 +20,20 @@ pub struct Artists<'a> {
     #[cfg_attr(test, dummy(faker = "(Faker, 1..4)"))]
     pub song: Vec<Artist<'a>>,
     pub album: Vec<Artist<'a>>,
+    pub compilation: bool,
 }
 
 impl<'a> Artists<'a> {
-    pub fn new(song: Vec<Artist<'a>>, album: Vec<Artist<'a>>) -> Result<Self, Error> {
-        if song.is_empty() { Err(Error::MediaSongArtistEmpty) } else { Ok(Self { song, album }) }
+    pub fn new(
+        song: Vec<Artist<'a>>,
+        album: Vec<Artist<'a>>,
+        compilation: bool,
+    ) -> Result<Self, Error> {
+        if song.is_empty() {
+            Err(Error::MediaSongArtistEmpty)
+        } else {
+            Ok(Self { song, album, compilation })
+        }
     }
 
     pub fn song(&self) -> &Vec<Artist<'a>> {
