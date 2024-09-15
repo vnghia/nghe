@@ -31,10 +31,6 @@ impl<'a> Metadata<'a> for FlacFile {
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.genres(config)
     }
-
-    fn compilation(&'a self, config: &'a config::Parsing) -> Result<bool, Error> {
-        self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.compilation(config)
-    }
 }
 
 impl Property for FlacFile {

@@ -15,7 +15,6 @@ pub trait Metadata<'a> {
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error>;
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error>;
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error>;
-    fn compilation(&'a self, config: &'a config::Parsing) -> Result<bool, Error>;
 
     fn metadata(&'a self, config: &'a config::Parsing) -> Result<super::Metadata<'a>, Error> {
         Ok(super::Metadata {
@@ -23,7 +22,6 @@ pub trait Metadata<'a> {
                 main: self.song(config)?,
                 track_disc: self.track_disc(config)?,
                 languages: self.languages(config)?,
-                compilation: self.compilation(config)?,
             },
             album: self.album(config)?,
             artists: self.artists(config)?,
@@ -70,12 +68,6 @@ impl<'a> Metadata<'a> for File {
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
         match self {
             File::Flac { file, .. } => file.genres(config),
-        }
-    }
-
-    fn compilation(&'a self, config: &'a config::Parsing) -> Result<bool, Error> {
-        match self {
-            File::Flac { file, .. } => file.compilation(config),
         }
     }
 }

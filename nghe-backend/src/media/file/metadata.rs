@@ -20,7 +20,6 @@ pub struct Song<'a> {
                       map(Language::from_usize).collect::<Option<_>>().unwrap()")
     )]
     pub languages: Vec<Language>,
-    pub compilation: bool,
 }
 
 #[derive(Debug)]
