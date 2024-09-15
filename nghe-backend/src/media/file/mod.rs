@@ -127,7 +127,6 @@ mod tests {
         );
 
         assert_eq!(song.languages, &[Language::Eng, Language::Vie]);
-        assert!(song.genres.is_empty());
         assert!(song.compilation);
 
         let album = metadata.album;
@@ -157,6 +156,8 @@ mod tests {
         );
         let album = metadata.artists.album;
         assert_eq!(album, &["Artist1".into(), "Artist3".into()]);
+
+        assert!(metadata.genres.is_empty());
 
         assert_eq!(media.property, Property::default(file_type));
     }
