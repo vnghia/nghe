@@ -23,11 +23,11 @@ pub trait Metadata<'a> {
                 main: self.song(config)?,
                 track_disc: self.track_disc(config)?,
                 languages: self.languages(config)?,
-                genres: self.genres(config)?,
                 compilation: self.compilation(config)?,
             },
             album: self.album(config)?,
             artists: self.artists(config)?,
+            genres: self.genres(config)?,
         })
     }
 }
