@@ -10,10 +10,8 @@ use super::{artist, name_date_mbz, position};
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
-pub struct Metadata<'a> {
-    pub song: name_date_mbz::NameDateMbz<'a>,
-    pub album: name_date_mbz::NameDateMbz<'a>,
-    pub artists: artist::Artists<'a>,
+pub struct Song<'a> {
+    pub main: name_date_mbz::NameDateMbz<'a>,
     pub track_disc: position::TrackDisc,
     #[cfg_attr(
         test,
@@ -28,4 +26,12 @@ pub struct Metadata<'a> {
     )]
     pub genres: Vec<Cow<'a, str>>,
     pub compilation: bool,
+}
+
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
+pub struct Metadata<'a> {
+    pub song: Song<'a>,
+    pub album: name_date_mbz::NameDateMbz<'a>,
+    pub artists: artist::Artists<'a>,
 }
