@@ -1,9 +1,11 @@
 use std::num::NonZeroU8;
 use std::str::FromStr;
 
+use o2o::o2o;
 use time::macros::format_description;
 use time::Month;
 
+use crate::orm::songs;
 use crate::Error;
 
 type FormatDescription<'a> = &'a [time::format_description::BorrowedFormatItem<'a>];
@@ -16,11 +18,20 @@ const YMD_DOT_FORMAT: FormatDescription = format_description!("[year].[month].[d
 const YM_DOT_FORMAT: FormatDescription = format_description!("[year].[month]");
 const Y_FORMAT: FormatDescription = format_description!("[year]");
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, o2o)]
+#[try_map_owned(songs::date::Date, Error)]
+#[try_map_owned(songs::date::Release, Error)]
+#[try_map_owned(songs::date::OriginalRelease, Error)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Date {
+    #[from(~.map(i32::from))]
+    #[into(~.map(i32::try_into).transpose()?)]
     pub year: Option<i32>,
+    #[from(~.map(u8::try_from).transpose()?.map(Month::try_from).transpose()?)]
+    #[into(~.map(|month| (month as u8).into()))]
     pub month: Option<Month>,
+    #[from(~.map(u8::try_from).transpose()?.map(NonZeroU8::try_from).transpose()?)]
+    #[into(~.map(NonZeroU8::get).map(u8::into))]
     pub day: Option<NonZeroU8>,
 }
 

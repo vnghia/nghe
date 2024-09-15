@@ -16,6 +16,7 @@ edition = "2021"
 
 [workspace.lints.clippy]
 pedantic = { level = "deny", priority = -1 }
+duplicated_attributes = { level = "allow", priority = 0 }
 missing_panics_doc = { level = "allow", priority = 0 }
 must_use_candidate = { level = "allow", priority = 0 }
 struct_excessive_bools = { level = "allow", priority = 0 }
