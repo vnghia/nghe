@@ -19,13 +19,15 @@ pub trait Metadata<'a> {
 
     fn metadata(&'a self, config: &'a config::Parsing) -> Result<super::Metadata<'a>, Error> {
         Ok(super::Metadata {
-            song: self.song(config)?,
+            song: super::Song {
+                main: self.song(config)?,
+                track_disc: self.track_disc(config)?,
+                languages: self.languages(config)?,
+                genres: self.genres(config)?,
+                compilation: self.compilation(config)?,
+            },
             album: self.album(config)?,
             artists: self.artists(config)?,
-            track_disc: self.track_disc(config)?,
-            languages: self.languages(config)?,
-            genres: self.genres(config)?,
-            compilation: self.compilation(config)?,
         })
     }
 }

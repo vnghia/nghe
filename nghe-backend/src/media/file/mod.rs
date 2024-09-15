@@ -14,7 +14,7 @@ use extract::{Metadata as _, Property as _};
 use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
-pub use metadata::Metadata;
+pub use metadata::{Metadata, Song};
 pub use name_date_mbz::NameDateMbz;
 pub use position::{Position, TrackDisc};
 pub use property::Property;
@@ -111,11 +111,24 @@ mod tests {
         let metadata = media.metadata;
 
         let song = metadata.song;
-        assert_eq!(song.name, "Sample");
-        assert_eq!(song.date, Date::default());
-        assert_eq!(song.release_date, Date::default());
-        assert_eq!(song.original_release_date, Date::default());
-        assert_eq!(song.mbz_id, None);
+        let main = song.main;
+        assert_eq!(main.name, "Sample");
+        assert_eq!(main.date, Date::default());
+        assert_eq!(main.release_date, Date::default());
+        assert_eq!(main.original_release_date, Date::default());
+        assert_eq!(main.mbz_id, None);
+
+        assert_eq!(
+            song.track_disc,
+            TrackDisc {
+                track: Position { number: Some(10), total: None },
+                disc: Position { number: Some(5), total: Some(10) }
+            }
+        );
+
+        assert_eq!(song.languages, &[Language::Eng, Language::Vie]);
+        assert!(song.genres.is_empty());
+        assert!(song.compilation);
 
         let album = metadata.album;
         assert_eq!(album.name, "Album");
@@ -144,18 +157,6 @@ mod tests {
         );
         let album = metadata.artists.album;
         assert_eq!(album, &["Artist1".into(), "Artist3".into()]);
-
-        assert_eq!(
-            metadata.track_disc,
-            TrackDisc {
-                track: Position { number: Some(10), total: None },
-                disc: Position { number: Some(5), total: Some(10) }
-            }
-        );
-
-        assert_eq!(metadata.languages, &[Language::Eng, Language::Vie]);
-        assert!(metadata.genres.is_empty());
-        assert!(metadata.compilation);
 
         assert_eq!(media.property, Property::default(file_type));
     }

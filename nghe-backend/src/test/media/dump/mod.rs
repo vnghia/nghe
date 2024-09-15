@@ -22,9 +22,9 @@ pub trait Metadata {
         config: &config::Parsing,
         metadata: file::Metadata<'_>,
     ) -> &mut Self {
-        let file::Metadata { song, album, artists, track_disc, languages, genres, compilation } =
-            metadata;
-        self.dump_song(config, song)
+        let file::Metadata { song, album, artists } = metadata;
+        let file::Song { main, track_disc, languages, genres, compilation } = song;
+        self.dump_song(config, main)
             .dump_album(config, album)
             .dump_artists(config, artists)
             .dump_track_disc(config, track_disc)
