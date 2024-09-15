@@ -13,8 +13,8 @@ impl<'fs> Impl<'fs> {
         self.main().path()
     }
 
-    pub fn fake_path(&self, level: usize) -> Utf8TypedPathBuf {
-        fake::vec![String; level + 1]
+    pub fn fake_path(&self, depth: usize) -> Utf8TypedPathBuf {
+        fake::vec![String; depth + 1]
             .into_iter()
             .fold(self.path().empty(), |path, component| path.join(component))
     }

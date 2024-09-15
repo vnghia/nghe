@@ -19,6 +19,7 @@ use crate::{config, route};
 #[derive(Debug, Derivative)]
 #[derivative(Default)]
 pub struct Config {
+    #[derivative(Default(value = "config::filesystem::Filesystem::test()"))]
     pub filesystem: config::filesystem::Filesystem,
     #[derivative(Default(value = "config::Parsing::test()"))]
     pub parsing: config::Parsing,
@@ -48,7 +49,7 @@ impl Mock {
     }
 
     pub fn database(&self) -> &Database {
-        self.database.state()
+        self.database.database()
     }
 
     pub async fn get(&self) -> deadpool::Object<AsyncPgConnection> {
@@ -81,7 +82,7 @@ impl Mock {
     }
 
     pub fn filesystem(&self) -> &Filesystem {
-        self.filesystem.state()
+        self.filesystem.filesystem()
     }
 
     pub fn to_impl(&self, filesystem_type: common::filesystem::Type) -> filesystem::Impl<'_> {

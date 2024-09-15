@@ -9,22 +9,22 @@ use crate::filesystem::Filesystem;
 
 #[derive(Debug)]
 pub struct Mock {
-    state: Filesystem,
+    filesystem: Filesystem,
     local: local::Mock,
     s3: s3::Mock,
 }
 
 impl Mock {
     pub async fn new(prefix: Option<&str>, config: &super::Config) -> Self {
-        let state = Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
-        let local = local::Mock::new(state.local());
-        let s3 = s3::Mock::new(prefix, state.s3()).await;
+        let filesystem = Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
+        let local = local::Mock::new(filesystem.local());
+        let s3 = s3::Mock::new(prefix, filesystem.s3()).await;
 
-        Self { state, local, s3 }
+        Self { filesystem, local, s3 }
     }
 
-    pub fn state(&self) -> &Filesystem {
-        &self.state
+    pub fn filesystem(&self) -> &Filesystem {
+        &self.filesystem
     }
 
     pub fn to_impl(&self, filesystem_type: filesystem::Type) -> Impl<'_> {

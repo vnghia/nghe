@@ -9,8 +9,7 @@ use crate::{config, migration};
 pub struct Mock {
     name: String,
     url: String,
-
-    state: Database,
+    database: Database,
 }
 
 impl Mock {
@@ -43,12 +42,12 @@ impl Mock {
         Self {
             name,
             url,
-            state: Database::new(&config::Database { url: mock_url, key: rand::random() }),
+            database: Database::new(&config::Database { url: mock_url, key: rand::random() }),
         }
     }
 
-    pub fn state(&self) -> &Database {
-        &self.state
+    pub fn database(&self) -> &Database {
+        &self.database
     }
 }
 

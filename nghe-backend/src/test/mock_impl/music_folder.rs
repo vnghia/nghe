@@ -44,13 +44,14 @@ impl<'a> Mock<'a> {
     pub async fn add_media(
         &self,
         path: Option<Utf8TypedPath<'_>>,
+        #[builder(default = (0..3).fake::<usize>())] depth: usize,
         #[builder(default = Faker.fake::<file::Type>())] file_type: file::Type,
         #[builder(default = Faker.fake::<file::Media>())] media: file::Media<'_>,
     ) -> &Self {
         let path = if let Some(path) = path {
             self.absolutize(path)
         } else {
-            self.absolutize(self.to_impl().fake_path((0..3).fake()))
+            self.absolutize(self.to_impl().fake_path(depth))
         }
         .with_extension(file_type.as_ref());
 

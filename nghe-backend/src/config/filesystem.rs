@@ -44,3 +44,20 @@ pub struct Filesystem {
     pub tls: Tls,
     pub s3: S3,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    impl S3 {
+        pub fn test() -> Self {
+            Self { enable: true, ..Self::default() }
+        }
+    }
+
+    impl Filesystem {
+        pub fn test() -> Self {
+            Self { s3: S3::test(), ..Self::default() }
+        }
+    }
+}
