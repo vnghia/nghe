@@ -43,3 +43,73 @@ pub struct Metadata<'a> {
     )]
     pub genres: Vec<Cow<'a, str>>,
 }
+
+#[cfg(test)]
+mod test {
+    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+    use diesel_async::RunQueryDsl;
+    use fake::Faker;
+    use rstest::rstest;
+    use uuid::Uuid;
+
+    use super::*;
+    use crate::orm::albums;
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_album_roundtrip(#[future(awt)] mock: Mock) {
+        let album: name_date_mbz::NameDateMbz = Faker.fake();
+        let id: Uuid = diesel::insert_into(albums::table)
+            .values(albums::Upsert {
+                music_folder_id: mock.music_folder(0).await.music_folder.id,
+                data: album.clone().try_into().unwrap(),
+            })
+            .returning(albums::schema::id)
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+        let database_album: name_date_mbz::NameDateMbz = albums::table
+            .filter(albums::schema::id.eq(id))
+            .select(albums::Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap()
+            .try_into()
+            .unwrap();
+        assert_eq!(database_album, album);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_album_update_roundtrip(#[future(awt)] mock: Mock) {
+        let album: name_date_mbz::NameDateMbz = Faker.fake();
+        let id: Uuid = diesel::insert_into(albums::table)
+            .values(albums::Upsert {
+                music_folder_id: mock.music_folder(0).await.music_folder.id,
+                data: album.try_into().unwrap(),
+            })
+            .returning(albums::schema::id)
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+        let album: name_date_mbz::NameDateMbz = Faker.fake();
+        diesel::update(albums::table)
+            .set(albums::Upsert {
+                music_folder_id: mock.music_folder(0).await.music_folder.id,
+                data: album.clone().try_into().unwrap(),
+            })
+            .execute(&mut mock.get().await)
+            .await
+            .unwrap();
+        let database_album: name_date_mbz::NameDateMbz = albums::table
+            .filter(albums::schema::id.eq(id))
+            .select(albums::Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap()
+            .try_into()
+            .unwrap();
+        assert_eq!(database_album, album);
+    }
+}

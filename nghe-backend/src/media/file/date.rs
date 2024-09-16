@@ -5,7 +5,7 @@ use o2o::o2o;
 use time::macros::format_description;
 use time::Month;
 
-use crate::orm::songs;
+use crate::orm::{albums, songs};
 use crate::Error;
 
 type FormatDescription<'a> = &'a [time::format_description::BorrowedFormatItem<'a>];
@@ -22,6 +22,9 @@ const Y_FORMAT: FormatDescription = format_description!("[year]");
 #[try_map_owned(songs::date::Date, Error)]
 #[try_map_owned(songs::date::Release, Error)]
 #[try_map_owned(songs::date::OriginalRelease, Error)]
+#[try_map_owned(albums::date::Date, Error)]
+#[try_map_owned(albums::date::Release, Error)]
+#[try_map_owned(albums::date::OriginalRelease, Error)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Date {
     #[from(~.map(i32::from))]
