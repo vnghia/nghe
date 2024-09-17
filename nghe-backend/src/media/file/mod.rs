@@ -6,7 +6,7 @@ mod name_date_mbz;
 mod position;
 mod property;
 
-use std::io::{Read, Seek};
+use std::io::Cursor;
 
 pub use artist::{Artist, Artists};
 pub use date::Date;
@@ -39,19 +39,28 @@ pub enum Type {
 }
 
 pub enum File {
-    Flac { file_type: Type, file: FlacFile },
+    Flac { file_type: Type, file: FlacFile, data: Vec<u8> },
 }
 
 impl File {
     pub fn read_from(
-        reader: &mut (impl Read + Seek),
+        data: Vec<u8>,
         parse_options: ParseOptions,
         file_type: Type,
     ) -> Result<Self, Error> {
+        let mut reader = Cursor::new(&data);
         match file_type {
-            Type::Flac => {
-                Ok(Self::Flac { file_type, file: FlacFile::read_from(reader, parse_options)? })
-            }
+            Type::Flac => Ok(Self::Flac {
+                file_type,
+                file: FlacFile::read_from(&mut reader, parse_options)?,
+                data,
+            }),
+        }
+    }
+
+    pub fn data(&self) -> &[u8] {
+        match self {
+            File::Flac { data, .. } => data,
         }
     }
 
@@ -103,8 +112,12 @@ mod tests {
 
     #[rstest]
     fn test_media(#[values(Type::Flac)] file_type: Type) {
-        let mut file = std::fs::File::open(assets::path(file_type).as_str()).unwrap();
-        let file = File::read_from(&mut file, ParseOptions::default(), file_type).unwrap();
+        let file = File::read_from(
+            std::fs::read(assets::path(file_type).as_str()).unwrap(),
+            ParseOptions::default(),
+            file_type,
+        )
+        .unwrap();
 
         let config = config::Parsing::test();
         let media = file.media(&config).unwrap();
