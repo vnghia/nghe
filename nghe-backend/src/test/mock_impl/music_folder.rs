@@ -9,7 +9,7 @@ use crate::file::audio;
 use crate::filesystem::Trait as _;
 use crate::orm::music_folders;
 use crate::test::assets;
-use crate::test::file::dump::Metadata as _;
+use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::{self, Trait as _};
 
 pub struct Mock<'a> {

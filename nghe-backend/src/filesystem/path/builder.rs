@@ -4,7 +4,7 @@ use nghe_api::common::filesystem;
 use typed_path::{PathType, Utf8TypedPath, Utf8TypedPathBuf, Utf8UnixPathBuf, Utf8WindowsPathBuf};
 
 #[derive(Debug, Clone, Copy)]
-pub struct Const<const ty: filesystem::Type>;
+pub struct Const<const TYPE: filesystem::Type>;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Builder(pub filesystem::Type);
@@ -45,13 +45,13 @@ macro_rules! builder_empty {
     };
 }
 
-impl<const ty: filesystem::Type> Const<ty> {
+impl<const TYPE: filesystem::Type> Const<TYPE> {
     pub fn from_str(value: &(impl AsRef<str> + ?Sized)) -> Utf8TypedPath<'_> {
-        builder_from_str!(ty, value)
+        builder_from_str!(TYPE, value)
     }
 
     pub fn from_string(value: impl Into<String>) -> Utf8TypedPathBuf {
-        builder_from_string!(ty, value)
+        builder_from_string!(TYPE, value)
     }
 }
 
