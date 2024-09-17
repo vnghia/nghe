@@ -38,7 +38,7 @@ async fn authenticate(
     data: Auth<'_, '_>,
 ) -> Result<(Uuid, users::Role), Error> {
     let users::Auth { id, password, role } = users::table
-        .filter(users::schema::username.eq(data.username))
+        .filter(users::username.eq(data.username))
         .select(users::Auth::as_select())
         .first(&mut database.get().await?)
         .await

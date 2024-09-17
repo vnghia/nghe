@@ -24,7 +24,7 @@ impl<'a> Mock<'a> {
             mock,
             music_folder: music_folders::table
                 .select(music_folders::MusicFolder::as_select())
-                .order_by(music_folders::schema::created_at)
+                .order_by(music_folders::created_at)
                 .offset(index.try_into().unwrap())
                 .first(&mut mock.get().await)
                 .await
