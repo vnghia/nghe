@@ -183,10 +183,10 @@ mod tests {
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
-        #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] ty: filesystem::Type,
         #[values(Format::Flac)] format: Format,
     ) {
-        mock.add_music_folder().ty(filesystem_type).call().await;
+        mock.add_music_folder().ty(ty).call().await;
         let music_folder = mock.music_folder(0).await;
         let audio: Audio = Faker.fake();
         let roundtrip_file = music_folder
