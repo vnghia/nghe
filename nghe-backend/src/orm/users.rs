@@ -4,13 +4,7 @@ use diesel::prelude::*;
 use o2o::o2o;
 use uuid::Uuid;
 
-use crate::schema::users;
-
-pub mod schema {
-    pub use super::users::*;
-}
-
-pub use schema::table;
+pub use crate::schema::users::{self, *};
 
 #[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable, o2o)]
 #[diesel(table_name = users, check_for_backend(super::Type))]

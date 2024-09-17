@@ -28,7 +28,7 @@ impl<'a> Mock<'a> {
             mock,
             user: users::table
                 .select(users::User::as_select())
-                .order_by(users::schema::created_at)
+                .order_by(users::created_at)
                 .offset(index.try_into().unwrap())
                 .first(&mut mock.get().await)
                 .await

@@ -22,27 +22,26 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
                 .await?;
         } else {
             let new = music_folders::table
-                .select((user_id.into_sql::<sql_types::Uuid>(), music_folders::schema::id));
+                .select((user_id.into_sql::<sql_types::Uuid>(), music_folders::id));
 
             diesel::insert_into(user_music_folder_permissions::table)
                 .values(new)
                 .into_columns((
-                    user_music_folder_permissions::schema::user_id,
-                    user_music_folder_permissions::schema::music_folder_id,
+                    user_music_folder_permissions::user_id,
+                    user_music_folder_permissions::music_folder_id,
                 ))
                 .on_conflict_do_nothing()
                 .execute(&mut database.get().await?)
                 .await?;
         }
     } else if let Some(music_folder_id) = music_folder_id {
-        let new =
-            users::table.select((users::schema::id, music_folder_id.into_sql::<sql_types::Uuid>()));
+        let new = users::table.select((users::id, music_folder_id.into_sql::<sql_types::Uuid>()));
 
         diesel::insert_into(user_music_folder_permissions::table)
             .values(new)
             .into_columns((
-                user_music_folder_permissions::schema::user_id,
-                user_music_folder_permissions::schema::music_folder_id,
+                user_music_folder_permissions::user_id,
+                user_music_folder_permissions::music_folder_id,
             ))
             .on_conflict_do_nothing()
             .execute(&mut database.get().await?)
@@ -50,13 +49,13 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
     } else if cfg!(test) {
         let new = users::table
             .inner_join(music_folders::table.on(true.into_sql::<sql_types::Bool>()))
-            .select((users::schema::id, music_folders::schema::id));
+            .select((users::id, music_folders::id));
 
         diesel::insert_into(user_music_folder_permissions::table)
             .values(new)
             .into_columns((
-                user_music_folder_permissions::schema::user_id,
-                user_music_folder_permissions::schema::music_folder_id,
+                user_music_folder_permissions::user_id,
+                user_music_folder_permissions::music_folder_id,
             ))
             .on_conflict_do_nothing()
             .execute(&mut database.get().await?)
