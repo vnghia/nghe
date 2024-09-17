@@ -4,7 +4,7 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 
 use super::{Metadata, Property};
-use crate::media::audio::{self, Artists, NameDateMbz, TrackDisc};
+use crate::file::audio::{self, Artists, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl<'a> Metadata<'a> for FlacFile {

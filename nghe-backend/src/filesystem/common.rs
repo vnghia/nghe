@@ -77,8 +77,8 @@ mod tests {
     use tokio_stream::wrappers::ReceiverStream;
 
     use super::Trait as _;
+    use crate::file::audio;
     use crate::filesystem::{entry, Entry};
-    use crate::media::audio;
     use crate::test::filesystem::Trait as _;
     use crate::test::{mock, Mock};
 

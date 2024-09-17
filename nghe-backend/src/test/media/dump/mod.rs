@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use isolang::Language;
 
 use crate::config;
-use crate::media::audio::{self, Artists, File, NameDateMbz, TrackDisc};
+use crate::file::audio::{self, Artists, File, NameDateMbz, TrackDisc};
 
 pub trait Metadata {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self;
