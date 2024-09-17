@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::config;
 use crate::file::audio::position::Position;
 use crate::file::audio::{Artist, Artists, Date, NameDateMbz, TrackDisc};
-use crate::test::media::dump;
+use crate::test::file::dump;
 
 impl Date {
     fn dump_vorbis_comments(self, tag: &mut VorbisComments, key: &Option<String>) {
