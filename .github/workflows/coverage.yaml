@@ -38,7 +38,7 @@ jobs:
         ports:
           - 5432:5432
       s3:
-        image: bitnami/minio:2024.9.9
+        image: bitnami/minio:2024.9.13
         env:
           MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
           MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
