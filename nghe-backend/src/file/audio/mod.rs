@@ -34,21 +34,27 @@ pub struct Audio<'a> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumString, AsRefStr)]
 #[strum(serialize_all = "snake_case")]
 #[cfg_attr(test, derive(fake::Dummy))]
-pub enum Type {
+pub enum Format {
     Flac,
 }
 
 pub enum File {
-    Flac { ty: Type, file: FlacFile, data: Vec<u8> },
+    Flac { format: Format, file: FlacFile, data: Vec<u8> },
 }
 
 impl File {
-    pub fn read_from(data: Vec<u8>, parse_options: ParseOptions, ty: Type) -> Result<Self, Error> {
+    pub fn read_from(
+        data: Vec<u8>,
+        parse_options: ParseOptions,
+        format: Format,
+    ) -> Result<Self, Error> {
         let mut reader = Cursor::new(&data);
-        match ty {
-            Type::Flac => {
-                Ok(Self::Flac { ty, file: FlacFile::read_from(&mut reader, parse_options)?, data })
-            }
+        match format {
+            Format::Flac => Ok(Self::Flac {
+                format,
+                file: FlacFile::read_from(&mut reader, parse_options)?,
+                data,
+            }),
         }
     }
 
@@ -106,11 +112,11 @@ mod tests {
     use crate::test::{assets, mock, Mock};
 
     #[rstest]
-    fn test_media(#[values(Type::Flac)] ty: Type) {
+    fn test_media(#[values(Format::Flac)] format: Format) {
         let file = File::read_from(
-            std::fs::read(assets::path(ty).as_str()).unwrap(),
+            std::fs::read(assets::path(format).as_str()).unwrap(),
             ParseOptions::default(),
-            ty,
+            format,
         )
         .unwrap();
 
@@ -168,7 +174,7 @@ mod tests {
 
         assert!(metadata.genres.is_empty());
 
-        assert_eq!(media.property, Property::default(ty));
+        assert_eq!(media.property, Property::default(format));
     }
 
     #[rstest]
@@ -178,21 +184,21 @@ mod tests {
         #[with(0, 0)]
         mock: Mock,
         #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
-        #[values(Type::Flac)] file_type: Type,
+        #[values(Format::Flac)] format: Format,
     ) {
         mock.add_music_folder().ty(filesystem_type).call().await;
         let music_folder = mock.music_folder(0).await;
-        let media: Audio = Faker.fake();
+        let audio: Audio = Faker.fake();
         let roundtrip_file = music_folder
             .add_audio()
             .path("test".into())
-            .ty(file_type)
-            .media(media.clone())
+            .format(format)
+            .audio(audio.clone())
             .call()
             .await
-            .file("test".into(), file_type)
+            .file("test".into(), format)
             .await;
         let roundtrip_media = roundtrip_file.audio(&mock.config.parsing).unwrap();
-        assert_eq!(roundtrip_media.metadata.artists.song, media.metadata.artists.song);
+        assert_eq!(roundtrip_media.metadata.artists.song, audio.metadata.artists.song);
     }
 }
