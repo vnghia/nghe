@@ -55,10 +55,10 @@ impl<'a> Mock<'a> {
         }
         .with_extension(file_type.as_ref());
 
-        let mut asset =
-            Cursor::new(tokio::fs::read(assets::path(file_type).as_str()).await.unwrap());
+        let data = tokio::fs::read(assets::path(file_type).as_str()).await.unwrap();
+        let mut asset = Cursor::new(data.clone());
         let mut file =
-            file::File::read_from(&mut asset, self.mock.config.lofty_parse, file_type).unwrap();
+            file::File::read_from(data, self.mock.config.lofty_parse, file_type).unwrap();
         asset.set_position(0);
 
         file.clear()
@@ -74,7 +74,11 @@ impl<'a> Mock<'a> {
 
     pub async fn file(&self, path: Utf8TypedPath<'_>, file_type: file::Type) -> file::File {
         let path = self.absolutize(path).with_extension(file_type.as_ref());
-        let mut data = Cursor::new(self.to_impl().read(path.to_path()).await.unwrap());
-        file::File::read_from(&mut data, self.mock.config.lofty_parse, file_type).unwrap()
+        file::File::read_from(
+            self.to_impl().read(path.to_path()).await.unwrap(),
+            self.mock.config.lofty_parse,
+            file_type,
+        )
+        .unwrap()
     }
 }
