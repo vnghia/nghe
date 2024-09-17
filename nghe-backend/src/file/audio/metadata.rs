@@ -20,8 +20,12 @@ pub struct Song<'a> {
     pub main: name_date_mbz::NameDateMbz<'a>,
     #[map(~.try_into()?)]
     pub track_disc: position::TrackDisc,
-    #[from(~.into_iter().map(|language| Language::from_str(language.as_ref())).try_collect()?)]
-    #[into(~.into_iter().map(|language| language.to_639_3().into()).collect())]
+    #[from(~.into_iter().map(
+        |language|Language::from_str(language.ok_or_else(
+            || Error::LanguageFromDatabaseIsNull)?.as_ref()
+        ).map_err(Error::from)
+    ).try_collect()?)]
+    #[into(~.into_iter().map(|language| Some(language.to_639_3().into())).collect())]
     #[cfg_attr(
         test,
         dummy(expr = "((0..=7915), \
