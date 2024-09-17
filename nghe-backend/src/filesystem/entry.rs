@@ -1,7 +1,7 @@
 use time::OffsetDateTime;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::media::file;
+use crate::media::audio;
 use crate::Error;
 
 pub trait Metadata {
@@ -13,7 +13,7 @@ pub trait Metadata {
 #[cfg_attr(test, derive(derivative::Derivative))]
 #[cfg_attr(test, derivative(PartialEq, Eq, PartialOrd, Ord))]
 pub struct Entry {
-    pub ty: file::Type,
+    pub ty: audio::Type,
     pub relative_path: Utf8TypedPathBuf,
     pub size: usize,
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
@@ -37,7 +37,7 @@ impl Sender {
         let size = metadata.size()?;
         if size > self.minimum_size
             && let Some(extension) = path.extension()
-            && let Ok(ty) = file::Type::try_from(extension)
+            && let Ok(ty) = audio::Type::try_from(extension)
         {
             let relative_path = path.strip_prefix(prefix)?.to_path_buf();
             self.tx
