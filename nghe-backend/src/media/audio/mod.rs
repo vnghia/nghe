@@ -25,7 +25,7 @@ use crate::{config, Error};
 #[derive(Debug)]
 #[cfg_attr(test, derive(derivative::Derivative, fake::Dummy, Clone))]
 #[cfg_attr(test, derivative(PartialEq))]
-pub struct Media<'a> {
+pub struct Audio<'a> {
     pub metadata: Metadata<'a>,
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     pub property: Property,
@@ -58,8 +58,8 @@ impl File {
         }
     }
 
-    pub fn media<'a>(&'a self, config: &'a config::Parsing) -> Result<Media<'a>, Error> {
-        Ok(Media { metadata: self.metadata(config)?, property: self.property()? })
+    pub fn audio<'a>(&'a self, config: &'a config::Parsing) -> Result<Audio<'a>, Error> {
+        Ok(Audio { metadata: self.metadata(config)?, property: self.property()? })
     }
 }
 
@@ -115,7 +115,7 @@ mod tests {
         .unwrap();
 
         let config = config::Parsing::test();
-        let media = file.media(&config).unwrap();
+        let media = file.audio(&config).unwrap();
         let metadata = media.metadata;
 
         let song = metadata.song;
@@ -182,9 +182,9 @@ mod tests {
     ) {
         mock.add_music_folder().ty(filesystem_type).call().await;
         let music_folder = mock.music_folder(0).await;
-        let media: Media = Faker.fake();
+        let media: Audio = Faker.fake();
         let roundtrip_file = music_folder
-            .add_media()
+            .add_audio()
             .path("test".into())
             .ty(file_type)
             .media(media.clone())
@@ -192,7 +192,7 @@ mod tests {
             .await
             .file("test".into(), file_type)
             .await;
-        let roundtrip_media = roundtrip_file.media(&mock.config.parsing).unwrap();
+        let roundtrip_media = roundtrip_file.audio(&mock.config.parsing).unwrap();
         assert_eq!(roundtrip_media.metadata.artists.song, media.metadata.artists.song);
     }
 }

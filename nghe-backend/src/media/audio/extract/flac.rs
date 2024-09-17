@@ -4,7 +4,7 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 
 use super::{Metadata, Property};
-use crate::media::file::{self, Artists, NameDateMbz, TrackDisc};
+use crate::media::audio::{self, Artists, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl<'a> Metadata<'a> for FlacFile {
@@ -34,9 +34,9 @@ impl<'a> Metadata<'a> for FlacFile {
 }
 
 impl Property for FlacFile {
-    fn property(&self) -> Result<file::Property, Error> {
+    fn property(&self) -> Result<audio::Property, Error> {
         let properties = self.properties();
-        Ok(file::Property {
+        Ok(audio::Property {
             duration: properties.duration().as_secs_f32(),
             bitrate: properties.audio_bitrate(),
             bit_depth: Some(properties.bit_depth()),

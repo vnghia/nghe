@@ -6,7 +6,7 @@ use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::filesystem::Trait as _;
-use crate::media::file;
+use crate::media::audio;
 use crate::orm::music_folders;
 use crate::test::assets;
 use crate::test::filesystem::{self, Trait as _};
@@ -41,12 +41,12 @@ impl<'a> Mock<'a> {
     }
 
     #[builder]
-    pub async fn add_media(
+    pub async fn add_audio(
         &self,
         path: Option<Utf8TypedPath<'_>>,
         #[builder(default = (0..3).fake::<usize>())] depth: usize,
-        #[builder(default = Faker.fake::<file::Type>())] ty: file::Type,
-        #[builder(default = Faker.fake::<file::Media>())] media: file::Media<'_>,
+        #[builder(default = Faker.fake::<audio::Type>())] ty: audio::Type,
+        #[builder(default = Faker.fake::<audio::Audio>())] media: audio::Audio<'_>,
     ) -> &Self {
         let path = if let Some(path) = path {
             self.absolutize(path)
@@ -57,7 +57,7 @@ impl<'a> Mock<'a> {
 
         let data = tokio::fs::read(assets::path(ty).as_str()).await.unwrap();
         let mut asset = Cursor::new(data.clone());
-        let mut file = file::File::read_from(data, self.mock.config.lofty_parse, ty).unwrap();
+        let mut file = audio::File::read_from(data, self.mock.config.lofty_parse, ty).unwrap();
         asset.set_position(0);
 
         file.clear()
@@ -71,9 +71,9 @@ impl<'a> Mock<'a> {
         self
     }
 
-    pub async fn file(&self, path: Utf8TypedPath<'_>, ty: file::Type) -> file::File {
+    pub async fn file(&self, path: Utf8TypedPath<'_>, ty: audio::Type) -> audio::File {
         let path = self.absolutize(path).with_extension(ty.as_ref());
-        file::File::read_from(
+        audio::File::read_from(
             self.to_impl().read(path.to_path()).await.unwrap(),
             self.mock.config.lofty_parse,
             ty,

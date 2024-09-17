@@ -78,7 +78,7 @@ mod tests {
 
     use super::Trait as _;
     use crate::filesystem::{entry, Entry};
-    use crate::media::file;
+    use crate::media::audio;
     use crate::test::filesystem::Trait as _;
     use crate::test::{mock, Mock};
 
@@ -143,20 +143,20 @@ mod tests {
         for _ in 0..n_dir {
             let relative_path = filesystem
                 .fake_path((0..3).fake())
-                .with_extension(Faker.fake::<file::Type>().as_ref());
+                .with_extension(Faker.fake::<audio::Type>().as_ref());
             filesystem.create_dir(relative_path.to_path()).await;
         }
 
         for _ in 0..n_smaller {
             let relative_path = filesystem
                 .fake_path((0..3).fake())
-                .with_extension(Faker.fake::<file::Type>().as_ref());
+                .with_extension(Faker.fake::<audio::Type>().as_ref());
             let content = fake::vec![u8; 0..minimum_size];
             filesystem.write(relative_path.to_path(), &content).await;
         }
 
         for _ in 0..n_larger {
-            let ty: file::Type = Faker.fake();
+            let ty: audio::Type = Faker.fake();
             let relative_path = filesystem.fake_path((0..3).fake()).with_extension(ty.as_ref());
 
             let size = ((minimum_size + 1)..(2 * minimum_size)).fake();
