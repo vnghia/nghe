@@ -39,7 +39,7 @@ pub async fn handler(
     filesystem: &Filesystem,
     request: Request,
 ) -> Result<Response, Error> {
-    handler_impl(database, filesystem.to_impl(request.filesystem_type)?, request).await
+    handler_impl(database, filesystem.to_impl(request.ty)?, request).await
 }
 
 #[cfg(test)]
@@ -55,8 +55,8 @@ mod tests {
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
-        #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] ty: filesystem::Type,
     ) {
-        mock.add_music_folder().filesystem_type(filesystem_type).call().await;
+        mock.add_music_folder().ty(ty).call().await;
     }
 }

@@ -13,7 +13,7 @@ pub trait Metadata {
 #[cfg_attr(test, derive(derivative::Derivative))]
 #[cfg_attr(test, derivative(PartialEq, Eq, PartialOrd, Ord))]
 pub struct Entry {
-    pub file_type: file::Type,
+    pub ty: file::Type,
     pub relative_path: Utf8TypedPathBuf,
     pub size: usize,
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
@@ -37,16 +37,11 @@ impl Sender {
         let size = metadata.size()?;
         if size > self.minimum_size
             && let Some(extension) = path.extension()
-            && let Ok(file_type) = file::Type::try_from(extension)
+            && let Ok(ty) = file::Type::try_from(extension)
         {
             let relative_path = path.strip_prefix(prefix)?.to_path_buf();
             self.tx
-                .send(Entry {
-                    file_type,
-                    relative_path,
-                    size,
-                    last_modified: metadata.last_modified()?,
-                })
+                .send(Entry { ty, relative_path, size, last_modified: metadata.last_modified()? })
                 .await?;
         }
         Ok(())

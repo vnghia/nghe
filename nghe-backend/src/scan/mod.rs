@@ -42,9 +42,9 @@ impl<'db, 'fs> Scan<'db, 'fs> {
         music_folder: music_folders::MusicFolder,
     ) -> Result<Self, Error> {
         let music_folders::MusicFolder { id, data } = music_folder;
-        let music_folders::Data { path, filesystem_type } = data;
+        let music_folders::Data { path, ty } = data;
 
-        let filesystem = filesystem.to_impl(filesystem_type.into())?;
+        let filesystem = filesystem.to_impl(ty.into())?;
         let path = filesystem.path().from_string(path.into_owned());
         Ok(Self { database: Cow::Borrowed(database), filesystem, id, path })
     }

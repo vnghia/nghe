@@ -37,7 +37,7 @@ impl<'a> Mock<'a> {
     }
 
     pub fn to_impl(&self) -> filesystem::Impl<'_> {
-        self.mock.to_impl(self.music_folder.data.filesystem_type.into())
+        self.mock.to_impl(self.music_folder.data.ty.into())
     }
 
     #[builder]
@@ -45,7 +45,7 @@ impl<'a> Mock<'a> {
         &self,
         path: Option<Utf8TypedPath<'_>>,
         #[builder(default = (0..3).fake::<usize>())] depth: usize,
-        #[builder(default = Faker.fake::<file::Type>())] file_type: file::Type,
+        #[builder(default = Faker.fake::<file::Type>())] ty: file::Type,
         #[builder(default = Faker.fake::<file::Media>())] media: file::Media<'_>,
     ) -> &Self {
         let path = if let Some(path) = path {
@@ -53,12 +53,11 @@ impl<'a> Mock<'a> {
         } else {
             self.absolutize(self.to_impl().fake_path(depth))
         }
-        .with_extension(file_type.as_ref());
+        .with_extension(ty.as_ref());
 
-        let data = tokio::fs::read(assets::path(file_type).as_str()).await.unwrap();
+        let data = tokio::fs::read(assets::path(ty).as_str()).await.unwrap();
         let mut asset = Cursor::new(data.clone());
-        let mut file =
-            file::File::read_from(data, self.mock.config.lofty_parse, file_type).unwrap();
+        let mut file = file::File::read_from(data, self.mock.config.lofty_parse, ty).unwrap();
         asset.set_position(0);
 
         file.clear()
@@ -72,12 +71,12 @@ impl<'a> Mock<'a> {
         self
     }
 
-    pub async fn file(&self, path: Utf8TypedPath<'_>, file_type: file::Type) -> file::File {
-        let path = self.absolutize(path).with_extension(file_type.as_ref());
+    pub async fn file(&self, path: Utf8TypedPath<'_>, ty: file::Type) -> file::File {
+        let path = self.absolutize(path).with_extension(ty.as_ref());
         file::File::read_from(
             self.to_impl().read(path.to_path()).await.unwrap(),
             self.mock.config.lofty_parse,
-            file_type,
+            ty,
         )
         .unwrap()
     }

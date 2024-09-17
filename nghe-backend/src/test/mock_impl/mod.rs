@@ -85,23 +85,22 @@ impl Mock {
         self.filesystem.filesystem()
     }
 
-    pub fn to_impl(&self, filesystem_type: common::filesystem::Type) -> filesystem::Impl<'_> {
-        self.filesystem.to_impl(filesystem_type)
+    pub fn to_impl(&self, ty: common::filesystem::Type) -> filesystem::Impl<'_> {
+        self.filesystem.to_impl(ty)
     }
 
     #[builder]
     pub async fn add_music_folder(
         &self,
-        #[builder(default = Faker.fake::<common::filesystem::Type>())]
-        filesystem_type: common::filesystem::Type,
+        #[builder(default = Faker.fake::<common::filesystem::Type>())] ty: common::filesystem::Type,
         #[builder(default = true)] allow: bool,
     ) -> &Self {
-        let filesystem = self.to_impl(filesystem_type);
+        let filesystem = self.to_impl(ty);
         route::music_folder::add::handler(
             self.database(),
             self.filesystem(),
             route::music_folder::add::Request {
-                filesystem_type,
+                ty,
                 allow,
                 path: filesystem
                     .create_dir(Faker.fake::<String>().as_str().into())
@@ -132,10 +131,7 @@ pub async fn mock(
         mock.add_user().call().await;
     }
     for _ in 0..n_music_folder {
-        mock.add_music_folder()
-            .filesystem_type(Faker.fake::<common::filesystem::Type>())
-            .call()
-            .await;
+        mock.add_music_folder().ty(Faker.fake::<common::filesystem::Type>()).call().await;
     }
     mock
 }

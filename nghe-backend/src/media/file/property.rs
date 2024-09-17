@@ -16,8 +16,8 @@ mod test {
     use crate::media::file;
 
     impl Property {
-        pub fn default(file_type: file::Type) -> Self {
-            match file_type {
+        pub fn default(ty: file::Type) -> Self {
+            match ty {
                 file::Type::Flac => Self {
                     duration: 0f32,
                     bitrate: 585,

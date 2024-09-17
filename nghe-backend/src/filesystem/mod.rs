@@ -26,8 +26,8 @@ impl Filesystem {
         Self { local, s3 }
     }
 
-    pub fn to_impl(&self, filesystem_type: filesystem::Type) -> Result<Impl<'_>, Error> {
-        Ok(match filesystem_type {
+    pub fn to_impl(&self, ty: filesystem::Type) -> Result<Impl<'_>, Error> {
+        Ok(match ty {
             filesystem::Type::Local => Impl::Local(Cow::Borrowed(&self.local)),
             filesystem::Type::S3 => Impl::S3(Cow::Borrowed(
                 self.s3.as_ref().ok_or_eyre("S3 filesystem is not enabled")?,

@@ -28,7 +28,7 @@ pub enum FilesystemType {
 pub struct Data<'a> {
     pub path: Cow<'a, str>,
     #[diesel(column_name = fs_type)]
-    pub filesystem_type: FilesystemType,
+    pub ty: FilesystemType,
 }
 
 #[derive(Debug, Queryable, Selectable, Identifiable)]
@@ -49,7 +49,7 @@ pub struct Upsert<'a> {
     pub path: Option<Cow<'a, str>>,
     #[from(AddRequest| Some(~.into()))]
     #[diesel(column_name = fs_type)]
-    pub filesystem_type: Option<FilesystemType>,
+    pub ty: Option<FilesystemType>,
 }
 
 impl ToSql<Int2, super::Type> for FilesystemType {
