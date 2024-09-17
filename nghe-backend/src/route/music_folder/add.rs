@@ -18,7 +18,7 @@ async fn handler_impl<'fs>(
 
     let music_folder_id = diesel::insert_into(music_folders::table)
         .values(music_folders::Upsert::from(&request))
-        .returning(music_folders::schema::id)
+        .returning(music_folders::id)
         .get_result::<Uuid>(&mut database.get().await?)
         .await?;
 

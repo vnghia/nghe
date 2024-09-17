@@ -6,13 +6,7 @@ pub mod date;
 
 use std::borrow::Cow;
 
-use crate::schema::albums;
-
-pub mod schema {
-    pub use super::albums::*;
-}
-
-pub use schema::table;
+pub use crate::schema::albums::{self, *};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]

@@ -29,7 +29,7 @@ impl<'db, 'fs> Scan<'db, 'fs> {
             database,
             filesystem,
             music_folders::table
-                .filter(music_folders::schema::id.eq(id))
+                .filter(music_folders::id.eq(id))
                 .select(music_folders::MusicFolder::as_select())
                 .get_result(&mut database.get().await?)
                 .await?,

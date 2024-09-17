@@ -12,13 +12,7 @@ use o2o::o2o;
 use strum::FromRepr;
 use uuid::Uuid;
 
-use crate::schema::music_folders;
-
-pub mod schema {
-    pub use super::music_folders::*;
-}
-
-pub use schema::table;
+pub use crate::schema::music_folders::{self, *};
 
 #[repr(i16)]
 #[derive(Debug, Clone, Copy, FromRepr, AsExpression, FromSqlRow, PartialEq, Eq, o2o)]

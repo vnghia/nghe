@@ -7,13 +7,7 @@ pub mod position;
 
 use std::borrow::Cow;
 
-use crate::schema::songs;
-
-pub mod schema {
-    pub use super::songs::*;
-}
-
-pub use schema::table;
+pub use crate::schema::songs::{self, *};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]

@@ -19,7 +19,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
             email: email.into(),
             role: role.into(),
         })
-        .returning(users::schema::id)
+        .returning(users::id)
         .get_result(&mut database.get().await?)
         .await?;
 

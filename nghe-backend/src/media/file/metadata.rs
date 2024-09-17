@@ -65,12 +65,12 @@ mod test {
                 music_folder_id: mock.music_folder(0).await.music_folder.id,
                 data: album.clone().try_into().unwrap(),
             })
-            .returning(albums::schema::id)
+            .returning(albums::id)
             .get_result(&mut mock.get().await)
             .await
             .unwrap();
         let database_album: name_date_mbz::NameDateMbz = albums::table
-            .filter(albums::schema::id.eq(id))
+            .filter(albums::id.eq(id))
             .select(albums::Data::as_select())
             .get_result(&mut mock.get().await)
             .await
@@ -89,7 +89,7 @@ mod test {
                 music_folder_id: mock.music_folder(0).await.music_folder.id,
                 data: album.try_into().unwrap(),
             })
-            .returning(albums::schema::id)
+            .returning(albums::id)
             .get_result(&mut mock.get().await)
             .await
             .unwrap();
@@ -103,7 +103,7 @@ mod test {
             .await
             .unwrap();
         let database_album: name_date_mbz::NameDateMbz = albums::table
-            .filter(albums::schema::id.eq(id))
+            .filter(albums::id.eq(id))
             .select(albums::Data::as_select())
             .get_result(&mut mock.get().await)
             .await
