@@ -27,6 +27,8 @@ pub enum Error {
     CheckoutConnectionPool,
     #[error("Could not decrypt value from database")]
     DecryptDatabaseValue,
+    #[error("Language from database should not be null")]
+    LanguageFromDatabaseIsNull,
 
     #[error("{0}")]
     Unauthorized(&'static str),

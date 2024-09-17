@@ -10,6 +10,8 @@ use std::io::Cursor;
 
 pub use artist::{Artist, Artists};
 pub use date::Date;
+use diesel::sql_types::Text;
+use diesel::{AsExpression, FromSqlRow};
 use extract::{Metadata as _, Property as _};
 use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
@@ -19,6 +21,7 @@ pub use name_date_mbz::NameDateMbz;
 pub use position::TrackDisc;
 pub use property::Property;
 use strum::{AsRefStr, EnumString};
+use xxhash_rust::xxh3::xxh3_64;
 
 use crate::{config, Error};
 
@@ -29,9 +32,23 @@ pub struct Audio<'a> {
     pub metadata: Metadata<'a>,
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     pub property: Property,
+    pub file: super::property::File<Format>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumString, AsRefStr)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    EnumString,
+    AsRefStr,
+    AsExpression,
+    FromSqlRow,
+)]
+#[diesel(sql_type = Text)]
 #[strum(serialize_all = "snake_case")]
 #[cfg_attr(test, derive(fake::Dummy))]
 pub enum Format {
@@ -58,14 +75,23 @@ impl File {
         }
     }
 
-    pub fn data(&self) -> &[u8] {
+    fn data_format(&self) -> (&[u8], Format) {
         match self {
-            File::Flac { data, .. } => data,
+            File::Flac { data, format, .. } => (data, *format),
         }
     }
 
+    pub fn file_property(&self) -> Result<super::property::File<Format>, Error> {
+        let (data, format) = self.data_format();
+        Ok(super::property::File { hash: xxh3_64(data), size: data.len().try_into()?, format })
+    }
+
     pub fn audio<'a>(&'a self, config: &'a config::Parsing) -> Result<Audio<'a>, Error> {
-        Ok(Audio { metadata: self.metadata(config)?, property: self.property()? })
+        Ok(Audio {
+            metadata: self.metadata(config)?,
+            property: self.property()?,
+            file: self.file_property()?,
+        })
     }
 }
 
