@@ -39,22 +39,16 @@ pub enum Type {
 }
 
 pub enum File {
-    Flac { file_type: Type, file: FlacFile, data: Vec<u8> },
+    Flac { ty: Type, file: FlacFile, data: Vec<u8> },
 }
 
 impl File {
-    pub fn read_from(
-        data: Vec<u8>,
-        parse_options: ParseOptions,
-        file_type: Type,
-    ) -> Result<Self, Error> {
+    pub fn read_from(data: Vec<u8>, parse_options: ParseOptions, ty: Type) -> Result<Self, Error> {
         let mut reader = Cursor::new(&data);
-        match file_type {
-            Type::Flac => Ok(Self::Flac {
-                file_type,
-                file: FlacFile::read_from(&mut reader, parse_options)?,
-                data,
-            }),
+        match ty {
+            Type::Flac => {
+                Ok(Self::Flac { ty, file: FlacFile::read_from(&mut reader, parse_options)?, data })
+            }
         }
     }
 
@@ -112,11 +106,11 @@ mod tests {
     use crate::test::{assets, mock, Mock};
 
     #[rstest]
-    fn test_media(#[values(Type::Flac)] file_type: Type) {
+    fn test_media(#[values(Type::Flac)] ty: Type) {
         let file = File::read_from(
-            std::fs::read(assets::path(file_type).as_str()).unwrap(),
+            std::fs::read(assets::path(ty).as_str()).unwrap(),
             ParseOptions::default(),
-            file_type,
+            ty,
         )
         .unwrap();
 
@@ -174,7 +168,7 @@ mod tests {
 
         assert!(metadata.genres.is_empty());
 
-        assert_eq!(media.property, Property::default(file_type));
+        assert_eq!(media.property, Property::default(ty));
     }
 
     #[rstest]
@@ -186,13 +180,13 @@ mod tests {
         #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
         #[values(Type::Flac)] file_type: Type,
     ) {
-        mock.add_music_folder().filesystem_type(filesystem_type).call().await;
+        mock.add_music_folder().ty(filesystem_type).call().await;
         let music_folder = mock.music_folder(0).await;
         let media: Media = Faker.fake();
         let roundtrip_file = music_folder
             .add_media()
             .path("test".into())
-            .file_type(file_type)
+            .ty(file_type)
             .media(media.clone())
             .call()
             .await

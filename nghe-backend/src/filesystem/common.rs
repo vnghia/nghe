@@ -100,11 +100,11 @@ mod tests {
         #[future(awt)]
         #[with(0, 0, Some("nghe-backend-test-check-folder-bucket"))]
         mock: Mock,
-        #[case] filesystem_type: filesystem::Type,
+        #[case] ty: filesystem::Type,
         #[case] path: &str,
         #[case] is_ok: bool,
     ) {
-        let filesystem = mock.to_impl(filesystem_type);
+        let filesystem = mock.to_impl(ty);
         assert_eq!(filesystem.check_folder(path.into()).await.is_ok(), is_ok);
     }
 
@@ -116,14 +116,14 @@ mod tests {
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
-        #[values(filesystem::Type::Local, filesystem::Type::S3)] filesystem_type: filesystem::Type,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] ty: filesystem::Type,
         #[case] minimum_size: usize,
         #[case] n_txt: usize,
         #[case] n_dir: usize,
         #[case] n_smaller: usize,
         #[case] n_larger: usize,
     ) {
-        let filesystem = mock.to_impl(filesystem_type);
+        let filesystem = mock.to_impl(ty);
         let prefix = filesystem.prefix().to_path_buf();
         let main_filesystem = filesystem.main().into_owned();
 
@@ -156,14 +156,13 @@ mod tests {
         }
 
         for _ in 0..n_larger {
-            let file_type: file::Type = Faker.fake();
-            let relative_path =
-                filesystem.fake_path((0..3).fake()).with_extension(file_type.as_ref());
+            let ty: file::Type = Faker.fake();
+            let relative_path = filesystem.fake_path((0..3).fake()).with_extension(ty.as_ref());
 
             let size = ((minimum_size + 1)..(2 * minimum_size)).fake();
             let content = fake::vec![u8; size];
             filesystem.write(relative_path.to_path(), &content).await;
-            entries.push(Entry { file_type, relative_path, size, last_modified: None });
+            entries.push(Entry { ty, relative_path, size, last_modified: None });
         }
 
         let (tx, rx) = tokio::sync::mpsc::channel(mock.config.filesystem.scan.channel_size);

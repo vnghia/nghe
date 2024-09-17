@@ -8,7 +8,7 @@ use crate::common::filesystem;
 pub struct Request {
     pub name: String,
     pub path: String,
-    pub filesystem_type: filesystem::Type,
+    pub ty: filesystem::Type,
     pub allow: bool,
 }
 
