@@ -5,7 +5,8 @@ use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
 use crate::config;
-use crate::media::file::{Artist, Artists, Date, NameDateMbz, Position, TrackDisc};
+use crate::media::file::position::Position;
+use crate::media::file::{Artist, Artists, Date, NameDateMbz, TrackDisc};
 use crate::test::media::dump;
 
 impl Date {
