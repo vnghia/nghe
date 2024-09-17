@@ -3,7 +3,7 @@ mod date;
 mod extract;
 mod metadata;
 mod name_date_mbz;
-mod position;
+pub mod position;
 mod property;
 
 use std::io::Cursor;
@@ -16,7 +16,7 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 pub use metadata::{Metadata, Song};
 pub use name_date_mbz::NameDateMbz;
-pub use position::{Position, TrackDisc};
+pub use position::TrackDisc;
 pub use property::Property;
 use strum::{AsRefStr, EnumString};
 
@@ -104,6 +104,7 @@ mod tests {
     use fake::{Fake, Faker};
     use isolang::Language;
     use nghe_api::common::filesystem;
+    use position::Position;
     use rstest::rstest;
     use time::Month;
 
