@@ -5,8 +5,8 @@ use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
+use crate::file::audio;
 use crate::filesystem::Trait as _;
-use crate::media::audio;
 use crate::orm::music_folders;
 use crate::test::assets;
 use crate::test::filesystem::{self, Trait as _};

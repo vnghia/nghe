@@ -13,7 +13,7 @@ pub struct Property {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::media::audio;
+    use crate::file::audio;
 
     impl Property {
         pub fn default(ty: audio::Type) -> Self {

@@ -1,7 +1,7 @@
 use time::OffsetDateTime;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::media::audio;
+use crate::file::audio;
 use crate::Error;
 
 pub trait Metadata {
