@@ -45,23 +45,23 @@ impl<'a> Mock<'a> {
         &self,
         path: Option<Utf8TypedPath<'_>>,
         #[builder(default = (0..3).fake::<usize>())] depth: usize,
-        #[builder(default = Faker.fake::<audio::Type>())] ty: audio::Type,
-        #[builder(default = Faker.fake::<audio::Audio>())] media: audio::Audio<'_>,
+        #[builder(default = Faker.fake::<audio::Format>())] format: audio::Format,
+        #[builder(default = Faker.fake::<audio::Audio>())] audio: audio::Audio<'_>,
     ) -> &Self {
         let path = if let Some(path) = path {
             self.absolutize(path)
         } else {
             self.absolutize(self.to_impl().fake_path(depth))
         }
-        .with_extension(ty.as_ref());
+        .with_extension(format.as_ref());
 
-        let data = tokio::fs::read(assets::path(ty).as_str()).await.unwrap();
+        let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
         let mut asset = Cursor::new(data.clone());
-        let mut file = audio::File::read_from(data, self.mock.config.lofty_parse, ty).unwrap();
+        let mut file = audio::File::read_from(data, self.mock.config.lofty_parse, format).unwrap();
         asset.set_position(0);
 
         file.clear()
-            .dump_metadata(&self.mock.config.parsing, media.metadata)
+            .dump_metadata(&self.mock.config.parsing, audio.metadata)
             .save_to(&mut asset, self.mock.config.lofty_write);
 
         asset.flush().unwrap();
@@ -71,12 +71,12 @@ impl<'a> Mock<'a> {
         self
     }
 
-    pub async fn file(&self, path: Utf8TypedPath<'_>, ty: audio::Type) -> audio::File {
-        let path = self.absolutize(path).with_extension(ty.as_ref());
+    pub async fn file(&self, path: Utf8TypedPath<'_>, format: audio::Format) -> audio::File {
+        let path = self.absolutize(path).with_extension(format.as_ref());
         audio::File::read_from(
             self.to_impl().read(path.to_path()).await.unwrap(),
             self.mock.config.lofty_parse,
-            ty,
+            format,
         )
         .unwrap()
     }

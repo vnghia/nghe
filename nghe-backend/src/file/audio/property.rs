@@ -16,9 +16,9 @@ mod test {
     use crate::file::audio;
 
     impl Property {
-        pub fn default(ty: audio::Type) -> Self {
+        pub fn default(ty: audio::Format) -> Self {
             match ty {
-                audio::Type::Flac => Self {
+                audio::Format::Flac => Self {
                     duration: 0f32,
                     bitrate: 585,
                     bit_depth: Some(24),

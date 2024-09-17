@@ -143,26 +143,26 @@ mod tests {
         for _ in 0..n_dir {
             let relative_path = filesystem
                 .fake_path((0..3).fake())
-                .with_extension(Faker.fake::<audio::Type>().as_ref());
+                .with_extension(Faker.fake::<audio::Format>().as_ref());
             filesystem.create_dir(relative_path.to_path()).await;
         }
 
         for _ in 0..n_smaller {
             let relative_path = filesystem
                 .fake_path((0..3).fake())
-                .with_extension(Faker.fake::<audio::Type>().as_ref());
+                .with_extension(Faker.fake::<audio::Format>().as_ref());
             let content = fake::vec![u8; 0..minimum_size];
             filesystem.write(relative_path.to_path(), &content).await;
         }
 
         for _ in 0..n_larger {
-            let ty: audio::Type = Faker.fake();
-            let relative_path = filesystem.fake_path((0..3).fake()).with_extension(ty.as_ref());
+            let format: audio::Format = Faker.fake();
+            let relative_path = filesystem.fake_path((0..3).fake()).with_extension(format.as_ref());
 
             let size = ((minimum_size + 1)..(2 * minimum_size)).fake();
             let content = fake::vec![u8; size];
             filesystem.write(relative_path.to_path(), &content).await;
-            entries.push(Entry { ty, relative_path, size, last_modified: None });
+            entries.push(Entry { format, relative_path, size, last_modified: None });
         }
 
         let (tx, rx) = tokio::sync::mpsc::channel(mock.config.filesystem.scan.channel_size);
