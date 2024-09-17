@@ -13,12 +13,12 @@ pub struct Property {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::media::file;
+    use crate::media::audio;
 
     impl Property {
-        pub fn default(ty: file::Type) -> Self {
+        pub fn default(ty: audio::Type) -> Self {
             match ty {
-                file::Type::Flac => Self {
+                audio::Type::Flac => Self {
                     duration: 0f32,
                     bitrate: 585,
                     bit_depth: Some(24),

@@ -7,7 +7,7 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
-use crate::media::file::{extract, Artist, Artists, Date, NameDateMbz, TrackDisc};
+use crate::media::audio::{extract, Artist, Artists, Date, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl Date {
