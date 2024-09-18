@@ -18,20 +18,27 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 pub use metadata::{Metadata, Song};
 pub use name_date_mbz::NameDateMbz;
+use o2o::o2o;
 pub use position::TrackDisc;
 pub use property::Property;
 use strum::{AsRefStr, EnumString};
 use xxhash_rust::xxh3::xxh3_64;
 
+use crate::orm::{albums, songs};
 use crate::{config, Error};
 
-#[derive(Debug)]
+#[derive(Debug, o2o)]
+#[ref_try_into(songs::Data<'a>, Error)]
+#[ref_try_into(albums::Data<'a>, Error| return (&@.metadata.album).try_into())]
 #[cfg_attr(test, derive(derivative::Derivative, fake::Dummy, Clone))]
 #[cfg_attr(test, derivative(PartialEq))]
 pub struct Audio<'a> {
+    #[ref_into(songs::Data<'a>| song, (&~.song).try_into()?)]
     pub metadata: Metadata<'a>,
+    #[map(~.try_into()?)]
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     pub property: Property,
+    #[map(~.into())]
     pub file: super::property::File<Format>,
 }
 
