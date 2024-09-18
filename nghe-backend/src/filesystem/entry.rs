@@ -15,7 +15,6 @@ pub trait Metadata {
 pub struct Entry {
     pub format: audio::Format,
     pub relative_path: Utf8TypedPathBuf,
-    pub size: usize,
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     #[cfg_attr(test, derivative(PartialOrd = "ignore"))]
     #[cfg_attr(test, derivative(Ord = "ignore"))]
@@ -41,12 +40,7 @@ impl Sender {
         {
             let relative_path = path.strip_prefix(prefix)?.to_path_buf();
             self.tx
-                .send(Entry {
-                    format,
-                    relative_path,
-                    size,
-                    last_modified: metadata.last_modified()?,
-                })
+                .send(Entry { format, relative_path, last_modified: metadata.last_modified()? })
                 .await?;
         }
         Ok(())
