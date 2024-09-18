@@ -1,5 +1,3 @@
-#![feature(const_mut_refs)]
-
 use nghe_api::constant;
 use nghe_backend::{build, config, migration};
 use tracing_subscriber::layer::SubscriberExt;
