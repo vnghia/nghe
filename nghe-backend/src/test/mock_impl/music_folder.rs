@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::io::{Cursor, Write};
 
 use diesel::{QueryDsl, SelectableHelper};
@@ -46,27 +47,47 @@ impl<'a> Mock<'a> {
         path: Option<Utf8TypedPath<'_>>,
         #[builder(default = (0..3).fake::<usize>())] depth: usize,
         #[builder(default = Faker.fake::<audio::Format>())] format: audio::Format,
-        #[builder(default = Faker.fake::<audio::Audio>())] audio: audio::Audio<'_>,
+        metadata: Option<audio::Metadata<'_>>,
+        song: Option<audio::Song<'_>>,
+        album: Option<audio::NameDateMbz<'_>>,
+        artists: Option<audio::Artists<'a>>,
+        genres: Option<Vec<Cow<'_, str>>>,
+        #[builder(default = 1)] n_song: usize,
     ) -> &Self {
-        let path = if let Some(path) = path {
-            self.absolutize(path)
-        } else {
-            self.absolutize(self.to_impl().fake_path(depth))
+        for _ in 0..n_song {
+            let path = if n_song == 1
+                && let Some(ref path) = path
+            {
+                self.absolutize(path)
+            } else {
+                self.absolutize(self.to_impl().fake_path(depth))
+            }
+            .with_extension(format.as_ref());
+
+            let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
+            let mut asset = Cursor::new(data.clone());
+            let mut file =
+                audio::File::read_from(data, self.mock.config.lofty_parse, format).unwrap();
+            asset.set_position(0);
+
+            file.clear()
+                .dump_metadata(
+                    &self.mock.config.parsing,
+                    metadata.clone().unwrap_or_else(|| audio::Metadata {
+                        song: song.clone().unwrap_or_else(|| Faker.fake()),
+                        album: album.clone().unwrap_or_else(|| Faker.fake()),
+                        artists: artists.clone().unwrap_or_else(|| Faker.fake()),
+                        genres: genres.clone().unwrap_or_else(|| {
+                            fake::vec![String; 0..=2].into_iter().map(String::into).collect()
+                        }),
+                    }),
+                )
+                .save_to(&mut asset, self.mock.config.lofty_write);
+
+            asset.flush().unwrap();
+            asset.set_position(0);
+            self.to_impl().write(path.to_path(), &asset.into_inner()).await;
         }
-        .with_extension(format.as_ref());
-
-        let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
-        let mut asset = Cursor::new(data.clone());
-        let mut file = audio::File::read_from(data, self.mock.config.lofty_parse, format).unwrap();
-        asset.set_position(0);
-
-        file.clear()
-            .dump_metadata(&self.mock.config.parsing, audio.metadata)
-            .save_to(&mut asset, self.mock.config.lofty_write);
-
-        asset.flush().unwrap();
-        asset.set_position(0);
-        self.to_impl().write(path.to_path(), &asset.into_inner()).await;
 
         self
     }

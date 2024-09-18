@@ -221,17 +221,18 @@ mod tests {
     ) {
         mock.add_music_folder().ty(ty).call().await;
         let music_folder = mock.music_folder(0).await;
-        let audio: Audio = Faker.fake();
+        let metadata: Metadata = Faker.fake();
         let roundtrip_file = music_folder
             .add_audio()
             .path("test".into())
             .format(format)
-            .audio(audio.clone())
+            .metadata(metadata.clone())
             .call()
             .await
             .file("test".into(), format)
             .await;
-        let roundtrip_media = roundtrip_file.audio(&mock.config.parsing).unwrap();
-        assert_eq!(roundtrip_media.metadata.artists.song, audio.metadata.artists.song);
+        let roundtrip_audio = roundtrip_file.audio(&mock.config.parsing).unwrap();
+        assert_eq!(roundtrip_audio.metadata, metadata);
+        assert_eq!(roundtrip_audio.property, Property::default(format));
     }
 }
