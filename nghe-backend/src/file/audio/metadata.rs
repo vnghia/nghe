@@ -13,7 +13,7 @@ use crate::orm::songs;
 use crate::Error;
 
 #[derive(Debug, o2o)]
-#[try_map_owned(songs::Data<'a>, Error)]
+#[try_map_owned(songs::Song<'a>, Error)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Song<'a> {
     #[map(~.try_into()?)]
@@ -60,60 +60,60 @@ mod test {
     use crate::orm::albums;
     use crate::test::{mock, Mock};
 
-    #[rstest]
-    #[tokio::test]
-    async fn test_album_roundtrip(#[future(awt)] mock: Mock) {
+    async fn upsert_album(
+        mock: &Mock,
+        id: impl Into<Option<Uuid>>,
+    ) -> (Uuid, name_date_mbz::NameDateMbz<'static>) {
+        let id = id.into();
         let album: name_date_mbz::NameDateMbz = Faker.fake();
-        let id: Uuid = diesel::insert_into(albums::table)
-            .values(albums::Upsert {
-                music_folder_id: mock.music_folder(0).await.music_folder.id,
-                data: album.clone().try_into().unwrap(),
-            })
-            .returning(albums::id)
-            .get_result(&mut mock.get().await)
-            .await
-            .unwrap();
-        let database_album: name_date_mbz::NameDateMbz = albums::table
+        let upsert = albums::Upsert {
+            music_folder_id: mock.music_folder(0).await.music_folder.id,
+            data: album.clone().try_into().unwrap(),
+        };
+        let id = if let Some(id) = id {
+            diesel::update(albums::table)
+                .filter(albums::id.eq(id))
+                .set(upsert)
+                .execute(&mut mock.get().await)
+                .await
+                .unwrap();
+            id
+        } else {
+            diesel::insert_into(albums::table)
+                .values(upsert)
+                .returning(albums::id)
+                .get_result(&mut mock.get().await)
+                .await
+                .unwrap()
+        };
+        (id, album)
+    }
+
+    async fn select_album(mock: &Mock, id: Uuid) -> name_date_mbz::NameDateMbz {
+        albums::table
             .filter(albums::id.eq(id))
             .select(albums::Data::as_select())
             .get_result(&mut mock.get().await)
             .await
             .unwrap()
             .try_into()
-            .unwrap();
+            .unwrap()
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_album_roundtrip(#[future(awt)] mock: Mock) {
+        let (id, album) = upsert_album(&mock, None).await;
+        let database_album = select_album(&mock, id).await;
         assert_eq!(database_album, album);
     }
 
     #[rstest]
     #[tokio::test]
     async fn test_album_update_roundtrip(#[future(awt)] mock: Mock) {
-        let album: name_date_mbz::NameDateMbz = Faker.fake();
-        let id: Uuid = diesel::insert_into(albums::table)
-            .values(albums::Upsert {
-                music_folder_id: mock.music_folder(0).await.music_folder.id,
-                data: album.try_into().unwrap(),
-            })
-            .returning(albums::id)
-            .get_result(&mut mock.get().await)
-            .await
-            .unwrap();
-        let album: name_date_mbz::NameDateMbz = Faker.fake();
-        diesel::update(albums::table)
-            .set(albums::Upsert {
-                music_folder_id: mock.music_folder(0).await.music_folder.id,
-                data: album.clone().try_into().unwrap(),
-            })
-            .execute(&mut mock.get().await)
-            .await
-            .unwrap();
-        let database_album: name_date_mbz::NameDateMbz = albums::table
-            .filter(albums::id.eq(id))
-            .select(albums::Data::as_select())
-            .get_result(&mut mock.get().await)
-            .await
-            .unwrap()
-            .try_into()
-            .unwrap();
+        let (id, _) = upsert_album(&mock, None).await;
+        let (id, album) = upsert_album(&mock, id).await;
+        let database_album = select_album(&mock, id).await;
         assert_eq!(database_album, album);
     }
 }
