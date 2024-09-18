@@ -159,10 +159,9 @@ mod tests {
             let format: audio::Format = Faker.fake();
             let relative_path = filesystem.fake_path((0..3).fake()).with_extension(format.as_ref());
 
-            let size = ((minimum_size + 1)..(2 * minimum_size)).fake();
-            let content = fake::vec![u8; size];
+            let content = fake::vec![u8; ((minimum_size + 1)..(2 * minimum_size)).fake::<usize>()];
             filesystem.write(relative_path.to_path(), &content).await;
-            entries.push(Entry { format, relative_path, size, last_modified: None });
+            entries.push(Entry { format, relative_path, last_modified: None });
         }
 
         let (tx, rx) = tokio::sync::mpsc::channel(mock.config.filesystem.scan.channel_size);
