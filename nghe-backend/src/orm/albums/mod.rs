@@ -30,3 +30,33 @@ pub struct Upsert<'a> {
     #[diesel(embed)]
     pub data: Data<'a>,
 }
+
+mod upsert {
+    use diesel::ExpressionMethods;
+    use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
+
+    use super::{albums, Upsert};
+    use crate::database::Database;
+    use crate::Error;
+
+    impl<'a> crate::orm::upsert::Trait for Upsert<'a> {
+        async fn insert(self, database: &Database) -> Result<Uuid, Error> {
+            diesel::insert_into(albums::table)
+                .values(self)
+                .returning(albums::id)
+                .get_result(&mut database.get().await?)
+                .await
+                .map_err(Error::from)
+        }
+
+        async fn update(self, database: &Database, id: Uuid) -> Result<(), Error> {
+            diesel::update(albums::table)
+                .filter(albums::id.eq(id))
+                .set(self)
+                .execute(&mut database.get().await?)
+                .await?;
+            Ok(())
+        }
+    }
+}

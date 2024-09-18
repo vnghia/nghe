@@ -62,34 +62,21 @@ mod test {
     use crate::file;
     use crate::file::audio::{self, Audio};
     use crate::orm::albums;
+    use crate::orm::upsert::Trait as _;
     use crate::test::{mock, Mock};
 
     async fn upsert_album(
         mock: &Mock,
         id: impl Into<Option<Uuid>>,
     ) -> (Uuid, name_date_mbz::NameDateMbz<'static>) {
-        let id = id.into();
         let album: name_date_mbz::NameDateMbz = Faker.fake();
-        let upsert = albums::Upsert {
+        let id = albums::Upsert {
             music_folder_id: mock.music_folder(0).await.music_folder.id,
             data: (&album).try_into().unwrap(),
-        };
-        let id = if let Some(id) = id {
-            diesel::update(albums::table)
-                .filter(albums::id.eq(id))
-                .set(upsert)
-                .execute(&mut mock.get().await)
-                .await
-                .unwrap();
-            id
-        } else {
-            diesel::insert_into(albums::table)
-                .values(upsert)
-                .returning(albums::id)
-                .get_result(&mut mock.get().await)
-                .await
-                .unwrap()
-        };
+        }
+        .upsert(mock.database(), id)
+        .await
+        .unwrap();
         (id, album)
     }
 
@@ -97,27 +84,14 @@ mod test {
         let id = id.into();
         let audio: Audio = Faker.fake();
         let (album_id, _) = upsert_album(mock, None).await;
-        let upsert = songs::Upsert {
+        let id = songs::Upsert {
             album_id,
             relative_path: Faker.fake::<String>().into(),
             data: (&audio).try_into().unwrap(),
-        };
-        let id = if let Some(id) = id {
-            diesel::update(songs::table)
-                .filter(songs::id.eq(id))
-                .set(upsert)
-                .execute(&mut mock.get().await)
-                .await
-                .unwrap();
-            id
-        } else {
-            diesel::insert_into(songs::table)
-                .values(upsert)
-                .returning(songs::id)
-                .get_result(&mut mock.get().await)
-                .await
-                .unwrap()
-        };
+        }
+        .upsert(mock.database(), id)
+        .await
+        .unwrap();
         (id, audio)
     }
 

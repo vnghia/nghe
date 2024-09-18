@@ -1436,7 +1436,7 @@ dependencies = [
  "dsl_auto_type 0.1.0",
  "proc-macro2",
  "quote",
- "syn 2.0.76",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -1486,7 +1486,7 @@ name = "diesel_table_macro_syntax"
 version = "0.2.0"
 source = "git+https://github.com/diesel-rs/diesel?rev=ecf6e9215a898045ed096f905f4a0e7e4a999dba#ecf6e9215a898045ed096f905f4a0e7e4a999dba"
 dependencies = [
- "syn 2.0.76",
+ "syn 2.0.77",
 ]
 
 [[package]]
@@ -1864,7 +1864,7 @@ dependencies = [
  "heck 0.5.0",
  "proc-macro2",
  "quote",
- "syn 2.0.76",
+ "syn 2.0.77",
 ]
 
 [[package]]

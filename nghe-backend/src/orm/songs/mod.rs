@@ -50,6 +50,36 @@ pub struct Upsert<'a> {
     pub data: Data<'a>,
 }
 
+mod upsert {
+    use diesel::ExpressionMethods;
+    use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
+
+    use super::{songs, Upsert};
+    use crate::database::Database;
+    use crate::Error;
+
+    impl<'a> crate::orm::upsert::Trait for Upsert<'a> {
+        async fn insert(self, database: &Database) -> Result<Uuid, Error> {
+            diesel::insert_into(songs::table)
+                .values(self)
+                .returning(songs::id)
+                .get_result(&mut database.get().await?)
+                .await
+                .map_err(Error::from)
+        }
+
+        async fn update(self, database: &Database, id: Uuid) -> Result<(), Error> {
+            diesel::update(songs::table)
+                .filter(songs::id.eq(id))
+                .set(self)
+                .execute(&mut database.get().await?)
+                .await?;
+            Ok(())
+        }
+    }
+}
+
 impl ToSql<Text, super::Type> for audio::Format {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, super::Type>) -> serialize::Result {
         <str as ToSql<Text, super::Type>>::to_sql(self.as_ref(), out)
