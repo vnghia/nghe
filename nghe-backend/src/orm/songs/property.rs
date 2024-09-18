@@ -3,7 +3,7 @@ use diesel_derives::AsChangeset;
 use o2o::o2o;
 
 use super::songs;
-use crate::file::audio;
+use crate::file::{audio, property};
 use crate::Error;
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
@@ -24,12 +24,15 @@ pub struct Property {
     pub channel_count: i16,
 }
 
-#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
+#[map_owned(property::File<audio::Format>)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct File {
+    #[map(~ as _)]
     #[diesel(column_name = file_hash)]
     hash: i64,
+    #[map(~ as _)]
     #[diesel(column_name = file_size)]
     size: i32,
     format: audio::Format,
