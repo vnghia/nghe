@@ -4,10 +4,12 @@ use diesel::prelude::*;
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Text;
 use diesel_derives::AsChangeset;
+use uuid::Uuid;
 
 pub mod date;
 pub mod name_date_mbz;
 pub mod position;
+mod property;
 
 use std::borrow::Cow;
 use std::str::FromStr;
@@ -18,12 +20,34 @@ pub use crate::schema::songs::{self, *};
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-pub struct Data<'a> {
+pub struct Song<'a> {
     #[diesel(embed)]
     pub main: name_date_mbz::NameDateMbz<'a>,
     #[diesel(embed)]
     pub track_disc: position::TrackDisc,
     pub languages: Vec<Option<Cow<'a, str>>>,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
+pub struct Data<'a> {
+    #[diesel(embed)]
+    pub song: Song<'a>,
+    #[diesel(embed)]
+    pub property: property::Property,
+    #[diesel(embed)]
+    pub file: property::File,
+}
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
+pub struct Upsert<'a> {
+    pub album_id: Uuid,
+    pub relative_path: Cow<'a, str>,
+    #[diesel(embed)]
+    pub data: Data<'a>,
 }
 
 impl ToSql<Text, super::Type> for audio::Format {
