@@ -35,8 +35,8 @@ pub trait Metadata {
 impl Metadata for File {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self {
         match self {
-            File::Flac { file, .. } => {
-                file.dump_song(config, song);
+            File::Flac { audio, .. } => {
+                audio.dump_song(config, song);
             }
         }
         self
@@ -44,8 +44,8 @@ impl Metadata for File {
 
     fn dump_album(&mut self, config: &config::Parsing, album: NameDateMbz<'_>) -> &mut Self {
         match self {
-            File::Flac { file, .. } => {
-                file.dump_album(config, album);
+            File::Flac { audio, .. } => {
+                audio.dump_album(config, album);
             }
         }
         self
@@ -53,8 +53,8 @@ impl Metadata for File {
 
     fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) -> &mut Self {
         match self {
-            File::Flac { file, .. } => {
-                file.dump_artists(config, artists);
+            File::Flac { audio, .. } => {
+                audio.dump_artists(config, artists);
             }
         }
         self
@@ -62,8 +62,8 @@ impl Metadata for File {
 
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self {
         match self {
-            File::Flac { file, .. } => {
-                file.dump_track_disc(config, track_disc);
+            File::Flac { audio, .. } => {
+                audio.dump_track_disc(config, track_disc);
             }
         }
         self
@@ -71,8 +71,8 @@ impl Metadata for File {
 
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self {
         match self {
-            File::Flac { file, .. } => {
-                file.dump_languages(config, languages);
+            File::Flac { audio, .. } => {
+                audio.dump_languages(config, languages);
             }
         }
         self
@@ -80,8 +80,8 @@ impl Metadata for File {
 
     fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self {
         match self {
-            File::Flac { file, .. } => {
-                file.dump_genres(config, genres);
+            File::Flac { audio, .. } => {
+                audio.dump_genres(config, genres);
             }
         }
         self
