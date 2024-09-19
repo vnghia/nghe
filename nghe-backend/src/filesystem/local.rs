@@ -53,7 +53,7 @@ impl super::Trait for Filesystem {
                                 .into_string()
                                 .map(path::Local::from_string)
                                 .map_err(Error::FilesystemLocalNonUTF8PathEncountered)?;
-                            sender.send(prefix.as_str(), path.to_path(), &metadata).await?;
+                            sender.send(path, &metadata).await?;
                         }
                     }
                     Err(err) => tracing::error!(list_folder_local_metadata_err = ?err),

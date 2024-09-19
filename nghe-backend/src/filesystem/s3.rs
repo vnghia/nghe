@@ -6,6 +6,7 @@ use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
 use aws_sdk_s3::Client;
 use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
+use concat_string::concat_string;
 use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
 use time::OffsetDateTime;
@@ -115,8 +116,13 @@ impl super::Trait for Filesystem {
         while let Some(output) = steam.try_next().await.map_err(color_eyre::Report::new)? {
             if let Some(contents) = output.contents {
                 for content in contents {
-                    if let Some(path) = content.key() {
-                        sender.send(prefix, path::S3::from_str(path), &content).await?;
+                    if let Some(key) = content.key() {
+                        sender
+                            .send(
+                                path::S3::from_string(concat_string!("/", bucket, "/", key)),
+                                &content,
+                            )
+                            .await?;
                     }
                 }
             }
