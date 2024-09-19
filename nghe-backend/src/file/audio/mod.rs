@@ -31,13 +31,13 @@ use crate::{config, Error};
 #[ref_try_into(songs::Data<'a>, Error)]
 #[ref_try_into(albums::Data<'a>, Error| return (&@.metadata.album).try_into())]
 #[cfg_attr(test, derive(fake::Dummy, Clone))]
-pub struct Audio<'a> {
+pub struct Information<'a> {
     #[ref_into(songs::Data<'a>| song, (&~.song).try_into()?)]
     pub metadata: Metadata<'a>,
     #[map(~.try_into()?)]
     pub property: Property,
     #[map(~.into())]
-    pub file: super::property::File<Format>,
+    pub file: super::Property<Format>,
 }
 
 #[derive(
@@ -86,13 +86,13 @@ impl File {
         }
     }
 
-    pub fn file_property(&self) -> Result<super::property::File<Format>, Error> {
+    pub fn file_property(&self) -> Result<super::Property<Format>, Error> {
         let (data, format) = self.data_format();
-        Ok(super::property::File { hash: xxh3_64(data), size: data.len().try_into()?, format })
+        Ok(super::Property { hash: xxh3_64(data), size: data.len().try_into()?, format })
     }
 
-    pub fn extract<'a>(&'a self, config: &'a config::Parsing) -> Result<Audio<'a>, Error> {
-        Ok(Audio {
+    pub fn extract<'a>(&'a self, config: &'a config::Parsing) -> Result<Information<'a>, Error> {
+        Ok(Information {
             metadata: self.metadata(config)?,
             property: self.property()?,
             file: self.file_property()?,

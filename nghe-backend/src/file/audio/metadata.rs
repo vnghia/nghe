@@ -60,7 +60,7 @@ mod test {
 
     use super::*;
     use crate::file;
-    use crate::file::audio::{self, Audio};
+    use crate::file::audio;
     use crate::orm::albums;
     use crate::orm::upsert::Trait as _;
     use crate::test::{mock, Mock};
@@ -80,19 +80,19 @@ mod test {
         (id, album)
     }
 
-    async fn upsert_song(mock: &Mock, id: impl Into<Option<Uuid>>) -> (Uuid, Audio) {
+    async fn upsert_song(mock: &Mock, id: impl Into<Option<Uuid>>) -> (Uuid, audio::Information) {
         let id = id.into();
-        let audio: Audio = Faker.fake();
+        let information: audio::Information = Faker.fake();
         let (album_id, _) = upsert_album(mock, None).await;
         let id = songs::Upsert {
             album_id,
             relative_path: Faker.fake::<String>().into(),
-            data: (&audio).try_into().unwrap(),
+            data: (&information).try_into().unwrap(),
         }
         .upsert(mock.database(), id)
         .await
         .unwrap();
-        (id, audio)
+        (id, information)
     }
 
     async fn select_album(mock: &Mock, id: Uuid) -> name_date_mbz::NameDateMbz {
@@ -139,7 +139,7 @@ mod test {
         let database_data = select_song(&mock, id).await;
         let database_song: Song = database_data.song.try_into().unwrap();
         let database_property: audio::Property = database_data.property.try_into().unwrap();
-        let database_file: file::property::File<_> = database_data.file.into();
+        let database_file: file::Property<_> = database_data.file.into();
         assert_eq!(database_song, audio.metadata.song);
         assert_eq!(database_property, audio.property);
         assert_eq!(database_file, audio.file);
@@ -153,7 +153,7 @@ mod test {
         let database_data = select_song(&mock, id).await;
         let database_song: Song = database_data.song.try_into().unwrap();
         let database_property: audio::Property = database_data.property.try_into().unwrap();
-        let database_file: file::property::File<_> = database_data.file.into();
+        let database_file: file::Property<_> = database_data.file.into();
         assert_eq!(database_song, audio.metadata.song);
         assert_eq!(database_property, audio.property);
         assert_eq!(database_file, audio.file);
