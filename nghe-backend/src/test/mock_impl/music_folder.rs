@@ -6,7 +6,7 @@ use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::file::audio;
+use crate::file::{audio, File};
 use crate::filesystem::Trait as _;
 use crate::orm::music_folders;
 use crate::test::assets;
@@ -67,7 +67,7 @@ impl<'a> Mock<'a> {
             let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
             let mut asset = Cursor::new(data.clone());
             let mut file =
-                audio::File::read_from(data, self.mock.config.lofty_parse, format).unwrap();
+                File::new(data, format).unwrap().audio(self.mock.config.lofty_parse).unwrap();
             asset.set_position(0);
 
             file.clear()
@@ -94,11 +94,9 @@ impl<'a> Mock<'a> {
 
     pub async fn file(&self, path: Utf8TypedPath<'_>, format: audio::Format) -> audio::File {
         let path = self.absolutize(path).with_extension(format.as_ref());
-        audio::File::read_from(
-            self.to_impl().read(path.to_path()).await.unwrap(),
-            self.mock.config.lofty_parse,
-            format,
-        )
-        .unwrap()
+        File::new(self.to_impl().read(path.to_path()).await.unwrap(), format)
+            .unwrap()
+            .audio(self.mock.config.lofty_parse)
+            .unwrap()
     }
 }
