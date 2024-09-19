@@ -22,7 +22,6 @@ use o2o::o2o;
 pub use position::TrackDisc;
 pub use property::Property;
 use strum::{AsRefStr, EnumString};
-use xxhash_rust::xxh3::xxh3_64;
 
 use crate::orm::{albums, songs};
 use crate::{config, Error};
@@ -61,41 +60,33 @@ pub enum Format {
 }
 
 pub enum File {
-    Flac { format: Format, file: FlacFile, data: Vec<u8> },
+    Flac { audio: FlacFile, file: super::File<Format> },
 }
 
-impl File {
-    pub fn read_from(
-        data: Vec<u8>,
-        parse_options: ParseOptions,
-        format: Format,
-    ) -> Result<Self, Error> {
-        let mut reader = Cursor::new(&data);
-        match format {
-            Format::Flac => Ok(Self::Flac {
-                format,
-                file: FlacFile::read_from(&mut reader, parse_options)?,
-                data,
+impl super::File<Format> {
+    pub fn audio(self, parse_options: ParseOptions) -> Result<File, Error> {
+        let mut reader = Cursor::new(&self.data);
+        match self.property.format {
+            Format::Flac => Ok(File::Flac {
+                audio: FlacFile::read_from(&mut reader, parse_options)?,
+                file: self,
             }),
         }
     }
+}
 
-    fn data_format(&self) -> (&[u8], Format) {
+impl File {
+    pub fn file(&self) -> &super::File<Format> {
         match self {
-            File::Flac { data, format, .. } => (data, *format),
+            Self::Flac { file, .. } => file,
         }
-    }
-
-    pub fn file_property(&self) -> Result<super::Property<Format>, Error> {
-        let (data, format) = self.data_format();
-        Ok(super::Property { hash: xxh3_64(data), size: data.len().try_into()?, format })
     }
 
     pub fn extract<'a>(&'a self, config: &'a config::Parsing) -> Result<Information<'a>, Error> {
         Ok(Information {
             metadata: self.metadata(config)?,
             property: self.property()?,
-            file: self.file_property()?,
+            file: self.file().property,
         })
     }
 }
@@ -112,9 +103,9 @@ mod test {
     impl File {
         pub fn clear(&mut self) -> &mut Self {
             match self {
-                File::Flac { file, .. } => {
-                    file.remove_id3v2();
-                    file.set_vorbis_comments(VorbisComments::default());
+                File::Flac { audio, .. } => {
+                    audio.remove_id3v2();
+                    audio.set_vorbis_comments(VorbisComments::default());
                 }
             }
             self
@@ -122,8 +113,8 @@ mod test {
 
         pub fn save_to(&self, cursor: &mut Cursor<Vec<u8>>, write_options: WriteOptions) {
             match self {
-                File::Flac { file, .. } => {
-                    file.save_to(cursor, write_options).unwrap();
+                File::Flac { audio, .. } => {
+                    audio.save_to(cursor, write_options).unwrap();
                 }
             }
         }
@@ -140,16 +131,15 @@ mod tests {
     use time::Month;
 
     use super::*;
+    use crate::file::File;
     use crate::test::{assets, mock, Mock};
 
     #[rstest]
     fn test_media(#[values(Format::Flac)] format: Format) {
-        let file = File::read_from(
-            std::fs::read(assets::path(format).as_str()).unwrap(),
-            ParseOptions::default(),
-            format,
-        )
-        .unwrap();
+        let file = File::new(std::fs::read(assets::path(format).as_str()).unwrap(), format)
+            .unwrap()
+            .audio(ParseOptions::default())
+            .unwrap();
 
         let config = config::Parsing::test();
         let media = file.extract(&config).unwrap();
