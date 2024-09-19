@@ -30,13 +30,11 @@ use crate::{config, Error};
 #[derive(Debug, o2o)]
 #[ref_try_into(songs::Data<'a>, Error)]
 #[ref_try_into(albums::Data<'a>, Error| return (&@.metadata.album).try_into())]
-#[cfg_attr(test, derive(derivative::Derivative, fake::Dummy, Clone))]
-#[cfg_attr(test, derivative(PartialEq))]
+#[cfg_attr(test, derive(fake::Dummy, Clone))]
 pub struct Audio<'a> {
     #[ref_into(songs::Data<'a>| song, (&~.song).try_into()?)]
     pub metadata: Metadata<'a>,
     #[map(~.try_into()?)]
-    #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     pub property: Property,
     #[map(~.into())]
     pub file: super::property::File<Format>,
@@ -93,7 +91,7 @@ impl File {
         Ok(super::property::File { hash: xxh3_64(data), size: data.len().try_into()?, format })
     }
 
-    pub fn audio<'a>(&'a self, config: &'a config::Parsing) -> Result<Audio<'a>, Error> {
+    pub fn extract<'a>(&'a self, config: &'a config::Parsing) -> Result<Audio<'a>, Error> {
         Ok(Audio {
             metadata: self.metadata(config)?,
             property: self.property()?,
@@ -154,7 +152,7 @@ mod tests {
         .unwrap();
 
         let config = config::Parsing::test();
-        let media = file.audio(&config).unwrap();
+        let media = file.extract(&config).unwrap();
         let metadata = media.metadata;
 
         let song = metadata.song;
@@ -231,7 +229,7 @@ mod tests {
             .await
             .file("test".into(), format)
             .await;
-        let roundtrip_audio = roundtrip_file.audio(&mock.config.parsing).unwrap();
+        let roundtrip_audio = roundtrip_file.extract(&mock.config.parsing).unwrap();
         assert_eq!(roundtrip_audio.metadata, metadata);
         assert_eq!(roundtrip_audio.property, Property::default(format));
     }
