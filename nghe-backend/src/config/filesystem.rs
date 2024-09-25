@@ -1,7 +1,7 @@
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Derivative)]
 #[derivative(Default)]
 pub struct Scan {
     // 100 KiB in bytes
