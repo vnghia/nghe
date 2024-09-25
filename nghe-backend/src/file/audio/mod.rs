@@ -1,6 +1,7 @@
 mod artist;
 mod date;
 mod extract;
+mod information;
 mod metadata;
 mod name_date_mbz;
 pub mod position;
@@ -13,31 +14,17 @@ pub use date::Date;
 use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
 use extract::{Metadata as _, Property as _};
+pub use information::Information;
 use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 pub use metadata::{Metadata, Song};
 pub use name_date_mbz::NameDateMbz;
-use o2o::o2o;
 pub use position::TrackDisc;
 pub use property::Property;
 use strum::{AsRefStr, EnumString};
 
-use crate::orm::{albums, songs};
 use crate::{config, Error};
-
-#[derive(Debug, o2o)]
-#[ref_try_into(songs::Data<'a>, Error)]
-#[ref_try_into(albums::Data<'a>, Error| return (&@.metadata.album).try_into())]
-#[cfg_attr(test, derive(fake::Dummy, Clone))]
-pub struct Information<'a> {
-    #[ref_into(songs::Data<'a>| song, (&~.song).try_into()?)]
-    pub metadata: Metadata<'a>,
-    #[map(~.try_into()?)]
-    pub property: Property,
-    #[map(~.into())]
-    pub file: super::Property<Format>,
-}
 
 #[derive(
     Debug,
