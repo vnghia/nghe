@@ -6,6 +6,8 @@ use o2o::o2o;
 use uuid::Uuid;
 
 use super::date::Date;
+use crate::database::Database;
+use crate::orm::upsert::Insert as _;
 use crate::orm::{albums, songs};
 use crate::Error;
 
@@ -26,4 +28,24 @@ pub struct NameDateMbz<'a> {
     #[map(~.try_into()?)]
     pub original_release_date: Date,
     pub mbz_id: Option<Uuid>,
+}
+
+impl<'a> NameDateMbz<'a> {
+    pub async fn upsert(&self, database: &Database, music_folder_id: Uuid) -> Result<Uuid, Error> {
+        albums::Upsert { music_folder_id, data: self.try_into()? }.insert(database).await
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test::Mock;
+
+    impl<'a> NameDateMbz<'a> {
+        pub async fn upsert_mock(&self, mock: &Mock, index: usize) -> Uuid {
+            self.upsert(mock.database(), mock.music_folder(index).await.music_folder.id)
+                .await
+                .unwrap()
+        }
+    }
 }

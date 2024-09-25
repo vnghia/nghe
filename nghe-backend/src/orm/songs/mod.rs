@@ -59,8 +59,8 @@ mod upsert {
     use crate::database::Database;
     use crate::Error;
 
-    impl<'a> crate::orm::upsert::Trait for Upsert<'a> {
-        async fn insert(self, database: &Database) -> Result<Uuid, Error> {
+    impl<'a> crate::orm::upsert::Insert for Upsert<'a> {
+        async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
             diesel::insert_into(songs::table)
                 .values(self)
                 .returning(songs::id)
@@ -68,8 +68,10 @@ mod upsert {
                 .await
                 .map_err(Error::from)
         }
+    }
 
-        async fn update(self, database: &Database, id: Uuid) -> Result<(), Error> {
+    impl<'a> crate::orm::upsert::Update for Upsert<'a> {
+        async fn update(&self, database: &Database, id: Uuid) -> Result<(), Error> {
             diesel::update(songs::table)
                 .filter(songs::id.eq(id))
                 .set(self)
@@ -78,6 +80,8 @@ mod upsert {
             Ok(())
         }
     }
+
+    impl<'a> crate::orm::upsert::Upsert for Upsert<'a> {}
 }
 
 impl ToSql<Text, super::Type> for audio::Format {
@@ -89,5 +93,67 @@ impl ToSql<Text, super::Type> for audio::Format {
 impl FromSql<Text, super::Type> for audio::Format {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         Ok(audio::Format::from_str(core::str::from_utf8(bytes.as_bytes())?)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+    use diesel_async::RunQueryDsl;
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+    use uuid::Uuid;
+
+    use super::{songs, Data};
+    use crate::file::audio;
+    use crate::test::{mock, Mock};
+
+    async fn select_song(mock: &Mock, id: Uuid) -> Data {
+        songs::table
+            .filter(songs::id.eq(id))
+            .select(Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap()
+    }
+
+    #[rstest]
+    #[case(None)]
+    #[case(Some(Faker.fake()))]
+    #[tokio::test]
+    async fn test_song_roundtrip(
+        #[future(awt)] mock: Mock,
+        #[case] update_song: Option<audio::Information<'static>>,
+    ) {
+        use crate::file;
+
+        let song: audio::Information = Faker.fake();
+        let album_id = song.metadata.album.upsert_mock(&mock, 0).await;
+        let id =
+            song.upsert(mock.database(), album_id, Faker.fake::<String>(), None).await.unwrap();
+
+        let database_data = select_song(&mock, id).await;
+        let database_song: audio::Song = database_data.song.try_into().unwrap();
+        let database_property: audio::Property = database_data.property.try_into().unwrap();
+        let database_file: file::Property<_> = database_data.file.into();
+        assert_eq!(database_song, song.metadata.song);
+        assert_eq!(database_property, song.property);
+        assert_eq!(database_file, song.file);
+
+        if let Some(update_song) = update_song {
+            let update_id = update_song
+                .upsert(mock.database(), album_id, Faker.fake::<String>(), id)
+                .await
+                .unwrap();
+
+            let update_database_data = select_song(&mock, update_id).await;
+            let update_database_song: audio::Song = update_database_data.song.try_into().unwrap();
+            let update_database_property: audio::Property =
+                update_database_data.property.try_into().unwrap();
+            let update_database_file: file::Property<_> = update_database_data.file.into();
+            assert_eq!(update_database_song, update_song.metadata.song);
+            assert_eq!(update_database_property, update_song.property);
+            assert_eq!(update_database_file, update_song.file);
+        }
     }
 }
