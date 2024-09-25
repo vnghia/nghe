@@ -1,3 +1,4 @@
+use derivative::Derivative;
 use diesel_async::pooled_connection::{deadpool, AsyncDieselConnectionManager};
 use diesel_async::AsyncPgConnection;
 use libaes::Cipher;
@@ -9,9 +10,12 @@ type Pool = deadpool::Pool<AsyncPgConnection>;
 
 pub type Key = [u8; libaes::AES_128_KEY_LEN];
 
-#[derive(Clone)]
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub struct Database {
+    #[derivative(Debug = "ignore")]
     pool: Pool,
+    #[derivative(Debug = "ignore")]
     key: Key,
 }
 

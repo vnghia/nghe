@@ -15,6 +15,8 @@ use tokio::sync::mpsc::error::SendError;
 #[from_owned(std::num::TryFromIntError)]
 #[from_owned(typed_path::StripPrefixError)]
 #[from_owned(time::error::ComponentRange)]
+#[from_owned(tokio::task::JoinError)]
+#[from_owned(tokio::sync::AcquireError)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),
