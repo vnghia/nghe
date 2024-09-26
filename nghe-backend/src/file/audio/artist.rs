@@ -2,13 +2,17 @@ use std::borrow::Cow;
 
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
+use o2o::o2o;
 use uuid::Uuid;
 
+use crate::orm::artists;
 use crate::Error;
 
-#[derive(Debug)]
+#[derive(Debug, o2o)]
+#[ref_into(artists::Data<'a>)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Artist<'a> {
+    #[ref_into(Cow::Borrowed(~.as_ref()))]
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub name: Cow<'a, str>,
     pub mbz_id: Option<Uuid>,
