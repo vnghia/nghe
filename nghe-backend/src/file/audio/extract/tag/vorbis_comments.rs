@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::str::FromStr;
 
 use color_eyre::eyre::OptionExt;
@@ -7,7 +6,7 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
-use crate::file::audio::{extract, Artist, Artists, Date, NameDateMbz, TrackDisc};
+use crate::file::audio::{extract, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl Date {
@@ -97,7 +96,7 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
         Ok(self.get_all(&config.vorbis_comments.languages).map(Language::from_str).try_collect()?)
     }
 
-    fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
-        Ok(self.get_all(&config.vorbis_comments.genres).map(Cow::Borrowed).collect())
+    fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
+        Ok(self.get_all(&config.vorbis_comments.genres).collect())
     }
 }

@@ -4,7 +4,7 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 
 use super::{Metadata, Property};
-use crate::file::audio::{self, Artists, NameDateMbz, TrackDisc};
+use crate::file::audio::{self, Artists, Genres, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl<'a> Metadata<'a> for FlacFile {
@@ -28,7 +28,7 @@ impl<'a> Metadata<'a> for FlacFile {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.languages(config)
     }
 
-    fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
+    fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.genres(config)
     }
 }

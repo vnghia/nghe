@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::str::FromStr;
 
 #[cfg(test)]
@@ -8,7 +7,7 @@ use isolang::Language;
 use itertools::Itertools;
 use o2o::o2o;
 
-use super::{artist, name_date_mbz, position};
+use super::{artist, name_date_mbz, position, Genres};
 use crate::orm::songs;
 use crate::Error;
 
@@ -43,9 +42,5 @@ pub struct Metadata<'a> {
     pub song: Song<'a>,
     pub album: name_date_mbz::NameDateMbz<'a>,
     pub artists: artist::Artists<'a>,
-    #[cfg_attr(
-        test,
-        dummy(expr = "fake::vec![String; 0..=2].into_iter().map(String::into).collect()")
-    )]
-    pub genres: Vec<Cow<'a, str>>,
+    pub genres: Genres<'a>,
 }

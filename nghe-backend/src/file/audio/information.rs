@@ -29,6 +29,10 @@ impl<'a> Information<'a> {
         self.metadata.album.upsert(database, music_folder_id).await
     }
 
+    pub async fn upsert_genres(&self, database: &Database) -> Result<Vec<Uuid>, Error> {
+        self.metadata.genres.upsert(database).await
+    }
+
     pub async fn upsert(
         &self,
         database: &Database,
