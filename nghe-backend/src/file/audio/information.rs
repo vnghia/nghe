@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use o2o::o2o;
 use uuid::Uuid;
 
+use super::Genres;
 use crate::database::Database;
 use crate::orm::songs;
 use crate::orm::upsert::Upsert as _;
@@ -29,8 +30,9 @@ impl<'a> Information<'a> {
         self.metadata.album.upsert(database, music_folder_id).await
     }
 
-    pub async fn upsert_genres(&self, database: &Database) -> Result<Vec<Uuid>, Error> {
-        self.metadata.genres.upsert(database).await
+    pub async fn upsert_genres(&self, database: &Database, song_id: Uuid) -> Result<(), Error> {
+        let genre_ids = self.metadata.genres.upsert(database).await?;
+        Genres::upsert_song(database, song_id, &genre_ids).await
     }
 
     pub async fn upsert(
