@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::io::{Cursor, Write};
 
 use diesel::{QueryDsl, SelectableHelper};
@@ -51,7 +50,7 @@ impl<'a> Mock<'a> {
         song: Option<audio::Song<'_>>,
         album: Option<audio::NameDateMbz<'_>>,
         artists: Option<audio::Artists<'a>>,
-        genres: Option<Vec<Cow<'_, str>>>,
+        genres: Option<audio::Genres<'a>>,
         #[builder(default = 1)] n_song: usize,
     ) -> &Self {
         for _ in 0..n_song {
@@ -77,9 +76,7 @@ impl<'a> Mock<'a> {
                         song: song.clone().unwrap_or_else(|| Faker.fake()),
                         album: album.clone().unwrap_or_else(|| Faker.fake()),
                         artists: artists.clone().unwrap_or_else(|| Faker.fake()),
-                        genres: genres.clone().unwrap_or_else(|| {
-                            fake::vec![String; 0..=2].into_iter().map(String::into).collect()
-                        }),
+                        genres: genres.clone().unwrap_or_else(|| Faker.fake()),
                     }),
                 )
                 .save_to(&mut asset, self.mock.config.lofty_write);

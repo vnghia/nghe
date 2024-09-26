@@ -11,18 +11,3 @@ pub use crate::schema::genres::{self, *};
 pub struct Upsert<'a> {
     pub value: Cow<'a, str>,
 }
-
-impl<'a> From<&'a str> for Upsert<'a> {
-    fn from(genre: &'a str) -> Self {
-        Self { value: genre.into() }
-    }
-}
-
-impl<'a, 'b> From<&'a Cow<'b, str>> for Upsert<'b>
-where
-    'a: 'b,
-{
-    fn from(genre: &'a Cow<'b, str>) -> Self {
-        Self { value: Cow::Borrowed(genre.as_ref()) }
-    }
-}

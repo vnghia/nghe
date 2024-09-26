@@ -4,7 +4,7 @@ use lofty::flac::FlacFile;
 
 use super::Metadata;
 use crate::config;
-use crate::file::audio::{Artists, NameDateMbz, TrackDisc};
+use crate::file::audio::{Artists, Genres, NameDateMbz, TrackDisc};
 
 impl Metadata for FlacFile {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self {
@@ -36,7 +36,7 @@ impl Metadata for FlacFile {
         self
     }
 
-    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self {
+    fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self {
         self.vorbis_comments_mut().unwrap().dump_genres(config, genres);
         self
     }

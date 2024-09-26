@@ -1,6 +1,7 @@
 mod artist;
 mod date;
 mod extract;
+mod genre;
 mod information;
 mod metadata;
 mod name_date_mbz;
@@ -14,6 +15,7 @@ pub use date::Date;
 use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
 use extract::{Metadata as _, Property as _};
+pub use genre::Genres;
 pub use information::Information;
 use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
@@ -180,7 +182,7 @@ mod tests {
         assert_eq!(album, &["Artist1".into(), "Artist3".into()]);
         assert!(artists.compilation);
 
-        assert!(metadata.genres.is_empty());
+        assert!(metadata.genres.value.is_empty());
 
         assert_eq!(media.property, Property::default(format));
     }

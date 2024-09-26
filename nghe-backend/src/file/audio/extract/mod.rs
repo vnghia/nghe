@@ -5,7 +5,7 @@ use std::borrow::Cow;
 
 use isolang::Language;
 
-use super::{Artists, File, NameDateMbz, TrackDisc};
+use super::{Artists, File, Genres, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 pub trait Metadata<'a> {
@@ -14,7 +14,7 @@ pub trait Metadata<'a> {
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error>;
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error>;
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error>;
-    fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error>;
+    fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error>;
 
     fn metadata(&'a self, config: &'a config::Parsing) -> Result<super::Metadata<'a>, Error> {
         Ok(super::Metadata {
@@ -65,7 +65,7 @@ impl<'a> Metadata<'a> for File {
         }
     }
 
-    fn genres(&'a self, config: &'a config::Parsing) -> Result<Vec<Cow<'a, str>>, Error> {
+    fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
         match self {
             File::Flac { audio, .. } => audio.genres(config),
         }
