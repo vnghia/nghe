@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+use std::str::FromStr;
+
 use diesel::deserialize::{self, FromSql};
 use diesel::pg::PgValue;
 use diesel::prelude::*;
@@ -6,16 +9,13 @@ use diesel::sql_types::Text;
 use diesel_derives::AsChangeset;
 use uuid::Uuid;
 
+use crate::file::audio;
+pub use crate::schema::songs::{self, *};
+
 pub mod date;
 pub mod name_date_mbz;
 pub mod position;
 mod property;
-
-use std::borrow::Cow;
-use std::str::FromStr;
-
-use crate::file::audio;
-pub use crate::schema::songs::{self, *};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
