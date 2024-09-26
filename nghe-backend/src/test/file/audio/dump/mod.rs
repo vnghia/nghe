@@ -1,8 +1,6 @@
 mod flac;
 mod tag;
 
-use std::borrow::Cow;
-
 use isolang::Language;
 
 use crate::config;

@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use isolang::Language;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
