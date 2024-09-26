@@ -55,6 +55,8 @@ pub enum Error {
     MediaArtistMbzIdMoreThanArtistName,
     #[error("Song artist should not be empty")]
     MediaSongArtistEmpty,
+    #[error("Artist name should not be empty")]
+    MediaArtistNameEmpty,
     #[error("Could not read vorbis comments from flac file")]
     MediaFlacMissingVorbisComments,
 

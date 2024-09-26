@@ -3924,6 +3924,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "typed-path",
+ "unicode-normalization",
  "url",
  "uuid",
  "xxhash-rust",
