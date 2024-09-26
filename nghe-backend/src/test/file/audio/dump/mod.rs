@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use isolang::Language;
 
 use crate::config;
-use crate::file::audio::{self, Artists, File, NameDateMbz, TrackDisc};
+use crate::file::audio::{self, Artists, File, Genres, NameDateMbz, TrackDisc};
 
 pub trait Metadata {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self;
@@ -14,7 +14,7 @@ pub trait Metadata {
     fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) -> &mut Self;
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self;
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self;
-    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self;
+    fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self;
 
     fn dump_metadata(
         &mut self,
@@ -78,7 +78,7 @@ impl Metadata for File {
         self
     }
 
-    fn dump_genres(&mut self, config: &config::Parsing, genres: Vec<Cow<'_, str>>) -> &mut Self {
+    fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self {
         match self {
             File::Flac { audio, .. } => {
                 audio.dump_genres(config, genres);
