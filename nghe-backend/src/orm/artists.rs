@@ -22,3 +22,105 @@ pub struct Upsert<'a> {
     #[diesel(embed)]
     pub data: Data<'a>,
 }
+
+mod upsert {
+    use diesel::{DecoratableTarget, ExpressionMethods};
+    use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
+
+    use super::{artists, Upsert};
+    use crate::database::Database;
+    use crate::Error;
+
+    impl<'a> crate::orm::upsert::Insert for Upsert<'a> {
+        async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
+            if self.data.mbz_id.is_some() {
+                diesel::insert_into(artists::table)
+                    .values(self)
+                    .on_conflict(artists::mbz_id)
+                    .do_update()
+                    .set((self, artists::scanned_at.eq(time::OffsetDateTime::now_utc())))
+                    .returning(artists::id)
+                    .get_result(&mut database.get().await?)
+                    .await
+            } else {
+                diesel::insert_into(artists::table)
+                    .values(self)
+                    .on_conflict(artists::name)
+                    .filter_target(artists::mbz_id.is_null())
+                    .do_update()
+                    .set((self, artists::scanned_at.eq(time::OffsetDateTime::now_utc())))
+                    .returning(artists::id)
+                    .get_result(&mut database.get().await?)
+                    .await
+            }
+            .map_err(Error::from)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+    use diesel_async::RunQueryDsl;
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+    use uuid::Uuid;
+
+    use super::{artists, Data};
+    use crate::file::audio;
+    use crate::test::{mock, Mock};
+
+    async fn select_artist(mock: &Mock, id: Uuid) -> audio::Artist<'static> {
+        artists::table
+            .filter(artists::id.eq(id))
+            .select(Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap()
+            .into()
+    }
+
+    #[rstest]
+    #[case(false, false)]
+    #[case(true, false)]
+    #[case(false, true)]
+    #[case(true, true)]
+    #[tokio::test]
+    async fn test_artist_upsert_roundtrip(
+        #[future(awt)] mock: Mock,
+        #[case] mbz_id: bool,
+        #[case] update_artist: bool,
+    ) {
+        let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
+        let artist = audio::Artist { mbz_id, ..Faker.fake() };
+        let id = artist.upsert(mock.database(), &[""]).await.unwrap();
+        let database_artist = select_artist(&mock, id).await;
+        assert_eq!(database_artist, artist);
+
+        if update_artist {
+            let update_artist = audio::Artist { mbz_id, ..Faker.fake() };
+            let update_id = update_artist.upsert(mock.database(), &[""]).await.unwrap();
+            let database_update_artist = select_artist(&mock, id).await;
+            if mbz_id.is_some() {
+                assert_eq!(id, update_id);
+                assert_eq!(database_update_artist, update_artist);
+            } else {
+                // This will always insert a new row to the database
+                // since there is nothing to identify an old artist.
+                assert_ne!(id, update_id);
+            }
+        }
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_artist_upsert_no_mbz_id(#[future(awt)] mock: Mock) {
+        // We want to make sure that insert the same artist with no mbz_id
+        // twice does not result in any error.
+        let artist = audio::Artist { mbz_id: None, ..Faker.fake() };
+        let id = artist.upsert(mock.database(), &[""]).await.unwrap();
+        let update_id = artist.upsert(mock.database(), &[""]).await.unwrap();
+        assert_eq!(update_id, id);
+    }
+}

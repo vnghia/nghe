@@ -103,23 +103,24 @@ mod tests {
     }
 
     #[rstest]
-    #[case(None, None)]
-    #[case(Some(Faker.fake()), None)]
-    #[case(None, Some(Faker.fake()))]
-    #[case(Some(Faker.fake()), Some(Faker.fake()))]
+    #[case(false, false)]
+    #[case(true, false)]
+    #[case(false, true)]
+    #[case(true, true)]
     #[tokio::test]
     async fn test_album_upsert_roundtrip(
         #[future(awt)] mock: Mock,
-        #[case] mbz_id: Option<Uuid>,
-        #[case] update_album: Option<audio::NameDateMbz<'static>>,
+        #[case] mbz_id: bool,
+        #[case] update_album: bool,
     ) {
+        let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
         let album = audio::NameDateMbz { mbz_id, ..Faker.fake() };
         let id = album.upsert_mock(&mock, 0).await;
         let database_album = select_album(&mock, id).await;
         assert_eq!(database_album, album);
 
-        if let Some(update_album) = update_album {
-            let update_album = audio::NameDateMbz { mbz_id, ..update_album };
+        if update_album {
+            let update_album = audio::NameDateMbz { mbz_id, ..Faker.fake() };
             let update_id = update_album.upsert_mock(&mock, 0).await;
             let database_update_album = select_album(&mock, id).await;
             if mbz_id.is_some() {

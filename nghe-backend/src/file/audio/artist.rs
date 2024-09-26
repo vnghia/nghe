@@ -2,14 +2,18 @@ use std::borrow::Cow;
 
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
+use futures_lite::{stream, StreamExt};
 use o2o::o2o;
 use unicode_normalization::UnicodeNormalization;
 use uuid::Uuid;
 
+use crate::database::Database;
 use crate::orm::artists;
+use crate::orm::upsert::Insert as _;
 use crate::Error;
 
 #[derive(Debug, o2o)]
+#[from_owned(artists::Data<'a>)]
 #[ref_into(artists::Data<'a>)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Artist<'a> {
@@ -52,6 +56,27 @@ impl<'a> Artist<'a> {
                 c
             }
         })
+    }
+
+    pub async fn upsert(
+        &self,
+        database: &Database,
+        prefixes: &[impl AsRef<str>],
+    ) -> Result<Uuid, Error> {
+        artists::Upsert { index: self.index(prefixes)?.to_string().into(), data: self.into() }
+            .insert(database)
+            .await
+    }
+
+    async fn upserts(
+        database: &Database,
+        artists: &[Self],
+        prefixes: &[impl AsRef<str>],
+    ) -> Result<Vec<Uuid>, Error> {
+        stream::iter(artists)
+            .then(async |artist| artist.upsert(database, prefixes).await)
+            .try_collect()
+            .await
     }
 }
 
@@ -110,6 +135,6 @@ mod tests {
     #[case("ａ", &["The ", "A "], 'A')]
     #[case("%", &["The ", "A "], '*')]
     fn test_index(#[case] name: &str, #[case] prefixes: &[&str], #[case] index: char) {
-        assert_eq!(Artist { ..name.into() }.index(prefixes).unwrap(), index);
+        assert_eq!(Artist::from(name).index(prefixes).unwrap(), index);
     }
 }
