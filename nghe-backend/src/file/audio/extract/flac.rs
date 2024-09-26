@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 

@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use lofty::flac::FlacFile;
 
 use super::Metadata;
