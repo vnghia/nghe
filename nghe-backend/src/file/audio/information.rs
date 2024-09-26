@@ -21,6 +21,14 @@ pub struct Information<'a> {
 }
 
 impl<'a> Information<'a> {
+    pub async fn upsert_album(
+        &self,
+        database: &Database,
+        music_folder_id: Uuid,
+    ) -> Result<Uuid, Error> {
+        self.metadata.album.upsert(database, music_folder_id).await
+    }
+
     pub async fn upsert(
         &self,
         database: &Database,

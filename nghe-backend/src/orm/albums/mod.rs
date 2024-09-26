@@ -1,12 +1,12 @@
+use std::borrow::Cow;
+
 use diesel::prelude::*;
 use diesel_derives::AsChangeset;
 use uuid::Uuid;
 
-pub mod date;
-
-use std::borrow::Cow;
-
 pub use crate::schema::albums::{self, *};
+
+pub mod date;
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
