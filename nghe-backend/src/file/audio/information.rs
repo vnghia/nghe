@@ -47,3 +47,25 @@ impl<'a> Information<'a> {
             .await
     }
 }
+
+#[cfg(test)]
+mod test {
+    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+    use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
+
+    use super::Information;
+    use crate::orm::songs;
+    use crate::test::Mock;
+
+    impl<'a> Information<'a> {
+        pub async fn query_data(mock: &Mock, id: Uuid) -> songs::Data {
+            songs::table
+                .filter(songs::id.eq(id))
+                .select(songs::Data::as_select())
+                .get_result(&mut mock.get().await)
+                .await
+                .unwrap()
+        }
+    }
+}

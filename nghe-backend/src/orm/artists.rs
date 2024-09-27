@@ -61,27 +61,12 @@ mod upsert {
 
 #[cfg(test)]
 mod tests {
-    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
-    use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};
-    use futures_lite::{stream, StreamExt};
     use rstest::{fixture, rstest};
     use uuid::Uuid;
 
-    use super::{artists, Data};
     use crate::file::audio;
-    use crate::orm::{songs_album_artists, songs_artists};
     use crate::test::{mock, Mock};
-
-    async fn select_artist(mock: &Mock, id: Uuid) -> audio::Artist<'static> {
-        artists::table
-            .filter(artists::id.eq(id))
-            .select(Data::as_select())
-            .get_result(&mut mock.get().await)
-            .await
-            .unwrap()
-            .into()
-    }
 
     #[rstest]
     #[case(false, false)]
@@ -97,13 +82,13 @@ mod tests {
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
         let artist = audio::Artist { mbz_id, ..Faker.fake() };
         let id = artist.upsert(mock.database(), &[""]).await.unwrap();
-        let database_artist = select_artist(&mock, id).await;
+        let database_artist = audio::Artist::query(&mock, id).await;
         assert_eq!(database_artist, artist);
 
         if update_artist {
             let update_artist = audio::Artist { mbz_id, ..Faker.fake() };
             let update_id = update_artist.upsert(mock.database(), &[""]).await.unwrap();
-            let database_update_artist = select_artist(&mock, id).await;
+            let database_update_artist = audio::Artist::query(&mock, id).await;
             if mbz_id.is_some() {
                 assert_eq!(id, update_id);
                 assert_eq!(database_update_artist, update_artist);
@@ -137,42 +122,6 @@ mod tests {
         (mock, song_id)
     }
 
-    async fn select_song_artists(mock: &Mock, song_id: Uuid) -> Vec<audio::Artist<'static>> {
-        let ids: Vec<Uuid> = songs_artists::table
-            .filter(songs_artists::song_id.eq(song_id))
-            .select(songs_artists::artist_id)
-            .order_by(songs_artists::upserted_at)
-            .get_results(&mut mock.get().await)
-            .await
-            .unwrap();
-        stream::iter(ids).then(async |id| select_artist(mock, id).await).collect().await
-    }
-
-    async fn select_song_album_artists(
-        mock: &Mock,
-        song_id: Uuid,
-    ) -> (Vec<audio::Artist<'static>>, bool) {
-        let ids_compilations = songs_album_artists::table
-            .filter(songs_album_artists::song_id.eq(song_id))
-            .select((songs_album_artists::album_artist_id, songs_album_artists::compilation))
-            .order_by(songs_album_artists::upserted_at)
-            .get_results::<(Uuid, bool)>(&mut mock.get().await)
-            .await
-            .unwrap();
-        let artists: Vec<_> = stream::iter(&ids_compilations)
-            .copied()
-            .filter_map(|(id, compilation)| if compilation { None } else { Some(id) })
-            .then(async |id| select_artist(mock, id).await)
-            .collect()
-            .await;
-        // If there is any compliation, it will be filtered out and make the size of two vectors not
-        // equal. On the other hand, two same size vectors can mean either there isn't any
-        // compilation or the song artists are the same as the album artists or there isn't any
-        // album artist (which then be filled with song artists).
-        let compilation = ids_compilations.len() != artists.len();
-        (artists, compilation)
-    }
-
     #[rstest]
     #[tokio::test]
     async fn test_artists_upsert(#[future(awt)] mock_with_song: (Mock, Uuid)) {
@@ -180,10 +129,7 @@ mod tests {
         let artists: audio::Artists = Faker.fake();
         artists.upsert(mock.database(), &[""], song_id).await.unwrap();
 
-        let database_song = select_song_artists(&mock, song_id).await;
-        let (database_album, compilation) = select_song_album_artists(&mock, song_id).await;
-        let database_artists =
-            audio::Artists::new(database_song, database_album, compilation).unwrap();
+        let database_artists = audio::Artists::query(&mock, song_id).await;
         assert_eq!(database_artists, artists);
     }
 }

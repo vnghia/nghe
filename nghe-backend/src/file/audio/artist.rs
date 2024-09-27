@@ -200,7 +200,10 @@ impl<'a> Artists<'a> {
 
 #[cfg(test)]
 mod test {
+    use diesel::{QueryDsl, SelectableHelper};
+
     use super::*;
+    use crate::test::Mock;
 
     impl<'a> PartialEq for Artists<'a> {
         fn eq(&self, other: &Self) -> bool {
@@ -219,6 +222,60 @@ mod test {
     impl<'a> From<(&'a str, Uuid)> for Artist<'a> {
         fn from(value: (&'a str, Uuid)) -> Self {
             Self { name: value.0.into(), mbz_id: Some(value.1) }
+        }
+    }
+
+    impl<'a> Artist<'a> {
+        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+            artists::table
+                .filter(artists::id.eq(id))
+                .select(artists::Data::as_select())
+                .get_result(&mut mock.get().await)
+                .await
+                .unwrap()
+                .into()
+        }
+
+        async fn query_song_artists(mock: &Mock, song_id: Uuid) -> Vec<Self> {
+            let ids: Vec<Uuid> = songs_artists::table
+                .filter(songs_artists::song_id.eq(song_id))
+                .select(songs_artists::artist_id)
+                .order_by(songs_artists::upserted_at)
+                .get_results(&mut mock.get().await)
+                .await
+                .unwrap();
+            stream::iter(ids).then(async |id| Self::query(mock, id).await).collect().await
+        }
+
+        async fn query_song_album_artists(mock: &Mock, song_id: Uuid) -> (Vec<Self>, bool) {
+            let ids_compilations = songs_album_artists::table
+                .filter(songs_album_artists::song_id.eq(song_id))
+                .select((songs_album_artists::album_artist_id, songs_album_artists::compilation))
+                .order_by(songs_album_artists::upserted_at)
+                .get_results::<(Uuid, bool)>(&mut mock.get().await)
+                .await
+                .unwrap();
+            let artists: Vec<_> = stream::iter(&ids_compilations)
+                .copied()
+                .filter_map(|(id, compilation)| if compilation { None } else { Some(id) })
+                .then(async |id| Self::query(mock, id).await)
+                .collect()
+                .await;
+            // If there is any compliation, it will be filtered out and make the size of two vectors
+            // not equal. On the other hand, two same size vectors can mean either there
+            // isn't any compilation or the song artists are the same as the album
+            // artists or there isn't any album artist (which then be filled with song
+            // artists).
+            let compilation = ids_compilations.len() != artists.len();
+            (artists, compilation)
+        }
+    }
+
+    impl<'a> Artists<'a> {
+        pub async fn query(mock: &Mock, song_id: Uuid) -> Self {
+            let song = Artist::query_song_artists(mock, song_id).await;
+            let (album, compilation) = Artist::query_song_album_artists(mock, song_id).await;
+            Self::new(song, album, compilation).unwrap()
         }
     }
 }
