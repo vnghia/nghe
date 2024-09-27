@@ -149,7 +149,7 @@ mod tests {
         let database = mock.database();
         let music_folder_id = mock.music_folder(0).await.music_folder.id;
         let relative_path: String = Faker.fake();
-        let prefixes = &[""];
+        let prefixes = &mock.config.index.ignore_prefixes;
 
         let information: Information = Faker.fake();
         let id = information

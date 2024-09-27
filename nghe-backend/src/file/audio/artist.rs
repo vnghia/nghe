@@ -381,15 +381,18 @@ mod tests {
         #[values(true, false)] mbz_id: bool,
         #[values(true, false)] update_artist: bool,
     ) {
+        let database = mock.database();
+        let prefixes = &mock.config.index.ignore_prefixes;
+
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
         let artist = Artist { mbz_id, ..Faker.fake() };
-        let id = artist.upsert(mock.database(), &[""]).await.unwrap();
+        let id = artist.upsert(database, prefixes).await.unwrap();
         let database_artist = Artist::query(&mock, id).await;
         assert_eq!(database_artist, artist);
 
         if update_artist {
             let update_artist = Artist { mbz_id, ..Faker.fake() };
-            let update_id = update_artist.upsert(mock.database(), &[""]).await.unwrap();
+            let update_id = update_artist.upsert(database, prefixes).await.unwrap();
             let database_update_artist = Artist::query(&mock, id).await;
             if mbz_id.is_some() {
                 assert_eq!(id, update_id);
@@ -421,6 +424,7 @@ mod tests {
         #[values(true, false)] update_artists: bool,
     ) {
         let database = mock.database();
+        let prefixes = &mock.config.index.ignore_prefixes;
 
         let information: audio::Information = Faker.fake();
         let album_id = information.metadata.album.upsert_mock(&mock, 0).await;
@@ -430,7 +434,7 @@ mod tests {
             .unwrap();
 
         let artists = Artists { compilation, ..Faker.fake() };
-        artists.upsert(database, &[""], song_id).await.unwrap();
+        artists.upsert(database, prefixes, song_id).await.unwrap();
         let database_artists = Artists::query(&mock, song_id).await;
         assert_eq!(database_artists, artists);
 
@@ -438,7 +442,7 @@ mod tests {
             let timestamp = time::OffsetDateTime::now_utc();
 
             let update_artists = Artists { compilation, ..Faker.fake() };
-            update_artists.upsert(database, &[""], song_id).await.unwrap();
+            update_artists.upsert(database, prefixes, song_id).await.unwrap();
             Artists::cleanup_song(database, timestamp, song_id).await.unwrap();
             let database_update_artists = Artists::query(&mock, song_id).await;
             assert_eq!(database_update_artists, update_artists);
