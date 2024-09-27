@@ -98,24 +98,11 @@ impl FromSql<Text, super::Type> for audio::Format {
 
 #[cfg(test)]
 mod tests {
-    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
-    use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};
     use rstest::rstest;
-    use uuid::Uuid;
 
-    use super::{songs, Data};
     use crate::file::audio;
     use crate::test::{mock, Mock};
-
-    async fn select_song(mock: &Mock, id: Uuid) -> Data {
-        songs::table
-            .filter(songs::id.eq(id))
-            .select(Data::as_select())
-            .get_result(&mut mock.get().await)
-            .await
-            .unwrap()
-    }
 
     #[rstest]
     #[case(None)]
@@ -132,7 +119,7 @@ mod tests {
         let id =
             song.upsert(mock.database(), album_id, Faker.fake::<String>(), None).await.unwrap();
 
-        let database_data = select_song(&mock, id).await;
+        let database_data = audio::Information::query_data(&mock, id).await;
         let database_song: audio::Song = database_data.song.try_into().unwrap();
         let database_property: audio::Property = database_data.property.try_into().unwrap();
         let database_file: file::Property<_> = database_data.file.into();
@@ -146,7 +133,7 @@ mod tests {
                 .await
                 .unwrap();
 
-            let update_database_data = select_song(&mock, update_id).await;
+            let update_database_data = audio::Information::query_data(&mock, update_id).await;
             let update_database_song: audio::Song = update_database_data.song.try_into().unwrap();
             let update_database_property: audio::Property =
                 update_database_data.property.try_into().unwrap();
