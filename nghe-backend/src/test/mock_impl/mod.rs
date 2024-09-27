@@ -23,6 +23,7 @@ pub struct Config {
     pub filesystem: config::filesystem::Filesystem,
     #[derivative(Default(value = "config::Parsing::test()"))]
     pub parsing: config::Parsing,
+    pub index: config::Index,
 
     pub lofty_parse: ParseOptions,
     pub lofty_write: WriteOptions,
