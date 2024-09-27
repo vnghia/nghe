@@ -94,7 +94,7 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         let album_id = information.upsert_album(&self.database, self.id).await?;
 
         information
-            .upsert(&self.database, album_id, entry.relative_path(&self.path)?.as_str(), None)
+            .upsert_song(&self.database, album_id, entry.relative_path(&self.path)?.as_str(), None)
             .await?;
         Ok(())
     }

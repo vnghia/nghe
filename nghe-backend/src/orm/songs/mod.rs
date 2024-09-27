@@ -114,8 +114,10 @@ mod tests {
 
         let song: audio::Information = Faker.fake();
         let album_id = song.metadata.album.upsert_mock(&mock, 0).await;
-        let id =
-            song.upsert(mock.database(), album_id, Faker.fake::<String>(), None).await.unwrap();
+        let id = song
+            .upsert_song(mock.database(), album_id, Faker.fake::<String>(), None)
+            .await
+            .unwrap();
 
         let database_data = audio::Information::query_data(&mock, id).await;
         let database_song: audio::Song = database_data.song.try_into().unwrap();
@@ -127,7 +129,7 @@ mod tests {
 
         if let Some(update_song) = update_song {
             let update_id = update_song
-                .upsert(mock.database(), album_id, Faker.fake::<String>(), id)
+                .upsert_song(mock.database(), album_id, Faker.fake::<String>(), id)
                 .await
                 .unwrap();
 

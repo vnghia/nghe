@@ -62,8 +62,7 @@ mod upsert {
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
-    use rstest::{fixture, rstest};
-    use uuid::Uuid;
+    use rstest::rstest;
 
     use crate::file::audio;
     use crate::test::{mock, Mock};
@@ -107,17 +106,6 @@ mod tests {
         assert_eq!(update_id, id);
     }
 
-    #[fixture]
-    async fn mock_with_song(#[future(awt)] mock: Mock) -> (Mock, Uuid) {
-        let information: audio::Information = Faker.fake();
-        let album_id = information.metadata.album.upsert_mock(&mock, 0).await;
-        let song_id = information
-            .upsert(mock.database(), album_id, Faker.fake::<String>(), None)
-            .await
-            .unwrap();
-        (mock, song_id)
-    }
-
     #[rstest]
     #[tokio::test]
     async fn test_artists_upsert(
@@ -127,7 +115,7 @@ mod tests {
         let information: audio::Information = Faker.fake();
         let album_id = information.metadata.album.upsert_mock(&mock, 0).await;
         let song_id = information
-            .upsert(mock.database(), album_id, Faker.fake::<String>(), None)
+            .upsert_song(mock.database(), album_id, Faker.fake::<String>(), None)
             .await
             .unwrap();
 

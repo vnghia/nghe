@@ -30,12 +30,21 @@ impl<'a> Information<'a> {
         self.metadata.album.upsert(database, music_folder_id).await
     }
 
+    pub async fn upsert_artists(
+        &self,
+        database: &Database,
+        prefixes: &[impl AsRef<str>],
+        song_id: Uuid,
+    ) -> Result<(), Error> {
+        self.metadata.artists.upsert(database, prefixes, song_id).await
+    }
+
     pub async fn upsert_genres(&self, database: &Database, song_id: Uuid) -> Result<(), Error> {
         let genre_ids = self.metadata.genres.upsert(database).await?;
         Genres::upsert_song(database, song_id, &genre_ids).await
     }
 
-    pub async fn upsert(
+    pub async fn upsert_song(
         &self,
         database: &Database,
         album_id: Uuid,
@@ -45,6 +54,21 @@ impl<'a> Information<'a> {
         songs::Upsert { album_id, relative_path: relative_path.into(), data: self.try_into()? }
             .upsert(database, id)
             .await
+    }
+
+    pub async fn upsert(
+        &self,
+        database: &Database,
+        music_folder_id: Uuid,
+        relative_path: impl Into<Cow<'_, str>>,
+        prefixes: &[impl AsRef<str>],
+        song_id: impl Into<Option<Uuid>>,
+    ) -> Result<(), Error> {
+        let album_id = self.upsert_album(database, music_folder_id).await?;
+        let song_id = self.upsert_song(database, album_id, relative_path, song_id).await?;
+        self.upsert_artists(database, prefixes, song_id).await?;
+        self.upsert_genres(database, song_id).await?;
+        Ok(())
     }
 }
 
