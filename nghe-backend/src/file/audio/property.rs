@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(derivative::Derivative, fake::Dummy))]
-#[cfg_attr(test, derivative(PartialEq))]
+#[cfg_attr(test, derivative(PartialEq, Eq))]
 pub struct Property {
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     pub duration: f32,

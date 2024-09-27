@@ -51,17 +51,15 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::file::audio;
+    use crate::file::{self, audio};
     use crate::test::{mock, Mock};
 
     #[rstest]
     #[tokio::test]
     async fn test_song_roundtrip(
         #[future(awt)] mock: Mock,
-        #[values(None, Some(Faker.fake()))] update_song: Option<audio::Information<'static>>,
+        #[values(true, false)] update_song: bool,
     ) {
-        use crate::file;
-
         let song: audio::Information = Faker.fake();
         let album_id = song.metadata.album.upsert_mock(&mock, 0).await;
         let id = song
@@ -77,7 +75,8 @@ mod tests {
         assert_eq!(database_property, song.property);
         assert_eq!(database_file, song.file);
 
-        if let Some(update_song) = update_song {
+        if update_song {
+            let update_song: audio::Information = Faker.fake();
             let update_id = update_song
                 .upsert_song(mock.database(), album_id, Faker.fake::<String>(), id)
                 .await
