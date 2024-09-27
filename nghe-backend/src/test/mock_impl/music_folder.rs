@@ -1,11 +1,14 @@
+#![allow(clippy::struct_field_names)]
+
 use std::io::{Cursor, Write};
 
 use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
+use indexmap::IndexMap;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::file::{audio, File};
+use crate::file::{self, audio, File};
 use crate::filesystem::Trait as _;
 use crate::orm::music_folders;
 use crate::scan::scanner;
@@ -15,6 +18,7 @@ use crate::test::filesystem::{self, Trait as _};
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
+    audios: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
     pub music_folder: music_folders::MusicFolder<'static>,
 }
 
@@ -23,6 +27,7 @@ impl<'a> Mock<'a> {
     pub async fn new(mock: &'a super::Mock, index: usize) -> Self {
         Self {
             mock,
+            audios: IndexMap::new(),
             music_folder: music_folders::table
                 .select(music_folders::MusicFolder::as_select())
                 .order_by(music_folders::created_at)
@@ -43,15 +48,15 @@ impl<'a> Mock<'a> {
 
     #[builder]
     pub async fn add_audio(
-        &self,
+        &mut self,
         path: Option<Utf8TypedPath<'_>>,
         #[builder(default = (0..3).fake::<usize>())] depth: usize,
         #[builder(default = Faker.fake::<audio::Format>())] format: audio::Format,
-        metadata: Option<audio::Metadata<'_>>,
-        song: Option<audio::Song<'_>>,
-        album: Option<audio::NameDateMbz<'_>>,
-        artists: Option<audio::Artists<'a>>,
-        genres: Option<audio::Genres<'a>>,
+        metadata: Option<audio::Metadata<'static>>,
+        song: Option<audio::Song<'static>>,
+        album: Option<audio::NameDateMbz<'static>>,
+        artists: Option<audio::Artists<'static>>,
+        genres: Option<audio::Genres<'static>>,
         #[builder(default = 1)] n_song: usize,
     ) -> &Self {
         for _ in 0..n_song {
@@ -70,21 +75,30 @@ impl<'a> Mock<'a> {
                 File::new(data, format).unwrap().audio(self.mock.config.lofty_parse).unwrap();
             asset.set_position(0);
 
+            let metadata = metadata.clone().unwrap_or_else(|| audio::Metadata {
+                song: song.clone().unwrap_or_else(|| Faker.fake()),
+                album: album.clone().unwrap_or_else(|| Faker.fake()),
+                artists: artists.clone().unwrap_or_else(|| Faker.fake()),
+                genres: genres.clone().unwrap_or_else(|| Faker.fake()),
+            });
+
             file.clear()
-                .dump_metadata(
-                    &self.mock.config.parsing,
-                    metadata.clone().unwrap_or_else(|| audio::Metadata {
-                        song: song.clone().unwrap_or_else(|| Faker.fake()),
-                        album: album.clone().unwrap_or_else(|| Faker.fake()),
-                        artists: artists.clone().unwrap_or_else(|| Faker.fake()),
-                        genres: genres.clone().unwrap_or_else(|| Faker.fake()),
-                    }),
-                )
+                .dump_metadata(&self.mock.config.parsing, metadata.clone())
                 .save_to(&mut asset, self.mock.config.lofty_write);
 
             asset.flush().unwrap();
             asset.set_position(0);
-            self.to_impl().write(path.to_path(), &asset.into_inner()).await;
+            let data = asset.into_inner();
+
+            self.to_impl().write(path.to_path(), &data).await;
+            self.audios.insert(
+                path,
+                audio::Information {
+                    metadata,
+                    property: audio::Property::default(format),
+                    file: file::Property::new(&data, format).unwrap(),
+                },
+            );
         }
 
         self
