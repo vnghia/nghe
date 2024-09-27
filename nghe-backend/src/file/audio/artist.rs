@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
 use futures_lite::{stream, StreamExt};
+use indexmap::IndexSet;
 use o2o::o2o;
 use unicode_normalization::UnicodeNormalization;
 use uuid::Uuid;
@@ -14,7 +15,7 @@ use crate::orm::upsert::Insert as _;
 use crate::orm::{artists, songs_album_artists, songs_artists};
 use crate::Error;
 
-#[derive(Debug, PartialEq, Eq, o2o)]
+#[derive(Debug, PartialEq, Eq, Hash, o2o)]
 #[from_owned(artists::Data<'a>)]
 #[ref_into(artists::Data<'a>)]
 #[cfg_attr(test, derive(Dummy, Clone))]
@@ -28,10 +29,10 @@ pub struct Artist<'a> {
 #[derive(Debug)]
 #[cfg_attr(test, derive(Dummy, Eq, Clone))]
 pub struct Artists<'a> {
-    #[cfg_attr(test, dummy(faker = "(Faker, 1..4)"))]
-    pub song: Vec<Artist<'a>>,
-    #[cfg_attr(test, dummy(faker = "(Faker, 0..2)"))]
-    pub album: Vec<Artist<'a>>,
+    #[cfg_attr(test, dummy(expr = "fake::vec![Artist; 1..5].into_iter().collect()"))]
+    pub song: IndexSet<Artist<'a>>,
+    #[cfg_attr(test, dummy(expr = "fake::vec![Artist; 0..3].into_iter().collect()"))]
+    pub album: IndexSet<Artist<'a>>,
     pub compilation: bool,
 }
 
@@ -73,7 +74,7 @@ impl<'a> Artist<'a> {
 
     async fn upserts(
         database: &Database,
-        artists: &[Self],
+        artists: impl IntoIterator<Item = &'a Self>,
         prefixes: &[impl AsRef<str>],
     ) -> Result<Vec<Uuid>, Error> {
         stream::iter(artists)
@@ -85,10 +86,12 @@ impl<'a> Artist<'a> {
 
 impl<'a> Artists<'a> {
     pub fn new(
-        song: Vec<Artist<'a>>,
-        album: Vec<Artist<'a>>,
+        song: impl IntoIterator<Item = Artist<'a>>,
+        album: impl IntoIterator<Item = Artist<'a>>,
         compilation: bool,
     ) -> Result<Self, Error> {
+        let song: IndexSet<_> = song.into_iter().collect();
+        let album = album.into_iter().collect();
         if song.is_empty() {
             Err(Error::MediaSongArtistEmpty)
         } else {
@@ -96,11 +99,11 @@ impl<'a> Artists<'a> {
         }
     }
 
-    pub fn song(&self) -> &Vec<Artist<'a>> {
+    pub fn song(&self) -> &IndexSet<Artist<'a>> {
         &self.song
     }
 
-    pub fn album(&self) -> &Vec<Artist<'a>> {
+    pub fn album(&self) -> &IndexSet<Artist<'a>> {
         if self.album.is_empty() { &self.song } else { &self.album }
     }
 
@@ -111,7 +114,11 @@ impl<'a> Artists<'a> {
         // album artists field is empty, the album artists will be the same with
         // song artists which then set any compilation field to false, so no need to add them in
         // the first place.
-        if self.album.is_empty() || self.song == self.album { false } else { self.compilation }
+        if self.album.is_empty() || self.song.difference(&self.album).peekable().peek().is_none() {
+            false
+        } else {
+            self.compilation
+        }
     }
 
     pub async fn upsert_song_artist(
@@ -242,6 +249,12 @@ mod tests {
     #[case(&["Song"], &[], false, false)]
     #[case(&["Song"], &["Song"], true, false)]
     #[case(&["Song"], &["Song"], false, false)]
+    #[case(&["Song"], &["Song", "Album"], true, false)]
+    #[case(&["Song"], &["Song", "Album"], false, false)]
+    #[case(&["Song1", "Song2"], &["Song1", "Song2", "Album"], true, false)]
+    #[case(&["Song1", "Song2"], &["Song1", "Song2", "Album"], false, false)]
+    #[case(&["Song1", "Song2"], &["Song2", "Album", "Song1"], true, false)]
+    #[case(&["Song1", "Song2"], &["Song2", "Album", "Song1"], false, false)]
     fn test_compilation(
         #[case] song: &[&str],
         #[case] album: &[&str],
@@ -250,8 +263,8 @@ mod tests {
     ) {
         assert_eq!(
             Artists::new(
-                song.iter().copied().map(Artist::from).collect(),
-                album.iter().copied().map(Artist::from).collect(),
+                song.iter().copied().map(Artist::from),
+                album.iter().copied().map(Artist::from),
                 compilation
             )
             .unwrap()
