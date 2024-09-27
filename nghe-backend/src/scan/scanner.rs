@@ -11,7 +11,7 @@ use typed_path::Utf8TypedPathBuf;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::file::File;
+use crate::file::{audio, File};
 use crate::filesystem::{self, entry, Entry, Filesystem, Trait};
 use crate::orm::music_folders;
 use crate::{config, Error};
@@ -21,6 +21,7 @@ pub struct Config {
     pub lofty: ParseOptions,
     pub scan: config::filesystem::Scan,
     pub parsing: config::Parsing,
+    pub index: config::Index,
 }
 
 #[derive(Debug, Clone)]
@@ -86,20 +87,29 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         )
     }
 
-    async fn one(&self, entry: &Entry) -> Result<(), Error> {
+    async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
+        let database = &self.database;
         let audio = File::new(self.filesystem.read(entry.path.to_path()).await?, entry.format)?
             .audio(self.config.lofty)?;
+
         let information = audio.extract(&self.config.parsing)?;
-
-        let album_id = information.upsert_album(&self.database, self.id).await?;
-
-        information
-            .upsert_song(&self.database, album_id, entry.relative_path(&self.path)?.as_str(), None)
+        let song_id = information
+            .upsert(
+                database,
+                self.id,
+                entry.relative_path(&self.path)?.as_str(),
+                &self.config.index.ignore_prefixes,
+                None,
+            )
             .await?;
+        audio::Information::cleanup_one(database, started_at, song_id).await?;
+
         Ok(())
     }
 
     pub async fn run(&self) -> Result<(), Error> {
+        let started_at = time::OffsetDateTime::now_utc();
+
         let (scan_handle, permit, mut rx) = self.init();
         let mut join_set = tokio::task::JoinSet::new();
 
@@ -108,7 +118,7 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
             let scan = self.clone().into_owned();
             join_set.spawn(async move {
                 let _guard = permit;
-                scan.one(&entry).await
+                scan.one(&entry, started_at).await
             });
         }
 

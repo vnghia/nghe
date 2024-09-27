@@ -8,6 +8,7 @@ use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 use crate::file::{audio, File};
 use crate::filesystem::Trait as _;
 use crate::orm::music_folders;
+use crate::scan::scanner;
 use crate::test::assets;
 use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::{self, Trait as _};
@@ -95,5 +96,20 @@ impl<'a> Mock<'a> {
             .unwrap()
             .audio(self.mock.config.lofty_parse)
             .unwrap()
+    }
+
+    pub fn scan(&self) -> scanner::Scanner<'_, '_> {
+        scanner::Scanner::new_orm(
+            self.mock.database(),
+            self.mock.filesystem(),
+            scanner::Config {
+                lofty: self.mock.config.lofty_parse,
+                scan: self.mock.config.filesystem.scan,
+                parsing: self.mock.config.parsing.clone(),
+                index: self.mock.config.index.clone(),
+            },
+            self.music_folder.clone(),
+        )
+        .unwrap()
     }
 }
