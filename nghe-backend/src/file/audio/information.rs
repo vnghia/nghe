@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use o2o::o2o;
 use uuid::Uuid;
 
-use super::Genres;
+use super::{Artists, Genres};
 use crate::database::Database;
 use crate::orm::songs;
 use crate::orm::upsert::Upsert as _;
@@ -70,6 +70,16 @@ impl<'a> Information<'a> {
         self.upsert_genres(database, song_id).await?;
         Ok(song_id)
     }
+
+    pub async fn cleanup_song(
+        database: &Database,
+        timestamp: time::OffsetDateTime,
+        song_id: Uuid,
+    ) -> Result<(), Error> {
+        Artists::cleanup_song(database, timestamp, song_id).await?;
+        Genres::cleanup_song(database, timestamp, song_id).await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -134,8 +144,7 @@ mod tests {
     #[tokio::test]
     async fn test_information_roundtrip(
         #[future(awt)] mock: Mock,
-        // TODO: Test with update when delete old data is implemented.
-        #[values(false)] update_information: bool,
+        #[values(true, false)] update_information: bool,
     ) {
         let database = mock.database();
         let music_folder_id = mock.music_folder(0).await.music_folder.id;
@@ -151,11 +160,14 @@ mod tests {
         assert_eq!(database_information, information);
 
         if update_information {
+            let timestamp = time::OffsetDateTime::now_utc();
+
             let update_information: Information = Faker.fake();
             let update_id = update_information
                 .upsert(database, music_folder_id, &relative_path, prefixes, id)
                 .await
                 .unwrap();
+            Information::cleanup_song(database, timestamp, id).await.unwrap();
             let database_update_information = Information::query(&mock, id).await;
             assert_eq!(update_id, id);
             assert_eq!(database_update_information, update_information);

@@ -81,6 +81,21 @@ impl<'a> Genres<'a> {
             .await?;
         Ok(())
     }
+
+    pub async fn cleanup_song(
+        database: &Database,
+        timestamp: time::OffsetDateTime,
+        song_id: Uuid,
+    ) -> Result<(), Error> {
+        // Delete all the genres of a song which haven't been refreshed since timestamp.
+        diesel::delete(songs_genres::table)
+            .filter(songs_genres::song_id.eq(song_id))
+            .filter(songs_genres::upserted_at.lt(timestamp))
+            .execute(&mut database.get().await?)
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

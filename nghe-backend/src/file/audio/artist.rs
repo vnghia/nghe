@@ -196,6 +196,28 @@ impl<'a> Artists<'a> {
 
         Ok(())
     }
+
+    pub async fn cleanup_song(
+        database: &Database,
+        timestamp: time::OffsetDateTime,
+        song_id: Uuid,
+    ) -> Result<(), Error> {
+        // Delete all the artists of a song which haven't been refreshed since timestamp.
+        diesel::delete(songs_artists::table)
+            .filter(songs_artists::song_id.eq(song_id))
+            .filter(songs_artists::upserted_at.lt(timestamp))
+            .execute(&mut database.get().await?)
+            .await?;
+
+        // Delete all the album artists of a song which haven't been refreshed since timestamp.
+        diesel::delete(songs_album_artists::table)
+            .filter(songs_album_artists::song_id.eq(song_id))
+            .filter(songs_album_artists::upserted_at.lt(timestamp))
+            .execute(&mut database.get().await?)
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -396,18 +418,30 @@ mod tests {
     async fn test_artists_upsert(
         #[future(awt)] mock: Mock,
         #[values(true, false)] compilation: bool,
+        #[values(true, false)] update_artists: bool,
     ) {
+        let database = mock.database();
+
         let information: audio::Information = Faker.fake();
         let album_id = information.metadata.album.upsert_mock(&mock, 0).await;
         let song_id = information
-            .upsert_song(mock.database(), album_id, Faker.fake::<String>(), None)
+            .upsert_song(database, album_id, Faker.fake::<String>(), None)
             .await
             .unwrap();
 
         let artists = Artists { compilation, ..Faker.fake() };
-        artists.upsert(mock.database(), &[""], song_id).await.unwrap();
-
+        artists.upsert(database, &[""], song_id).await.unwrap();
         let database_artists = Artists::query(&mock, song_id).await;
         assert_eq!(database_artists, artists);
+
+        if update_artists {
+            let timestamp = time::OffsetDateTime::now_utc();
+
+            let update_artists = Artists { compilation, ..Faker.fake() };
+            update_artists.upsert(database, &[""], song_id).await.unwrap();
+            Artists::cleanup_song(database, timestamp, song_id).await.unwrap();
+            let database_update_artists = Artists::query(&mock, song_id).await;
+            assert_eq!(database_update_artists, update_artists);
+        }
     }
 }
