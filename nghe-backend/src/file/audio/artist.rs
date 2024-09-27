@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use diesel::ExpressionMethods;
+use diesel_async::RunQueryDsl;
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
 use futures_lite::{stream, StreamExt};
@@ -8,14 +10,14 @@ use unicode_normalization::UnicodeNormalization;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::orm::artists;
 use crate::orm::upsert::Insert as _;
+use crate::orm::{artists, songs_album_artists, songs_artists};
 use crate::Error;
 
-#[derive(Debug, o2o)]
+#[derive(Debug, PartialEq, Eq, o2o)]
 #[from_owned(artists::Data<'a>)]
 #[ref_into(artists::Data<'a>)]
-#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
+#[cfg_attr(test, derive(Dummy, Clone))]
 pub struct Artist<'a> {
     #[ref_into(Cow::Borrowed(~.as_ref()))]
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
@@ -24,10 +26,11 @@ pub struct Artist<'a> {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
+#[cfg_attr(test, derive(Dummy, Eq, Clone))]
 pub struct Artists<'a> {
     #[cfg_attr(test, dummy(faker = "(Faker, 1..4)"))]
     pub song: Vec<Artist<'a>>,
+    #[cfg_attr(test, dummy(faker = "(Faker, 0..2)"))]
     pub album: Vec<Artist<'a>>,
     pub compilation: bool,
 }
@@ -100,11 +103,105 @@ impl<'a> Artists<'a> {
     pub fn album(&self) -> &Vec<Artist<'a>> {
         if self.album.is_empty() { &self.song } else { &self.album }
     }
+
+    pub fn compilation(&self) -> bool {
+        // If the song has compilation, all artists in the song artists will be added to song
+        // album artists with compilation set to true. If it also contains any album
+        // artists, the compilation field will be overwritten to false later. If the
+        // album artists field is empty, the album artists will be the same with
+        // song artists which then set any compilation field to false, so no need to add them in
+        // the first place.
+        if self.album.is_empty() || self.song == self.album { false } else { self.compilation }
+    }
+
+    pub async fn upsert_song_artist(
+        database: &Database,
+        song_id: Uuid,
+        artist_ids: &[Uuid],
+    ) -> Result<(), Error> {
+        diesel::insert_into(songs_artists::table)
+            .values::<Vec<_>>(
+                artist_ids
+                    .iter()
+                    .copied()
+                    .map(|artist_id| songs_artists::Data { song_id, artist_id })
+                    .collect(),
+            )
+            .on_conflict((songs_artists::song_id, songs_artists::artist_id))
+            .do_update()
+            .set(songs_artists::upserted_at.eq(time::OffsetDateTime::now_utc()))
+            .execute(&mut database.get().await?)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn upsert_song_album_artist(
+        database: &Database,
+        song_id: Uuid,
+        album_artist_ids: &[Uuid],
+        compilation: bool,
+    ) -> Result<(), Error> {
+        diesel::insert_into(songs_album_artists::table)
+            .values::<Vec<_>>(
+                album_artist_ids
+                    .iter()
+                    .copied()
+                    .map(|album_artist_id| songs_album_artists::Data {
+                        song_id,
+                        album_artist_id,
+                        compilation,
+                    })
+                    .collect(),
+            )
+            .on_conflict((songs_album_artists::song_id, songs_album_artists::album_artist_id))
+            .do_update()
+            .set((
+                songs_album_artists::compilation.eq(compilation),
+                songs_album_artists::upserted_at.eq(time::OffsetDateTime::now_utc()),
+            ))
+            .execute(&mut database.get().await?)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn upsert(
+        &self,
+        database: &Database,
+        prefixes: &[impl AsRef<str>],
+        song_id: Uuid,
+    ) -> Result<(), Error> {
+        let song_artist_ids = Artist::upserts(database, &self.song, prefixes).await?;
+        Self::upsert_song_artist(database, song_id, &song_artist_ids).await?;
+        if self.compilation() {
+            // If the song has compilation, all artists in the song artists will be added to song
+            // album artists with compilation set to true.
+            Self::upsert_song_album_artist(database, song_id, &song_artist_ids, true).await?;
+        }
+
+        // If there isn't any album artist,
+        // we assume that they are the same as artists.
+        let album_artist_ids = if self.album.is_empty() {
+            song_artist_ids
+        } else {
+            Artist::upserts(database, &self.album, prefixes).await?
+        };
+        Self::upsert_song_album_artist(database, song_id, &album_artist_ids, false).await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    impl<'a> PartialEq for Artists<'a> {
+        fn eq(&self, other: &Self) -> bool {
+            (self.song() == other.song())
+                && (self.album() == other.album())
+                && (self.compilation() == other.compilation())
+        }
+    }
 
     impl<'a> From<&'a str> for Artist<'a> {
         fn from(value: &'a str) -> Self {
@@ -136,5 +233,30 @@ mod tests {
     #[case("%", &["The ", "A "], '*')]
     fn test_index(#[case] name: &str, #[case] prefixes: &[&str], #[case] index: char) {
         assert_eq!(Artist::from(name).index(prefixes).unwrap(), index);
+    }
+
+    #[rstest]
+    #[case(&["Song"], &["Album"], true, true)]
+    #[case(&["Song"], &["Album"], false, false)]
+    #[case(&["Song"], &[], true, false)]
+    #[case(&["Song"], &[], false, false)]
+    #[case(&["Song"], &["Song"], true, false)]
+    #[case(&["Song"], &["Song"], false, false)]
+    fn test_compilation(
+        #[case] song: &[&str],
+        #[case] album: &[&str],
+        #[case] compilation: bool,
+        #[case] result: bool,
+    ) {
+        assert_eq!(
+            Artists::new(
+                song.iter().copied().map(Artist::from).collect(),
+                album.iter().copied().map(Artist::from).collect(),
+                compilation
+            )
+            .unwrap()
+            .compilation(),
+            result
+        );
     }
 }
