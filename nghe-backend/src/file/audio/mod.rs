@@ -197,7 +197,7 @@ mod tests {
         #[values(Format::Flac)] format: Format,
     ) {
         mock.add_music_folder().ty(ty).call().await;
-        let music_folder = mock.music_folder(0).await;
+        let mut music_folder = mock.music_folder(0).await;
         let metadata: Metadata = Faker.fake();
         let roundtrip_file = music_folder
             .add_audio()

@@ -18,10 +18,17 @@ pub struct File<F> {
     pub property: Property<F>,
 }
 
+impl<F> Property<F> {
+    pub fn new(data: &[u8], format: F) -> Result<Self, Error> {
+        let hash = xxh3_64(data);
+        let size = data.len().try_into()?;
+        Ok(Self { hash, size, format })
+    }
+}
+
 impl<F> File<F> {
     pub fn new(data: Vec<u8>, format: F) -> Result<Self, Error> {
-        let hash = xxh3_64(&data);
-        let size = data.len().try_into()?;
-        Ok(Self { data, property: Property { hash, size, format } })
+        let property = Property::new(&data, format)?;
+        Ok(Self { data, property })
     }
 }
