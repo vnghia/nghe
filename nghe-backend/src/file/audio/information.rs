@@ -71,13 +71,13 @@ impl<'a> Information<'a> {
         Ok(song_id)
     }
 
-    pub async fn cleanup_song(
+    pub async fn cleanup_one(
         database: &Database,
-        timestamp: time::OffsetDateTime,
+        started_at: time::OffsetDateTime,
         song_id: Uuid,
     ) -> Result<(), Error> {
-        Artists::cleanup_song(database, timestamp, song_id).await?;
-        Genres::cleanup_song(database, timestamp, song_id).await?;
+        Artists::cleanup_one(database, started_at, song_id).await?;
+        Genres::cleanup_one(database, started_at, song_id).await?;
         Ok(())
     }
 }
@@ -167,7 +167,7 @@ mod tests {
                 .upsert(database, music_folder_id, &relative_path, prefixes, id)
                 .await
                 .unwrap();
-            Information::cleanup_song(database, timestamp, id).await.unwrap();
+            Information::cleanup_one(database, timestamp, id).await.unwrap();
             let database_update_information = Information::query(&mock, id).await;
             assert_eq!(update_id, id);
             assert_eq!(database_update_information, update_information);

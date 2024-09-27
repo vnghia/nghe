@@ -25,6 +25,7 @@ pub enum FilesystemType {
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = music_folders, check_for_backend(crate::orm::Type))]
+#[cfg_attr(test, derive(Clone))]
 pub struct Data<'a> {
     pub path: Cow<'a, str>,
     #[diesel(column_name = fs_type)]
@@ -33,6 +34,7 @@ pub struct Data<'a> {
 
 #[derive(Debug, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = music_folders, check_for_backend(crate::orm::Type))]
+#[cfg_attr(test, derive(Clone))]
 pub struct MusicFolder<'a> {
     pub id: Uuid,
     #[diesel(embed)]

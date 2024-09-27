@@ -197,22 +197,22 @@ impl<'a> Artists<'a> {
         Ok(())
     }
 
-    pub async fn cleanup_song(
+    pub async fn cleanup_one(
         database: &Database,
-        timestamp: time::OffsetDateTime,
+        started_at: time::OffsetDateTime,
         song_id: Uuid,
     ) -> Result<(), Error> {
         // Delete all the artists of a song which haven't been refreshed since timestamp.
         diesel::delete(songs_artists::table)
             .filter(songs_artists::song_id.eq(song_id))
-            .filter(songs_artists::upserted_at.lt(timestamp))
+            .filter(songs_artists::upserted_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
 
         // Delete all the album artists of a song which haven't been refreshed since timestamp.
         diesel::delete(songs_album_artists::table)
             .filter(songs_album_artists::song_id.eq(song_id))
-            .filter(songs_album_artists::upserted_at.lt(timestamp))
+            .filter(songs_album_artists::upserted_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
 
@@ -443,7 +443,7 @@ mod tests {
 
             let update_artists = Artists { compilation, ..Faker.fake() };
             update_artists.upsert(database, prefixes, song_id).await.unwrap();
-            Artists::cleanup_song(database, timestamp, song_id).await.unwrap();
+            Artists::cleanup_one(database, timestamp, song_id).await.unwrap();
             let database_update_artists = Artists::query(&mock, song_id).await;
             assert_eq!(database_update_artists, update_artists);
         }
