@@ -69,15 +69,11 @@ mod tests {
     use crate::test::{mock, Mock};
 
     #[rstest]
-    #[case(false, false)]
-    #[case(true, false)]
-    #[case(false, true)]
-    #[case(true, true)]
     #[tokio::test]
     async fn test_artist_upsert_roundtrip(
         #[future(awt)] mock: Mock,
-        #[case] mbz_id: bool,
-        #[case] update_artist: bool,
+        #[values(true, false)] mbz_id: bool,
+        #[values(true, false)] update_artist: bool,
     ) {
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
         let artist = audio::Artist { mbz_id, ..Faker.fake() };
@@ -124,9 +120,18 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_artists_upsert(#[future(awt)] mock_with_song: (Mock, Uuid)) {
-        let (mock, song_id) = mock_with_song;
-        let artists: audio::Artists = Faker.fake();
+    async fn test_artists_upsert(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] compilation: bool,
+    ) {
+        let information: audio::Information = Faker.fake();
+        let album_id = information.metadata.album.upsert_mock(&mock, 0).await;
+        let song_id = information
+            .upsert(mock.database(), album_id, Faker.fake::<String>(), None)
+            .await
+            .unwrap();
+
+        let artists = audio::Artists { compilation, ..Faker.fake() };
         artists.upsert(mock.database(), &[""], song_id).await.unwrap();
 
         let database_artists = audio::Artists::query(&mock, song_id).await;
