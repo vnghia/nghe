@@ -172,14 +172,14 @@ mod tests {
         let artists = metadata.artists;
         let song = artists.song;
         assert_eq!(
-            song,
+            song.into_iter().collect::<Vec<_>>(),
             &[
                 ("Artist1", uuid::uuid!("1ffedd2d-f63d-4dc2-9332-d3132e5134ac")).into(),
                 "Artist2".into()
             ]
         );
         let album = artists.album;
-        assert_eq!(album, &["Artist1".into(), "Artist3".into()]);
+        assert_eq!(album.into_iter().collect::<Vec<_>>(), &["Artist1".into(), "Artist3".into()]);
         assert!(artists.compilation);
 
         assert!(metadata.genres.value.is_empty());

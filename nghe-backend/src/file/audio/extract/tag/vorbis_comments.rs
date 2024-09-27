@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use color_eyre::eyre::OptionExt;
+use indexmap::IndexSet;
 use isolang::Language;
 use itertools::Itertools;
 use lofty::ogg::VorbisComments;
@@ -41,7 +42,7 @@ impl<'a> Artist<'a> {
     fn extract_vorbis_comments(
         tag: &'a VorbisComments,
         config: &'a config::parsing::vorbis_comments::Artist,
-    ) -> Result<Vec<Self>, Error> {
+    ) -> Result<IndexSet<Self>, Error> {
         let names = tag.get_all(&config.name);
         let mbz_ids = tag.get_all(&config.mbz_id).map(Uuid::from_str);
         let artists = names
