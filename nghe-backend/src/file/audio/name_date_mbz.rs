@@ -50,7 +50,9 @@ mod test {
                 .await
                 .unwrap()
         }
+    }
 
+    impl NameDateMbz<'static> {
         pub async fn query(mock: &Mock, id: Uuid) -> Self {
             albums::table
                 .filter(albums::id.eq(id))

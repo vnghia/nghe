@@ -40,7 +40,7 @@ pub struct Data<'a> {
     pub file: property::File,
 }
 
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Upsert<'a> {

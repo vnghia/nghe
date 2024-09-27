@@ -27,14 +27,14 @@ pub struct Genres<'a> {
     pub value: Vec<Genre<'a>>,
 }
 
-impl<'a> From<&'a str> for Genre<'a> {
-    fn from(genre: &'a str) -> Self {
+impl<'a, S: Into<Cow<'a, str>>> From<S> for Genre<'a> {
+    fn from(genre: S) -> Self {
         Self { value: genre.into() }
     }
 }
 
-impl<'a> FromIterator<&'a str> for Genres<'a> {
-    fn from_iter<T: IntoIterator<Item = &'a str>>(iter: T) -> Self {
+impl<'a, S: Into<Cow<'a, str>>> FromIterator<S> for Genres<'a> {
+    fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
         Self { value: iter.into_iter().map(Genre::from).collect() }
     }
 }
@@ -80,5 +80,30 @@ impl<'a> Genres<'a> {
             .execute(&mut database.get().await?)
             .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use diesel::{ExpressionMethods, QueryDsl};
+    use diesel_async::RunQueryDsl;
+
+    use super::*;
+    use crate::orm::songs;
+    use crate::test::Mock;
+
+    impl Genres<'static> {
+        pub async fn query(mock: &Mock, song_id: Uuid) -> Self {
+            songs_genres::table
+                .inner_join(songs::table)
+                .inner_join(genres::table)
+                .filter(songs::id.eq(song_id))
+                .select(genres::value)
+                .get_results::<String>(&mut mock.get().await)
+                .await
+                .unwrap()
+                .into_iter()
+                .collect()
+        }
     }
 }

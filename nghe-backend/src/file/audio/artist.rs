@@ -225,7 +225,7 @@ mod test {
         }
     }
 
-    impl<'a> Artist<'a> {
+    impl Artist<'static> {
         pub async fn query(mock: &Mock, id: Uuid) -> Self {
             artists::table
                 .filter(artists::id.eq(id))
@@ -271,7 +271,7 @@ mod test {
         }
     }
 
-    impl<'a> Artists<'a> {
+    impl Artists<'static> {
         pub async fn query(mock: &Mock, song_id: Uuid) -> Self {
             let song = Artist::query_song_artists(mock, song_id).await;
             let (album, compilation) = Artist::query_song_album_artists(mock, song_id).await;
