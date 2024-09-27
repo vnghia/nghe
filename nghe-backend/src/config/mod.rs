@@ -1,5 +1,6 @@
 mod database;
 pub mod filesystem;
+mod index;
 pub mod parsing;
 mod server;
 
@@ -7,6 +8,7 @@ pub use database::Database;
 use figment::providers::{Env, Serialized};
 use figment::Figment;
 use filesystem::Filesystem;
+pub use index::Index;
 use nghe_api::constant;
 pub use parsing::Parsing;
 use serde::Deserialize;
@@ -18,6 +20,7 @@ pub struct Config {
     pub database: Database,
     pub filesystem: Filesystem,
     pub parsing: Parsing,
+    pub index: Index,
 }
 
 impl Default for Config {
