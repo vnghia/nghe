@@ -105,12 +105,10 @@ mod tests {
     use crate::test::{mock, Mock};
 
     #[rstest]
-    #[case(None)]
-    #[case(Some(Faker.fake()))]
     #[tokio::test]
     async fn test_song_roundtrip(
         #[future(awt)] mock: Mock,
-        #[case] update_song: Option<audio::Information<'static>>,
+        #[values(None, Some(Faker.fake()))] update_song: Option<audio::Information<'static>>,
     ) {
         use crate::file;
 

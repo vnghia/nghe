@@ -88,15 +88,11 @@ mod tests {
     use crate::test::{mock, Mock};
 
     #[rstest]
-    #[case(false, false)]
-    #[case(true, false)]
-    #[case(false, true)]
-    #[case(true, true)]
     #[tokio::test]
     async fn test_album_upsert_roundtrip(
         #[future(awt)] mock: Mock,
-        #[case] mbz_id: bool,
-        #[case] update_album: bool,
+        #[values(true, false)] mbz_id: bool,
+        #[values(true, false)] update_album: bool,
     ) {
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
         let album = audio::NameDateMbz { mbz_id, ..Faker.fake() };
