@@ -1,3 +1,4 @@
+use indexmap::IndexSet;
 use isolang::Language;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
@@ -36,7 +37,7 @@ impl<'a> NameDateMbz<'a> {
 
 impl<'a> Artist<'a> {
     fn dump_vorbis_comments(
-        artists: Vec<Self>,
+        artists: IndexSet<Self>,
         tag: &mut VorbisComments,
         config: &config::parsing::vorbis_comments::Artist,
     ) {
