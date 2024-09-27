@@ -1,6 +1,7 @@
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Serialize, Deserialize, Derivative)]
+
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 #[serde(default)]
 pub struct Index {
