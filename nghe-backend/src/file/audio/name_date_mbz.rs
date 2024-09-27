@@ -38,6 +38,9 @@ impl<'a> NameDateMbz<'a> {
 
 #[cfg(test)]
 mod test {
+    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+    use diesel_async::RunQueryDsl;
+
     use super::*;
     use crate::test::Mock;
 
@@ -45,6 +48,17 @@ mod test {
         pub async fn upsert_mock(&self, mock: &Mock, index: usize) -> Uuid {
             self.upsert(mock.database(), mock.music_folder(index).await.music_folder.id)
                 .await
+                .unwrap()
+        }
+
+        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+            albums::table
+                .filter(albums::id.eq(id))
+                .select(albums::Data::as_select())
+                .get_result(&mut mock.get().await)
+                .await
+                .unwrap()
+                .try_into()
                 .unwrap()
         }
     }

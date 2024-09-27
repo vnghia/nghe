@@ -81,26 +81,11 @@ mod upsert {
 
 #[cfg(test)]
 mod tests {
-    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
-    use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};
     use rstest::rstest;
-    use uuid::Uuid;
 
-    use super::{albums, Data};
     use crate::file::audio;
     use crate::test::{mock, Mock};
-
-    async fn select_album(mock: &Mock, id: Uuid) -> audio::NameDateMbz {
-        albums::table
-            .filter(albums::id.eq(id))
-            .select(Data::as_select())
-            .get_result(&mut mock.get().await)
-            .await
-            .unwrap()
-            .try_into()
-            .unwrap()
-    }
 
     #[rstest]
     #[case(false, false)]
@@ -116,13 +101,13 @@ mod tests {
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
         let album = audio::NameDateMbz { mbz_id, ..Faker.fake() };
         let id = album.upsert_mock(&mock, 0).await;
-        let database_album = select_album(&mock, id).await;
+        let database_album = audio::NameDateMbz::query(&mock, id).await;
         assert_eq!(database_album, album);
 
         if update_album {
             let update_album = audio::NameDateMbz { mbz_id, ..Faker.fake() };
             let update_id = update_album.upsert_mock(&mock, 0).await;
-            let database_update_album = select_album(&mock, id).await;
+            let database_update_album = audio::NameDateMbz::query(&mock, id).await;
             if mbz_id.is_some() {
                 assert_eq!(id, update_id);
                 assert_eq!(database_update_album, update_album);
