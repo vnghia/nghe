@@ -236,7 +236,7 @@ mod test {
                 .into()
         }
 
-        async fn query_song_artists(mock: &Mock, song_id: Uuid) -> Vec<Self> {
+        async fn query_song_artists(mock: &Mock, song_id: Uuid) -> (Vec<Uuid>, Vec<Self>) {
             let ids: Vec<Uuid> = songs_artists::table
                 .filter(songs_artists::song_id.eq(song_id))
                 .select(songs_artists::artist_id)
@@ -244,10 +244,19 @@ mod test {
                 .get_results(&mut mock.get().await)
                 .await
                 .unwrap();
-            stream::iter(ids).then(async |id| Self::query(mock, id).await).collect().await
+            let artists = stream::iter(&ids)
+                .copied()
+                .then(async |id| Self::query(mock, id).await)
+                .collect()
+                .await;
+            (ids, artists)
         }
 
-        async fn query_song_album_artists(mock: &Mock, song_id: Uuid) -> (Vec<Self>, bool) {
+        async fn query_song_album_artists(
+            mock: &Mock,
+            song_id: Uuid,
+            artist_ids: &[Uuid],
+        ) -> (Vec<Self>, bool) {
             let ids_compilations = songs_album_artists::table
                 .filter(songs_album_artists::song_id.eq(song_id))
                 .select((songs_album_artists::album_artist_id, songs_album_artists::compilation))
@@ -257,7 +266,17 @@ mod test {
                 .unwrap();
             let artists: Vec<_> = stream::iter(&ids_compilations)
                 .copied()
-                .filter_map(|(id, compilation)| if compilation { None } else { Some(id) })
+                .filter_map(|(id, compilation)| {
+                    if compilation {
+                        assert!(
+                            artist_ids.contains(&id),
+                            "Stale compilation album artist has not been removed yet"
+                        );
+                        None
+                    } else {
+                        Some(id)
+                    }
+                })
                 .then(async |id| Self::query(mock, id).await)
                 .collect()
                 .await;
@@ -273,8 +292,9 @@ mod test {
 
     impl Artists<'static> {
         pub async fn query(mock: &Mock, song_id: Uuid) -> Self {
-            let song = Artist::query_song_artists(mock, song_id).await;
-            let (album, compilation) = Artist::query_song_album_artists(mock, song_id).await;
+            let (artist_ids, song) = Artist::query_song_artists(mock, song_id).await;
+            let (album, compilation) =
+                Artist::query_song_album_artists(mock, song_id, &artist_ids).await;
             Self::new(song, album, compilation).unwrap()
         }
     }
