@@ -42,6 +42,10 @@ impl<'a> Mock<'a> {
         self.to_impl().path().from_str(&self.music_folder.data.path).join(path)
     }
 
+    pub fn relativize<'b>(&self, path: &'b Utf8TypedPath<'b>) -> Utf8TypedPath<'b> {
+        path.strip_prefix(&self.music_folder.data.path).unwrap()
+    }
+
     pub fn to_impl(&self) -> filesystem::Impl<'_> {
         self.mock.to_impl(self.music_folder.data.ty.into())
     }
@@ -92,7 +96,7 @@ impl<'a> Mock<'a> {
 
             self.to_impl().write(path.to_path(), &data).await;
             self.audios.insert(
-                path,
+                self.relativize(&path.to_path()).to_path_buf(),
                 audio::Information {
                     metadata,
                     property: audio::Property::default(format),
