@@ -112,22 +112,29 @@ mod test {
                 .unwrap()
         }
 
-        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+        pub async fn query_path(mock: &Mock, id: Uuid) -> (String, Self) {
             let upsert = Self::query_upsert(mock, id).await;
             let album = audio::NameDateMbz::query(mock, upsert.album_id).await;
             let artists = audio::Artists::query(mock, id).await;
             let genres = audio::Genres::query(mock, id).await;
 
-            Self {
-                metadata: audio::Metadata {
-                    song: upsert.data.song.try_into().unwrap(),
-                    album,
-                    artists,
-                    genres,
+            (
+                upsert.relative_path.into_owned(),
+                Self {
+                    metadata: audio::Metadata {
+                        song: upsert.data.song.try_into().unwrap(),
+                        album,
+                        artists,
+                        genres,
+                    },
+                    property: upsert.data.property.try_into().unwrap(),
+                    file: upsert.data.file.into(),
                 },
-                property: upsert.data.property.try_into().unwrap(),
-                file: upsert.data.file.into(),
-            }
+            )
+        }
+
+        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+            Self::query_path(mock, id).await.1
         }
     }
 }
