@@ -130,3 +130,37 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_simple_scan(#[future(awt)] mock: Mock, #[values(0, 10, 50)] n_song: usize) {
+        let mut music_folder = mock.music_folder(0).await;
+        music_folder.add_audio().n_song(n_song).scan(true).call().await;
+
+        let database_audio = music_folder.query(false).await;
+        assert_eq!(database_audio, music_folder.audio);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_multiple_scan(#[future(awt)] mock: Mock) {
+        let mut music_folder = mock.music_folder(0).await;
+        music_folder.add_audio().n_song(20).scan(false).call().await;
+
+        let mut join_set = tokio::task::JoinSet::new();
+        for _ in 0..5 {
+            let scanner = music_folder.scan().into_owned();
+            join_set.spawn(async move { scanner.run().await.unwrap() });
+        }
+        join_set.join_all().await;
+
+        let database_audio = music_folder.query(false).await;
+        assert_eq!(database_audio, music_folder.audio);
+    }
+}

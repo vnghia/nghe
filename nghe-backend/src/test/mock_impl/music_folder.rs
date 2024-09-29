@@ -2,15 +2,16 @@
 
 use std::io::{Cursor, Write};
 
-use diesel::{QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
+use futures_lite::{stream, StreamExt};
 use indexmap::IndexMap;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::file::{self, audio, File};
 use crate::filesystem::Trait as _;
-use crate::orm::music_folders;
+use crate::orm::{albums, music_folders, songs};
 use crate::scan::scanner;
 use crate::test::assets;
 use crate::test::file::audio::dump::Metadata as _;
@@ -18,7 +19,7 @@ use crate::test::filesystem::{self, Trait as _};
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
-    audios: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
+    pub audio: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
     pub music_folder: music_folders::MusicFolder<'static>,
 }
 
@@ -27,7 +28,7 @@ impl<'a> Mock<'a> {
     pub async fn new(mock: &'a super::Mock, index: usize) -> Self {
         Self {
             mock,
-            audios: IndexMap::new(),
+            audio: IndexMap::new(),
             music_folder: music_folders::table
                 .select(music_folders::MusicFolder::as_select())
                 .order_by(music_folders::created_at)
@@ -62,6 +63,7 @@ impl<'a> Mock<'a> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         #[builder(default = 1)] n_song: usize,
+        #[builder(default = true)] scan: bool,
     ) -> &Self {
         for _ in 0..n_song {
             let path = if n_song == 1
@@ -95,7 +97,7 @@ impl<'a> Mock<'a> {
             let data = asset.into_inner();
 
             self.to_impl().write(path.to_path(), &data).await;
-            self.audios.insert(
+            self.audio.insert(
                 self.relativize(&path.to_path()).to_path_buf(),
                 audio::Information {
                     metadata,
@@ -103,6 +105,10 @@ impl<'a> Mock<'a> {
                     file: file::Property::new(&data, format).unwrap(),
                 },
             );
+        }
+
+        if scan {
+            self.scan().run().await.unwrap();
         }
 
         self
@@ -129,5 +135,31 @@ impl<'a> Mock<'a> {
             self.music_folder.clone(),
         )
         .unwrap()
+    }
+
+    pub async fn query(
+        &self,
+        absolutize: bool,
+    ) -> IndexMap<Utf8TypedPathBuf, audio::Information<'static>> {
+        let song_ids = albums::table
+            .inner_join(songs::table)
+            .inner_join(music_folders::table)
+            .filter(music_folders::id.eq(self.music_folder.id))
+            .select(songs::id)
+            .get_results(&mut self.mock.get().await)
+            .await
+            .unwrap();
+        stream::iter(song_ids)
+            .then(async |id| {
+                let (path, information) = audio::Information::query_path(self.mock, id).await;
+                let path = if absolutize {
+                    self.absolutize(path)
+                } else {
+                    self.to_impl().path().from_string(path)
+                };
+                (path, information)
+            })
+            .collect()
+            .await
     }
 }
