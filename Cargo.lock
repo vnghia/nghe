@@ -3132,7 +3132,7 @@ dependencies = [
  "concat-string",
  "fake",
  "lastfm-proc-macros",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "serde",
  "serde_html_form",
  "serde_json",
@@ -3547,7 +3547,7 @@ dependencies = [
  "phf",
  "rand",
  "rayon",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "rsmpeg",
  "rspotify",
  "serde",
@@ -4331,9 +4331,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.7"
+version = "0.12.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8f4955649ef5c38cc7f9e8aa41761d48fb9677197daea9984dc54f56aad5e63"
+checksum = "f713147fbe92361e52392c73b8c9e48c04c6625bce969ef54dc901e58e042a7b"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -4443,7 +4443,7 @@ dependencies = [
  "async-trait",
  "log",
  "maybe-async",
- "reqwest 0.12.7",
+ "reqwest 0.12.8",
  "serde_json",
  "thiserror",
 ]
@@ -5407,9 +5407,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-socks"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51165dfa029d2a65969413a6cc96f354b86b464498702f174a4efa13608fd8c0"
+checksum = "0d4770b8024672c1101b3f6733eab95b18007dbe0847a8afe341fcf79e06043f"
 dependencies = [
  "either",
  "futures-util",
