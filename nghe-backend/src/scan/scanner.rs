@@ -120,7 +120,7 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         let database = &self.database;
 
         let song_id = if let Some((song_id, updated_at)) = self.set_scanned_at(entry).await? {
-            if entry.last_modified.is_some_and(|last_modified| updated_at < last_modified) {
+            if entry.last_modified.is_some_and(|last_modified| last_modified < updated_at) {
                 return Ok(());
             }
             Some(song_id)
@@ -172,8 +172,10 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
 
 #[cfg(test)]
 mod tests {
+    use fake::{Fake, Faker};
     use rstest::rstest;
 
+    use crate::file::audio;
     use crate::test::{mock, Mock};
 
     #[rstest]
@@ -208,15 +210,16 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        async fn test_update(#[future(awt)] mock: Mock) {
+        async fn test_overwrite(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
+            let album: audio::Album = Faker.fake();
             let path = music_folder.to_impl().path().from_str("test");
 
-            music_folder.add_audio().path(path.clone()).call().await;
+            music_folder.add_audio().album(album.clone()).path(path.clone()).call().await;
             let database_audio = music_folder.query(false).await;
             assert_eq!(database_audio, music_folder.audio);
 
-            music_folder.add_audio().path(path.clone()).call().await;
+            music_folder.add_audio().album(album.clone()).path(path.clone()).call().await;
             let database_audio = music_folder.query(false).await;
             assert_eq!(database_audio, music_folder.audio);
         }
