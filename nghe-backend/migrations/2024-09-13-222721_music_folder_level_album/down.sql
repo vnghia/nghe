@@ -26,6 +26,14 @@ alter table songs
 add column music_folder_id uuid not null,
 add constraint songs_music_folder_id foreign key (music_folder_id) references music_folders (
     id
-) on delete cascade;
+) on delete cascade,
+drop constraint songs_album_id_relative_path_key,
+drop constraint songs_album_id_file_hash_file_size_key,
+add constraint songs_music_folder_id_relative_path_key unique (
+    music_folder_id, relative_path
+),
+add constraint songs_music_folder_id_file_hash_file_size_key unique (
+    music_folder_id, file_hash, file_size
+);
 
 create index songs_music_folder_id_idx on songs (music_folder_id);

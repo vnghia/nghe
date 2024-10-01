@@ -1,7 +1,14 @@
 -- Your SQL goes here
 drop index songs_music_folder_id_idx;
 
-alter table songs drop column music_folder_id;
+alter table songs
+drop column music_folder_id,
+add constraint songs_album_id_relative_path_key unique (
+    album_id, relative_path
+),
+add constraint songs_album_id_file_hash_file_size_key unique (
+    album_id, file_hash, file_size
+);
 
 alter table albums
 add column music_folder_id uuid not null,
