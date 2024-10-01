@@ -64,7 +64,7 @@ impl<'a> Mock<'a> {
         genres: Option<audio::Genres<'static>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
-    ) -> &Self {
+    ) -> &mut Self {
         for _ in 0..n_song {
             let path = if n_song == 1
                 && let Some(ref path) = path
@@ -108,6 +108,30 @@ impl<'a> Mock<'a> {
                     file: file::Property::new(&data, format).unwrap(),
                 },
             );
+        }
+
+        if scan {
+            self.scan().run().await.unwrap();
+        }
+
+        self
+    }
+
+    #[builder]
+    pub async fn remove_audio(
+        &mut self,
+        path: Option<impl AsRef<str>>,
+        #[builder(default = 0)] index: usize,
+        #[builder(default = true)] scan: bool,
+    ) -> &mut Self {
+        if let Some(path) = path {
+            let absolute_path = self.absolutize(path);
+            let absolute_path = absolute_path.to_path();
+            let relative_path = self.relativize(&absolute_path).to_path_buf();
+            self.to_impl().delete(absolute_path).await;
+            self.audio.shift_remove(&relative_path);
+        } else if let Some((relative_path, _)) = self.audio.shift_remove_index(index) {
+            self.to_impl().delete(self.absolutize(relative_path).to_path()).await;
         }
 
         if scan {

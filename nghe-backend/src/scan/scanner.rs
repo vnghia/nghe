@@ -166,6 +166,8 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         }
         scan_handle.await??;
 
+        audio::Information::cleanup(&self.database, started_at).await?;
+
         Ok(())
     }
 }
@@ -220,6 +222,17 @@ mod tests {
             assert_eq!(database_audio, music_folder.audio);
 
             music_folder.add_audio().album(album.clone()).path(path.clone()).call().await;
+            let database_audio = music_folder.query(false).await;
+            assert_eq!(database_audio, music_folder.audio);
+        }
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_remove_audio(#[future(awt)] mock: Mock) {
+            let mut music_folder = mock.music_folder(0).await;
+            music_folder.add_audio().n_song(10).scan(true).call().await;
+            music_folder.remove_audio::<&str>().scan(true).call().await;
+
             let database_audio = music_folder.query(false).await;
             assert_eq!(database_audio, music_folder.audio);
         }
