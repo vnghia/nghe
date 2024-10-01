@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use diesel::ExpressionMethods;
+use diesel_async::RunQueryDsl;
 use o2o::o2o;
 use uuid::Uuid;
 
@@ -78,6 +80,17 @@ impl<'a> Information<'a> {
     ) -> Result<(), Error> {
         Artists::cleanup_one(database, started_at, song_id).await?;
         Genres::cleanup_one(database, started_at, song_id).await?;
+        Ok(())
+    }
+
+    pub async fn cleanup(
+        database: &Database,
+        started_at: time::OffsetDateTime,
+    ) -> Result<(), Error> {
+        diesel::delete(songs::table)
+            .filter(songs::scanned_at.lt(started_at))
+            .execute(&mut database.get().await?)
+            .await?;
         Ok(())
     }
 }
