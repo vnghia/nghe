@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use diesel::ExpressionMethods;
+use diesel::dsl::{exists, not};
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
@@ -202,20 +203,45 @@ impl<'a> Artists<'a> {
         started_at: time::OffsetDateTime,
         song_id: Uuid,
     ) -> Result<(), Error> {
-        // Delete all the artists of a song which haven't been refreshed since timestamp.
+        // Delete all artists of a song which haven't been refreshed since timestamp.
         diesel::delete(songs_artists::table)
             .filter(songs_artists::song_id.eq(song_id))
             .filter(songs_artists::upserted_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
 
-        // Delete all the album artists of a song which haven't been refreshed since timestamp.
+        // Delete all album artists of a song which haven't been refreshed since timestamp.
         diesel::delete(songs_album_artists::table)
             .filter(songs_album_artists::song_id.eq(song_id))
             .filter(songs_album_artists::upserted_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
 
+        Ok(())
+    }
+
+    pub async fn cleanup(database: &Database) -> Result<(), Error> {
+        // Delete all artists which does not have any relation with an album
+        // (via songs_album_artists) or a song (via songs_artists).
+        let alias_artists = diesel::alias!(artists as alias_artists);
+        diesel::delete(artists::table)
+            .filter(
+                artists::id.eq_any(
+                    alias_artists
+                        .filter(not(exists(
+                            songs_album_artists::table.filter(
+                                songs_album_artists::album_artist_id
+                                    .eq(alias_artists.field(artists::id)),
+                            ),
+                        )))
+                        .filter(not(exists(songs_artists::table.filter(
+                            songs_artists::artist_id.eq(alias_artists.field(artists::id)),
+                        ))))
+                        .select(alias_artists.field(artists::id)),
+                ),
+            )
+            .execute(&mut database.get().await?)
+            .await?;
         Ok(())
     }
 }
@@ -309,6 +335,15 @@ mod test {
             // artists).
             let compilation = ids_compilations.len() != artists.len();
             (artists, compilation)
+        }
+
+        pub async fn query_all(mock: &Mock) -> Vec<Self> {
+            let ids = artists::table
+                .select(artists::id)
+                .get_results(&mut mock.get().await)
+                .await
+                .unwrap();
+            stream::iter(ids).then(async |id| Self::query(mock, id).await).collect().await
         }
     }
 
