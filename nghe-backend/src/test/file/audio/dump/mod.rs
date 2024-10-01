@@ -4,11 +4,11 @@ mod tag;
 use isolang::Language;
 
 use crate::config;
-use crate::file::audio::{self, Artists, File, Genres, NameDateMbz, TrackDisc};
+use crate::file::audio::{self, Album, Artists, File, Genres, NameDateMbz, TrackDisc};
 
 pub trait Metadata {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self;
-    fn dump_album(&mut self, config: &config::Parsing, album: NameDateMbz<'_>) -> &mut Self;
+    fn dump_album(&mut self, config: &config::Parsing, album: Album<'_>) -> &mut Self;
     fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) -> &mut Self;
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self;
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self;
@@ -40,7 +40,7 @@ impl Metadata for File {
         self
     }
 
-    fn dump_album(&mut self, config: &config::Parsing, album: NameDateMbz<'_>) -> &mut Self {
+    fn dump_album(&mut self, config: &config::Parsing, album: Album<'_>) -> &mut Self {
         match self {
             File::Flac { audio, .. } => {
                 audio.dump_album(config, album);

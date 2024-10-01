@@ -21,7 +21,7 @@ use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 pub use metadata::{Metadata, Song};
-pub use name_date_mbz::NameDateMbz;
+pub use name_date_mbz::{Album, NameDateMbz};
 pub use position::TrackDisc;
 pub use property::Property;
 use strum::{AsRefStr, EnumString};
