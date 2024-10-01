@@ -97,8 +97,11 @@ impl<'a> Mock<'a> {
             let data = asset.into_inner();
 
             self.to_impl().write(path.to_path(), &data).await;
+
+            let relative_path = self.relativize(&path.to_path()).to_path_buf();
+            self.audio.shift_remove(&relative_path);
             self.audio.insert(
-                self.relativize(&path.to_path()).to_path_buf(),
+                relative_path,
                 audio::Information {
                     metadata,
                     property: audio::Property::default(format),
