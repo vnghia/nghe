@@ -59,7 +59,7 @@ impl<'a> Mock<'a> {
         #[builder(default = Faker.fake::<audio::Format>())] format: audio::Format,
         metadata: Option<audio::Metadata<'static>>,
         song: Option<audio::Song<'static>>,
-        album: Option<audio::NameDateMbz<'static>>,
+        album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         #[builder(default = 1)] n_song: usize,

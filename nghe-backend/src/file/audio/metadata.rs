@@ -40,7 +40,7 @@ pub struct Song<'a> {
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Metadata<'a> {
     pub song: Song<'a>,
-    pub album: name_date_mbz::NameDateMbz<'a>,
+    pub album: name_date_mbz::Album<'a>,
     pub artists: artist::Artists<'a>,
     pub genres: Genres<'a>,
 }

@@ -7,7 +7,7 @@ use itertools::Itertools;
 use lofty::ogg::VorbisComments;
 use uuid::Uuid;
 
-use crate::file::audio::{extract, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
+use crate::file::audio::{extract, Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 impl Date {
@@ -66,8 +66,8 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
         NameDateMbz::extract_vorbis_comments(self, &config.vorbis_comments.song)
     }
 
-    fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
-        NameDateMbz::extract_vorbis_comments(self, &config.vorbis_comments.album)
+    fn album(&'a self, config: &'a config::Parsing) -> Result<Album<'a>, Error> {
+        Album::extract_vorbis_comments(self, &config.vorbis_comments.album)
     }
 
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {

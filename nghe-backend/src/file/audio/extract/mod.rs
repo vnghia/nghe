@@ -3,12 +3,12 @@ mod tag;
 
 use isolang::Language;
 
-use super::{Artists, File, Genres, NameDateMbz, TrackDisc};
+use super::{Album, Artists, File, Genres, NameDateMbz, TrackDisc};
 use crate::{config, Error};
 
 pub trait Metadata<'a> {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error>;
-    fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error>;
+    fn album(&'a self, config: &'a config::Parsing) -> Result<Album<'a>, Error>;
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error>;
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error>;
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error>;
@@ -39,7 +39,7 @@ impl<'a> Metadata<'a> for File {
         }
     }
 
-    fn album(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
+    fn album(&'a self, config: &'a config::Parsing) -> Result<Album<'a>, Error> {
         match self {
             File::Flac { audio, .. } => audio.album(config),
         }

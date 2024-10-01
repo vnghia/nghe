@@ -30,7 +30,9 @@ pub struct NameDateMbz<'a> {
     pub mbz_id: Option<Uuid>,
 }
 
-impl<'a> NameDateMbz<'a> {
+pub type Album<'a> = NameDateMbz<'a>;
+
+impl<'a> Album<'a> {
     pub async fn upsert(&self, database: &Database, music_folder_id: Uuid) -> Result<Uuid, Error> {
         albums::Upsert { music_folder_id, data: self.try_into()? }.insert(database).await
     }
@@ -44,7 +46,7 @@ mod test {
     use super::*;
     use crate::test::Mock;
 
-    impl<'a> NameDateMbz<'a> {
+    impl<'a> Album<'a> {
         pub async fn upsert_mock(&self, mock: &Mock, index: usize) -> Uuid {
             self.upsert(mock.database(), mock.music_folder(index).await.music_folder.id)
                 .await
@@ -52,7 +54,7 @@ mod test {
         }
     }
 
-    impl NameDateMbz<'static> {
+    impl Album<'static> {
         pub async fn query(mock: &Mock, id: Uuid) -> Self {
             albums::table
                 .filter(albums::id.eq(id))
@@ -82,15 +84,15 @@ mod tests {
         #[values(true, false)] update_album: bool,
     ) {
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
-        let album = NameDateMbz { mbz_id, ..Faker.fake() };
+        let album = Album { mbz_id, ..Faker.fake() };
         let id = album.upsert_mock(&mock, 0).await;
-        let database_album = NameDateMbz::query(&mock, id).await;
+        let database_album = Album::query(&mock, id).await;
         assert_eq!(database_album, album);
 
         if update_album {
-            let update_album = NameDateMbz { mbz_id, ..Faker.fake() };
+            let update_album = Album { mbz_id, ..Faker.fake() };
             let update_id = update_album.upsert_mock(&mock, 0).await;
-            let database_update_album = NameDateMbz::query(&mock, id).await;
+            let database_update_album = Album::query(&mock, id).await;
             if mbz_id.is_some() {
                 assert_eq!(id, update_id);
                 assert_eq!(database_update_album, update_album);
@@ -107,7 +109,7 @@ mod tests {
     async fn test_album_upsert_no_mbz_id(#[future(awt)] mock: Mock) {
         // We want to make sure that insert the same album with no mbz_id
         // twice does not result in any error.
-        let album = NameDateMbz { mbz_id: None, ..Faker.fake() };
+        let album = Album { mbz_id: None, ..Faker.fake() };
         let id = album.upsert_mock(&mock, 0).await;
         let update_id = album.upsert_mock(&mock, 0).await;
         assert_eq!(update_id, id);
