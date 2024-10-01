@@ -114,7 +114,7 @@ mod test {
 
         pub async fn query_path(mock: &Mock, id: Uuid) -> (String, Self) {
             let upsert = Self::query_upsert(mock, id).await;
-            let album = audio::NameDateMbz::query(mock, upsert.album_id).await;
+            let album = audio::Album::query(mock, upsert.album_id).await;
             let artists = audio::Artists::query(mock, id).await;
             let genres = audio::Genres::query(mock, id).await;
 
