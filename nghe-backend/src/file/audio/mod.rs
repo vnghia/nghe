@@ -175,11 +175,11 @@ mod tests {
             song.into_iter().collect::<Vec<_>>(),
             &[
                 ("Artist1", uuid::uuid!("1ffedd2d-f63d-4dc2-9332-d3132e5134ac")).into(),
-                "Artist2".into()
+                Artist::from("Artist2")
             ]
         );
         let album = artists.album;
-        assert_eq!(album.into_iter().collect::<Vec<_>>(), &["Artist1".into(), "Artist3".into()]);
+        assert_eq!(album.into_iter().collect::<Vec<_>>(), &["Artist1", "Artist3"]);
         assert!(artists.compilation);
 
         assert!(metadata.genres.value.is_empty());
@@ -201,7 +201,7 @@ mod tests {
         let metadata: Metadata = Faker.fake();
         let roundtrip_file = music_folder
             .add_audio()
-            .path("test".into())
+            .path("test")
             .format(format)
             .metadata(metadata.clone())
             .call()
