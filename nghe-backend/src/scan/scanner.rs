@@ -188,7 +188,7 @@ mod tests {
     #[tokio::test]
     async fn test_simple_scan(#[future(awt)] mock: Mock, #[values(0, 10, 50)] n_song: usize) {
         let mut music_folder = mock.music_folder(0).await;
-        music_folder.add_audio().n_song(n_song).call().await;
+        music_folder.add_audio::<&str>().n_song(n_song).call().await;
 
         let database_audio = music_folder.query(false).await;
         assert_eq!(database_audio, music_folder.audio);
@@ -198,7 +198,7 @@ mod tests {
     #[allow(dead_code)]
     async fn test_multiple_scan(mock: Mock) {
         let mut music_folder = mock.music_folder(0).await;
-        music_folder.add_audio().n_song(20).scan(false).call().await;
+        music_folder.add_audio::<&str>().n_song(20).scan(false).call().await;
 
         let mut join_set = tokio::task::JoinSet::new();
         for _ in 0..5 {
@@ -219,13 +219,12 @@ mod tests {
         async fn test_overwrite(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
             let album: audio::Album = Faker.fake();
-            let path = music_folder.to_impl().path().from_str("test");
 
-            music_folder.add_audio().album(album.clone()).path(path.clone()).call().await;
+            music_folder.add_audio().album(album.clone()).path("test").call().await;
             let database_audio = music_folder.query(false).await;
             assert_eq!(database_audio, music_folder.audio);
 
-            music_folder.add_audio().album(album.clone()).path(path.clone()).call().await;
+            music_folder.add_audio().album(album.clone()).path("test").call().await;
             let database_audio = music_folder.query(false).await;
             assert_eq!(database_audio, music_folder.audio);
         }
@@ -234,7 +233,7 @@ mod tests {
         #[tokio::test]
         async fn test_remove_audio(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio().n_song(10).scan(true).call().await;
+            music_folder.add_audio::<&str>().n_song(10).scan(true).call().await;
             music_folder.remove_audio::<&str>().scan(true).call().await;
 
             let database_audio = music_folder.query(false).await;

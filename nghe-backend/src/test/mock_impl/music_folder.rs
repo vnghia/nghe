@@ -50,11 +50,19 @@ impl<'a> Mock<'a> {
     }
 
     pub fn path(&self) -> Utf8TypedPath<'_> {
-        self.to_impl().path().from_str(&self.music_folder.data.path)
+        self.path_str(&self.music_folder.data.path)
+    }
+
+    pub fn path_str<'path>(&self, value: &'path (impl AsRef<str> + Sized)) -> Utf8TypedPath<'path> {
+        self.to_impl().path().from_str(value)
+    }
+
+    pub fn path_string(&self, value: impl Into<String>) -> Utf8TypedPathBuf {
+        self.to_impl().path().from_string(value)
     }
 
     pub fn absolutize(&self, path: impl AsRef<str>) -> Utf8TypedPathBuf {
-        let path = self.to_impl().path().from_str(&path);
+        let path = self.path_str(&path);
         let music_folder_path = self.path();
 
         if path.is_absolute() {
@@ -79,7 +87,7 @@ impl<'a> Mock<'a> {
     #[builder]
     pub async fn add_audio(
         &mut self,
-        path: Option<Utf8TypedPath<'_>>,
+        path: Option<impl AsRef<str>>,
         #[builder(default = (0..3).fake::<usize>())] depth: usize,
         #[builder(default = Faker.fake::<audio::Format>())] format: audio::Format,
         metadata: Option<audio::Metadata<'static>>,
@@ -210,11 +218,7 @@ impl<'a> Mock<'a> {
         stream::iter(song_ids)
             .then(async |id| {
                 let (path, information) = audio::Information::query_path(self.mock, id).await;
-                let path = if absolutize {
-                    self.absolutize(path)
-                } else {
-                    self.to_impl().path().from_string(path)
-                };
+                let path = if absolutize { self.absolutize(path) } else { self.path_string(path) };
                 (path, information)
             })
             .collect()
