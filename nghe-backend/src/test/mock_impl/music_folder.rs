@@ -1,5 +1,6 @@
 #![allow(clippy::struct_field_names)]
 
+use std::borrow::Cow;
 use std::io::{Cursor, Write};
 
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
@@ -149,7 +150,7 @@ impl<'a> Mock<'a> {
             .unwrap()
     }
 
-    pub fn scan(&self) -> scanner::Scanner<'_, '_> {
+    pub fn scan(&self) -> scanner::Scanner<'_, '_, '_> {
         scanner::Scanner::new_orm(
             self.mock.database(),
             self.mock.filesystem(),
@@ -159,7 +160,13 @@ impl<'a> Mock<'a> {
                 parsing: self.mock.config.parsing.clone(),
                 index: self.mock.config.index.clone(),
             },
-            self.music_folder.clone(),
+            music_folders::MusicFolder {
+                id: self.music_folder.id,
+                data: music_folders::Data {
+                    path: Cow::Borrowed(self.music_folder.data.path.as_ref()),
+                    ty: self.music_folder.data.ty,
+                },
+            },
         )
         .unwrap()
     }
