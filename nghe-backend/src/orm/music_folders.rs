@@ -23,18 +23,16 @@ pub enum FilesystemType {
     S3 = 2,
 }
 
-#[derive(Debug, Queryable, Selectable)]
+#[derive(Debug, Clone, Queryable, Selectable)]
 #[diesel(table_name = music_folders, check_for_backend(crate::orm::Type))]
-#[cfg_attr(test, derive(Clone))]
 pub struct Data<'a> {
     pub path: Cow<'a, str>,
     #[diesel(column_name = fs_type)]
     pub ty: FilesystemType,
 }
 
-#[derive(Debug, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = music_folders, check_for_backend(crate::orm::Type))]
-#[cfg_attr(test, derive(Clone))]
 pub struct MusicFolder<'a> {
     pub id: Uuid,
     #[diesel(embed)]
@@ -71,5 +69,17 @@ impl FromSql<Int2, super::Type> for FilesystemType {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         Ok(FilesystemType::from_repr(i16::from_sql(bytes)?)
             .ok_or_eyre("Database filesystem type constraint violation")?)
+    }
+}
+
+impl<'a> Data<'a> {
+    pub fn into_owned(self) -> Data<'static> {
+        Data { path: self.path.into_owned().into(), ty: self.ty }
+    }
+}
+
+impl<'a> MusicFolder<'a> {
+    pub fn into_owned(self) -> MusicFolder<'static> {
+        MusicFolder { id: self.id, data: self.data.into_owned() }
     }
 }
