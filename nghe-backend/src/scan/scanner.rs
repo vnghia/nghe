@@ -9,7 +9,7 @@ use lofty::config::ParseOptions;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
-use typed_path::Utf8TypedPathBuf;
+use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
 use crate::database::Database;
@@ -28,15 +28,14 @@ pub struct Config {
 }
 
 #[derive(Debug, Clone)]
-pub struct Scanner<'db, 'fs> {
+pub struct Scanner<'db, 'fs, 'mf> {
     pub database: Cow<'db, Database>,
     pub filesystem: filesystem::Impl<'fs>,
     pub config: Config,
-    pub id: Uuid,
-    pub path: Utf8TypedPathBuf,
+    pub music_folder: music_folders::MusicFolder<'mf>,
 }
 
-impl<'db, 'fs> Scanner<'db, 'fs> {
+impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
     pub async fn new(
         database: &'db Database,
         filesystem: &'fs Filesystem,
@@ -59,22 +58,27 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         database: &'db Database,
         filesystem: &'fs Filesystem,
         config: Config,
-        music_folder: music_folders::MusicFolder,
+        music_folder: music_folders::MusicFolder<'mf>,
     ) -> Result<Self, Error> {
-        let music_folders::MusicFolder { id, data } = music_folder;
-        let music_folders::Data { path, ty } = data;
-
-        let filesystem = filesystem.to_impl(ty.into())?;
-        let path = filesystem.path().from_string(path.into_owned());
-        Ok(Self { database: Cow::Borrowed(database), filesystem, config, id, path })
+        let filesystem = filesystem.to_impl(music_folder.data.ty.into())?;
+        Ok(Self { database: Cow::Borrowed(database), filesystem, config, music_folder })
     }
 
-    fn into_owned(self) -> Scanner<'static, 'static> {
+    fn into_owned(self) -> Scanner<'static, 'static, 'static> {
         Scanner {
             database: Cow::Owned(self.database.into_owned()),
             filesystem: self.filesystem.into_owned(),
+            music_folder: self.music_folder.into_owned(),
             ..self
         }
+    }
+
+    fn path(&self) -> Utf8TypedPath {
+        self.filesystem.path().from_str(&self.music_folder.data.path)
+    }
+
+    fn relative_path<'entry>(&self, entry: &'entry Entry) -> Result<Utf8TypedPath<'entry>, Error> {
+        entry.path.strip_prefix(&self.music_folder.data.path).map_err(Error::from)
     }
 
     fn init(&self) -> (JoinHandle<Result<(), Error>>, Arc<Semaphore>, Receiver<Entry>) {
@@ -82,7 +86,7 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         let (tx, rx) = tokio::sync::mpsc::channel(config.channel_size);
         let filesystem = self.filesystem.clone().into_owned();
         let sender = entry::Sender { tx, minimum_size: config.minimum_size };
-        let prefix = self.path.clone();
+        let prefix = self.path().to_path_buf();
         (
             tokio::spawn(async move { filesystem.scan_folder(sender, prefix.to_path()).await }),
             Arc::new(Semaphore::const_new(config.pool_size)),
@@ -99,11 +103,11 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
             .filter(
                 songs::id.nullable().eq(song_path
                     .inner_join(albums::table)
-                    .filter(albums::music_folder_id.eq(self.id))
+                    .filter(albums::music_folder_id.eq(self.music_folder.id))
                     .filter(
                         song_path
                             .field(songs::relative_path)
-                            .eq(entry.relative_path(&self.path)?.as_str()),
+                            .eq(entry.relative_path(&self.music_folder.data.path)?.as_str()),
                     )
                     .select(song_path.field(songs::id))
                     .single_value()),
@@ -135,8 +139,8 @@ impl<'db, 'fs> Scanner<'db, 'fs> {
         let song_id = information
             .upsert(
                 database,
-                self.id,
-                entry.relative_path(&self.path)?.as_str(),
+                self.music_folder.id,
+                self.relative_path(entry)?.as_str(),
                 &self.config.index.ignore_prefixes,
                 song_id,
             )
