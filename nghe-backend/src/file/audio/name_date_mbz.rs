@@ -48,9 +48,7 @@ mod test {
 
     impl<'a> Album<'a> {
         pub async fn upsert_mock(&self, mock: &Mock, index: usize) -> Uuid {
-            self.upsert(mock.database(), mock.music_folder(index).await.music_folder.id)
-                .await
-                .unwrap()
+            self.upsert(mock.database(), mock.music_folder(index).await.id()).await.unwrap()
         }
     }
 
