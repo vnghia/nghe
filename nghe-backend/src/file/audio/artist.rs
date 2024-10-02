@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::borrow::{Borrow, Cow};
 
 use diesel::dsl::{exists, not};
 use diesel::{ExpressionMethods, QueryDsl};
@@ -73,13 +73,13 @@ impl<'a> Artist<'a> {
             .await
     }
 
-    async fn upserts(
+    async fn upserts<S: Borrow<Self> + 'a>(
         database: &Database,
-        artists: impl IntoIterator<Item = &'a Self>,
+        artists: impl IntoIterator<Item = S>,
         prefixes: &[impl AsRef<str>],
     ) -> Result<Vec<Uuid>, Error> {
         stream::iter(artists)
-            .then(async |artist| artist.upsert(database, prefixes).await)
+            .then(async |artist| artist.borrow().upsert(database, prefixes).await)
             .try_collect()
             .await
     }
@@ -253,6 +253,12 @@ mod test {
     use super::*;
     use crate::test::Mock;
 
+    impl<'a, S: AsRef<str> + Sized> PartialEq<S> for Artist<'a> {
+        fn eq(&self, other: &S) -> bool {
+            self.name == other.as_ref() && self.mbz_id.is_none()
+        }
+    }
+
     impl<'a> PartialEq for Artists<'a> {
         fn eq(&self, other: &Self) -> bool {
             (self.song() == other.song())
@@ -337,9 +343,10 @@ mod test {
             (artists, compilation)
         }
 
-        pub async fn query_all(mock: &Mock) -> Vec<Self> {
+        pub async fn queries(mock: &Mock) -> Vec<Self> {
             let ids = artists::table
                 .select(artists::id)
+                .order_by((artists::name, artists::mbz_id))
                 .get_results(&mut mock.get().await)
                 .await
                 .unwrap();
@@ -481,6 +488,147 @@ mod tests {
             Artists::cleanup_one(database, timestamp, song_id).await.unwrap();
             let database_update_artists = Artists::query(&mock, song_id).await;
             assert_eq!(database_update_artists, update_artists);
+        }
+    }
+
+    fn information(
+        artists: Artists,
+        album: impl Into<Option<audio::Album<'static>>>,
+    ) -> audio::Information {
+        audio::Information {
+            metadata: audio::Metadata {
+                artists,
+                album: album.into().unwrap_or_else(|| Faker.fake()),
+                ..Faker.fake()
+            },
+            ..Faker.fake()
+        }
+    }
+
+    mod cleanup {
+        use super::*;
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_artist_all(#[future(awt)] mock: Mock) {
+            for _ in 0..5 {
+                Faker
+                    .fake::<audio::Information>()
+                    .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
+                    .await;
+            }
+            assert!(!Artist::queries(&mock).await.is_empty());
+
+            diesel::delete(songs_artists::table).execute(&mut mock.get().await).await.unwrap();
+            diesel::delete(songs_album_artists::table)
+                .execute(&mut mock.get().await)
+                .await
+                .unwrap();
+
+            Artists::cleanup(mock.database()).await.unwrap();
+            assert!(Artist::queries(&mock).await.is_empty());
+        }
+
+        #[rstest]
+        #[case(1, 0)]
+        #[case(1, 1)]
+        #[case(5, 3)]
+        #[case(5, 5)]
+        #[tokio::test]
+        async fn test_artist_song(
+            #[future(awt)] mock: Mock,
+            #[case] n_song: usize,
+            #[case] n_subset: usize,
+            #[values(true, false)] compilation: bool,
+        ) {
+            let artist: Artist = "Artist".into();
+            let song_ids: Vec<_> = stream::iter(0..n_song)
+                .then(async |_| {
+                    information(
+                        Artists::new(
+                            [artist.clone(), Faker.fake()],
+                            // No empty album artist so "Artist" won't be added to album
+                            fake::vec![Artist; 1..4],
+                            compilation,
+                        )
+                        .unwrap(),
+                        None,
+                    )
+                    .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
+                    .await
+                })
+                .collect()
+                .await;
+            assert!(Artist::queries(&mock).await.contains(&artist));
+
+            diesel::delete(songs_artists::table)
+                .filter(songs_artists::song_id.eq_any(&song_ids[0..n_subset]))
+                .execute(&mut mock.get().await)
+                .await
+                .unwrap();
+            if compilation {
+                diesel::delete(songs_album_artists::table)
+                    .filter(songs_album_artists::song_id.eq_any(&song_ids[0..n_subset]))
+                    .execute(&mut mock.get().await)
+                    .await
+                    .unwrap();
+            }
+            Artists::cleanup(mock.database()).await.unwrap();
+            assert_eq!(Artist::queries(&mock).await.contains(&artist), n_subset < n_song);
+        }
+
+        #[rstest]
+        #[case(1, 0)]
+        #[case(1, 1)]
+        #[case(5, 3)]
+        #[case(5, 5)]
+        #[tokio::test]
+        async fn test_artist_album(
+            #[future(awt)] mock: Mock,
+            #[case] n_album: usize,
+            #[case] n_subset: usize,
+        ) {
+            let artist: Artist = "Artist".into();
+            let album_song_ids: Vec<(Uuid, Vec<_>)> = stream::iter(0..n_album)
+                .then(async |_| {
+                    let album: audio::Album = Faker.fake();
+                    let album_id = album.upsert_mock(&mock, 0).await;
+                    let song_ids = stream::iter(0..(1..3).fake())
+                        .then(async |_| {
+                            information(
+                                Artists::new(
+                                    fake::vec![Artist; 1..4],
+                                    [artist.clone(), Faker.fake()],
+                                    false,
+                                )
+                                .unwrap(),
+                                album.clone(),
+                            )
+                            .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
+                            .await
+                        })
+                        .collect()
+                        .await;
+                    (album_id, song_ids)
+                })
+                .collect()
+                .await;
+            assert!(Artist::queries(&mock).await.contains(&artist));
+
+            diesel::delete(songs_album_artists::table)
+                .filter(
+                    songs_album_artists::song_id.eq_any(
+                        album_song_ids[0..n_subset]
+                            .iter()
+                            .flat_map(|(_, song_ids)| song_ids.clone())
+                            .collect::<Vec<_>>(),
+                    ),
+                )
+                .execute(&mut mock.get().await)
+                .await
+                .unwrap();
+            Artists::cleanup(mock.database()).await.unwrap();
+            assert_eq!(Artist::queries(&mock).await.contains(&artist), n_subset < n_album);
         }
     }
 }

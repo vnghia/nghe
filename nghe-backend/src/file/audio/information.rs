@@ -91,6 +91,7 @@ impl<'a> Information<'a> {
             .filter(songs::scanned_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
+        Artists::cleanup(database).await?;
         Ok(())
     }
 }
@@ -99,7 +100,6 @@ impl<'a> Information<'a> {
 mod test {
     use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
-    use typed_path::Utf8TypedPath;
     use uuid::Uuid;
 
     use super::Information;
@@ -112,14 +112,15 @@ mod test {
             &self,
             mock: &Mock,
             index: usize,
-            path: &Utf8TypedPath<'_>,
+            path: impl AsRef<str>,
             song_id: impl Into<Option<Uuid>>,
         ) -> Uuid {
             let music_folder = mock.music_folder(index).await;
+            let path = music_folder.path_str(&path);
             self.upsert(
                 mock.database(),
                 music_folder.id(),
-                music_folder.relativize(path).as_str(),
+                music_folder.relativize(&path).as_str(),
                 &mock.config.index.ignore_prefixes,
                 song_id,
             )
