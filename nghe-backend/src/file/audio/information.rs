@@ -99,12 +99,34 @@ impl<'a> Information<'a> {
 mod test {
     use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
+    use typed_path::Utf8TypedPath;
     use uuid::Uuid;
 
     use super::Information;
     use crate::file::audio;
     use crate::orm::songs;
     use crate::test::Mock;
+
+    impl<'a> Information<'a> {
+        pub async fn upsert_mock(
+            &self,
+            mock: &Mock,
+            index: usize,
+            path: &Utf8TypedPath<'_>,
+            song_id: impl Into<Option<Uuid>>,
+        ) -> Uuid {
+            let music_folder = mock.music_folder(index).await;
+            self.upsert(
+                mock.database(),
+                music_folder.id(),
+                music_folder.relativize(path).as_str(),
+                &mock.config.index.ignore_prefixes,
+                song_id,
+            )
+            .await
+            .unwrap()
+        }
+    }
 
     impl Information<'static> {
         pub async fn query_data(mock: &Mock, id: Uuid) -> songs::Data<'static> {
@@ -167,7 +189,7 @@ mod tests {
         #[values(true, false)] update_information: bool,
     ) {
         let database = mock.database();
-        let music_folder_id = mock.music_folder(0).await.music_folder.id;
+        let music_folder_id = mock.music_folder(0).await.id();
         let relative_path: String = Faker.fake();
         let prefixes = &mock.config.index.ignore_prefixes;
 

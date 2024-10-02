@@ -9,6 +9,7 @@ use fake::{Fake, Faker};
 use futures_lite::{stream, StreamExt};
 use indexmap::IndexMap;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
+use uuid::Uuid;
 
 use crate::file::{self, audio, File};
 use crate::filesystem::Trait as _;
@@ -20,8 +21,8 @@ use crate::test::filesystem::{self, Trait as _};
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
+    music_folder: music_folders::MusicFolder<'static>,
     pub audio: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
-    pub music_folder: music_folders::MusicFolder<'static>,
 }
 
 #[bon::bon]
@@ -40,12 +41,35 @@ impl<'a> Mock<'a> {
         }
     }
 
+    pub fn config(&self) -> &super::Config {
+        &self.mock.config
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.music_folder.id
+    }
+
+    pub fn path(&self) -> Utf8TypedPath<'_> {
+        self.to_impl().path().from_str(&self.music_folder.data.path)
+    }
+
     pub fn absolutize(&self, path: impl AsRef<str>) -> Utf8TypedPathBuf {
-        self.to_impl().path().from_str(&self.music_folder.data.path).join(path)
+        let path = self.to_impl().path().from_str(&path);
+        let music_folder_path = self.path();
+
+        if path.is_absolute() {
+            if path.starts_with(&music_folder_path) {
+                path.to_path_buf()
+            } else {
+                panic!("Path {path} does not start with music folder path {music_folder_path}")
+            }
+        } else {
+            music_folder_path.join(path)
+        }
     }
 
     pub fn relativize<'b>(&self, path: &'b Utf8TypedPath<'b>) -> Utf8TypedPath<'b> {
-        path.strip_prefix(&self.music_folder.data.path).unwrap()
+        if path.is_absolute() { path.strip_prefix(self.path()).unwrap() } else { path.clone() }
     }
 
     pub fn to_impl(&self) -> filesystem::Impl<'_> {
@@ -79,7 +103,7 @@ impl<'a> Mock<'a> {
             let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
             let mut asset = Cursor::new(data.clone());
             let mut file =
-                File::new(data, format).unwrap().audio(self.mock.config.lofty_parse).unwrap();
+                File::new(data, format).unwrap().audio(self.config().lofty_parse).unwrap();
             asset.set_position(0);
 
             let metadata = metadata.clone().unwrap_or_else(|| audio::Metadata {
@@ -90,8 +114,8 @@ impl<'a> Mock<'a> {
             });
 
             file.clear()
-                .dump_metadata(&self.mock.config.parsing, metadata.clone())
-                .save_to(&mut asset, self.mock.config.lofty_write);
+                .dump_metadata(&self.config().parsing, metadata.clone())
+                .save_to(&mut asset, self.config().lofty_write);
 
             asset.flush().unwrap();
             asset.set_position(0);
@@ -146,7 +170,7 @@ impl<'a> Mock<'a> {
         let path = self.absolutize(path).with_extension(format.as_ref());
         File::new(self.to_impl().read(path.to_path()).await.unwrap(), format)
             .unwrap()
-            .audio(self.mock.config.lofty_parse)
+            .audio(self.config().lofty_parse)
             .unwrap()
     }
 
@@ -155,10 +179,10 @@ impl<'a> Mock<'a> {
             self.mock.database(),
             self.mock.filesystem(),
             scanner::Config {
-                lofty: self.mock.config.lofty_parse,
-                scan: self.mock.config.filesystem.scan,
-                parsing: self.mock.config.parsing.clone(),
-                index: self.mock.config.index.clone(),
+                lofty: self.config().lofty_parse,
+                scan: self.config().filesystem.scan,
+                parsing: self.config().parsing.clone(),
+                index: self.config().index.clone(),
             },
             music_folders::MusicFolder {
                 id: self.music_folder.id,
