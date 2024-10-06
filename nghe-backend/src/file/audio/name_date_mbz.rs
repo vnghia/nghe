@@ -1,5 +1,8 @@
 use std::borrow::Cow;
 
+use diesel::dsl::{exists, not};
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
 use o2o::o2o;
@@ -35,6 +38,24 @@ pub type Album<'a> = NameDateMbz<'a>;
 impl<'a> Album<'a> {
     pub async fn upsert(&self, database: &Database, music_folder_id: Uuid) -> Result<Uuid, Error> {
         albums::Upsert { music_folder_id, data: self.try_into()? }.insert(database).await
+    }
+
+    pub async fn cleanup(database: &Database) -> Result<(), Error> {
+        // Delete all albums which do not have any song associated.
+        let alias_albums = diesel::alias!(albums as alias);
+        diesel::delete(albums::table)
+            .filter(
+                albums::id.eq_any(
+                    alias_albums
+                        .filter(not(exists(
+                            songs::table.filter(songs::album_id.eq(alias_albums.field(albums::id))),
+                        )))
+                        .select(alias_albums.field(albums::id)),
+                ),
+            )
+            .execute(&mut database.get().await?)
+            .await?;
+        Ok(())
     }
 }
 
