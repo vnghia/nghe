@@ -975,9 +975,9 @@ checksum = "cd7e35aee659887cbfb97aaf227ac12cad1a9d7c71e55ff3376839ed4e282d08"
 
 [[package]]
 name = "constcat"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f2e5af989b1955b092db01462980c0a286217f86817e12b2c09aea46bd03651"
+checksum = "4938185353434999ef52c81753c8cca8955ed38042fc29913db3751916f3b7ab"
 
 [[package]]
 name = "convert_case"
@@ -3519,7 +3519,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "concat-string",
- "constcat 0.5.0",
+ "constcat 0.5.1",
  "derivative",
  "diesel",
  "diesel-async",
@@ -3620,7 +3620,7 @@ version = "0.9.10"
 dependencies = [
  "built",
  "concat-string",
- "constcat 0.5.0",
+ "constcat 0.5.1",
  "derivative",
  "derive-new",
  "fake",
