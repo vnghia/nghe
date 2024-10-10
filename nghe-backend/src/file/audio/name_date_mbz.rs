@@ -63,6 +63,7 @@ impl<'a> Album<'a> {
 mod test {
     use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
+    use futures_lite::{stream, StreamExt};
 
     use super::*;
     use crate::test::Mock;
@@ -84,12 +85,23 @@ mod test {
                 .try_into()
                 .unwrap()
         }
+
+        pub async fn queries(mock: &Mock) -> Vec<Self> {
+            let ids = albums::table
+                .select(albums::id)
+                .order_by(albums::name)
+                .get_results(&mut mock.get().await)
+                .await
+                .unwrap();
+            stream::iter(ids).then(async |id| Self::query(mock, id).await).collect().await
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use futures_lite::{stream, StreamExt};
     use rstest::rstest;
 
     use super::*;
@@ -132,5 +144,42 @@ mod tests {
         let id = album.upsert_mock(&mock, 0).await;
         let update_id = album.upsert_mock(&mock, 0).await;
         assert_eq!(update_id, id);
+    }
+
+    mod cleanup {
+        use super::*;
+
+        #[rstest]
+        #[case(1, 0)]
+        #[case(1, 1)]
+        #[case(5, 3)]
+        #[case(5, 5)]
+        #[tokio::test]
+        async fn test_album(
+            #[future(awt)] mock: Mock,
+            #[case] n_song: usize,
+            #[case] n_subset: usize,
+        ) {
+            let album: Album = Faker.fake();
+            let song_ids: Vec<_> = stream::iter(0..n_song)
+                .then(async |_| {
+                    Mock::information()
+                        .album(album.clone())
+                        .call()
+                        .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
+                        .await
+                })
+                .collect()
+                .await;
+            assert!(Album::queries(&mock).await.contains(&album));
+
+            diesel::delete(songs::table)
+                .filter(songs::id.eq_any(&song_ids[0..n_subset]))
+                .execute(&mut mock.get().await)
+                .await
+                .unwrap();
+            Album::cleanup(mock.database()).await.unwrap();
+            assert_eq!(Album::queries(&mock).await.contains(&album), n_subset < n_song);
+        }
     }
 }
