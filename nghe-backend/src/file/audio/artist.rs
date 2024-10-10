@@ -527,7 +527,7 @@ mod tests {
             #[case] n_subset: usize,
             #[values(true, false)] compilation: bool,
         ) {
-            let artist: Artist = "Artist".into();
+            let artist: Artist = Faker.fake();
             let song_ids: Vec<_> = stream::iter(0..n_song)
                 .then(async |_| {
                     Mock::information()
@@ -575,7 +575,7 @@ mod tests {
             #[case] n_album: usize,
             #[case] n_subset: usize,
         ) {
-            let artist: Artist = "Artist".into();
+            let artist: Artist = Faker.fake();
             let album_song_ids: Vec<(Uuid, Vec<_>)> = stream::iter(0..n_album)
                 .then(async |_| {
                     let album: audio::Album = Faker.fake();
