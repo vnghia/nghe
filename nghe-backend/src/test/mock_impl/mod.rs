@@ -12,6 +12,7 @@ use rstest::fixture;
 use super::filesystem::Trait;
 use super::{database, filesystem};
 use crate::database::Database;
+use crate::file::audio;
 use crate::filesystem::Filesystem;
 use crate::orm::users;
 use crate::{config, route};
@@ -117,6 +118,25 @@ impl Mock {
 
     pub async fn music_folder(&self, index: usize) -> music_folder::Mock<'_> {
         music_folder::Mock::new(self, index).await
+    }
+
+    #[builder]
+    pub fn information(
+        metadata: Option<audio::Metadata<'static>>,
+        song: Option<audio::Song<'static>>,
+        album: Option<audio::Album<'static>>,
+        artists: Option<audio::Artists<'static>>,
+        genres: Option<audio::Genres<'static>>,
+    ) -> audio::Information<'static> {
+        audio::Information {
+            metadata: metadata.unwrap_or_else(|| audio::Metadata {
+                song: song.unwrap_or_else(|| Faker.fake()),
+                album: album.unwrap_or_else(|| Faker.fake()),
+                artists: artists.unwrap_or_else(|| Faker.fake()),
+                genres: genres.unwrap_or_else(|| Faker.fake()),
+            }),
+            ..Faker.fake()
+        }
     }
 }
 
