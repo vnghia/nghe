@@ -5,7 +5,7 @@ use diesel_async::RunQueryDsl;
 use o2o::o2o;
 use uuid::Uuid;
 
-use super::{Artists, Genres};
+use super::{Album, Artists, Genres};
 use crate::database::Database;
 use crate::orm::songs;
 use crate::orm::upsert::Upsert as _;
@@ -91,7 +91,9 @@ impl<'a> Information<'a> {
             .filter(songs::scanned_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
+        Album::cleanup(database).await?;
         Artists::cleanup(database).await?;
+        Genres::cleanup(database).await?;
         Ok(())
     }
 }
