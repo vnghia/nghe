@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use diesel::ExpressionMethods;
+use diesel::dsl::{exists, not};
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
@@ -87,13 +88,31 @@ impl<'a> Genres<'a> {
         started_at: time::OffsetDateTime,
         song_id: Uuid,
     ) -> Result<(), Error> {
-        // Delete all the genres of a song which haven't been refreshed since timestamp.
+        // Delete all genres of a song which haven't been refreshed since timestamp.
         diesel::delete(songs_genres::table)
             .filter(songs_genres::song_id.eq(song_id))
             .filter(songs_genres::upserted_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
+        Ok(())
+    }
 
+    pub async fn cleanup(database: &Database) -> Result<(), Error> {
+        // Delete all genres which do not have any song associated.
+        let alias_genres = diesel::alias!(genres as alias_genres);
+        diesel::delete(genres::table)
+            .filter(
+                genres::id.eq_any(
+                    alias_genres
+                        .filter(not(exists(
+                            songs_genres::table
+                                .filter(songs_genres::genre_id.eq(alias_genres.field(genres::id))),
+                        )))
+                        .select(alias_genres.field(genres::id)),
+                ),
+            )
+            .execute(&mut database.get().await?)
+            .await?;
         Ok(())
     }
 }
