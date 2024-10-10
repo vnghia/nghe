@@ -99,9 +99,8 @@ impl<'a> Mock<'a> {
         #[builder(default = true)] scan: bool,
     ) -> &mut Self {
         for _ in 0..n_song {
-            let path = if n_song == 1
-                && let Some(ref path) = path
-            {
+            let path = if let Some(ref path) = path {
+                assert_eq!(n_song, 1, "The same path is supplied for multiple audio");
                 self.absolutize(path)
             } else {
                 self.absolutize(self.to_impl().fake_path(depth))
@@ -114,12 +113,14 @@ impl<'a> Mock<'a> {
                 File::new(data, format).unwrap().audio(self.config().lofty_parse).unwrap();
             asset.set_position(0);
 
-            let metadata = metadata.clone().unwrap_or_else(|| audio::Metadata {
-                song: song.clone().unwrap_or_else(|| Faker.fake()),
-                album: album.clone().unwrap_or_else(|| Faker.fake()),
-                artists: artists.clone().unwrap_or_else(|| Faker.fake()),
-                genres: genres.clone().unwrap_or_else(|| Faker.fake()),
-            });
+            let metadata = super::Mock::information()
+                .maybe_metadata(metadata.clone())
+                .maybe_song(song.clone())
+                .maybe_album(album.clone())
+                .maybe_artists(artists.clone())
+                .maybe_genres(genres.clone())
+                .call()
+                .metadata;
 
             file.clear()
                 .dump_metadata(&self.config().parsing, metadata.clone())
