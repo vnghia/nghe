@@ -491,20 +491,6 @@ mod tests {
         }
     }
 
-    fn information(
-        artists: Artists,
-        album: impl Into<Option<audio::Album<'static>>>,
-    ) -> audio::Information {
-        audio::Information {
-            metadata: audio::Metadata {
-                artists,
-                album: album.into().unwrap_or_else(|| Faker.fake()),
-                ..Faker.fake()
-            },
-            ..Faker.fake()
-        }
-    }
-
     mod cleanup {
         use super::*;
 
@@ -544,18 +530,19 @@ mod tests {
             let artist: Artist = "Artist".into();
             let song_ids: Vec<_> = stream::iter(0..n_song)
                 .then(async |_| {
-                    information(
-                        Artists::new(
-                            [artist.clone(), Faker.fake()],
-                            // No empty album artist so "Artist" won't be added to album
-                            fake::vec![Artist; 1..4],
-                            compilation,
+                    Mock::information()
+                        .artists(
+                            Artists::new(
+                                [artist.clone(), Faker.fake()],
+                                // No empty album artist so "Artist" won't be added to album
+                                fake::vec![Artist; 1..4],
+                                compilation,
+                            )
+                            .unwrap(),
                         )
-                        .unwrap(),
-                        None,
-                    )
-                    .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
-                    .await
+                        .call()
+                        .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
+                        .await
                 })
                 .collect()
                 .await;
@@ -595,17 +582,19 @@ mod tests {
                     let album_id = album.upsert_mock(&mock, 0).await;
                     let song_ids = stream::iter(0..(1..3).fake())
                         .then(async |_| {
-                            information(
-                                Artists::new(
-                                    fake::vec![Artist; 1..4],
-                                    [artist.clone(), Faker.fake()],
-                                    false,
+                            Mock::information()
+                                .artists(
+                                    Artists::new(
+                                        fake::vec![Artist; 1..4],
+                                        [artist.clone(), Faker.fake()],
+                                        false,
+                                    )
+                                    .unwrap(),
                                 )
-                                .unwrap(),
-                                album.clone(),
-                            )
-                            .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
-                            .await
+                                .album(album.clone())
+                                .call()
+                                .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
+                                .await
                         })
                         .collect()
                         .await;
