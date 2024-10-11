@@ -1,5 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use syn::spanned::Spanned;
 use syn::{parse_quote, Error};
 
 #[derive(Debug, deluxe::ParseMetaItem)]
@@ -16,6 +17,8 @@ struct BuildRouter {
     modules: Vec<syn::Ident>,
     #[deluxe(default = false)]
     filesystem: bool,
+    #[deluxe(default = vec![])]
+    extensions: Vec<syn::Path>,
 }
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
@@ -40,10 +43,24 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             && pat.ident != "database"
             && pat.ident != "request"
         {
-            if let syn::Type::Reference(ty) = arg.ty.as_ref() {
-                let ty = ty.elem.as_ref();
-                common_args.push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
-                pass_args.push(parse_quote!(&#pat));
+            match arg.ty.as_ref() {
+                syn::Type::Path(ty) => {
+                    common_args
+                        .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
+                    pass_args.push(parse_quote!(#pat));
+                }
+                syn::Type::Reference(ty) => {
+                    let ty = ty.elem.as_ref();
+                    common_args
+                        .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
+                    pass_args.push(parse_quote!(&#pat));
+                }
+                _ => {
+                    return Err(syn::Error::new(
+                        arg.ty.span(),
+                        "Only path type and reference type are supported for handler function",
+                    ));
+                }
             }
         }
     }
@@ -151,6 +168,18 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
     if input.filesystem {
         router_args.push(parse_quote!(filesystem: crate::filesystem::Filesystem));
         router_layers.push(parse_quote!(layer(axum::Extension(filesystem))));
+    }
+
+    for extension in input.extensions {
+        let arg = extension
+            .segments
+            .iter()
+            .map(|segment| segment.ident.to_string().to_lowercase())
+            .collect::<Vec<_>>()
+            .join("_");
+        let arg = format_ident!("{arg}");
+        router_args.push(parse_quote!(#arg: #extension));
+        router_layers.push(parse_quote!(layer(axum::Extension(#arg))));
     }
 
     let router_body: syn::Expr = if router_layers.is_empty() {
