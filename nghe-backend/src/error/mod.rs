@@ -31,6 +31,8 @@ pub enum Error {
     DecryptDatabaseValue,
     #[error("Language from database should not be null")]
     LanguageFromDatabaseIsNull,
+    #[error("Inconsistency encountered while querying database for scan process")]
+    DatabaseScanQueryInconsistent,
 
     #[error("{0}")]
     Unauthorized(&'static str),

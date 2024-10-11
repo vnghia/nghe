@@ -24,6 +24,14 @@ impl<F> Property<F> {
         let size = data.len().try_into()?;
         Ok(Self { hash, size, format })
     }
+
+    pub fn signed_hash(&self) -> i64 {
+        self.hash as _
+    }
+
+    pub fn signed_size(&self) -> i32 {
+        self.size as _
+    }
 }
 
 impl<F> File<F> {
