@@ -13,10 +13,9 @@ use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::file::{audio, File};
+use crate::file::{self, audio, File};
 use crate::filesystem::{self, entry, Entry, Filesystem, Trait};
-use crate::orm::{albums, music_folders};
-use crate::schema::songs;
+use crate::orm::{albums, music_folders, songs};
 use crate::{config, Error};
 
 #[derive(Debug, Clone)]
@@ -120,11 +119,31 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .map_err(Error::from)
     }
 
+    async fn query_hash_size(
+        &self,
+        property: &file::Property<audio::Format>,
+    ) -> Result<Option<(Uuid, String)>, Error> {
+        songs::table
+            .inner_join(albums::table)
+            .filter(albums::music_folder_id.eq(self.music_folder.id))
+            .filter(songs::file_hash.eq(property.signed_hash()))
+            .filter(songs::file_size.eq(property.signed_size()))
+            .select((songs::id, songs::relative_path))
+            .get_result(&mut self.database.get().await?)
+            .await
+            .optional()
+            .map_err(Error::from)
+    }
+
     async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
         let database = &self.database;
 
+        // Query the database to see if we have any song within this music folder that has the same
+        // relative path. If yes, update its scanned at to the current time.
         let song_id = if let Some((song_id, updated_at)) = self.set_scanned_at(entry).await? {
             if entry.last_modified.is_some_and(|last_modified| last_modified < updated_at) {
+                // If its filesystem's last modified is sooner than its database's updated at, it
+                // means that we have the latest data, we can return the function.
                 return Ok(());
             }
             Some(song_id)
@@ -132,15 +151,51 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             None
         };
 
-        let audio = File::new(self.filesystem.read(entry.path.to_path()).await?, entry.format)?
-            .audio(self.config.lofty)?;
+        let file = File::new(self.filesystem.read(entry.path.to_path()).await?, entry.format)?;
 
+        let relative_path = self.relative_path(entry)?;
+        let relative_path = relative_path.as_str();
+        if let Some((database_song_id, database_relative_path)) =
+            self.query_hash_size(&file.property).await?
+        {
+            if let Some(song_id) = song_id {
+                if song_id == database_song_id && relative_path == database_relative_path {
+                    // Everything is the same but the song's last modified for some reason, update
+                    // its updated at and return the function.
+                    diesel::update(songs::table)
+                        .filter(songs::id.eq(song_id))
+                        .set(songs::updated_at.eq(time::OffsetDateTime::now_utc()))
+                        .execute(&mut database.get().await?)
+                        .await?;
+                    return Ok(());
+                }
+                // Since `song_id` is queried only by music folder and relative path and there is a
+                // constraint `songs_album_id_file_hash_file_size_key`, other cases should be
+                // unreachable.
+                return Err(Error::DatabaseScanQueryInconsistent);
+            }
+            // We have one entry that is in the same music folder, same hash and size but
+            // different relative path (since song_id is none). We only need to update the relative
+            // path, set scanned at and return the function.
+            diesel::update(songs::table)
+                .filter(songs::id.eq(database_song_id))
+                .set((
+                    songs::relative_path.eq(relative_path),
+                    songs::scanned_at.eq(time::OffsetDateTime::now_utc()),
+                ))
+                .execute(&mut database.get().await?)
+                .await?;
+            tracing::warn!(old = ?database_relative_path, new = ?relative_path, "renamed duplication");
+            return Ok(());
+        }
+
+        let audio = file.audio(self.config.lofty)?;
         let information = audio.extract(&self.config.parsing)?;
         let song_id = information
             .upsert(
                 database,
                 self.music_folder.id,
-                self.relative_path(entry)?.as_str(),
+                relative_path,
                 &self.config.index.ignore_prefixes,
                 song_id,
             )
@@ -233,11 +288,33 @@ mod tests {
         #[tokio::test]
         async fn test_remove_audio(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio::<&str>().n_song(10).scan(true).call().await;
-            music_folder.remove_audio::<&str>().scan(true).call().await;
+            music_folder.add_audio::<&str>().n_song(10).call().await;
+            music_folder.remove_audio::<&str>().call().await;
 
             let database_audio = music_folder.query(false).await;
             assert_eq!(database_audio, music_folder.audio);
+        }
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_duplicate_audio(#[future(awt)] mock: Mock) {
+            let mut music_folder = mock.music_folder(0).await;
+            music_folder.add_audio::<&str>().n_song(1).call().await;
+            let audio = music_folder.audio[0].clone();
+
+            music_folder
+                .add_audio::<&str>()
+                .n_song(1)
+                .metadata(audio.metadata.clone())
+                .format(audio.file.format)
+                .call()
+                .await;
+
+            let mut database_audio = music_folder.query(false).await;
+            assert_eq!(database_audio.len(), 1);
+            let (database_path, database_audio) = database_audio.shift_remove_index(0).unwrap();
+            assert_eq!(&database_path, music_folder.audio.get_index(1).unwrap().0);
+            assert_eq!(database_audio, audio);
         }
     }
 }
