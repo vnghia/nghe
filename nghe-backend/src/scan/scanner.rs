@@ -151,7 +151,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
     }
 
     pub async fn run(&self) -> Result<(), Error> {
-        let started_at = time::OffsetDateTime::now_utc();
+        let started_at = crate::time::now().await;
 
         let (scan_handle, permit, mut rx) = self.init();
         let mut join_set = tokio::task::JoinSet::new();

@@ -16,6 +16,7 @@ mod orm;
 mod route;
 mod scan;
 mod schema;
+mod time;
 
 #[cfg(test)]
 mod test;
