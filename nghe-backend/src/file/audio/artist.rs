@@ -481,7 +481,7 @@ mod tests {
         assert_eq!(database_artists, artists);
 
         if update_artists {
-            let timestamp = time::OffsetDateTime::now_utc();
+            let timestamp = crate::time::now().await;
 
             let update_artists = Artists { compilation, ..Faker.fake() };
             update_artists.upsert(database, prefixes, song_id).await.unwrap();

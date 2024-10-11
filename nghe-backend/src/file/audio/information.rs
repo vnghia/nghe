@@ -205,7 +205,7 @@ mod tests {
         assert_eq!(database_information, information);
 
         if update_information {
-            let timestamp = time::OffsetDateTime::now_utc();
+            let timestamp = crate::time::now().await;
 
             let update_information: Information = Faker.fake();
             let update_id = update_information
