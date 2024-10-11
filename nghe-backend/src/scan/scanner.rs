@@ -40,14 +40,14 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         database: &'db Database,
         filesystem: &'fs Filesystem,
         config: Config,
-        id: Uuid,
+        music_folder_id: Uuid,
     ) -> Result<Self, Error> {
         Self::new_orm(
             database,
             filesystem,
             config,
             music_folders::table
-                .filter(music_folders::id.eq(id))
+                .filter(music_folders::id.eq(music_folder_id))
                 .select(music_folders::MusicFolder::as_select())
                 .get_result(&mut database.get().await?)
                 .await?,
@@ -64,7 +64,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(Self { database: Cow::Borrowed(database), filesystem, config, music_folder })
     }
 
-    fn into_owned(self) -> Scanner<'static, 'static, 'static> {
+    pub fn into_owned(self) -> Scanner<'static, 'static, 'static> {
         Scanner {
             database: Cow::Owned(self.database.into_owned()),
             filesystem: self.filesystem.into_owned(),

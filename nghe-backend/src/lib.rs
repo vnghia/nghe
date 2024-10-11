@@ -31,9 +31,18 @@ pub async fn build(config: config::Config) -> Router {
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
 
     Router::new()
-        .merge(route::music_folder::router(filesystem))
+        .merge(route::music_folder::router(filesystem.clone()))
         .merge(route::permission::router())
         .merge(route::user::router())
+        .merge(route::scan::router(
+            filesystem,
+            scan::scanner::Config {
+                lofty: lofty::config::ParseOptions::default(),
+                scan: config.filesystem.scan,
+                parsing: config.parsing,
+                index: config.index,
+            },
+        ))
         .with_state(database::Database::new(&config.database))
         .layer(TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
             tracing::info_span!(
