@@ -313,8 +313,28 @@ mod tests {
             let mut database_audio = music_folder.query(false).await;
             assert_eq!(database_audio.len(), 1);
             let (database_path, database_audio) = database_audio.shift_remove_index(0).unwrap();
-            assert_eq!(&database_path, music_folder.audio.get_index(1).unwrap().0);
+            assert!(music_folder.audio.contains_key(&database_path));
             assert_eq!(database_audio, audio);
+        }
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_move_audio(#[future(awt)] mock: Mock) {
+            let mut music_folder = mock.music_folder(0).await;
+            music_folder.add_audio::<&str>().n_song(1).call().await;
+            let audio = music_folder.audio[0].clone();
+            music_folder.remove_audio::<&str>().index(0).call().await;
+
+            music_folder
+                .add_audio::<&str>()
+                .n_song(1)
+                .metadata(audio.metadata.clone())
+                .format(audio.file.format)
+                .call()
+                .await;
+
+            let database_audio = music_folder.query(false).await;
+            assert_eq!(database_audio, music_folder.audio);
         }
     }
 }
