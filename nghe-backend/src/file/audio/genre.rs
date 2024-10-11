@@ -13,6 +13,7 @@ use crate::orm::{genres, songs_genres};
 use crate::Error;
 
 #[derive(Debug, o2o)]
+#[from_owned(genres::Data<'a>)]
 #[ref_into(genres::Data<'a>)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Genre<'a> {
@@ -118,13 +119,35 @@ impl<'a> Genres<'a> {
 }
 
 #[cfg(test)]
-mod tests {
-    use diesel::{ExpressionMethods, QueryDsl};
-    use diesel_async::RunQueryDsl;
+mod test {
+    use diesel::SelectableHelper;
+    use futures_lite::{stream, StreamExt};
 
     use super::*;
     use crate::orm::songs;
     use crate::test::Mock;
+
+    impl Genre<'static> {
+        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+            genres::table
+                .filter(genres::id.eq(id))
+                .select(genres::Data::as_select())
+                .get_result(&mut mock.get().await)
+                .await
+                .unwrap()
+                .into()
+        }
+
+        pub async fn queries(mock: &Mock) -> Vec<Self> {
+            let ids = genres::table
+                .select(genres::id)
+                .order_by(genres::value)
+                .get_results(&mut mock.get().await)
+                .await
+                .unwrap();
+            stream::iter(ids).then(async |id| Self::query(mock, id).await).collect().await
+        }
+    }
 
     impl Genres<'static> {
         pub async fn query(mock: &Mock, song_id: Uuid) -> Self {
@@ -138,6 +161,52 @@ mod tests {
                 .unwrap()
                 .into_iter()
                 .collect()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use futures_lite::{stream, StreamExt};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::test::{mock, Mock};
+
+    mod cleanup {
+        use super::*;
+
+        #[rstest]
+        #[case(1, 0)]
+        #[case(1, 1)]
+        #[case(5, 3)]
+        #[case(5, 5)]
+        #[tokio::test]
+        async fn test_genre(
+            #[future(awt)] mock: Mock,
+            #[case] n_song: usize,
+            #[case] n_subset: usize,
+        ) {
+            let genre: Genre = Faker.fake();
+            let song_ids: Vec<_> = stream::iter(0..n_song)
+                .then(async |_| {
+                    Mock::information()
+                        .genres(Genres { value: vec![genre.clone()] })
+                        .call()
+                        .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
+                        .await
+                })
+                .collect()
+                .await;
+            assert!(Genre::queries(&mock).await.contains(&genre));
+
+            diesel::delete(songs_genres::table)
+                .filter(songs_genres::song_id.eq_any(&song_ids[0..n_subset]))
+                .execute(&mut mock.get().await)
+                .await
+                .unwrap();
+            Genres::cleanup(mock.database()).await.unwrap();
+            assert_eq!(Genre::queries(&mock).await.contains(&genre), n_subset < n_song);
         }
     }
 }
