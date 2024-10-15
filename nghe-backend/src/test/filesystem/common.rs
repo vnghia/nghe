@@ -8,7 +8,7 @@ pub enum Impl<'fs> {
     S3(&'fs super::s3::Mock),
 }
 
-impl<'fs> Impl<'fs> {
+impl Impl<'_> {
     pub fn path(&self) -> filesystem::path::Builder {
         self.main().path()
     }

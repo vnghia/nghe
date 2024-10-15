@@ -11,7 +11,7 @@ use crate::file::audio::{extract, Album, Artist, Artists, Date, Genres, NameDate
 use crate::{config, Error};
 
 impl Date {
-    fn extract_vorbis_comments(tag: &VorbisComments, key: &Option<String>) -> Result<Self, Error> {
+    fn extract_vorbis_comments(tag: &VorbisComments, key: Option<&str>) -> Result<Self, Error> {
         if let Some(key) = key {
             tag.get(key).map(Date::from_str).transpose().map(Option::unwrap_or_default)
         } else {
@@ -27,11 +27,11 @@ impl<'a> NameDateMbz<'a> {
     ) -> Result<Self, Error> {
         Ok(Self {
             name: tag.get(&config.name).ok_or_eyre("Could not extract name")?.into(),
-            date: Date::extract_vorbis_comments(tag, &config.date)?,
-            release_date: Date::extract_vorbis_comments(tag, &config.release_date)?,
+            date: Date::extract_vorbis_comments(tag, config.date.as_deref())?,
+            release_date: Date::extract_vorbis_comments(tag, config.release_date.as_deref())?,
             original_release_date: Date::extract_vorbis_comments(
                 tag,
-                &config.original_release_date,
+                config.original_release_date.as_deref(),
             )?,
             mbz_id: tag.get(&config.mbz_id).map(Uuid::from_str).transpose()?,
         })

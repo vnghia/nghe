@@ -72,13 +72,13 @@ impl FromSql<Int2, super::Type> for FilesystemType {
     }
 }
 
-impl<'a> Data<'a> {
+impl Data<'_> {
     pub fn into_owned(self) -> Data<'static> {
         Data { path: self.path.into_owned().into(), ty: self.ty }
     }
 }
 
-impl<'a> MusicFolder<'a> {
+impl MusicFolder<'_> {
     pub fn into_owned(self) -> MusicFolder<'static> {
         MusicFolder { id: self.id, data: self.data.into_owned() }
     }

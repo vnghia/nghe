@@ -25,7 +25,7 @@ pub struct BinaryRequest<'u, 't, R> {
     pub request: R,
 }
 
-impl<'u, 't> Auth<'u, 't> {
+impl Auth<'_, '_> {
     pub fn tokenize(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Token {
         let password = password.as_ref();
         let salt = salt.as_ref();

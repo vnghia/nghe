@@ -16,7 +16,7 @@ pub enum Impl<'fs> {
     S3(Cow<'fs, super::s3::Filesystem>),
 }
 
-impl<'fs> Impl<'fs> {
+impl Impl<'_> {
     pub fn path(&self) -> path::Builder {
         path::Builder(self.into())
     }

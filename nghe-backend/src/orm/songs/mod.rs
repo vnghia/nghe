@@ -81,7 +81,7 @@ mod upsert {
         }
     }
 
-    impl<'a> crate::orm::upsert::Upsert for Upsert<'a> {}
+    impl crate::orm::upsert::Upsert for Upsert<'_> {}
 }
 
 impl ToSql<Text, super::Type> for audio::Format {

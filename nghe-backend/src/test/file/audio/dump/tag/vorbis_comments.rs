@@ -9,16 +9,16 @@ use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, Trac
 use crate::test::file::audio::dump;
 
 impl Date {
-    fn dump_vorbis_comments(self, tag: &mut VorbisComments, key: &Option<String>) {
+    fn dump_vorbis_comments(self, tag: &mut VorbisComments, key: Option<&str>) {
         if let Some(key) = key
             && self.is_some()
         {
-            tag.push(key.clone(), self.to_string());
+            tag.push(key.to_string(), self.to_string());
         }
     }
 }
 
-impl<'a> NameDateMbz<'a> {
+impl NameDateMbz<'_> {
     fn dump_vorbis_comments(
         self,
         tag: &mut VorbisComments,
@@ -26,16 +26,16 @@ impl<'a> NameDateMbz<'a> {
     ) {
         let Self { name, date, release_date, original_release_date, mbz_id } = self;
         tag.push(config.name.clone(), name.into_owned());
-        date.dump_vorbis_comments(tag, &config.date);
-        release_date.dump_vorbis_comments(tag, &config.release_date);
-        original_release_date.dump_vorbis_comments(tag, &config.original_release_date);
+        date.dump_vorbis_comments(tag, config.date.as_deref());
+        release_date.dump_vorbis_comments(tag, config.release_date.as_deref());
+        original_release_date.dump_vorbis_comments(tag, config.original_release_date.as_deref());
         if let Some(mbz_id) = mbz_id {
             tag.push(config.mbz_id.clone(), mbz_id.to_string());
         }
     }
 }
 
-impl<'a> Artist<'a> {
+impl Artist<'_> {
     fn dump_vorbis_comments(
         artists: IndexSet<Self>,
         tag: &mut VorbisComments,

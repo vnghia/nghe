@@ -185,7 +185,9 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 ))
                 .execute(&mut database.get().await?)
                 .await?;
-            tracing::warn!(old = ?database_relative_path, new = ?relative_path, "renamed duplication");
+            tracing::warn!(
+                old = ?database_relative_path, new = ?relative_path, "renamed duplication"
+            );
             return Ok(());
         }
 

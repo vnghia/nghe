@@ -253,13 +253,13 @@ mod test {
     use super::*;
     use crate::test::Mock;
 
-    impl<'a, S: AsRef<str> + Sized> PartialEq<S> for Artist<'a> {
+    impl<S: AsRef<str> + Sized> PartialEq<S> for Artist<'_> {
         fn eq(&self, other: &S) -> bool {
             self.name == other.as_ref() && self.mbz_id.is_none()
         }
     }
 
-    impl<'a> PartialEq for Artists<'a> {
+    impl PartialEq for Artists<'_> {
         fn eq(&self, other: &Self) -> bool {
             (self.song() == other.song())
                 && (self.album() == other.album())
