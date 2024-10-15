@@ -288,7 +288,7 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        async fn test_remove_audio(#[future(awt)] mock: Mock) {
+        async fn test_remove(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
             music_folder.add_audio::<&str>().n_song(10).call().await;
             music_folder.remove_audio::<&str>().call().await;
@@ -299,7 +299,7 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        async fn test_duplicate_audio(#[future(awt)] mock: Mock) {
+        async fn test_duplicate(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
             music_folder.add_audio::<&str>().n_song(1).call().await;
             let audio = music_folder.audio[0].clone();
@@ -321,7 +321,7 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        async fn test_move_audio(#[future(awt)] mock: Mock) {
+        async fn test_move(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
             music_folder.add_audio::<&str>().n_song(1).call().await;
             let audio = music_folder.audio[0].clone();
