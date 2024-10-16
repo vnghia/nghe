@@ -22,7 +22,8 @@ use crate::test::filesystem::{self, Trait as _};
 pub struct Mock<'a> {
     mock: &'a super::Mock,
     music_folder: music_folders::MusicFolder<'static>,
-    pub audio: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
+    pub filesystem: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
+    pub database: IndexMap<Uuid, audio::Information<'static>>,
 }
 
 #[bon::bon]
@@ -30,7 +31,6 @@ impl<'a> Mock<'a> {
     pub async fn new(mock: &'a super::Mock, index: usize) -> Self {
         Self {
             mock,
-            audio: IndexMap::new(),
             music_folder: music_folders::table
                 .select(music_folders::MusicFolder::as_select())
                 .order_by(music_folders::created_at)
@@ -38,6 +38,8 @@ impl<'a> Mock<'a> {
                 .first(&mut mock.get().await)
                 .await
                 .unwrap(),
+            filesystem: IndexMap::new(),
+            database: IndexMap::new(),
         }
     }
 
@@ -85,7 +87,7 @@ impl<'a> Mock<'a> {
     }
 
     #[builder]
-    pub async fn add_audio(
+    pub async fn add_audio_filesystem(
         &mut self,
         path: Option<impl AsRef<str>>,
         #[builder(default = (0..3).fake::<usize>())] depth: usize,
@@ -133,8 +135,8 @@ impl<'a> Mock<'a> {
             self.to_impl().write(path.to_path(), &data).await;
 
             let relative_path = self.relativize(&path.to_path()).to_path_buf();
-            self.audio.shift_remove(&relative_path);
-            self.audio.insert(
+            self.filesystem.shift_remove(&relative_path);
+            self.filesystem.insert(
                 relative_path,
                 audio::Information {
                     metadata,
@@ -152,7 +154,7 @@ impl<'a> Mock<'a> {
     }
 
     #[builder]
-    pub async fn remove_audio(
+    pub async fn remove_audio_filesystem(
         &mut self,
         path: Option<impl AsRef<str>>,
         #[builder(default = 0)] index: usize,
@@ -163,8 +165,8 @@ impl<'a> Mock<'a> {
             let absolute_path = absolute_path.to_path();
             let relative_path = self.relativize(&absolute_path).to_path_buf();
             self.to_impl().delete(absolute_path).await;
-            self.audio.shift_remove(&relative_path);
-        } else if let Some((relative_path, _)) = self.audio.shift_remove_index(index) {
+            self.filesystem.shift_remove(&relative_path);
+        } else if let Some((relative_path, _)) = self.filesystem.shift_remove_index(index) {
             self.to_impl().delete(self.absolutize(relative_path).to_path()).await;
         }
 
@@ -204,7 +206,7 @@ impl<'a> Mock<'a> {
         .unwrap()
     }
 
-    pub async fn query(
+    pub async fn query_filesystem(
         &self,
         absolutize: bool,
     ) -> IndexMap<Utf8TypedPathBuf, audio::Information<'static>> {

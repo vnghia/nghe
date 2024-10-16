@@ -245,17 +245,17 @@ mod tests {
     #[tokio::test]
     async fn test_simple_scan(#[future(awt)] mock: Mock, #[values(0, 10, 50)] n_song: usize) {
         let mut music_folder = mock.music_folder(0).await;
-        music_folder.add_audio::<&str>().n_song(n_song).call().await;
+        music_folder.add_audio_filesystem::<&str>().n_song(n_song).call().await;
 
-        let database_audio = music_folder.query(false).await;
-        assert_eq!(database_audio, music_folder.audio);
+        let database_audio = music_folder.query_filesystem(false).await;
+        assert_eq!(database_audio, music_folder.filesystem);
     }
 
     // TODO: Make multiple scans work
     #[allow(dead_code)]
     async fn test_multiple_scan(mock: Mock) {
         let mut music_folder = mock.music_folder(0).await;
-        music_folder.add_audio::<&str>().n_song(20).scan(false).call().await;
+        music_folder.add_audio_filesystem::<&str>().n_song(20).scan(false).call().await;
 
         let mut join_set = tokio::task::JoinSet::new();
         for _ in 0..5 {
@@ -264,8 +264,8 @@ mod tests {
         }
         join_set.join_all().await;
 
-        let database_audio = music_folder.query(false).await;
-        assert_eq!(database_audio, music_folder.audio);
+        let database_audio = music_folder.query_filesystem(false).await;
+        assert_eq!(database_audio, music_folder.filesystem);
     }
 
     mod filesystem {
@@ -277,45 +277,45 @@ mod tests {
             let mut music_folder = mock.music_folder(0).await;
             let album: audio::Album = Faker.fake();
 
-            music_folder.add_audio().album(album.clone()).path("test").call().await;
-            let database_audio = music_folder.query(false).await;
-            assert_eq!(database_audio, music_folder.audio);
+            music_folder.add_audio_filesystem().album(album.clone()).path("test").call().await;
+            let database_audio = music_folder.query_filesystem(false).await;
+            assert_eq!(database_audio, music_folder.filesystem);
 
-            music_folder.add_audio().album(album.clone()).path("test").call().await;
-            let database_audio = music_folder.query(false).await;
-            assert_eq!(database_audio, music_folder.audio);
+            music_folder.add_audio_filesystem().album(album.clone()).path("test").call().await;
+            let database_audio = music_folder.query_filesystem(false).await;
+            assert_eq!(database_audio, music_folder.filesystem);
         }
 
         #[rstest]
         #[tokio::test]
         async fn test_remove(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio::<&str>().n_song(10).call().await;
-            music_folder.remove_audio::<&str>().call().await;
+            music_folder.add_audio_filesystem::<&str>().n_song(10).call().await;
+            music_folder.remove_audio_filesystem::<&str>().call().await;
 
-            let database_audio = music_folder.query(false).await;
-            assert_eq!(database_audio, music_folder.audio);
+            let database_audio = music_folder.query_filesystem(false).await;
+            assert_eq!(database_audio, music_folder.filesystem);
         }
 
         #[rstest]
         #[tokio::test]
         async fn test_duplicate(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio::<&str>().n_song(1).call().await;
-            let audio = music_folder.audio[0].clone();
+            music_folder.add_audio_filesystem::<&str>().n_song(1).call().await;
+            let audio = music_folder.filesystem[0].clone();
 
             music_folder
-                .add_audio::<&str>()
+                .add_audio_filesystem::<&str>()
                 .n_song(1)
                 .metadata(audio.metadata.clone())
                 .format(audio.file.format)
                 .call()
                 .await;
 
-            let mut database_audio = music_folder.query(false).await;
+            let mut database_audio = music_folder.query_filesystem(false).await;
             assert_eq!(database_audio.len(), 1);
             let (database_path, database_audio) = database_audio.shift_remove_index(0).unwrap();
-            assert!(music_folder.audio.contains_key(&database_path));
+            assert!(music_folder.filesystem.contains_key(&database_path));
             assert_eq!(database_audio, audio);
         }
 
@@ -323,20 +323,20 @@ mod tests {
         #[tokio::test]
         async fn test_move(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio::<&str>().n_song(1).call().await;
-            let audio = music_folder.audio[0].clone();
-            music_folder.remove_audio::<&str>().index(0).call().await;
+            music_folder.add_audio_filesystem::<&str>().n_song(1).call().await;
+            let audio = music_folder.filesystem[0].clone();
+            music_folder.remove_audio_filesystem::<&str>().index(0).call().await;
 
             music_folder
-                .add_audio::<&str>()
+                .add_audio_filesystem::<&str>()
                 .n_song(1)
                 .metadata(audio.metadata.clone())
                 .format(audio.file.format)
                 .call()
                 .await;
 
-            let database_audio = music_folder.query(false).await;
-            assert_eq!(database_audio, music_folder.audio);
+            let database_audio = music_folder.query_filesystem(false).await;
+            assert_eq!(database_audio, music_folder.filesystem);
         }
     }
 }

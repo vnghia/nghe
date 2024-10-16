@@ -200,7 +200,7 @@ mod tests {
         let mut music_folder = mock.music_folder(0).await;
         let metadata: Metadata = Faker.fake();
         let roundtrip_file = music_folder
-            .add_audio()
+            .add_audio_filesystem()
             .path("test")
             .format(format)
             .metadata(metadata.clone())
