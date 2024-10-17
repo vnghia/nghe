@@ -497,12 +497,8 @@ mod tests {
         #[rstest]
         #[tokio::test]
         async fn test_artist_all(#[future(awt)] mock: Mock) {
-            for _ in 0..5 {
-                Faker
-                    .fake::<audio::Information>()
-                    .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
-                    .await;
-            }
+            let mut music_folder = mock.music_folder(0).await;
+            music_folder.add_audio().n_song(5).call().await;
             assert!(!Artist::queries(&mock).await.is_empty());
 
             diesel::delete(songs_artists::table).execute(&mut mock.get().await).await.unwrap();
@@ -527,25 +523,19 @@ mod tests {
             #[case] n_subset: usize,
             #[values(true, false)] compilation: bool,
         ) {
+            let mut music_folder = mock.music_folder(0).await;
             let artist: Artist = Faker.fake();
-            let song_ids: Vec<_> = stream::iter(0..n_song)
-                .then(async |_| {
-                    Mock::information()
-                        .artists(
-                            Artists::new(
-                                [artist.clone(), Faker.fake()],
-                                // No empty album artist so "Artist" won't be added to album
-                                fake::vec![Artist; 1..4],
-                                compilation,
-                            )
-                            .unwrap(),
-                        )
-                        .call()
-                        .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
-                        .await
+            music_folder
+                .add_audio()
+                .artists(Artists {
+                    song: [artist.clone(), Faker.fake()].into(),
+                    album: [Faker.fake()].into(),
+                    compilation,
                 })
-                .collect()
+                .n_song(n_song)
+                .call()
                 .await;
+            let song_ids: Vec<_> = music_folder.database.keys().collect();
             assert!(Artist::queries(&mock).await.contains(&artist));
 
             diesel::delete(songs_artists::table)
@@ -578,26 +568,20 @@ mod tests {
             let artist: Artist = Faker.fake();
             let album_song_ids: Vec<(Uuid, Vec<_>)> = stream::iter(0..n_album)
                 .then(async |_| {
+                    let mut music_folder = mock.music_folder(0).await;
                     let album: audio::Album = Faker.fake();
                     let album_id = album.upsert_mock(&mock, 0).await;
-                    let song_ids = stream::iter(0..(1..3).fake())
-                        .then(async |_| {
-                            Mock::information()
-                                .artists(
-                                    Artists::new(
-                                        fake::vec![Artist; 1..4],
-                                        [artist.clone(), Faker.fake()],
-                                        false,
-                                    )
-                                    .unwrap(),
-                                )
-                                .album(album.clone())
-                                .call()
-                                .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
-                                .await
+                    music_folder
+                        .add_audio()
+                        .artists(Artists {
+                            song: [Faker.fake()].into(),
+                            album: [artist.clone(), Faker.fake()].into(),
+                            compilation: false,
                         })
-                        .collect()
+                        .n_song((1..3).fake())
+                        .call()
                         .await;
+                    let song_ids = music_folder.database.keys().copied().collect();
                     (album_id, song_ids)
                 })
                 .collect()

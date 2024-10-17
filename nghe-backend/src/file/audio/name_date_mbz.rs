@@ -160,17 +160,10 @@ mod tests {
             #[case] n_song: usize,
             #[case] n_subset: usize,
         ) {
+            let mut music_folder = mock.music_folder(0).await;
             let album: Album = Faker.fake();
-            let song_ids: Vec<_> = stream::iter(0..n_song)
-                .then(async |_| {
-                    Mock::information()
-                        .album(album.clone())
-                        .call()
-                        .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
-                        .await
-                })
-                .collect()
-                .await;
+            music_folder.add_audio().album(album.clone()).n_song(n_song).call().await;
+            let song_ids: Vec<_> = music_folder.database.keys().collect();
             assert!(Album::queries(&mock).await.contains(&album));
 
             diesel::delete(songs::table)

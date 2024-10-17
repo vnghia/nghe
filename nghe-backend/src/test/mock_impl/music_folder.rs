@@ -87,6 +87,41 @@ impl<'a> Mock<'a> {
     }
 
     #[builder]
+    pub async fn add_audio(
+        &mut self,
+        #[builder(default = Faker.fake::<audio::Format>())] format: audio::Format,
+        metadata: Option<audio::Metadata<'static>>,
+        song: Option<audio::Song<'static>>,
+        album: Option<audio::Album<'static>>,
+        artists: Option<audio::Artists<'static>>,
+        genres: Option<audio::Genres<'static>>,
+        #[builder(default = 1)] n_song: usize,
+    ) -> &mut Self {
+        for _ in 0..n_song {
+            let information = super::Mock::information()
+                .maybe_metadata(metadata.clone())
+                .maybe_song(song.clone())
+                .maybe_album(album.clone())
+                .maybe_artists(artists.clone())
+                .maybe_genres(genres.clone())
+                .call();
+            let song_id = information
+                .upsert(
+                    self.mock.database(),
+                    self.id(),
+                    Faker.fake::<String>(),
+                    &self.mock.config.index.ignore_prefixes,
+                    None,
+                )
+                .await
+                .unwrap();
+            self.database.insert(song_id, information);
+        }
+
+        self
+    }
+
+    #[builder]
     pub async fn add_audio_filesystem(
         &mut self,
         path: Option<impl AsRef<str>>,

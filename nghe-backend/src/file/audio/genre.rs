@@ -187,17 +187,15 @@ mod tests {
             #[case] n_song: usize,
             #[case] n_subset: usize,
         ) {
+            let mut music_folder = mock.music_folder(0).await;
             let genre: Genre = Faker.fake();
-            let song_ids: Vec<_> = stream::iter(0..n_song)
-                .then(async |_| {
-                    Mock::information()
-                        .genres(Genres { value: vec![genre.clone()] })
-                        .call()
-                        .upsert_mock(&mock, 0, Faker.fake::<String>(), None)
-                        .await
-                })
-                .collect()
+            music_folder
+                .add_audio()
+                .genres(Genres { value: vec![genre.clone()] })
+                .n_song(n_song)
+                .call()
                 .await;
+            let song_ids: Vec<_> = music_folder.database.keys().collect();
             assert!(Genre::queries(&mock).await.contains(&genre));
 
             diesel::delete(songs_genres::table)

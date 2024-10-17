@@ -109,28 +109,6 @@ mod test {
     use crate::orm::songs;
     use crate::test::Mock;
 
-    impl<'a> Information<'a> {
-        pub async fn upsert_mock(
-            &self,
-            mock: &Mock,
-            index: usize,
-            path: impl AsRef<str>,
-            song_id: impl Into<Option<Uuid>>,
-        ) -> Uuid {
-            let music_folder = mock.music_folder(index).await;
-            let path = music_folder.path_str(&path);
-            self.upsert(
-                mock.database(),
-                music_folder.id(),
-                music_folder.relativize(&path).as_str(),
-                &mock.config.index.ignore_prefixes,
-                song_id,
-            )
-            .await
-            .unwrap()
-        }
-    }
-
     impl Information<'static> {
         pub async fn query_data(mock: &Mock, id: Uuid) -> songs::Data<'static> {
             songs::table
