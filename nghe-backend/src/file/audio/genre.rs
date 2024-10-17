@@ -167,7 +167,6 @@ mod test {
 
 #[cfg(test)]
 mod tests {
-    use futures_lite::{stream, StreamExt};
     use rstest::rstest;
 
     use super::*;

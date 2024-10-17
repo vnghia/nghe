@@ -19,7 +19,7 @@ use crate::Error;
 #[derive(Debug, PartialEq, Eq, Hash, o2o)]
 #[from_owned(artists::Data<'a>)]
 #[ref_into(artists::Data<'a>)]
-#[cfg_attr(test, derive(Dummy, Clone))]
+#[cfg_attr(test, derive(Dummy, Clone, PartialOrd, Ord))]
 pub struct Artist<'a> {
     #[ref_into(Cow::Borrowed(~.as_ref()))]
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
@@ -249,8 +249,10 @@ impl<'a> Artists<'a> {
 #[cfg(test)]
 mod test {
     use diesel::{QueryDsl, SelectableHelper};
+    use itertools::Itertools;
 
     use super::*;
+    use crate::orm::songs;
     use crate::test::Mock;
 
     impl<S: AsRef<str> + Sized> PartialEq<S> for Artist<'_> {
@@ -290,6 +292,15 @@ mod test {
                 .into()
         }
 
+        async fn query_ids(mock: &Mock, ids: &[Uuid], sorted: bool) -> Vec<Self> {
+            let artists: Vec<_> = stream::iter(ids)
+                .copied()
+                .then(async |id| Self::query(mock, id).await)
+                .collect()
+                .await;
+            if sorted { artists.into_iter().sorted().collect() } else { artists }
+        }
+
         async fn query_song_artists(mock: &Mock, song_id: Uuid) -> (Vec<Uuid>, Vec<Self>) {
             let ids: Vec<Uuid> = songs_artists::table
                 .filter(songs_artists::song_id.eq(song_id))
@@ -298,11 +309,7 @@ mod test {
                 .get_results(&mut mock.get().await)
                 .await
                 .unwrap();
-            let artists = stream::iter(&ids)
-                .copied()
-                .then(async |id| Self::query(mock, id).await)
-                .collect()
-                .await;
+            let artists = Self::query_ids(mock, &ids, false).await;
             (ids, artists)
         }
 
@@ -343,14 +350,24 @@ mod test {
             (artists, compilation)
         }
 
-        pub async fn queries(mock: &Mock) -> Vec<Self> {
-            let ids = artists::table
-                .select(artists::id)
-                .order_by((artists::name, artists::mbz_id))
+        pub async fn query_album(mock: &Mock, album_id: Uuid) -> Vec<Self> {
+            let ids = songs_album_artists::table
+                .inner_join(songs::table)
+                .select(songs_album_artists::album_artist_id)
+                .filter(songs::album_id.eq(album_id))
                 .get_results(&mut mock.get().await)
                 .await
                 .unwrap();
-            stream::iter(ids).then(async |id| Self::query(mock, id).await).collect().await
+            Self::query_ids(mock, &ids, true).await
+        }
+
+        pub async fn queries(mock: &Mock) -> Vec<Self> {
+            let ids = artists::table
+                .select(artists::id)
+                .get_results(&mut mock.get().await)
+                .await
+                .unwrap();
+            Self::query_ids(mock, &ids, true).await
         }
     }
 

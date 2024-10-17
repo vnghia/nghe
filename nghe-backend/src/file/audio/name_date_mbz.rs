@@ -101,10 +101,11 @@ mod test {
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
-    use futures_lite::{stream, StreamExt};
+    use itertools::Itertools;
     use rstest::rstest;
 
     use super::*;
+    use crate::file::audio;
     use crate::test::{mock, Mock};
 
     #[rstest]
@@ -144,6 +145,39 @@ mod tests {
         let id = album.upsert_mock(&mock, 0).await;
         let update_id = album.upsert_mock(&mock, 0).await;
         assert_eq!(update_id, id);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_combine_album_artist(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] compilation: bool,
+    ) {
+        let mut music_folder = mock.music_folder(0).await;
+        let album: Album = Faker.fake();
+        let album_id = album.upsert_mock(&mock, 0).await;
+        let artists: Vec<_> = fake::vec![audio::Artist; 4].into_iter().sorted().collect();
+        music_folder
+            .add_audio()
+            .album(album.clone())
+            .artists(audio::Artists {
+                song: [artists[0].clone()].into(),
+                album: [artists[2].clone()].into(),
+                compilation,
+            })
+            .call()
+            .await
+            .add_audio()
+            .album(album.clone())
+            .artists(audio::Artists {
+                song: [artists[1].clone()].into(),
+                album: [artists[3].clone()].into(),
+                compilation,
+            })
+            .call()
+            .await;
+        let range = if compilation { 0..4 } else { 2..4 };
+        assert_eq!(artists[range], audio::Artist::query_album(&mock, album_id).await);
     }
 
     mod cleanup {
