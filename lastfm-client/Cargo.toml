@@ -20,4 +20,4 @@ serde_repr = { version = "0.1.19" }
 [dev-dependencies]
 fake = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true, features = ["macros"] }
+tokio = { version = "1", features = ["macros"] }
