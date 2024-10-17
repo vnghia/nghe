@@ -89,7 +89,6 @@ impl<'a> Mock<'a> {
     #[builder]
     pub async fn add_audio(
         &mut self,
-        #[builder(default = Faker.fake::<audio::Format>())] format: audio::Format,
         metadata: Option<audio::Metadata<'static>>,
         song: Option<audio::Song<'static>>,
         album: Option<audio::Album<'static>>,
