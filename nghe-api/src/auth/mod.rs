@@ -2,14 +2,12 @@ use nghe_proc_macro::api_derive;
 use serde_with::serde_as;
 
 #[serde_as]
-#[api_derive(response = false)]
+#[api_derive(request = true, response = true)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "test", derive(serde::Serialize))]
 pub struct Token(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
 
-#[api_derive(response = false, fake = false)]
+#[api_derive(request = true, response = true, fake = false)]
 #[derive(Clone, Copy)]
-#[cfg_attr(feature = "test", derive(serde::Serialize))]
 pub struct Auth<'u, 't> {
     #[serde(rename = "u")]
     pub username: &'u str,
@@ -19,7 +17,7 @@ pub struct Auth<'u, 't> {
     pub token: Token,
 }
 
-#[api_derive(serde = false, response = false, fake = false)]
+#[api_derive(serde = false, fake = false)]
 pub struct BinaryRequest<'u, 't, R> {
     pub auth: Auth<'u, 't>,
     pub request: R,

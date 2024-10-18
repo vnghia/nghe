@@ -1,6 +1,6 @@
 use nghe_proc_macro::api_derive;
 
-#[api_derive(response = false)]
+#[api_derive(request = true)]
 pub struct Role {
     pub admin: bool,
     pub stream: bool,

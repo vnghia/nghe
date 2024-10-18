@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_serialize_empty() {
-        #[api_derive(debug = false, binary = false)]
+        #[api_derive(request = true, response = true, debug = false, binary = false)]
         struct TestBody {}
 
         assert_eq!(
@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_serialize() {
-        #[api_derive(debug = false, binary = false)]
+        #[api_derive(request = true, response = true, debug = false, binary = false)]
         struct TestBody {
             field: u16,
         }
@@ -124,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_serialize_case() {
-        #[api_derive(debug = false, binary = false)]
+        #[api_derive(request = true, response = true, debug = false, binary = false)]
         struct TestBody {
             snake_case: u16,
         }

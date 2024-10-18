@@ -15,16 +15,18 @@ struct Endpoint {
 
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct Derive {
+    #[deluxe(default = false)]
+    request: bool,
+    #[deluxe(default = false)]
+    response: bool,
+    #[deluxe(default = false)]
+    endpoint: bool,
     #[deluxe(default = true)]
     debug: bool,
     #[deluxe(default = true)]
     serde: bool,
     #[deluxe(default = true)]
     binary: bool,
-    #[deluxe(default = false)]
-    endpoint: bool,
-    #[deluxe(default = true)]
-    response: bool,
     #[deluxe(default = true)]
     fake: bool,
 }
@@ -64,14 +66,17 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let args: Derive = deluxe::parse2(args)?;
     let input: syn::DeriveInput = syn::parse2(item)?;
 
-    let is_request = args.endpoint || !args.response;
+    let ident = input.ident.to_string();
+    let is_request = args.request || ident.ends_with("Request");
+    let is_response = args.response || ident.ends_with("Response");
 
     let mut derives: Vec<syn::Expr> = vec![];
 
     if args.serde {
         if is_request {
             derives.push(parse_str("serde::Deserialize")?);
-        } else {
+        }
+        if is_response {
             derives.push(parse_str("serde::Serialize")?);
         }
     }
