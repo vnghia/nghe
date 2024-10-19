@@ -52,6 +52,14 @@ pub enum File {
     Flac { audio: FlacFile, file: super::File<Format> },
 }
 
+impl super::Mime for Format {
+    fn mime(self) -> &'static str {
+        match self {
+            Format::Flac => "audio/flac",
+        }
+    }
+}
+
 impl super::File<Format> {
     pub fn audio(self, parse_options: ParseOptions) -> Result<File, Error> {
         let mut reader = Cursor::new(&self.data);
