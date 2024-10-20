@@ -14,6 +14,7 @@ mod filesystem;
 pub mod migration;
 mod orm;
 mod response;
+mod retrieve;
 mod route;
 mod scan;
 mod schema;

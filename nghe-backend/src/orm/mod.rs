@@ -2,6 +2,8 @@ pub mod albums;
 pub mod artists;
 pub mod genres;
 pub mod music_folders;
+pub mod permission;
+pub mod retriever;
 pub mod songs;
 pub mod songs_album_artists;
 pub mod songs_artists;

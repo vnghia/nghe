@@ -15,7 +15,7 @@ pub use crate::schema::songs::{self, *};
 pub mod date;
 pub mod name_date_mbz;
 pub mod position;
-mod property;
+pub mod property;
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
