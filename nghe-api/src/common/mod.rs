@@ -39,6 +39,8 @@ pub trait EncodableEndpoint: Endpoint {
     type Response: Serialize + Encode + DecodeOwned;
 }
 
+pub trait BinaryEndpoint: Endpoint {}
+
 impl<B> SubsonicResponse<B> {
     pub fn new(body: B) -> Self {
         Self {

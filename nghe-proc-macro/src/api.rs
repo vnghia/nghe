@@ -1,14 +1,14 @@
 use concat_string::concat_string;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_str, Error, Ident};
+use syn::{parse_str, Error};
 
 #[derive(Debug, deluxe::ExtractAttributes)]
 #[deluxe(attributes(endpoint))]
 struct Endpoint {
     path: String,
-    #[deluxe(default = format_ident!("Response"))]
-    response: Ident,
+    #[deluxe(default = false)]
+    binary: bool,
     #[deluxe(default = true)]
     same_crate: bool,
 }
@@ -33,7 +33,7 @@ struct Derive {
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let mut input: syn::DeriveInput = syn::parse2(item)?;
-    let Endpoint { path, response, same_crate } = deluxe::extract_attributes(&mut input)?;
+    let Endpoint { path, binary, same_crate } = deluxe::extract_attributes(&mut input)?;
 
     let ident = &input.ident;
     if ident != "Request" {
@@ -49,6 +49,18 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
     let crate_path = if same_crate { format_ident!("crate") } else { format_ident!("nghe_api") };
 
+    let impl_endpoint = if binary {
+        quote! {
+            impl #crate_path::common::BinaryEndpoint for #ident {}
+        }
+    } else {
+        quote! {
+            impl #crate_path::common::EncodableEndpoint for #ident {
+                type Response = Response;
+            }
+        }
+    };
+
     Ok(quote! {
         impl #crate_path::common::Endpoint for #ident {
             const ENDPOINT: &'static str = #endpoint;
@@ -56,9 +68,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             const ENDPOINT_BINARY: &'static str = #endpoint_binary;
         }
 
-        impl #crate_path::common::EncodableEndpoint for #ident {
-            type Response = #response;
-        }
+        #impl_endpoint
     })
 }
 
