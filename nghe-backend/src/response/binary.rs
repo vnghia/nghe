@@ -6,6 +6,7 @@ use axum_extra::body::AsyncReadBody;
 use axum_extra::headers::{
     AcceptRanges, CacheControl, ContentLength, ContentRange, ETag, HeaderMapExt,
 };
+use o2o::o2o;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use typed_path::Utf8TypedPath;
 
@@ -15,6 +16,22 @@ pub struct Binary {
     status: StatusCode,
     header: HeaderMap,
     body: AsyncReadBody,
+}
+
+#[derive(o2o)]
+#[from_owned(file::Property<F>)]
+#[where_clause(F: file::Mime)]
+pub struct Property<F> {
+    #[from(~.into())]
+    pub hash: Option<u64>,
+    pub size: u32,
+    pub format: F,
+}
+
+impl<F: file::Mime> Property<F> {
+    pub fn mime(&self) -> &'static str {
+        self.format.mime()
+    }
 }
 
 impl Binary {
@@ -30,7 +47,7 @@ impl Binary {
 
     pub async fn from_local<F: file::Mime>(
         path: Utf8TypedPath<'_>,
-        property: file::Property<F>,
+        property: Property<F>,
         offset: impl Into<Option<u64>> + Copy,
         seekable: bool,
         cacheable: bool,
@@ -46,7 +63,7 @@ impl Binary {
 
     pub fn from_async_read<F: file::Mime>(
         reader: impl AsyncRead + Send + 'static,
-        property: file::Property<F>,
+        property: Property<F>,
         offset: impl Into<Option<u64>>,
         seekable: bool,
         cacheable: bool,
@@ -57,9 +74,10 @@ impl Binary {
 
         let size = property.size.into();
         header.typed_insert(ContentLength(size));
-        header.typed_insert(
-            property.hash.to_string().parse::<ETag>().map_err(color_eyre::Report::from)?,
-        );
+        if let Some(hash) = property.hash {
+            header
+                .typed_insert(hash.to_string().parse::<ETag>().map_err(color_eyre::Report::from)?);
+        }
 
         let offset = offset.into().unwrap_or(0);
         header.typed_insert(ContentRange::bytes(offset.., size).map_err(color_eyre::Report::from)?);

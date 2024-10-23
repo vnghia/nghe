@@ -1,5 +1,4 @@
 #![feature(adt_const_params)]
-#![feature(const_option)]
 
 pub mod auth;
 pub mod common;

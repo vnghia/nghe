@@ -36,10 +36,6 @@ impl<F: Mime> Property<F> {
     pub fn signed_size(&self) -> i32 {
         self.size as _
     }
-
-    pub fn mime(&self) -> &'static str {
-        self.format.mime()
-    }
 }
 
 impl<F: Mime> File<F> {

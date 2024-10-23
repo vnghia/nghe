@@ -714,7 +714,7 @@ source = "git+https://github.com/vnghia/bitcode.git?rev=5f6a56f#5f6a56fb717ab470
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.79",
+ "syn 2.0.82",
 ]
 
 [[package]]
@@ -774,7 +774,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "syn 2.0.79",
+ "syn 2.0.82",
 ]
 
 [[package]]
@@ -1370,7 +1370,7 @@ checksum = "d150dea618e920167e5973d70ae6ece4385b7164e0d799fe7c122dd0a5d912ad"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.79",
+ "syn 2.0.82",
 ]
 
 [[package]]
@@ -1439,7 +1439,7 @@ dependencies = [
  "dsl_auto_type 0.1.0",
  "proc-macro2",
  "quote",
- "syn 2.0.79",
+ "syn 2.0.82",
 ]
 
 [[package]]
@@ -1489,7 +1489,7 @@ name = "diesel_table_macro_syntax"
 version = "0.2.0"
 source = "git+https://github.com/diesel-rs/diesel?rev=ecf6e9215a898045ed096f905f4a0e7e4a999dba#ecf6e9215a898045ed096f905f4a0e7e4a999dba"
 dependencies = [
- "syn 2.0.79",
+ "syn 2.0.82",
 ]
 
 [[package]]
@@ -1867,7 +1867,7 @@ dependencies = [
  "heck 0.5.0",
  "proc-macro2",
  "quote",
- "syn 2.0.79",
+ "syn 2.0.82",
 ]
 
 [[package]]
@@ -3950,7 +3950,7 @@ dependencies = [
  "deluxe",
  "proc-macro2",
  "quote",
- "syn 2.0.79",
+ "syn 2.0.82",
 ]
 
 [[package]]
@@ -4863,7 +4863,7 @@ dependencies = [
  "regex",
  "relative-path",
  "rustc_version",
- "syn 2.0.79",
+ "syn 2.0.82",
  "unicode-ident",
 ]
 
