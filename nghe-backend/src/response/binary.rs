@@ -47,7 +47,7 @@ impl Binary {
 
     pub async fn from_local<F: file::Mime>(
         path: Utf8TypedPath<'_>,
-        property: Property<F>,
+        property: &Property<F>,
         offset: impl Into<Option<u64>> + Copy,
         seekable: bool,
         cacheable: bool,
@@ -63,7 +63,7 @@ impl Binary {
 
     pub fn from_async_read<F: file::Mime>(
         reader: impl AsyncRead + Send + 'static,
-        property: Property<F>,
+        property: &Property<F>,
         offset: impl Into<Option<u64>>,
         seekable: bool,
         cacheable: bool,
