@@ -10,6 +10,8 @@ struct Handler {
     #[deluxe(default = "trace".into())]
     ret_level: String,
     role: Option<syn::Ident>,
+    #[deluxe(default = vec![])]
+    headers: Vec<syn::Ident>,
     #[deluxe(default = true)]
     need_auth: bool,
 }
@@ -25,7 +27,7 @@ struct BuildRouter {
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemFn = syn::parse2(item)?;
-    let Handler { ret_level, role, need_auth } = deluxe::parse2(attr)?;
+    let Handler { ret_level, role, headers, need_auth } = deluxe::parse2(attr)?;
 
     let ident = &input.sig.ident;
     if ident != "handler" {
@@ -38,14 +40,16 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     let mut common_args: Vec<syn::FnArg> = vec![];
     let mut pass_args: Vec<syn::Expr> = vec![];
 
-    for arg in &input.sig.inputs {
-        if let syn::FnArg::Typed(arg) = arg
+    for fn_arg in &input.sig.inputs {
+        if let syn::FnArg::Typed(arg) = fn_arg
             && let syn::Pat::Ident(pat) = arg.pat.as_ref()
             && pat.ident != "request"
         {
             match pat.ident.to_string().as_str() {
                 "database" => {
-                    common_args.push(parse_quote!(extract::State(database): extract::State<crate::database::Database>));
+                    common_args.push(
+                        parse_quote!(extract::State(database): extract::State<crate::database::Database>)
+                    );
                     pass_args.push(parse_quote!(&database));
                 }
                 "user_id" => {
@@ -53,9 +57,24 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 }
                 _ => match arg.ty.as_ref() {
                     syn::Type::Path(ty) => {
-                        common_args
-                            .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
-                        pass_args.push(parse_quote!(#pat));
+                        if headers.contains(&pat.ident) {
+                            if let Some(segment) = ty.path.segments.last()
+                                && segment.ident == "Option"
+                                && let syn::PathArguments::AngleBracketed(angle) =
+                                    &segment.arguments
+                                && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) =
+                                    angle.args.first()
+                            {
+                                common_args
+                                    .push(parse_quote!(#pat: Option<axum_extra::TypedHeader<#ty>>));
+                                pass_args.push(parse_quote!(#pat.map(|header| header.0)));
+                            }
+                        } else {
+                            common_args.push(
+                                parse_quote!(extract::Extension(#pat): extract::Extension<#ty>),
+                            );
+                            pass_args.push(parse_quote!(#pat));
+                        }
                     }
                     syn::Type::Reference(ty) => {
                         let ty = ty.elem.as_ref();

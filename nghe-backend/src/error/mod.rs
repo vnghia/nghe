@@ -43,6 +43,8 @@ pub enum Error {
     Unauthenticated,
     #[error("You need to have {0} role to perform this action")]
     MissingRole(&'static str),
+    #[error("Range header is invalid")]
+    InvalidRangeHeader,
 
     #[error("Could not parse date from {0:?}")]
     MediaDateFormat(String),
@@ -79,7 +81,7 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status_code, status_message) = match &self {
-            Error::InvalidParameter(_) | Error::SerializeRequest(_) => {
+            Error::InvalidParameter(_) | Error::SerializeRequest(_) | Error::InvalidRangeHeader => {
                 (StatusCode::BAD_REQUEST, self.to_string())
             }
             Error::ExtractRequestBody(_) => {
