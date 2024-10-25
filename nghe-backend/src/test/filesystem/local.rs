@@ -5,6 +5,8 @@ use tempfile::{Builder, TempDir};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::filesystem::{self, local};
+use crate::response::Binary;
+use crate::retrieve::retriever;
 use crate::Error;
 
 #[derive(Debug)]
@@ -40,6 +42,14 @@ impl filesystem::Trait for Mock {
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         self.filesystem.read(path).await
+    }
+
+    async fn read_to_binary(
+        &self,
+        retriever: &retriever::Song,
+        offset: u64,
+    ) -> Result<Binary, Error> {
+        self.filesystem.read_to_binary(retriever, offset).await
     }
 }
 

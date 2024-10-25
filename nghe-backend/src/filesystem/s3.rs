@@ -6,12 +6,15 @@ use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
 use aws_sdk_s3::Client;
 use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
+use concat_string::concat_string;
 use hyper::client::HttpConnector;
 use hyper_tls::HttpsConnector;
 use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
+use crate::response::Binary;
+use crate::retrieve::retriever;
 use crate::{config, Error};
 
 #[derive(Debug, Clone)]
@@ -140,6 +143,30 @@ impl super::Trait for Filesystem {
             .await
             .map(AggregatedBytes::to_vec)
             .map_err(Error::from)
+    }
+
+    async fn read_to_binary(
+        &self,
+        retriever: &retriever::Song,
+        offset: u64,
+    ) -> Result<Binary, Error> {
+        let path = retriever.path.to_path();
+        let Path { bucket, key } = Self::split(path)?;
+        let reader = self
+            .client
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .set_range(if offset > 0 {
+                Some(concat_string!("bytes=", offset.to_string(), "-"))
+            } else {
+                None
+            })
+            .send()
+            .await?
+            .body
+            .into_async_read();
+        Binary::from_async_read(reader, &retriever.property.into(), offset, true, false)
     }
 }
 

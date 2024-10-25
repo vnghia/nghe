@@ -6,22 +6,20 @@ use crate::database::Database;
 use crate::file::{self, audio};
 use crate::filesystem::Filesystem;
 use crate::orm::retriever;
-use crate::response::Binary;
 use crate::{filesystem, Error};
 
-pub struct Song<'fs> {
-    pub filesystem: filesystem::Impl<'fs>,
+pub struct Song {
     pub path: Utf8TypedPathBuf,
     pub property: file::Property<audio::Format>,
 }
 
-impl<'fs> Song<'fs> {
-    pub async fn new(
+impl Song {
+    pub async fn new<'fs>(
         database: &Database,
         filesystem: &'fs Filesystem,
         user_id: Uuid,
         song_id: Uuid,
-    ) -> Result<Self, Error> {
+    ) -> Result<(filesystem::Impl<'fs>, Self), Error> {
         let song =
             retriever::query(user_id, song_id).get_result(&mut database.get().await?).await?;
         let filesystem = filesystem.to_impl(song.music_folder.ty.into())?;
@@ -30,6 +28,6 @@ impl<'fs> Song<'fs> {
             .from_string(song.music_folder.path.into_owned())
             .join(song.relative_path);
         let property = song.property.into();
-        Ok(Self { filesystem, path, property })
+        Ok((filesystem, Self { path, property }))
     }
 }

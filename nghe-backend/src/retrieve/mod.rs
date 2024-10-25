@@ -1,1 +1,1 @@
-mod retriever;
+pub mod retriever;

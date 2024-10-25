@@ -1,5 +1,7 @@
 use std::ffi::OsString;
 
+use aws_sdk_s3::error::SdkError;
+use aws_sdk_s3::operation::get_object::GetObjectError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use o2o::o2o;
@@ -17,6 +19,7 @@ use tokio::sync::mpsc::error::SendError;
 #[from_owned(time::error::ComponentRange)]
 #[from_owned(tokio::task::JoinError)]
 #[from_owned(tokio::sync::AcquireError)]
+#[from_owned(SdkError<GetObjectError>)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),

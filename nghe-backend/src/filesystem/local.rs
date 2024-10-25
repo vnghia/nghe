@@ -6,6 +6,8 @@ use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
+use crate::response::Binary;
+use crate::retrieve::retriever;
 use crate::Error;
 
 #[derive(Debug, Clone, Copy)]
@@ -67,6 +69,21 @@ impl super::Trait for Filesystem {
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         tokio::fs::read(path.as_str()).await.map_err(Error::from)
+    }
+
+    async fn read_to_binary(
+        &self,
+        retriever: &retriever::Song,
+        offset: u64,
+    ) -> Result<Binary, Error> {
+        Binary::from_local(
+            retriever.path.to_path(),
+            &retriever.property.into(),
+            offset,
+            true,
+            false,
+        )
+        .await
     }
 }
 
