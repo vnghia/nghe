@@ -36,6 +36,7 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::music_folder::router(filesystem.clone()))
         .merge(route::permission::router())
         .merge(route::user::router())
+        .merge(route::media_retrieval::router(filesystem.clone()))
         .merge(route::scan::router(
             filesystem,
             scan::scanner::Config {

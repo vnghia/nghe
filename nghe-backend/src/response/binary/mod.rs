@@ -15,6 +15,7 @@ use typed_path::Utf8TypedPath;
 
 use crate::{file, Error};
 
+#[derive(Debug)]
 pub struct Binary {
     status: StatusCode,
     header: HeaderMap,

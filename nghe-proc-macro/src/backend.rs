@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_lines)]
+
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
@@ -33,34 +35,41 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         ));
     }
 
-    let mut common_args: Vec<syn::FnArg> =
-        vec![parse_quote!(extract::State(database): extract::State<crate::database::Database>)];
-    let mut pass_args: Vec<syn::Expr> = vec![parse_quote!(&database)];
+    let mut common_args: Vec<syn::FnArg> = vec![];
+    let mut pass_args: Vec<syn::Expr> = vec![];
 
     for arg in &input.sig.inputs {
         if let syn::FnArg::Typed(arg) = arg
             && let syn::Pat::Ident(pat) = arg.pat.as_ref()
-            && pat.ident != "database"
             && pat.ident != "request"
         {
-            match arg.ty.as_ref() {
-                syn::Type::Path(ty) => {
-                    common_args
-                        .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
-                    pass_args.push(parse_quote!(#pat));
+            match pat.ident.to_string().as_str() {
+                "database" => {
+                    common_args.push(parse_quote!(extract::State(database): extract::State<crate::database::Database>));
+                    pass_args.push(parse_quote!(&database));
                 }
-                syn::Type::Reference(ty) => {
-                    let ty = ty.elem.as_ref();
-                    common_args
-                        .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
-                    pass_args.push(parse_quote!(&#pat));
+                "user_id" => {
+                    pass_args.push(parse_quote!(user.id));
                 }
-                _ => {
-                    return Err(syn::Error::new(
-                        arg.ty.span(),
-                        "Only path type and reference type are supported for handler function",
-                    ));
-                }
+                _ => match arg.ty.as_ref() {
+                    syn::Type::Path(ty) => {
+                        common_args
+                            .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
+                        pass_args.push(parse_quote!(#pat));
+                    }
+                    syn::Type::Reference(ty) => {
+                        let ty = ty.elem.as_ref();
+                        common_args
+                            .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
+                        pass_args.push(parse_quote!(&#pat));
+                    }
+                    _ => {
+                        return Err(syn::Error::new(
+                            arg.ty.span(),
+                            "Only path type and reference type are supported for handler function",
+                        ));
+                    }
+                },
             }
         }
     }
@@ -84,6 +93,69 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         (quote! { true }, String::default())
     };
 
+    let is_binary_respone = if let syn::ReturnType::Type(_, ty) = &input.sig.output
+        && let syn::Type::Path(ty) = ty.as_ref()
+        && let Some(segment) = ty.path.segments.last()
+        && segment.ident == "Result"
+        && let syn::PathArguments::AngleBracketed(angle) = &segment.arguments
+        && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) = angle.args.first()
+        && let Some(segment) = ty.path.segments.last()
+        && segment.ident == "Binary"
+    {
+        true
+    } else {
+        false
+    };
+
+    let handler_block = if is_binary_respone {
+        quote! {
+            pub async fn json_get_handler(
+                #( #json_get_args ),*
+            ) -> Result<crate::response::Binary, Error> {
+                #ident(#( #pass_args ),*).await
+            }
+
+            pub async fn json_post_handler(
+                #( #json_post_args ),*
+            ) -> Result<crate::response::Binary, Error> {
+                #ident(#( #pass_args ),*).await
+            }
+
+            pub async fn binary_handler(
+                #( #binary_args ),*
+            ) -> Result<crate::response::Binary, Error> {
+                #ident(#( #pass_args ),*).await
+            }
+        }
+    } else {
+        quote! {
+            pub async fn json_get_handler(
+                #( #json_get_args ),*
+            ) -> Result<
+                    axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>
+                >, Error> {
+                let response = #ident(#( #pass_args ),*).await?;
+                Ok(axum::Json(SubsonicResponse::new(response)))
+            }
+
+            pub async fn json_post_handler(
+                #( #json_post_args ),*
+            ) -> Result<
+                    axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>
+                >, Error> {
+                let response = #ident(#( #pass_args ),*).await?;
+                Ok(axum::Json(SubsonicResponse::new(response)))
+            }
+
+            pub async fn binary_handler(
+                #( #binary_args ),*
+            ) -> Result<Vec<u8>, Error> {
+                let response = #ident(#( #pass_args ),*).await?;
+                Ok(bitcode::encode(&response))
+            }
+        }
+    };
+
     Ok(quote! {
         #[tracing::instrument(skip(database), ret(level = #ret_level), err)]
         #input
@@ -103,26 +175,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             }
         }
 
-        pub async fn json_get_handler(
-            #( #json_get_args ),*
-        ) -> Result<axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>>, Error> {
-            let response = #ident(#( #pass_args ),*).await?;
-            Ok(axum::Json(SubsonicResponse::new(response)))
-        }
-
-        pub async fn json_post_handler(
-            #( #json_post_args ),*
-        ) -> Result<axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>>, Error> {
-            let response = #ident(#( #pass_args ),*).await?;
-            Ok(axum::Json(SubsonicResponse::new(response)))
-        }
-
-        pub async fn binary_handler(
-            #( #binary_args ),*
-        ) -> Result<Vec<u8>, Error> {
-            let response = #ident(#( #pass_args ),*).await?;
-            Ok(bitcode::encode(&response))
-        }
+        #handler_block
     })
 }
 
