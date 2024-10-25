@@ -43,7 +43,7 @@ pub trait Trait {
     async fn read_to_binary(
         &self,
         source: &binary::Source<audio::Format>,
-        offset: u64,
+        offset: Option<u64>,
     ) -> Result<Binary, Error>;
 }
 
@@ -76,7 +76,7 @@ impl<'fs> Trait for Impl<'fs> {
     async fn read_to_binary(
         &self,
         source: &binary::Source<audio::Format>,
-        offset: u64,
+        offset: Option<u64>,
     ) -> Result<Binary, Error> {
         match self {
             Impl::Local(filesystem) => filesystem.read_to_binary(source, offset).await,

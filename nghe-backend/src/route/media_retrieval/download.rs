@@ -16,5 +16,5 @@ pub async fn handler(
 ) -> Result<Binary, Error> {
     let (filesystem, source) =
         binary::Source::audio(database, filesystem, user_id, request.id).await?;
-    filesystem.read_to_binary(&source, 0).await
+    filesystem.read_to_binary(&source, None).await
 }

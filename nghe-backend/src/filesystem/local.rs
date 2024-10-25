@@ -74,7 +74,7 @@ impl super::Trait for Filesystem {
     async fn read_to_binary(
         &self,
         source: &binary::Source<audio::Format>,
-        offset: u64,
+        offset: Option<u64>,
     ) -> Result<Binary, Error> {
         Binary::from_local(source.path.to_path(), &source.property, offset, true, false).await
     }

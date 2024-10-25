@@ -148,7 +148,7 @@ impl super::Trait for Filesystem {
     async fn read_to_binary(
         &self,
         source: &binary::Source<audio::Format>,
-        offset: u64,
+        offset: Option<u64>,
     ) -> Result<Binary, Error> {
         let path = source.path.to_path();
         let Path { bucket, key } = Self::split(path)?;
@@ -157,11 +157,7 @@ impl super::Trait for Filesystem {
             .get_object()
             .bucket(bucket)
             .key(key)
-            .set_range(if offset > 0 {
-                Some(concat_string!("bytes=", offset.to_string(), "-"))
-            } else {
-                None
-            })
+            .set_range(offset.map(|offset| concat_string!("bytes=", offset.to_string(), "-")))
             .send()
             .await?
             .body

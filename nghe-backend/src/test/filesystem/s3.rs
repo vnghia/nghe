@@ -64,7 +64,7 @@ impl filesystem::Trait for Mock {
     async fn read_to_binary(
         &self,
         source: &binary::Source<audio::Format>,
-        offset: u64,
+        offset: Option<u64>,
     ) -> Result<Binary, Error> {
         self.filesystem.read_to_binary(source, offset).await
     }
