@@ -1,3 +1,5 @@
+pub mod source;
+
 use std::time::Duration;
 
 use axum::http::{header, HeaderMap, StatusCode};
@@ -7,6 +9,7 @@ use axum_extra::headers::{
     AcceptRanges, CacheControl, ContentLength, ContentRange, ETag, HeaderMapExt,
 };
 use o2o::o2o;
+pub use source::Source;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use typed_path::Utf8TypedPath;
 

@@ -6,8 +6,8 @@ use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
-use crate::response::Binary;
-use crate::retrieve::retriever;
+use crate::file::audio;
+use crate::response::{binary, Binary};
 use crate::Error;
 
 #[derive(Debug, Clone, Copy)]
@@ -73,17 +73,10 @@ impl super::Trait for Filesystem {
 
     async fn read_to_binary(
         &self,
-        retriever: &retriever::Song,
+        source: &binary::Source<audio::Format>,
         offset: u64,
     ) -> Result<Binary, Error> {
-        Binary::from_local(
-            retriever.path.to_path(),
-            &retriever.property.into(),
-            offset,
-            true,
-            false,
-        )
-        .await
+        Binary::from_local(source.path.to_path(), &source.property, offset, true, false).await
     }
 }
 

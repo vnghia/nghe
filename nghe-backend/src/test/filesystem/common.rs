@@ -1,7 +1,7 @@
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::response::Binary;
-use crate::retrieve::retriever;
+use crate::file::audio;
+use crate::response::{binary, Binary};
 use crate::{filesystem, Error};
 
 #[derive(Debug)]
@@ -63,12 +63,12 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
 
     async fn read_to_binary(
         &self,
-        retriever: &retriever::Song,
+        source: &binary::Source<audio::Format>,
         offset: u64,
     ) -> Result<Binary, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.read_to_binary(retriever, offset).await,
-            Impl::S3(filesystem) => filesystem.read_to_binary(retriever, offset).await,
+            Impl::Local(filesystem) => filesystem.read_to_binary(source, offset).await,
+            Impl::S3(filesystem) => filesystem.read_to_binary(source, offset).await,
         }
     }
 }

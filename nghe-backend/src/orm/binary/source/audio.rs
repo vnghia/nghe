@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use diesel::SelectableHelper;
 use uuid::Uuid;
 
-use super::{albums, music_folders, permission, songs};
+use crate::orm::{albums, music_folders, permission, songs};
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
