@@ -130,19 +130,19 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         quote! {
             pub async fn json_get_handler(
                 #( #json_get_args ),*
-            ) -> Result<crate::response::Binary, Error> {
+            ) -> Result<crate::http::Binary, Error> {
                 #ident(#( #pass_args ),*).await
             }
 
             pub async fn json_post_handler(
                 #( #json_post_args ),*
-            ) -> Result<crate::response::Binary, Error> {
+            ) -> Result<crate::http::Binary, Error> {
                 #ident(#( #pass_args ),*).await
             }
 
             pub async fn binary_handler(
                 #( #binary_args ),*
-            ) -> Result<crate::response::Binary, Error> {
+            ) -> Result<crate::http::Binary, Error> {
                 #ident(#( #pass_args ),*).await
             }
         }

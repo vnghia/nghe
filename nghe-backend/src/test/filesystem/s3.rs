@@ -9,7 +9,7 @@ use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::file::audio;
 use crate::filesystem::{self, path, s3};
-use crate::response::{binary, Binary};
+use crate::http::{binary, Binary};
 use crate::Error;
 
 #[derive(Debug)]

@@ -6,7 +6,7 @@ use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
 use crate::file::audio;
-use crate::response::{binary, Binary};
+use crate::http::{binary, Binary};
 use crate::Error;
 
 #[derive(Debug, Clone, o2o)]

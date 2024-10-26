@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::offset;
 use crate::database::Database;
 use crate::filesystem::{Filesystem, Trait};
-use crate::response::{binary, Binary};
+use crate::http::{binary, Binary};
 use crate::Error;
 
 #[handler(role = download, headers = [range])]
