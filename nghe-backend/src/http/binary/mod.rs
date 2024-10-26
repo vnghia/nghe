@@ -3,7 +3,7 @@ pub mod source;
 use std::time::Duration;
 
 use axum::http::{header, HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Response};
+use axum::response::IntoResponse;
 use axum_extra::body::AsyncReadBody;
 use axum_extra::headers::{AcceptRanges, CacheControl, ContentLength, ContentRange, HeaderMapExt};
 pub use source::{Property, Source};
@@ -13,13 +13,13 @@ use typed_path::Utf8TypedPath;
 use crate::{file, Error};
 
 #[derive(Debug)]
-pub struct Binary {
+pub struct Response {
     status: StatusCode,
     header: HeaderMap,
     body: AsyncReadBody,
 }
 
-impl Binary {
+impl Response {
     const MAX_AGE: Duration = Duration::from_secs(31_536_000);
 
     pub fn new(
@@ -84,8 +84,8 @@ impl Binary {
     }
 }
 
-impl IntoResponse for Binary {
-    fn into_response(self) -> Response {
+impl IntoResponse for Response {
+    fn into_response(self) -> axum::response::Response {
         (self.status, self.header, self.body).into_response()
     }
 }
@@ -96,7 +96,7 @@ mod test {
 
     use super::*;
 
-    impl Binary {
+    impl Response {
         pub async fn extract(self) -> (StatusCode, HeaderMap, Vec<u8>) {
             let response = self.into_response();
             let status = response.status();

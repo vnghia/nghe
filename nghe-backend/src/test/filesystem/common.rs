@@ -1,7 +1,7 @@
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::file::audio;
-use crate::http::{binary, Binary};
+use crate::http::binary;
 use crate::{filesystem, Error};
 
 #[derive(Debug)]
@@ -65,7 +65,7 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
         &self,
         source: &binary::Source<audio::Format>,
         offset: Option<u64>,
-    ) -> Result<Binary, Error> {
+    ) -> Result<binary::Response, Error> {
         match self {
             Impl::Local(filesystem) => filesystem.read_to_binary(source, offset).await,
             Impl::S3(filesystem) => filesystem.read_to_binary(source, offset).await,

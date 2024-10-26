@@ -7,7 +7,7 @@ use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
 use crate::file::audio;
-use crate::http::{binary, Binary};
+use crate::http::binary;
 use crate::Error;
 
 #[derive(Debug, Clone, Copy)]
@@ -75,8 +75,9 @@ impl super::Trait for Filesystem {
         &self,
         source: &binary::Source<audio::Format>,
         offset: Option<u64>,
-    ) -> Result<Binary, Error> {
-        Binary::from_local(source.path.to_path(), &source.property, offset, true, false).await
+    ) -> Result<binary::Response, Error> {
+        binary::Response::from_local(source.path.to_path(), &source.property, offset, true, false)
+            .await
     }
 }
 

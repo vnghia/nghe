@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::offset;
 use crate::database::Database;
 use crate::filesystem::{Filesystem, Trait};
-use crate::http::{binary, Binary};
+use crate::http::binary;
 use crate::Error;
 
 #[handler(role = download, headers = [range])]
@@ -16,7 +16,7 @@ pub async fn handler(
     range: Option<Range>,
     user_id: Uuid,
     request: Request,
-) -> Result<Binary, Error> {
+) -> Result<binary::Response, Error> {
     let (filesystem, source) =
         binary::Source::audio(database, filesystem, user_id, request.id).await?;
     let offset = offset::from_range(range, source.property.size.into())?;

@@ -6,7 +6,7 @@ use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::file::audio;
 use crate::filesystem::{self, local};
-use crate::http::{binary, Binary};
+use crate::http::binary;
 use crate::Error;
 
 #[derive(Debug)]
@@ -48,7 +48,7 @@ impl filesystem::Trait for Mock {
         &self,
         source: &binary::Source<audio::Format>,
         offset: Option<u64>,
-    ) -> Result<Binary, Error> {
+    ) -> Result<binary::Response, Error> {
         self.filesystem.read_to_binary(source, offset).await
     }
 }

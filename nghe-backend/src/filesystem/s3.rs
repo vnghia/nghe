@@ -14,7 +14,7 @@ use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
 use crate::file::audio;
-use crate::http::{binary, Binary};
+use crate::http::binary;
 use crate::{config, Error};
 
 #[derive(Debug, Clone)]
@@ -149,7 +149,7 @@ impl super::Trait for Filesystem {
         &self,
         source: &binary::Source<audio::Format>,
         offset: Option<u64>,
-    ) -> Result<Binary, Error> {
+    ) -> Result<binary::Response, Error> {
         let path = source.path.to_path();
         let Path { bucket, key } = Self::split(path)?;
         let reader = self
@@ -162,7 +162,7 @@ impl super::Trait for Filesystem {
             .await?
             .body
             .into_async_read();
-        Binary::from_async_read(reader, &source.property, offset, true, false)
+        binary::Response::from_async_read(reader, &source.property, offset, true, false)
     }
 }
 

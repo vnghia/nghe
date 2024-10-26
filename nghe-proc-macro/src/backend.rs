@@ -118,8 +118,10 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         && segment.ident == "Result"
         && let syn::PathArguments::AngleBracketed(angle) = &segment.arguments
         && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) = angle.args.first()
+        && let Some(segment) = ty.path.segments.first()
+        && segment.ident == "binary"
         && let Some(segment) = ty.path.segments.last()
-        && segment.ident == "Binary"
+        && segment.ident == "Response"
     {
         true
     } else {
@@ -130,19 +132,19 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         quote! {
             pub async fn json_get_handler(
                 #( #json_get_args ),*
-            ) -> Result<crate::http::Binary, Error> {
+            ) -> Result<crate::http::binary::Response, Error> {
                 #ident(#( #pass_args ),*).await
             }
 
             pub async fn json_post_handler(
                 #( #json_post_args ),*
-            ) -> Result<crate::http::Binary, Error> {
+            ) -> Result<crate::http::binary::Response, Error> {
                 #ident(#( #pass_args ),*).await
             }
 
             pub async fn binary_handler(
                 #( #binary_args ),*
-            ) -> Result<crate::http::Binary, Error> {
+            ) -> Result<crate::http::binary::Response, Error> {
                 #ident(#( #pass_args ),*).await
             }
         }
