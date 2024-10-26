@@ -3,10 +3,10 @@ pub use nghe_api::media_retrieval::download::Request;
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
-use super::offset;
 use crate::database::Database;
 use crate::filesystem::{Filesystem, Trait};
 use crate::http::binary;
+use crate::http::header::ToOffset;
 use crate::Error;
 
 #[handler(role = download, headers = [range])]
@@ -19,7 +19,7 @@ pub async fn handler(
 ) -> Result<binary::Response, Error> {
     let (filesystem, source) =
         binary::Source::audio(database, filesystem, user_id, request.id).await?;
-    let offset = offset::from_range(range, source.property.size.into())?;
+    let offset = range.map(|range| range.to_offset(source.property.size.into())).transpose()?;
     filesystem.read_to_binary(&source, offset).await
 }
 
@@ -29,13 +29,13 @@ mod tests {
     use axum_extra::headers::{
         AcceptRanges, CacheControl, ContentLength, ContentRange, ETag, HeaderMapExt,
     };
-    use binary::source::ToETag;
     use nghe_api::common::filesystem;
     use rstest::rstest;
     use xxhash_rust::xxh3::xxh3_64;
 
     use super::*;
     use crate::file::audio;
+    use crate::http::header::ToETag;
     use crate::test::{mock, Mock};
 
     #[rstest]
