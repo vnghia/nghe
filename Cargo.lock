@@ -3910,6 +3910,7 @@ dependencies = [
  "fake",
  "figment",
  "futures-lite",
+ "http-body-util",
  "hyper 0.14.29",
  "hyper-tls",
  "indexmap 2.6.0",

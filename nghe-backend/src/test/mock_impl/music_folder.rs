@@ -3,7 +3,7 @@
 use std::borrow::Cow;
 use std::io::{Cursor, Write};
 
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use futures_lite::{stream, StreamExt};
@@ -61,6 +61,10 @@ impl<'a> Mock<'a> {
 
     pub fn path_string(&self, value: impl Into<String>) -> Utf8TypedPathBuf {
         self.to_impl().path().from_string(value)
+    }
+
+    pub fn absolute_path(&self, index: usize) -> Utf8TypedPathBuf {
+        self.path().join(self.filesystem.get_index(index).unwrap().0)
     }
 
     pub fn absolutize(&self, path: impl AsRef<str>) -> Utf8TypedPathBuf {
@@ -240,18 +244,32 @@ impl<'a> Mock<'a> {
         .unwrap()
     }
 
+    async fn query_optional_id(&self, index: usize) -> Option<Uuid> {
+        let path = self.filesystem.get_index(index).unwrap().0.as_str();
+        albums::table
+            .inner_join(songs::table)
+            .filter(albums::music_folder_id.eq(self.music_folder.id))
+            .filter(songs::relative_path.eq(path))
+            .select(songs::id)
+            .get_result(&mut self.mock.get().await)
+            .await
+            .optional()
+            .unwrap()
+    }
+
+    pub async fn query_id(&self, index: usize) -> Uuid {
+        self.query_optional_id(index).await.unwrap()
+    }
+
     pub async fn query_filesystem(
         &self,
         absolutize: bool,
     ) -> IndexMap<Utf8TypedPathBuf, audio::Information<'static>> {
-        let song_ids = albums::table
-            .inner_join(songs::table)
-            .inner_join(music_folders::table)
-            .filter(music_folders::id.eq(self.music_folder.id))
-            .select(songs::id)
-            .get_results(&mut self.mock.get().await)
-            .await
-            .unwrap();
+        let song_ids: Vec<_> = stream::iter(0..self.filesystem.len())
+            .then(async |index| self.query_optional_id(index).await)
+            .filter_map(std::convert::identity)
+            .collect()
+            .await;
         stream::iter(song_ids)
             .then(async |id| {
                 let (path, information) = audio::Information::query_path(self.mock, id).await;

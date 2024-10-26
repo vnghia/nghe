@@ -8,6 +8,7 @@ use axum_extra::body::AsyncReadBody;
 use axum_extra::headers::{
     AcceptRanges, CacheControl, ContentLength, ContentRange, ETag, HeaderMapExt,
 };
+use concat_string::concat_string;
 use o2o::o2o;
 pub use source::Source;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
@@ -79,8 +80,11 @@ impl Binary {
         let size = property.size.into();
         header.typed_insert(ContentLength(size));
         if let Some(hash) = property.hash {
-            header
-                .typed_insert(hash.to_string().parse::<ETag>().map_err(color_eyre::Report::from)?);
+            header.typed_insert(
+                concat_string!("\"", hash.to_string(), "\"")
+                    .parse::<ETag>()
+                    .map_err(color_eyre::Report::from)?,
+            );
         }
 
         let offset = offset.into().unwrap_or(0);
@@ -107,5 +111,22 @@ impl Binary {
 impl IntoResponse for Binary {
     fn into_response(self) -> Response {
         (self.status, self.header, self.body).into_response()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use http_body_util::BodyExt;
+
+    use super::*;
+
+    impl Binary {
+        pub async fn extract(self) -> (StatusCode, HeaderMap, Vec<u8>) {
+            let response = self.into_response();
+            let status = response.status();
+            let header = response.headers().clone();
+            let body = response.into_body().collect().await.unwrap().to_bytes().to_vec();
+            (status, header, body)
+        }
     }
 }
