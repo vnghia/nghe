@@ -5,12 +5,8 @@ use std::time::Duration;
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum_extra::body::AsyncReadBody;
-use axum_extra::headers::{
-    AcceptRanges, CacheControl, ContentLength, ContentRange, ETag, HeaderMapExt,
-};
-use concat_string::concat_string;
-use o2o::o2o;
-pub use source::Source;
+use axum_extra::headers::{AcceptRanges, CacheControl, ContentLength, ContentRange, HeaderMapExt};
+pub use source::{Property, Source};
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use typed_path::Utf8TypedPath;
 
@@ -21,22 +17,6 @@ pub struct Binary {
     status: StatusCode,
     header: HeaderMap,
     body: AsyncReadBody,
-}
-
-#[derive(o2o)]
-#[from_owned(file::Property<F>)]
-#[where_clause(F: file::Mime)]
-pub struct Property<F> {
-    #[from(~.into())]
-    pub hash: Option<u64>,
-    pub size: u32,
-    pub format: F,
-}
-
-impl<F: file::Mime> Property<F> {
-    pub fn mime(&self) -> &'static str {
-        self.format.mime()
-    }
 }
 
 impl Binary {
@@ -77,18 +57,14 @@ impl Binary {
 
         header.insert(header::CONTENT_TYPE, header::HeaderValue::from_static(property.mime()));
 
-        let size = property.size.into();
-        header.typed_insert(ContentLength(size));
-        if let Some(hash) = property.hash {
-            header.typed_insert(
-                concat_string!("\"", hash.to_string(), "\"")
-                    .parse::<ETag>()
-                    .map_err(color_eyre::Report::from)?,
-            );
-        }
-
         let offset = offset.into().unwrap_or(0);
+        let size: u64 = property.size.into();
+        header.typed_insert(ContentLength(size - offset));
         header.typed_insert(ContentRange::bytes(offset.., size).map_err(color_eyre::Report::from)?);
+
+        if let Some(etag) = property.etag()? {
+            header.typed_insert(etag);
+        }
 
         if seekable {
             header.typed_insert(AcceptRanges::bytes());
