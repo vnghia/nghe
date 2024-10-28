@@ -31,7 +31,7 @@ pub struct S3 {
     #[derivative(Default(value = "std::env::var(\"AWS_USE_PATH_STYLE_ENDPOINT\").is_ok()"))]
     pub use_path_style_endpoint: bool,
     #[derivative(Default(value = "15"))]
-    pub presigned_url_duration: u64,
+    pub presigned_duration: u64,
     #[derivative(Default(value = "0"))]
     pub stalled_stream_grace_preriod: u64,
     #[derivative(Default(value = "5"))]

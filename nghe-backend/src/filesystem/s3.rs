@@ -20,7 +20,7 @@ use crate::{config, Error};
 #[derive(Debug, Clone)]
 pub struct Filesystem {
     client: Client,
-    presigned_url_duration: u64,
+    presigned_duration: Duration,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -64,7 +64,7 @@ impl Filesystem {
                 .build(),
         );
 
-        Self { client, presigned_url_duration: s3.presigned_url_duration }
+        Self { client, presigned_duration: Duration::from_mins(s3.presigned_duration) }
     }
 
     pub fn split<'b, 'k, 'p: 'b + 'k>(
