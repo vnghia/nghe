@@ -43,7 +43,7 @@ url = { version = "2.5.2" }
 
 # Dev
 serde_json = { version = "1.0.120" }
-fake = { version = "2.9.2", features = [
+fake = { version = "3.0.0", features = [
   "derive",
   "uuid",
   "serde_json",

@@ -1732,9 +1732,9 @@ dependencies = [
 
 [[package]]
 name = "dummy"
-version = "0.7.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e57e12b69e57fad516e01e2b3960f122696fdb13420e1a88ed8e210316f2876"
+checksum = "07f39256702ef25dc3381a19aece91eb5c803506de0f79b01b6aa0fea64b32c2"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1909,9 +1909,9 @@ dependencies = [
 
 [[package]]
 name = "fake"
-version = "2.9.2"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c25829bde82205da46e1823b2259db6273379f626fc211f126f65654a2669be"
+checksum = "38bdb1a5a77008bd1208d3fccd90611d7bee8f6d3296175f69fb056747a220fb"
 dependencies = [
  "deunicode",
  "dummy",
@@ -3208,7 +3208,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
