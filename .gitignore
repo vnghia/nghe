@@ -142,4 +142,7 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Hearing test output
+hearing-test-output/
+
 # End of https://www.toptal.com/developers/gitignore/api/c++,rust,linux,macos,windows,rust-analyzer,visualstudiocode,direnv

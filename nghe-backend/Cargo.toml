@@ -65,6 +65,10 @@ indexmap = { version = "2.5.0" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.21.1" }
 o2o = { version = "0.4.10" }
+rsmpeg = { version = "0.15.1", default-features = false, features = [
+  "ffmpeg7",
+  "link_system_ffmpeg",
+] }
 tokio = { version = "1.40.0", features = [
   "fs",
   "macros",

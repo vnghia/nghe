@@ -20,6 +20,9 @@ use tokio::sync::mpsc::error::SendError;
 #[from_owned(tokio::task::JoinError)]
 #[from_owned(tokio::sync::AcquireError)]
 #[from_owned(SdkError<GetObjectError>)]
+#[from_owned(rsmpeg::error::RsmpegError)]
+#[from_owned(std::ffi::NulError)]
+#[from_owned(std::str::Utf8Error)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),
@@ -66,6 +69,17 @@ pub enum Error {
     MediaArtistNameEmpty,
     #[error("Could not read vorbis comments from flac file")]
     MediaFlacMissingVorbisComments,
+    #[error("Could not find audio track in the media file")]
+    MediaAudioTrackMissing,
+
+    #[error("Transcode output format is not supported")]
+    TranscodeOutputFormatNotSupported,
+    #[error("Encoder sample fmts are missing")]
+    TranscodeEncoderSampleFmtsMissing,
+    #[error("Could not get {0} av filter")]
+    TranscodeAVFilterMissing(&'static str),
+    #[error("Name is missing for sample format {0}")]
+    TranscodeSampleFmtNameMissing(i32),
 
     #[error("S3 path is not an absolute unix path: {0}")]
     FilesystemS3InvalidPath(String),

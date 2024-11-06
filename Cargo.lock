@@ -3922,6 +3922,7 @@ dependencies = [
  "nghe_proc_macro",
  "o2o",
  "rand",
+ "rsmpeg",
  "rstest",
  "serde",
  "serde_html_form",

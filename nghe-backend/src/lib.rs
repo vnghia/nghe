@@ -19,6 +19,7 @@ mod route;
 mod scan;
 mod schema;
 mod time;
+mod transcode;
 
 #[cfg(test)]
 mod test;
