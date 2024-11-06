@@ -86,7 +86,7 @@ mod upsert {
 
 impl ToSql<Text, super::Type> for audio::Format {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, super::Type>) -> serialize::Result {
-        <str as ToSql<Text, super::Type>>::to_sql(self.as_ref(), out)
+        <str as ToSql<Text, super::Type>>::to_sql(self.into(), out)
     }
 }
 

@@ -1,5 +1,6 @@
 use axum_extra::headers::ETag;
 use diesel_async::RunQueryDsl;
+use nghe_api::common::format;
 use o2o::o2o;
 use typed_path::Utf8TypedPathBuf;
 use uuid::Uuid;
@@ -13,7 +14,7 @@ use crate::Error;
 
 #[derive(o2o)]
 #[from_owned(file::Property<F>)]
-#[where_clause(F: file::Mime)]
+#[where_clause(F: format::Format)]
 pub struct Property<F> {
     #[from(~.into())]
     pub hash: Option<u64>,
@@ -21,18 +22,18 @@ pub struct Property<F> {
     pub format: F,
 }
 
-pub struct Source<F: file::Mime> {
+pub struct Source<F: format::Format> {
     pub path: Utf8TypedPathBuf,
     pub property: Property<F>,
 }
 
-impl<F: file::Mime> Property<F> {
+impl<F: format::Format> Property<F> {
     pub fn mime(&self) -> &'static str {
         self.format.mime()
     }
 }
 
-impl<F: file::Mime> Property<F> {
+impl<F: format::Format> Property<F> {
     pub fn etag(&self) -> Result<Option<ETag>, Error> {
         self.hash.as_ref().map(u64::to_etag).transpose()
     }

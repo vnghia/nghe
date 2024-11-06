@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::ffi::{CStr, CString};
 
 use concat_string::concat_string;
-use nghe_api::media_retrieval::Format;
+use nghe_api::common::format;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
 use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
 use rsmpeg::avformat::{
@@ -238,7 +238,7 @@ impl<'graph> Filter<'graph> {
 impl Transcoder {
     pub fn new(
         input: &CStr,
-        format: Format,
+        format: format::Transcode,
         buffer_size: usize,
         tx: Sender<Vec<u8>>,
         bitrate: u32,
@@ -246,20 +246,19 @@ impl Transcoder {
     ) -> Result<Self, Error> {
         let input = Input::new(input)?;
         let io_context = Output::new_io_context(buffer_size, tx);
-        let output = Output::new(Self::format(format)?, io_context, bitrate, &input.decoder)?;
+        let output = Output::new(Self::format(format), io_context, bitrate, &input.decoder)?;
         let graph = Graph::new(&input.decoder, &output.encoder, offset)?;
         Ok(Self { input, output, graph })
     }
 
-    fn format(format: Format) -> Result<&'static CStr, Error> {
+    fn format(format: format::Transcode) -> &'static CStr {
         match format {
-            Format::Raw => Err(Error::TranscodeOutputFormatNotSupported),
-            Format::Aac => Ok(c"output.aac"),
-            Format::Flac => Ok(c"output.flac"),
-            Format::Mp3 => Ok(c"output.mp3"),
-            Format::Opus => Ok(c"output.opus"),
-            Format::Wav => Ok(c"output.wav"),
-            Format::Wma => Ok(c"output.wma"),
+            format::Transcode::Aac => c"output.aac",
+            format::Transcode::Flac => c"output.flac",
+            format::Transcode::Mp3 => c"output.mp3",
+            format::Transcode::Opus => c"output.opus",
+            format::Transcode::Wav => c"output.wav",
+            format::Transcode::Wma => c"output.wma",
         }
     }
 
@@ -312,11 +311,11 @@ mod tests {
 
     #[cfg(hearing_test)]
     #[rstest]
-    #[case(Format::Opus, 64)]
-    #[case(Format::Mp3, 320)]
+    #[case(format::Transcode::Opus, 64)]
+    #[case(format::Transcode::Mp3, 320)]
     #[tokio::test]
     async fn test_hearing(
-        #[case] format: Format,
+        #[case] format: format::Transcode,
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {

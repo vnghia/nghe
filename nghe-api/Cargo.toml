@@ -11,10 +11,10 @@ bitcode = { workspace = true }
 const_format = { workspace = true }
 serde = { workspace = true }
 serde_with = { workspace = true }
+strum = { workspace = true }
 uuid = { workspace = true }
 
 fake = { workspace = true, optional = true }
-strum = { workspace = true, optional = true }
 
 nghe_proc_macro = { path = "../nghe-proc-macro" }
 
@@ -29,4 +29,4 @@ serde_json = { workspace = true }
 built = { version = "0.7.3", features = ["git2"] }
 
 [features]
-test = ["fake", "strum"]
+test = ["fake"]

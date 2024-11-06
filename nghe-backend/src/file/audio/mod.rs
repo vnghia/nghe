@@ -22,9 +22,10 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 pub use metadata::{Metadata, Song};
 pub use name_date_mbz::{Album, NameDateMbz};
+use nghe_api::common::format;
 pub use position::TrackDisc;
 pub use property::Property;
-use strum::{AsRefStr, EnumString};
+use strum::{EnumString, IntoStaticStr};
 
 use crate::{config, Error};
 
@@ -37,13 +38,13 @@ use crate::{config, Error};
     PartialOrd,
     Ord,
     EnumString,
-    AsRefStr,
+    IntoStaticStr,
     AsExpression,
     FromSqlRow,
 )]
 #[diesel(sql_type = Text)]
 #[strum(serialize_all = "snake_case")]
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(test, derive(fake::Dummy, strum::AsRefStr))]
 pub enum Format {
     Flac,
 }
@@ -52,11 +53,15 @@ pub enum File {
     Flac { audio: FlacFile, file: super::File<Format> },
 }
 
-impl super::Mime for Format {
-    fn mime(self) -> &'static str {
+impl format::Format for Format {
+    fn mime(&self) -> &'static str {
         match self {
-            Format::Flac => "audio/flac",
+            Self::Flac => "audio/flac",
         }
+    }
+
+    fn extension(&self) -> &'static str {
+        self.into()
     }
 }
 

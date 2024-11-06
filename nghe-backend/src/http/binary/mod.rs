@@ -6,11 +6,12 @@ use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum_extra::body::AsyncReadBody;
 use axum_extra::headers::{AcceptRanges, CacheControl, ContentLength, ContentRange, HeaderMapExt};
+use nghe_api::common::format;
 pub use source::{Property, Source};
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use typed_path::Utf8TypedPath;
 
-use crate::{file, Error};
+use crate::Error;
 
 #[derive(Debug)]
 pub struct Response {
@@ -30,7 +31,7 @@ impl Response {
         Self { status, header, body: AsyncReadBody::new(reader) }
     }
 
-    pub async fn from_local<F: file::Mime>(
+    pub async fn from_local<F: format::Format>(
         path: Utf8TypedPath<'_>,
         property: &Property<F>,
         offset: impl Into<Option<u64>> + Copy,
@@ -46,7 +47,7 @@ impl Response {
         Self::from_async_read(file, property, offset, seekable, cacheable)
     }
 
-    pub fn from_async_read<F: file::Mime>(
+    pub fn from_async_read<F: format::Format>(
         reader: impl AsyncRead + Send + 'static,
         property: &Property<F>,
         offset: impl Into<Option<u64>>,
