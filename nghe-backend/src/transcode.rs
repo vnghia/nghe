@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::ffi::{CStr, CString};
 
 use concat_string::concat_string;
+use nghe_api::media_retrieval::Format;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
 use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
 use rsmpeg::avformat::{AVFormatContextInput, AVFormatContextOutput};
@@ -218,6 +219,18 @@ impl Transcoder {
         let output = Output::new(output, bitrate, &input.decoder)?;
         let graph = Graph::new(&input.decoder, &output.encoder, offset)?;
         Ok(Self { input, output, graph })
+    }
+
+    fn format(format: Format) -> Result<&'static CStr, Error> {
+        match format {
+            Format::Raw => Err(Error::TranscodeOutputFormatNotSupported),
+            Format::Aac => Ok(c"output.aac"),
+            Format::Flac => Ok(c"output.flac"),
+            Format::Mp3 => Ok(c"output.mp3"),
+            Format::Opus => Ok(c"output.opus"),
+            Format::Wav => Ok(c"output.wav"),
+            Format::Wma => Ok(c"output.wma"),
+        }
     }
 
     pub fn transcode(&mut self) -> Result<(), Error> {
