@@ -2,6 +2,7 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(async_closure)]
 #![feature(duration_constructors)]
+#![feature(integer_sign_cast)]
 #![feature(iterator_try_collect)]
 #![feature(let_chains)]
 #![feature(try_blocks)]

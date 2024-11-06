@@ -26,12 +26,8 @@ impl<F: format::Format> Property<F> {
         Ok(Self { hash, size, format })
     }
 
-    pub fn signed_hash(&self) -> i64 {
-        self.hash as _
-    }
-
-    pub fn signed_size(&self) -> i32 {
-        self.size as _
+    pub fn replace<FN: format::Format>(&self, format: FN) -> Property<FN> {
+        Property { hash: self.hash, size: self.size, format }
     }
 }
 

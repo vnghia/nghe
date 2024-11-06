@@ -126,8 +126,8 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         songs::table
             .inner_join(albums::table)
             .filter(albums::music_folder_id.eq(self.music_folder.id))
-            .filter(songs::file_hash.eq(property.signed_hash()))
-            .filter(songs::file_size.eq(property.signed_size()))
+            .filter(songs::file_hash.eq(property.hash.cast_signed()))
+            .filter(songs::file_size.eq(property.size.cast_signed()))
             .select((songs::id, songs::relative_path))
             .get_result(&mut self.database.get().await?)
             .await
