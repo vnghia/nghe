@@ -5,10 +5,13 @@ use concat_string::concat_string;
 use nghe_api::media_retrieval::Format;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
 use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
-use rsmpeg::avformat::{AVFormatContextInput, AVFormatContextOutput};
-use rsmpeg::avutil::AVFrame;
+use rsmpeg::avformat::{
+    AVFormatContextInput, AVFormatContextOutput, AVIOContextContainer, AVIOContextCustom,
+};
+use rsmpeg::avutil::{AVFrame, AVMem};
 use rsmpeg::error::RsmpegError;
 use rsmpeg::{avutil, ffi, UnsafeDerefMut};
+use tokio::sync::mpsc::Sender;
 
 use crate::Error;
 
@@ -58,8 +61,13 @@ impl Input {
 }
 
 impl Output {
-    fn new(output: &CStr, bitrate: u32, decoder: &AVCodecContext) -> Result<Self, Error> {
-        let mut context = AVFormatContextOutput::create(output, None)?;
+    fn new(
+        output: &CStr,
+        io_context: AVIOContextContainer,
+        bitrate: u32,
+        decoder: &AVCodecContext,
+    ) -> Result<Self, Error> {
+        let mut context = AVFormatContextOutput::create(output, Some(io_context))?;
 
         if cfg!(test) {
             // Set bitexact for deterministic transcoding output.
@@ -100,6 +108,20 @@ impl Output {
         context.write_header(&mut None)?;
 
         Ok(Self { context, encoder })
+    }
+
+    fn new_io_context(buffer_size: usize, tx: Sender<Vec<u8>>) -> AVIOContextContainer {
+        AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
+            AVMem::new(buffer_size),
+            true,
+            Vec::default(),
+            None,
+            Some(Box::new(move |_, data| match tx.blocking_send(data.to_vec()) {
+                Ok(()) => data.len().try_into().unwrap_or(ffi::AVERROR_BUG2),
+                Err(_) => ffi::AVERROR_OUTPUT_CHANGED,
+            })),
+            None,
+        ))
     }
 
     fn encode(&mut self, frame: Option<&AVFrame>) -> Result<(), Error> {
@@ -214,9 +236,17 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    pub fn new(input: &CStr, output: &CStr, bitrate: u32, offset: u32) -> Result<Self, Error> {
+    pub fn new(
+        input: &CStr,
+        format: Format,
+        buffer_size: usize,
+        tx: Sender<Vec<u8>>,
+        bitrate: u32,
+        offset: u32,
+    ) -> Result<Self, Error> {
         let input = Input::new(input)?;
-        let output = Output::new(output, bitrate, &input.decoder)?;
+        let io_context = Output::new_io_context(buffer_size, tx);
+        let output = Output::new(Self::format(format)?, io_context, bitrate, &input.decoder)?;
         let graph = Graph::new(&input.decoder, &output.encoder, offset)?;
         Ok(Self { input, output, graph })
     }
@@ -282,17 +312,35 @@ mod tests {
 
     #[cfg(hearing_test)]
     #[rstest]
-    #[case("opus", 64)]
-    #[case("mp3", 320)]
-    fn test_hearing(#[case] format: &str, #[case] bitrate: u32, #[values(0, 10)] offset: u32) {
+    #[case(Format::Opus, 64)]
+    #[case(Format::Mp3, 320)]
+    #[tokio::test]
+    async fn test_hearing(
+        #[case] format: Format,
+        #[case] bitrate: u32,
+        #[values(0, 10)] offset: u32,
+    ) {
         let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
-        let output = CString::new(
+
+        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        let handle = tokio::task::spawn_blocking(move || {
+            Transcoder::new(&input, format, 32 * 1024, tx, bitrate, offset).unwrap().transcode()
+        });
+
+        let mut content = vec![];
+        while let Some(mut data) = rx.recv().await {
+            content.append(&mut data);
+        }
+        handle.await.unwrap().unwrap();
+
+        tokio::fs::write(
             filesystem::path::Local::from_str(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
-                .with_extension(format)
-                .into_string(),
+                .with_extension(format.as_ref())
+                .to_string(),
+            content,
         )
+        .await
         .unwrap();
-        Transcoder::new(&input, &output, bitrate, offset).unwrap().transcode().unwrap();
     }
 }
