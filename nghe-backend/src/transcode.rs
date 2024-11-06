@@ -267,22 +267,19 @@ mod tests {
     use super::*;
     use crate::filesystem;
 
+    #[cfg(hearing_test)]
     #[rstest]
     #[case("opus", 64)]
     #[case("mp3", 320)]
     fn test_hearing(#[case] format: &str, #[case] bitrate: u32, #[values(0, 10)] offset: u32) {
-        if let Ok(input) = std::env::var("NGHE_HEARING_TEST_INPUT")
-            && let Ok(output) = std::env::var("NGHE_HEARING_TEST_OUTPUT")
-        {
-            let input = CString::new(input).unwrap();
-            let output = CString::new(
-                filesystem::path::Local::from_string(&output)
-                    .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
-                    .with_extension(format)
-                    .into_string(),
-            )
-            .unwrap();
-            Transcoder::new(&input, &output, bitrate, offset).unwrap().transcode().unwrap();
-        }
+        let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
+        let output = CString::new(
+            filesystem::path::Local::from_str(env!("NGHE_HEARING_TEST_OUTPUT"))
+                .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
+                .with_extension(format)
+                .into_string(),
+        )
+        .unwrap();
+        Transcoder::new(&input, &output, bitrate, offset).unwrap().transcode().unwrap();
     }
 }
