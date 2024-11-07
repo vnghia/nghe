@@ -84,10 +84,10 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
 
     if args.serde {
         if is_request {
-            derives.push(parse_str("serde::Deserialize")?);
+            derives.push(parse_str("::serde::Deserialize")?);
         }
         if is_response {
-            derives.push(parse_str("serde::Serialize")?);
+            derives.push(parse_str("::serde::Serialize")?);
         }
     }
 
