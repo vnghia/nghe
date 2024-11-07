@@ -82,7 +82,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
     fn init(&self) -> (JoinHandle<Result<(), Error>>, Arc<Semaphore>, Receiver<Entry>) {
         let config = self.config.scan;
-        let (tx, rx) = loole::bounded(config.channel_size);
+        let (tx, rx) = crate::sync::channel(config.channel_size);
         let filesystem = self.filesystem.clone().into_owned();
         let sender = entry::Sender { tx, minimum_size: config.minimum_size };
         let prefix = self.path().to_path_buf();

@@ -19,7 +19,7 @@ impl Sink {
         config: &config::Transcode,
         property: file::Property<format::Transcode>,
     ) -> (Self, Receiver<Vec<u8>>) {
-        let (tx, rx) = loole::bounded(config.channel_size);
+        let (tx, rx) = crate::sync::channel(config.channel_size);
         (Self { tx, buffer_size: config.buffer_size, format: property.format }, rx)
     }
 

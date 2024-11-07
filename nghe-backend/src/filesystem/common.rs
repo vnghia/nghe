@@ -191,7 +191,7 @@ mod tests {
             entries.push(Entry { format, path: prefix.join(relative_path), last_modified: None });
         }
 
-        let (tx, rx) = loole::bounded(mock.config.filesystem.scan.channel_size);
+        let (tx, rx) = crate::sync::channel(mock.config.filesystem.scan.channel_size);
         let sender = entry::Sender { tx, minimum_size };
         let scan_handle = tokio::spawn(async move {
             main_filesystem.scan_folder(sender, prefix.to_path()).await.unwrap();

@@ -1,14 +1,17 @@
 use derivative::Derivative;
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, Derivative)]
 #[derivative(Default)]
 pub struct Scan {
     // 100 KiB in bytes
     #[derivative(Default(value = "102400"))]
     pub minimum_size: usize,
-    #[derivative(Default(value = "10"))]
-    pub channel_size: usize,
+    #[derivative(Default(value = "Some(10)"))]
+    #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
+    pub channel_size: Option<usize>,
     #[derivative(Default(value = "10"))]
     pub pool_size: usize,
 }

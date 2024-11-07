@@ -19,6 +19,7 @@ mod orm;
 mod route;
 mod scan;
 mod schema;
+mod sync;
 mod time;
 mod transcode;
 
