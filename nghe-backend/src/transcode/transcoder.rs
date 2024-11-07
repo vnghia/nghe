@@ -2,17 +2,14 @@ use std::borrow::Cow;
 use std::ffi::{CStr, CString};
 
 use concat_string::concat_string;
-use nghe_api::common::format;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
 use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
-use rsmpeg::avformat::{
-    AVFormatContextInput, AVFormatContextOutput, AVIOContextContainer, AVIOContextCustom,
-};
-use rsmpeg::avutil::{AVFrame, AVMem};
+use rsmpeg::avformat::{AVFormatContextInput, AVFormatContextOutput};
+use rsmpeg::avutil::AVFrame;
 use rsmpeg::error::RsmpegError;
 use rsmpeg::{avutil, ffi, UnsafeDerefMut};
-use tokio::sync::mpsc::Sender;
 
+use super::Sink;
 use crate::Error;
 
 struct Input {
@@ -61,13 +58,8 @@ impl Input {
 }
 
 impl Output {
-    fn new(
-        output: &CStr,
-        io_context: AVIOContextContainer,
-        bitrate: u32,
-        decoder: &AVCodecContext,
-    ) -> Result<Self, Error> {
-        let mut context = AVFormatContextOutput::create(output, Some(io_context))?;
+    fn new(sink: Sink, bitrate: u32, decoder: &AVCodecContext) -> Result<Self, Error> {
+        let mut context = AVFormatContextOutput::create(sink.format(), Some(sink.into()))?;
 
         if cfg!(test) {
             // Set bitexact for deterministic transcoding output.
@@ -108,20 +100,6 @@ impl Output {
         context.write_header(&mut None)?;
 
         Ok(Self { context, encoder })
-    }
-
-    fn new_io_context(buffer_size: usize, tx: Sender<Vec<u8>>) -> AVIOContextContainer {
-        AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
-            AVMem::new(buffer_size),
-            true,
-            Vec::default(),
-            None,
-            Some(Box::new(move |_, data| match tx.blocking_send(data.to_vec()) {
-                Ok(()) => data.len().try_into().unwrap_or(ffi::AVERROR_BUG2),
-                Err(_) => ffi::AVERROR_OUTPUT_CHANGED,
-            })),
-            None,
-        ))
     }
 
     fn encode(&mut self, frame: Option<&AVFrame>) -> Result<(), Error> {
@@ -236,30 +214,11 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    pub fn new(
-        input: &CStr,
-        format: format::Transcode,
-        buffer_size: usize,
-        tx: Sender<Vec<u8>>,
-        bitrate: u32,
-        offset: u32,
-    ) -> Result<Self, Error> {
+    pub fn new(input: &CStr, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
         let input = Input::new(input)?;
-        let io_context = Output::new_io_context(buffer_size, tx);
-        let output = Output::new(Self::format(format), io_context, bitrate, &input.decoder)?;
+        let output = Output::new(sink, bitrate, &input.decoder)?;
         let graph = Graph::new(&input.decoder, &output.encoder, offset)?;
         Ok(Self { input, output, graph })
-    }
-
-    fn format(format: format::Transcode) -> &'static CStr {
-        match format {
-            format::Transcode::Aac => c"output.aac",
-            format::Transcode::Flac => c"output.flac",
-            format::Transcode::Mp3 => c"output.mp3",
-            format::Transcode::Opus => c"output.opus",
-            format::Transcode::Wav => c"output.wav",
-            format::Transcode::Wma => c"output.wma",
-        }
     }
 
     pub fn transcode(&mut self) -> Result<(), Error> {
@@ -304,10 +263,13 @@ impl Transcoder {
 
 #[cfg(test)]
 mod tests {
+    use fake::{Fake, Faker};
+    use nghe_api::common::format;
     use rstest::rstest;
+    use typed_path::Utf8NativePath;
 
     use super::*;
-    use crate::filesystem;
+    use crate::{config, file};
 
     #[cfg(hearing_test)]
     #[rstest]
@@ -319,11 +281,11 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
-        let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
-
-        let (tx, mut rx) = tokio::sync::mpsc::channel(10);
+        let (sink, mut rx) =
+            Sink::new(&config::Transcode::default(), file::Property { format, ..Faker.fake() });
         let handle = tokio::task::spawn_blocking(move || {
-            Transcoder::new(&input, format, 32 * 1024, tx, bitrate, offset).unwrap().transcode()
+            let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
+            Transcoder::new(&input, sink, bitrate, offset).unwrap().transcode()
         });
 
         let mut content = vec![];
@@ -333,10 +295,9 @@ mod tests {
         handle.await.unwrap().unwrap();
 
         tokio::fs::write(
-            filesystem::path::Local::from_str(env!("NGHE_HEARING_TEST_OUTPUT"))
+            Utf8NativePath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
-                .with_extension(format.as_ref())
-                .to_string(),
+                .with_extension(format.as_ref()),
             content,
         )
         .await
