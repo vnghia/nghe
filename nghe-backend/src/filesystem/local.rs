@@ -6,7 +6,7 @@ use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
-use crate::file::audio;
+use crate::file::{self, audio};
 use crate::http::binary;
 use crate::Error;
 
@@ -73,7 +73,7 @@ impl super::Trait for Filesystem {
 
     async fn read_to_binary(
         &self,
-        source: &binary::Source<audio::Format>,
+        source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
         binary::Response::from_local(source.path.to_path(), &source.property, offset, true, false)

@@ -53,7 +53,7 @@ pub enum File {
     Flac { audio: FlacFile, file: super::File<Format> },
 }
 
-impl format::Format for Format {
+impl format::Trait for Format {
     fn mime(&self) -> &'static str {
         match self {
             Self::Flac => "audio/flac",

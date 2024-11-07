@@ -1,6 +1,6 @@
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::file::audio;
+use crate::file::{self, audio};
 use crate::http::binary;
 use crate::{filesystem, Error};
 
@@ -63,7 +63,7 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
 
     async fn read_to_binary(
         &self,
-        source: &binary::Source<audio::Format>,
+        source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
         match self {

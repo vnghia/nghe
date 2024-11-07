@@ -1,3 +1,4 @@
+pub mod property;
 pub mod source;
 
 use std::time::Duration;
@@ -6,8 +7,7 @@ use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum_extra::body::AsyncReadBody;
 use axum_extra::headers::{AcceptRanges, CacheControl, ContentLength, ContentRange, HeaderMapExt};
-use nghe_api::common::format;
-pub use source::{Property, Source};
+pub use source::Source;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use typed_path::Utf8TypedPath;
 
@@ -31,9 +31,9 @@ impl Response {
         Self { status, header, body: AsyncReadBody::new(reader) }
     }
 
-    pub async fn from_local<F: format::Format>(
+    pub async fn from_local<P: property::Trait>(
         path: Utf8TypedPath<'_>,
-        property: &Property<F>,
+        property: &P,
         offset: impl Into<Option<u64>> + Copy,
         seekable: bool,
         cacheable: bool,
@@ -47,9 +47,9 @@ impl Response {
         Self::from_async_read(file, property, offset, seekable, cacheable)
     }
 
-    pub fn from_async_read<F: format::Format>(
+    pub fn from_async_read<P: property::Trait>(
         reader: impl AsyncRead + Send + 'static,
-        property: &Property<F>,
+        property: &P,
         offset: impl Into<Option<u64>>,
         seekable: bool,
         cacheable: bool,
@@ -59,7 +59,7 @@ impl Response {
         header.insert(header::CONTENT_TYPE, header::HeaderValue::from_static(property.mime()));
 
         let offset = offset.into().unwrap_or(0);
-        let size: u64 = property.size.into();
+        let size = property.size();
         header.typed_insert(ContentLength(size - offset));
         header.typed_insert(ContentRange::bytes(offset.., size).map_err(color_eyre::Report::from)?);
 

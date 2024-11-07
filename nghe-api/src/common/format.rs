@@ -1,7 +1,7 @@
 use nghe_proc_macro::api_derive;
 use strum::{EnumString, IntoStaticStr};
 
-pub trait Format: Copy {
+pub trait Trait: Copy {
     fn mime(&self) -> &'static str;
     fn extension(&self) -> &'static str;
 }
@@ -19,7 +19,7 @@ pub enum Transcode {
     Wma,
 }
 
-impl Format for Transcode {
+impl Trait for Transcode {
     fn mime(&self) -> &'static str {
         match self {
             Self::Aac => "audio/aac",

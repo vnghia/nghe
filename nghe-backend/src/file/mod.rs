@@ -1,33 +1,36 @@
 pub mod audio;
 
+use axum_extra::headers::ETag;
 use nghe_api::common::format;
 use typed_path::{Utf8NativePath, Utf8NativePathBuf};
 use xxhash_rust::xxh3::xxh3_64;
 
+use crate::http::binary::property;
+use crate::http::header::ToETag;
 use crate::Error;
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
-pub struct Property<F: format::Format> {
+pub struct Property<F: format::Trait> {
     pub hash: u64,
     pub size: u32,
     pub format: F,
 }
 
 #[derive(Debug)]
-pub struct File<F: format::Format> {
+pub struct File<F: format::Trait> {
     pub data: Vec<u8>,
     pub property: Property<F>,
 }
 
-impl<F: format::Format> Property<F> {
+impl<F: format::Trait> Property<F> {
     pub fn new(data: &[u8], format: F) -> Result<Self, Error> {
         let hash = xxh3_64(data);
         let size = data.len().try_into()?;
         Ok(Self { hash, size, format })
     }
 
-    pub fn replace<FN: format::Format>(&self, format: FN) -> Property<FN> {
+    pub fn replace<FN: format::Trait>(&self, format: FN) -> Property<FN> {
         Property { hash: self.hash, size: self.size, format }
     }
 
@@ -51,7 +54,21 @@ impl<F: format::Format> Property<F> {
     }
 }
 
-impl<F: format::Format> File<F> {
+impl<F: format::Trait> property::Trait for Property<F> {
+    fn mime(&self) -> &'static str {
+        self.format.mime()
+    }
+
+    fn size(&self) -> u64 {
+        self.size.into()
+    }
+
+    fn etag(&self) -> Result<Option<ETag>, Error> {
+        Some(u64::to_etag(&self.hash)).transpose()
+    }
+}
+
+impl<F: format::Trait> File<F> {
     pub fn new(data: Vec<u8>, format: F) -> Result<Self, Error> {
         let property = Property::new(&data, format)?;
         Ok(Self { data, property })

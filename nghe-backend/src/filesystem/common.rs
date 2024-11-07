@@ -5,7 +5,7 @@ use o2o::o2o;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
-use crate::file::audio;
+use crate::file::{self, audio};
 use crate::http::binary;
 use crate::Error;
 
@@ -42,7 +42,7 @@ pub trait Trait {
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error>;
     async fn read_to_binary(
         &self,
-        source: &binary::Source<audio::Format>,
+        source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error>;
 }
@@ -75,7 +75,7 @@ impl<'fs> Trait for Impl<'fs> {
 
     async fn read_to_binary(
         &self,
-        source: &binary::Source<audio::Format>,
+        source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
         match self {

@@ -7,7 +7,7 @@ use concat_string::concat_string;
 use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::file::audio;
+use crate::file::{self, audio};
 use crate::filesystem::{self, path, s3};
 use crate::http::binary;
 use crate::Error;
@@ -63,7 +63,7 @@ impl filesystem::Trait for Mock {
 
     async fn read_to_binary(
         &self,
-        source: &binary::Source<audio::Format>,
+        source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
         self.filesystem.read_to_binary(source, offset).await
