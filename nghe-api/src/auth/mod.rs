@@ -1,10 +1,7 @@
-use nghe_proc_macro::api_derive;
-use serde_with::serde_as;
+mod token;
 
-#[serde_as]
-#[api_derive(request = true, response = true)]
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Token(#[serde_as(as = "serde_with::hex::Hex")] [u8; 16]);
+use nghe_proc_macro::api_derive;
+pub use token::Token;
 
 #[api_derive(request = true, response = true, fake = false)]
 #[derive(Clone, Copy)]
