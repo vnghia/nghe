@@ -214,7 +214,17 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    pub fn new(input: &CStr, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
+    pub fn spawn(
+        input: &CStr,
+        sink: Sink,
+        bitrate: u32,
+        offset: u32,
+    ) -> Result<tokio::task::JoinHandle<Result<(), Error>>, Error> {
+        let mut transcoder = Self::new(input, sink, bitrate, offset)?;
+        Ok(tokio::task::spawn_blocking(move || transcoder.transcode()))
+    }
+
+    fn new(input: &CStr, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
         let input = Input::new(input)?;
         let output = Output::new(sink, bitrate, &input.decoder)?;
         let graph = Graph::new(&input.decoder, &output.encoder, offset)?;
@@ -282,13 +292,10 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
+        let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
         let (sink, rx) =
             Sink::new(&config::Transcode::default(), file::Property { format, ..Faker.fake() });
-        let handle = tokio::task::spawn_blocking(move || {
-            let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
-            Transcoder::new(&input, sink, bitrate, offset).unwrap().transcode()
-        });
-        handle.await.unwrap().unwrap();
+        let handle = Transcoder::spawn(&input, sink, bitrate, offset).unwrap();
 
         tokio::fs::write(
             Utf8NativePath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
@@ -298,5 +305,6 @@ mod tests {
         )
         .await
         .unwrap();
+        handle.await.unwrap().unwrap();
     }
 }
