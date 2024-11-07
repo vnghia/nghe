@@ -6,7 +6,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use lofty::config::ParseOptions;
-use tokio::sync::mpsc::Receiver;
+use loole::Receiver;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
 use typed_path::Utf8TypedPath;
@@ -82,7 +82,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
     fn init(&self) -> (JoinHandle<Result<(), Error>>, Arc<Semaphore>, Receiver<Entry>) {
         let config = self.config.scan;
-        let (tx, rx) = tokio::sync::mpsc::channel(config.channel_size);
+        let (tx, rx) = loole::bounded(config.channel_size);
         let filesystem = self.filesystem.clone().into_owned();
         let sender = entry::Sender { tx, minimum_size: config.minimum_size };
         let prefix = self.path().to_path_buf();
@@ -210,10 +210,10 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
     pub async fn run(&self) -> Result<(), Error> {
         let started_at = crate::time::now().await;
 
-        let (scan_handle, permit, mut rx) = self.init();
+        let (scan_handle, permit, rx) = self.init();
         let mut join_set = tokio::task::JoinSet::new();
 
-        while let Some(entry) = rx.recv().await {
+        while let Ok(entry) = rx.recv_async().await {
             let permit = permit.clone().acquire_owned().await?;
             let scan = self.clone().into_owned();
             join_set.spawn(async move {

@@ -92,7 +92,6 @@ mod tests {
     use itertools::Itertools;
     use nghe_api::common::filesystem;
     use rstest::rstest;
-    use tokio_stream::wrappers::ReceiverStream;
 
     use super::Trait as _;
     use crate::file::audio;
@@ -182,12 +181,12 @@ mod tests {
             entries.push(Entry { format, path: prefix.join(relative_path), last_modified: None });
         }
 
-        let (tx, rx) = tokio::sync::mpsc::channel(mock.config.filesystem.scan.channel_size);
+        let (tx, rx) = loole::bounded(mock.config.filesystem.scan.channel_size);
         let sender = entry::Sender { tx, minimum_size };
         let scan_handle = tokio::spawn(async move {
             main_filesystem.scan_folder(sender, prefix.to_path()).await.unwrap();
         });
-        let scanned_entries: Vec<_> = ReceiverStream::new(rx).collect().await;
+        let scanned_entries: Vec<_> = rx.into_stream().collect().await;
         scan_handle.await.unwrap();
 
         assert_eq!(scanned_entries.len(), n_larger);

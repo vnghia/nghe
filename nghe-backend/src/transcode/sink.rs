@@ -1,10 +1,10 @@
 use std::ffi::CStr;
 
+use loole::{Receiver, Sender};
 use nghe_api::common::format;
 use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
 use rsmpeg::avutil::AVMem;
 use rsmpeg::ffi;
-use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{config, file};
 
@@ -19,7 +19,7 @@ impl Sink {
         config: &config::Transcode,
         property: file::Property<format::Transcode>,
     ) -> (Self, Receiver<Vec<u8>>) {
-        let (tx, rx) = tokio::sync::mpsc::channel(config.channel_size);
+        let (tx, rx) = loole::bounded(config.channel_size);
         (Self { tx, buffer_size: config.buffer_size, format: property.format }, rx)
     }
 
@@ -39,7 +39,7 @@ impl Sink {
         let data = data.into();
         let write_len = data.len().try_into().unwrap_or(ffi::AVERROR_BUG2);
 
-        match self.tx.blocking_send(data) {
+        match self.tx.send(data) {
             Ok(()) => write_len,
             Err(_) => ffi::AVERROR_OUTPUT_CHANGED,
         }

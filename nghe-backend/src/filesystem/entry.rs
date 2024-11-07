@@ -28,7 +28,7 @@ impl Entry {
 }
 
 pub struct Sender {
-    pub tx: tokio::sync::mpsc::Sender<Entry>,
+    pub tx: loole::Sender<Entry>,
     pub minimum_size: usize,
 }
 
@@ -43,7 +43,9 @@ impl Sender {
             && let Some(extension) = path.extension()
             && let Ok(format) = audio::Format::try_from(extension)
         {
-            self.tx.send(Entry { format, path, last_modified: metadata.last_modified()? }).await?;
+            self.tx
+                .send_async(Entry { format, path, last_modified: metadata.last_modified()? })
+                .await?;
         }
         Ok(())
     }

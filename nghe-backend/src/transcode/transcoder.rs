@@ -264,6 +264,7 @@ impl Transcoder {
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use futures_lite::{stream, StreamExt};
     use nghe_api::common::format;
     use rstest::rstest;
     use typed_path::Utf8NativePath;
@@ -281,24 +282,19 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
-        let (sink, mut rx) =
+        let (sink, rx) =
             Sink::new(&config::Transcode::default(), file::Property { format, ..Faker.fake() });
         let handle = tokio::task::spawn_blocking(move || {
             let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
             Transcoder::new(&input, sink, bitrate, offset).unwrap().transcode()
         });
-
-        let mut content = vec![];
-        while let Some(mut data) = rx.recv().await {
-            content.append(&mut data);
-        }
         handle.await.unwrap().unwrap();
 
         tokio::fs::write(
             Utf8NativePath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
                 .with_extension(format.as_ref()),
-            content,
+            rx.into_stream().map(|data| stream::iter(data)).flatten().collect::<Vec<_>>().await,
         )
         .await
         .unwrap();

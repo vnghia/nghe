@@ -4,8 +4,8 @@ use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::operation::get_object::GetObjectError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use loole::SendError;
 use o2o::o2o;
-use tokio::sync::mpsc::error::SendError;
 
 #[derive(Debug, thiserror::Error, o2o)]
 #[from_owned(diesel::result::Error| repeat(), return Self::Internal(@.into()))]

@@ -65,6 +65,7 @@ hyper-tls = { version = "0.5.0" }
 indexmap = { version = "2.5.0" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.21.1" }
+loole = { version = "0.4.0" }
 o2o = { version = "0.4.10" }
 rsmpeg = { version = "0.15.1", default-features = false, features = [
   "ffmpeg7",
@@ -76,7 +77,6 @@ tokio = { version = "1.40.0", features = [
   "rt-multi-thread",
   "sync",
 ] }
-tokio-stream = { version = "0.1.16", default-features = false }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 typed-path = { version = "0.9.2" }
