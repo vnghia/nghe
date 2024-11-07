@@ -44,10 +44,7 @@ aws-smithy-runtime = { version = "1.7.1", default-features = false, features = [
   "connector-hyper-0-14-x",
 ] }
 axum = { version = "0.7.5", features = ["http2", "macros"] }
-axum-extra = { version = "0.9.4", features = [
-  "async-read-body",
-  "typed-header",
-] }
+axum-extra = { version = "0.9.4", features = ["typed-header"] }
 diesel = { version = "2.2.2", features = ["time", "uuid"] }
 # TODO: remove this when diesel is released
 diesel_derives = { git = "https://github.com/diesel-rs/diesel", rev = "ecf6e9215a898045ed096f905f4a0e7e4a999dba" }
@@ -77,6 +74,7 @@ tokio = { version = "1.40.0", features = [
   "rt-multi-thread",
   "sync",
 ] }
+tokio-util = { version = "0.7.12", features = ["io"] }
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 typed-path = { version = "0.9.2" }

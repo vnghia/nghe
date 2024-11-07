@@ -301,7 +301,7 @@ mod tests {
             Utf8NativePath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
                 .with_extension(format.as_ref()),
-            rx.into_stream().map(|data| stream::iter(data)).flatten().collect::<Vec<_>>().await,
+            rx.into_stream().map(stream::iter).flatten().collect::<Vec<_>>().await,
         )
         .await
         .unwrap();

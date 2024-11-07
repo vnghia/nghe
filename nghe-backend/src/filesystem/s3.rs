@@ -1,7 +1,9 @@
+use std::ffi::CString;
 use std::time::Duration;
 
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
+use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
 use aws_sdk_s3::Client;
@@ -163,6 +165,20 @@ impl super::Trait for Filesystem {
             .body
             .into_async_read();
         binary::Response::from_async_read(reader, &source.property, offset, true, false)
+    }
+
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {
+        let Path { bucket, key } = Self::split(path)?;
+        CString::new(
+            self.client
+                .get_object()
+                .bucket(bucket)
+                .key(key)
+                .presigned(PresigningConfig::expires_in(self.presigned_duration)?)
+                .await?
+                .uri(),
+        )
+        .map_err(Error::from)
     }
 }
 

@@ -4,10 +4,19 @@ use nghe_proc_macro::handler;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::filesystem::{Filesystem, Trait};
+use crate::file::{self, audio};
+use crate::filesystem::{self, Filesystem, Trait};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 use crate::Error;
+
+pub async fn handler_impl(
+    filesystem: filesystem::Impl<'_>,
+    source: binary::Source<file::Property<audio::Format>>,
+    offset: Option<u64>,
+) -> Result<binary::Response, Error> {
+    filesystem.read_to_binary(&source, offset).await
+}
 
 #[handler(role = download, headers = [range])]
 pub async fn handler(
@@ -20,7 +29,7 @@ pub async fn handler(
     let (filesystem, source) =
         binary::Source::audio(database, filesystem, user_id, request.id).await?;
     let offset = range.map(|range| range.to_offset(source.property.size.into())).transpose()?;
-    filesystem.read_to_binary(&source, offset).await
+    handler_impl(filesystem, source, offset).await
 }
 
 #[cfg(test)]

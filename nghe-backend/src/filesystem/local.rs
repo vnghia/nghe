@@ -1,3 +1,4 @@
+use std::ffi::CString;
 use std::fs::Metadata;
 
 use async_walkdir::WalkDir;
@@ -78,6 +79,10 @@ impl super::Trait for Filesystem {
     ) -> Result<binary::Response, Error> {
         binary::Response::from_local(source.path.to_path(), &source.property, offset, true, false)
             .await
+    }
+
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {
+        CString::new(path.as_str()).map_err(Error::from)
     }
 }
 

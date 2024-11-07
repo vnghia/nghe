@@ -23,6 +23,7 @@ use o2o::o2o;
 #[from_owned(rsmpeg::error::RsmpegError)]
 #[from_owned(std::ffi::NulError)]
 #[from_owned(std::str::Utf8Error)]
+#[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),

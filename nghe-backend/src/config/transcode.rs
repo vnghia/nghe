@@ -5,7 +5,7 @@ use typed_path::utils::utf8_temp_dir;
 use typed_path::Utf8NativePathBuf;
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, Derivative)]
+#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
 #[serde(default)]
 pub struct Transcode {

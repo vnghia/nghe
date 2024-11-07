@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::ffi::CString;
 
 use nghe_api::common::filesystem;
 use o2o::o2o;
@@ -45,6 +46,8 @@ pub trait Trait {
         source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error>;
+
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error>;
 }
 
 impl<'fs> Trait for Impl<'fs> {
@@ -81,6 +84,13 @@ impl<'fs> Trait for Impl<'fs> {
         match self {
             Impl::Local(filesystem) => filesystem.read_to_binary(source, offset).await,
             Impl::S3(filesystem) => filesystem.read_to_binary(source, offset).await,
+        }
+    }
+
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {
+        match self {
+            Impl::Local(filesystem) => filesystem.transcode_input(path).await,
+            Impl::S3(filesystem) => filesystem.transcode_input(path).await,
         }
     }
 }

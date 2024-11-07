@@ -23,6 +23,7 @@ pub struct Config {
     pub filesystem: Filesystem,
     pub parsing: Parsing,
     pub index: Index,
+    pub transcode: Transcode,
 }
 
 impl Default for Config {

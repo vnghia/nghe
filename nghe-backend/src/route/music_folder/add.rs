@@ -9,9 +9,9 @@ use crate::filesystem::{self, Filesystem, Trait as _};
 use crate::orm::music_folders;
 use crate::route::permission;
 
-async fn handler_impl<'fs>(
+async fn handler_impl(
     database: &Database,
-    filesystem: filesystem::Impl<'fs>,
+    filesystem: filesystem::Impl<'_>,
     request: Request,
 ) -> Result<Response, Error> {
     filesystem.check_folder(request.path.as_str().into()).await?;
