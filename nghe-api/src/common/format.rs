@@ -25,7 +25,7 @@ impl Trait for Transcode {
             Self::Aac => "audio/aac",
             Self::Flac => "audio/flac",
             Self::Mp3 => "audio/mpeg",
-            Self::Opus => "audio/opus",
+            Self::Opus => "audio/ogg",
             Self::Wav => "audio/wav",
             Self::Wma => "audio/x-ms-wma",
         }
