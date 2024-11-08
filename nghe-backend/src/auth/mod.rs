@@ -12,7 +12,7 @@ use crate::orm::users;
 use crate::Error;
 
 #[derive(Debug)]
-pub struct GetUser<R> {
+pub struct GetUser<R, const NEED_AUTH: bool> {
     pub id: Uuid,
     pub request: R,
 }
@@ -69,7 +69,7 @@ where
 }
 
 #[async_trait::async_trait]
-impl<S, R> FromRequest<S> for GetUser<R>
+impl<S, R, const NEED_AUTH: bool> FromRequest<S> for GetUser<R, NEED_AUTH>
 where
     S: Send + Sync,
     Database: FromRef<S>,
@@ -84,11 +84,15 @@ where
             .query()
             .ok_or_else(|| Error::SerializeRequest("missing query parameters"))?;
 
-        // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-        let (_, id, role) = json_authenticate(query, state).await?;
         let request: R = serde_html_form::from_str(query)
             .map_err(|_| Error::SerializeRequest("invalid request parameters"))?;
-        Ok(Self { id, request: request.authorize(role)? })
+        if NEED_AUTH {
+            // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
+            let (_, id, role) = json_authenticate(query, state).await?;
+            Ok(Self { id, request: request.authorize(role)? })
+        } else {
+            Ok(Self { id: Uuid::default(), request })
+        }
     }
 }
 
@@ -218,7 +222,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_json_get(
+    async fn test_json_get_auth(
         #[future(awt)]
         #[with(1, 0)]
         mock: Mock,
@@ -248,8 +252,33 @@ mod tests {
             .unwrap();
 
         let test_request =
-            GetUser::<Request>::from_request(http_request, mock.state()).await.unwrap();
+            GetUser::<Request, true>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(user.user.id, test_request.id);
+        assert_eq!(request, test_request.request);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_json_get_no_auth(
+        #[future(awt)]
+        #[with(0, 0)]
+        mock: Mock,
+    ) {
+        let request: Request = Faker.fake();
+
+        let http_request = http::Request::builder()
+            .method(http::Method::GET)
+            .uri(concat_string!(
+                Request::ENDPOINT,
+                "?",
+                serde_html_form::to_string(request).unwrap()
+            ))
+            .body(Body::empty())
+            .unwrap();
+
+        let test_request =
+            GetUser::<Request, false>::from_request(http_request, mock.state()).await.unwrap();
+        assert_eq!(Uuid::default(), test_request.id);
         assert_eq!(request, test_request.request);
     }
 

@@ -94,7 +94,8 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     }
 
     let json_get_args =
-        [common_args.as_slice(), [parse_quote!(user: GetUser<Request>)].as_slice()].concat();
+        [common_args.as_slice(), [parse_quote!(user: GetUser<Request, #need_auth>)].as_slice()]
+            .concat();
     let json_post_args =
         [common_args.as_slice(), [parse_quote!(user: PostUser<Request>)].as_slice()].concat();
     let binary_args =
