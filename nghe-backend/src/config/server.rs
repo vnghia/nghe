@@ -7,7 +7,6 @@ use typed_path::Utf8NativePathBuf;
 
 #[derive(Debug, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
-#[serde(default)]
 pub struct Server {
     #[derivative(Default(value = "[127u8, 0u8, 0u8, 1u8].into()"))]
     pub host: IpAddr,

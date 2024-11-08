@@ -7,7 +7,6 @@ use typed_path::Utf8NativePathBuf;
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
-#[serde(default)]
 pub struct Transcode {
     #[derivative(Default(value = "32 * 1024"))]
     pub buffer_size: usize,

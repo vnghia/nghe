@@ -33,6 +33,7 @@ impl Default for Config {
             .join(Serialized::default("server", Server::default()))
             .join(Serialized::default("filesystem", Filesystem::default()))
             .join(Serialized::default("parsing", Parsing::default()))
+            .join(Serialized::default("index", Index::default()))
             .join(Serialized::default("transcode", Transcode::default()))
             .extract()
             .expect("Could not parse config")

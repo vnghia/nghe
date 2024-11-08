@@ -6,11 +6,11 @@ use serde_with::serde_as;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Common {
     pub name: String,
-    #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
+    #[serde_as(as = "serde_with::NoneAsEmptyString")]
     pub date: Option<String>,
-    #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
+    #[serde_as(as = "serde_with::NoneAsEmptyString")]
     pub release_date: Option<String>,
-    #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
+    #[serde_as(as = "serde_with::NoneAsEmptyString")]
     pub original_release_date: Option<String>,
     pub mbz_id: String,
 }

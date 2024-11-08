@@ -18,7 +18,7 @@ async fn main() {
     tracing::info!(server_version =% constant::SERVER_VERSION);
 
     let config = config::Config::default();
-    tracing::info!(?config);
+    tracing::info!("{config:#?}");
     migration::run(&config.database.url).await;
 
     let listener = tokio::net::TcpListener::bind(config.server.to_socket_addr()).await.unwrap();

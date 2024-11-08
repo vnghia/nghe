@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
-#[serde(default)]
 pub struct Index {
     #[serde(with = "split")]
     #[derivative(Default(value = "Index::split(\"The An A Die Das Ein Eine Les Le La\")"))]
