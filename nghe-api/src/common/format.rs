@@ -8,8 +8,8 @@ pub trait Trait: Copy {
 
 #[api_derive(request = true)]
 #[derive(Clone, Copy, PartialEq, Eq, IntoStaticStr, EnumString)]
+#[strum(serialize_all = "lowercase")]
 #[cfg_attr(feature = "test", derive(strum::AsRefStr))]
-#[cfg_attr(feature = "test", strum(serialize_all = "lowercase"))]
 pub enum Transcode {
     Aac,
     Flac,
