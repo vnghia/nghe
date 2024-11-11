@@ -2138,6 +2138,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "file-guard"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21ef72acf95ec3d7dbf61275be556299490a245f017cf084bd23b4f68cf9407c"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3948,6 +3958,7 @@ dependencies = [
  "fake",
  "faster-hex",
  "figment",
+ "file-guard",
  "futures-lite",
  "http-body-util",
  "hyper 0.14.29",

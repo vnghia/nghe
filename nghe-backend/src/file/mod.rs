@@ -19,6 +19,13 @@ pub struct Property<F: format::Trait> {
     pub format: F,
 }
 
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
+pub struct PropertySize<F: format::Trait> {
+    pub size: u64,
+    pub format: F,
+}
+
 #[derive(Debug)]
 pub struct File<F: format::Trait> {
     pub data: Vec<u8>,
@@ -39,7 +46,7 @@ impl<F: format::Trait> Property<F> {
     pub fn path(
         &self,
         base: impl AsRef<Utf8NativePath>,
-        name: impl Into<Option<&'static str>>,
+        name: impl Into<Option<&str>>,
     ) -> Utf8NativePathBuf {
         let hash = self.hash.to_le_bytes();
 
@@ -73,6 +80,26 @@ impl<F: format::Trait> property::Trait for Property<F> {
 
     fn cache_control() -> CacheControl {
         CacheControl::new().with_private().with_max_age(Duration::from_days(1))
+    }
+}
+
+impl<F: format::Trait> property::Trait for PropertySize<F> {
+    const SEEKABLE: bool = true;
+
+    fn mime(&self) -> &'static str {
+        self.format.mime()
+    }
+
+    fn size(&self) -> Option<u64> {
+        Some(self.size)
+    }
+
+    fn etag(&self) -> Result<Option<ETag>, Error> {
+        Ok(None)
+    }
+
+    fn cache_control() -> CacheControl {
+        Property::<F>::cache_control()
     }
 }
 

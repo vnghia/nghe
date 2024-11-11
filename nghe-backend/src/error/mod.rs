@@ -88,6 +88,8 @@ pub enum Error {
     FilesystemS3MissingObjectSize,
     #[error("Non UTF-8 path encountered: {0:?}")]
     FilesystemLocalNonUTF8PathEncountered(OsString),
+    #[error("Typed path has wrong platform information")]
+    FilesystemTypedPathWrongPlatform,
 
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),

@@ -273,14 +273,13 @@ impl Transcoder {
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
     use futures_lite::{stream, StreamExt};
     use nghe_api::common::format;
     use rstest::rstest;
     use typed_path::Utf8NativePath;
 
     use super::*;
-    use crate::{config, file};
+    use crate::config;
 
     #[cfg(hearing_test)]
     #[rstest]
@@ -293,8 +292,7 @@ mod tests {
         #[values(0, 10)] offset: u32,
     ) {
         let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
-        let (sink, rx) =
-            Sink::new(&config::Transcode::default(), file::Property { format, ..Faker.fake() });
+        let (sink, rx) = Sink::new(&config::Transcode::default(), format, None::<&Utf8NativePath>);
         let handle = Transcoder::spawn(&input, sink, bitrate, offset).unwrap();
 
         tokio::fs::write(

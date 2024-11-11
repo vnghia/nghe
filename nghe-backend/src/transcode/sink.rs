@@ -1,26 +1,69 @@
 use std::ffi::CStr;
+use std::ops::{Deref, DerefMut};
 
+use file_guard::{try_lock, FileGuard};
 use loole::{Receiver, Sender};
 use nghe_api::common::format;
 use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
 use rsmpeg::avutil::AVMem;
 use rsmpeg::ffi;
+use typed_path::Utf8NativePath;
 
-use crate::{config, file};
+use crate::{config, Error};
+
+pub struct Lock {
+    inner: std::fs::File,
+}
+
+impl Deref for Lock {
+    type Target = std::fs::File;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for Lock {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl Lock {
+    pub fn write(path: impl AsRef<Utf8NativePath>) -> Result<FileGuard<Self>, Error> {
+        let inner = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
+        let file = Self { inner };
+        Ok(try_lock(file, file_guard::Lock::Exclusive, 0, 0)?)
+    }
+
+    pub fn read(path: impl AsRef<Utf8NativePath>) -> Result<FileGuard<Self>, Error> {
+        let inner = std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())?;
+        let file = Self { inner };
+        Ok(try_lock(file, file_guard::Lock::Shared, 0, 0)?)
+    }
+}
 
 pub struct Sink {
     tx: Sender<Vec<u8>>,
     buffer_size: usize,
     format: format::Transcode,
+    file: Option<FileGuard<Lock>>,
 }
 
 impl Sink {
     pub fn new(
         config: &config::Transcode,
-        property: file::Property<format::Transcode>,
+        format: format::Transcode,
+        output: Option<impl AsRef<Utf8NativePath>>,
     ) -> (Self, Receiver<Vec<u8>>) {
         let (tx, rx) = crate::sync::channel(config.channel_size);
-        (Self { tx, buffer_size: config.buffer_size, format: property.format }, rx)
+        // It will fail in two cases:
+        //  - The file already exists because of `create_new`.
+        //  - The lock can not be acquired. In this case, another process is already writing to this
+        //    file.
+        // In both cases, we could start transcoding without writing to a file.
+        let file = output.map(Lock::write).transpose().ok().flatten();
+        (Self { tx, buffer_size: config.buffer_size, format, file }, rx)
     }
 
     pub fn format(&self) -> &'static CStr {

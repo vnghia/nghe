@@ -11,12 +11,13 @@ use axum_extra::headers::{
 };
 use futures_lite::{Stream, StreamExt};
 use loole::{Receiver, RecvStream};
+use nghe_api::common::format;
 pub use source::Source;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use tokio_util::io::ReaderStream;
-use typed_path::Utf8TypedPath;
+use typed_path::Utf8NativePath;
 
-use crate::Error;
+use crate::{file, Error};
 
 struct RxStream(RecvStream<Vec<u8>>);
 
@@ -85,12 +86,23 @@ impl Response {
         Ok(Self { status, header, body })
     }
 
-    pub async fn from_local(
-        path: Utf8TypedPath<'_>,
+    pub async fn from_path(
+        path: impl AsRef<Utf8NativePath>,
+        format: impl format::Trait,
+        offset: impl Into<Option<u64>> + Copy,
+    ) -> Result<Self, Error> {
+        let mut file = tokio::fs::File::open(path.as_ref()).await?;
+        let size = file.seek(SeekFrom::End(0)).await?;
+        file.seek(SeekFrom::Start(offset.into().unwrap_or(0))).await?;
+        Self::from_async_read(file, &file::PropertySize { size, format }, offset)
+    }
+
+    pub async fn from_path_property(
+        path: impl AsRef<Utf8NativePath>,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>> + Copy,
     ) -> Result<Self, Error> {
-        let mut file = tokio::fs::File::open(path.as_str()).await?;
+        let mut file = tokio::fs::File::open(path.as_ref()).await?;
         if let Some(offset) = offset.into()
             && offset > 0
         {
@@ -107,12 +119,8 @@ impl Response {
         Self::new(Body::from_stream(ReaderStream::new(reader)), property, offset)
     }
 
-    pub fn from_rx(
-        rx: Receiver<Vec<u8>>,
-        property: &impl property::Trait,
-        offset: impl Into<Option<u64>>,
-    ) -> Result<Self, Error> {
-        Self::new(RxStream::new(rx).into(), property, offset)
+    pub fn from_rx(rx: Receiver<Vec<u8>>, property: format::Transcode) -> Result<Self, Error> {
+        Self::new(RxStream::new(rx).into(), &property, None)
     }
 }
 
