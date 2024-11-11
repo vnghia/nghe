@@ -164,7 +164,7 @@ impl super::Trait for Filesystem {
             .await?
             .body
             .into_async_read();
-        binary::Response::from_async_read(reader, &source.property, offset, true, false)
+        binary::Response::from_async_read(reader, &source.property, offset)
     }
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {

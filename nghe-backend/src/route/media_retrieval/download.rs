@@ -38,6 +38,7 @@ mod tests {
     use axum_extra::headers::{
         AcceptRanges, CacheControl, ContentLength, ContentRange, ETag, HeaderMapExt,
     };
+    use binary::property::Trait as _;
     use nghe_api::common::filesystem;
     use rstest::rstest;
     use xxhash_rust::xxh3::xxh3_64;
@@ -97,7 +98,7 @@ mod tests {
             assert_eq!(headers.typed_get::<AcceptRanges>().unwrap(), AcceptRanges::bytes());
             assert_eq!(
                 headers.typed_get::<CacheControl>().unwrap(),
-                CacheControl::new().with_no_cache()
+                file::Property::<audio::Format>::cache_control()
             );
 
             assert_eq!(body, local_bytes);

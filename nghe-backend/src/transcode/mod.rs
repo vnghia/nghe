@@ -1,3 +1,4 @@
+mod format;
 mod sink;
 mod transcoder;
 

@@ -1,6 +1,8 @@
 pub mod audio;
 
-use axum_extra::headers::ETag;
+use std::time::Duration;
+
+use axum_extra::headers::{CacheControl, ETag};
 use nghe_api::common::format;
 use typed_path::{Utf8NativePath, Utf8NativePathBuf};
 use xxhash_rust::xxh3::xxh3_64;
@@ -55,16 +57,22 @@ impl<F: format::Trait> Property<F> {
 }
 
 impl<F: format::Trait> property::Trait for Property<F> {
+    const SEEKABLE: bool = true;
+
     fn mime(&self) -> &'static str {
         self.format.mime()
     }
 
-    fn size(&self) -> u64 {
-        self.size.into()
+    fn size(&self) -> Option<u64> {
+        Some(self.size.into())
     }
 
     fn etag(&self) -> Result<Option<ETag>, Error> {
         Some(u64::to_etag(&self.hash)).transpose()
+    }
+
+    fn cache_control() -> CacheControl {
+        CacheControl::new().with_private().with_max_age(Duration::from_days(1))
     }
 }
 

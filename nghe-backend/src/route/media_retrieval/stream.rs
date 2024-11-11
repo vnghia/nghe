@@ -37,5 +37,5 @@ pub async fn handler(
     let (sink, rx) = transcode::Sink::new(&config, property);
     transcode::Transcoder::spawn(&input, sink, bitrate, time_offset)?;
 
-    binary::Response::from_rx(rx, &property, None, false, false)
+    binary::Response::from_rx(rx, &format, None)
 }

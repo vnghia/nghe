@@ -2,12 +2,13 @@ pub mod property;
 pub mod source;
 
 use std::convert::Infallible;
-use std::time::Duration;
 
 use axum::body::Body;
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::IntoResponse;
-use axum_extra::headers::{AcceptRanges, CacheControl, ContentLength, ContentRange, HeaderMapExt};
+use axum_extra::headers::{
+    AcceptRanges, ContentLength, ContentRange, HeaderMapExt, TransferEncoding,
+};
 use futures_lite::{Stream, StreamExt};
 use loole::{Receiver, RecvStream};
 pub use source::Source;
@@ -50,51 +51,44 @@ impl From<RxStream> for Body {
 }
 
 impl Response {
-    const MAX_AGE: Duration = Duration::from_secs(31_536_000);
-
-    fn new(
+    fn new<P: property::Trait>(
         body: Body,
-        property: &impl property::Trait,
+        property: &P,
         offset: impl Into<Option<u64>>,
-        seekable: bool,
-        cacheable: bool,
     ) -> Result<Self, Error> {
         let mut header = HeaderMap::new();
 
         header.insert(header::CONTENT_TYPE, header::HeaderValue::from_static(property.mime()));
 
-        let offset = offset.into().unwrap_or(0);
-        let size = property.size();
-        header.typed_insert(ContentLength(size - offset));
-        header.typed_insert(ContentRange::bytes(offset.., size).map_err(color_eyre::Report::from)?);
+        let status = if let Some(size) = property.size() {
+            let offset = offset.into().unwrap_or(0);
+            header.typed_insert(ContentLength(size - offset));
+            header.typed_insert(
+                ContentRange::bytes(offset.., size).map_err(color_eyre::Report::from)?,
+            );
+            if offset == 0 { StatusCode::OK } else { StatusCode::PARTIAL_CONTENT }
+        } else {
+            header.typed_insert(TransferEncoding::chunked());
+            StatusCode::OK
+        };
 
         if let Some(etag) = property.etag()? {
             header.typed_insert(etag);
         }
 
-        if seekable {
+        if P::SEEKABLE {
             header.typed_insert(AcceptRanges::bytes());
         }
 
-        header.typed_insert(if cacheable {
-            CacheControl::new().with_private().with_immutable().with_max_age(Self::MAX_AGE)
-        } else {
-            CacheControl::new().with_no_cache()
-        });
+        header.typed_insert(P::cache_control());
 
-        Ok(Self {
-            status: if offset == 0 { StatusCode::OK } else { StatusCode::PARTIAL_CONTENT },
-            header,
-            body,
-        })
+        Ok(Self { status, header, body })
     }
 
     pub async fn from_local(
         path: Utf8TypedPath<'_>,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>> + Copy,
-        seekable: bool,
-        cacheable: bool,
     ) -> Result<Self, Error> {
         let mut file = tokio::fs::File::open(path.as_str()).await?;
         if let Some(offset) = offset.into()
@@ -102,33 +96,23 @@ impl Response {
         {
             file.seek(SeekFrom::Start(offset)).await?;
         }
-        Self::from_async_read(file, property, offset, seekable, cacheable)
+        Self::from_async_read(file, property, offset)
     }
 
     pub fn from_async_read(
         reader: impl AsyncRead + Send + 'static,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>>,
-        seekable: bool,
-        cacheable: bool,
     ) -> Result<Self, Error> {
-        Self::new(
-            Body::from_stream(ReaderStream::new(reader)),
-            property,
-            offset,
-            seekable,
-            cacheable,
-        )
+        Self::new(Body::from_stream(ReaderStream::new(reader)), property, offset)
     }
 
     pub fn from_rx(
         rx: Receiver<Vec<u8>>,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>>,
-        seekable: bool,
-        cacheable: bool,
     ) -> Result<Self, Error> {
-        Self::new(RxStream::new(rx).into(), property, offset, seekable, cacheable)
+        Self::new(RxStream::new(rx).into(), property, offset)
     }
 }
 

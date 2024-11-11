@@ -77,8 +77,7 @@ impl super::Trait for Filesystem {
         source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
-        binary::Response::from_local(source.path.to_path(), &source.property, offset, true, false)
-            .await
+        binary::Response::from_local(source.path.to_path(), &source.property, offset).await
     }
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {
