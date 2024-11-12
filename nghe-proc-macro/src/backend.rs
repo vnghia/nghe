@@ -37,6 +37,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         ));
     }
 
+    let mut skip_debugs: Vec<&syn::Ident> = vec![];
     let mut common_args: Vec<syn::FnArg> = vec![];
     let mut pass_args: Vec<syn::Expr> = vec![];
 
@@ -47,6 +48,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         {
             match pat.ident.to_string().as_str() {
                 "database" => {
+                    skip_debugs.push(&pat.ident);
                     common_args.push(
                         parse_quote!(extract::State(database): extract::State<crate::database::Database>)
                     );
@@ -77,6 +79,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                         }
                     }
                     syn::Type::Reference(ty) => {
+                        if pat.ident == "filesystem" {
+                            skip_debugs.push(&pat.ident);
+                        }
                         let ty = ty.elem.as_ref();
                         common_args
                             .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
@@ -179,7 +184,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     Ok(quote! {
-        #[tracing::instrument(skip(database), ret(level = #ret_level), err)]
+        #[tracing::instrument(skip(#( #skip_debugs ),*), ret(level = #ret_level), err)]
         #input
 
         use axum::extract;

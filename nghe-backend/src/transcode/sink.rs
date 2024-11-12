@@ -2,6 +2,7 @@ use std::ffi::CStr;
 use std::io::Write;
 use std::ops::{Deref, DerefMut};
 
+use derivative::Derivative;
 use file_guard::{try_lock, FileGuard};
 use loole::{Receiver, Sender};
 use nghe_api::common::format;
@@ -12,7 +13,10 @@ use typed_path::Utf8NativePath;
 
 use crate::{config, Error};
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Lock {
+    #[derivative(Debug = "ignore")]
     inner: std::fs::File,
 }
 
@@ -44,7 +48,10 @@ impl Lock {
     }
 }
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Sink {
+    #[derivative(Debug = "ignore")]
     tx: Sender<Vec<u8>>,
     buffer_size: usize,
     format: format::Transcode,

@@ -8,6 +8,7 @@ use rsmpeg::avformat::{AVFormatContextInput, AVFormatContextOutput};
 use rsmpeg::avutil::AVFrame;
 use rsmpeg::error::RsmpegError;
 use rsmpeg::{avutil, ffi, UnsafeDerefMut};
+use tracing::instrument;
 
 use super::Sink;
 use crate::Error;
@@ -214,14 +215,19 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
+    #[instrument(err)]
     pub fn spawn(
         input: &CStr,
         sink: Sink,
         bitrate: u32,
         offset: u32,
     ) -> Result<tokio::task::JoinHandle<Result<(), Error>>, Error> {
+        let span = tracing::Span::current();
         let mut transcoder = Self::new(input, sink, bitrate, offset)?;
-        Ok(tokio::task::spawn_blocking(move || transcoder.transcode()))
+        Ok(tokio::task::spawn_blocking(move || {
+            let _entered = span.enter();
+            transcoder.transcode()
+        }))
     }
 
     fn new(input: &CStr, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
@@ -231,6 +237,7 @@ impl Transcoder {
         Ok(Self { input, output, graph })
     }
 
+    #[instrument(skip_all, ret(level = "debug"), err(level = "debug"))]
     pub fn transcode(&mut self) -> Result<(), Error> {
         let mut filter = Filter::new(&self.graph, &self.input.decoder, &self.output.encoder)?;
 

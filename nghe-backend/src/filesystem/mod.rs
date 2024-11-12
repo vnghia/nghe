@@ -13,7 +13,7 @@ use nghe_api::common::filesystem;
 
 use crate::{config, Error};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Filesystem {
     local: local::Filesystem,
     s3: Option<s3::Filesystem>,

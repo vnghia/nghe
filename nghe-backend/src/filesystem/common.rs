@@ -10,7 +10,7 @@ use crate::file::{self, audio};
 use crate::http::binary;
 use crate::Error;
 
-#[derive(Debug, Clone, o2o)]
+#[derive(Clone, o2o)]
 #[ref_into(filesystem::Type)]
 pub enum Impl<'fs> {
     #[type_hint(as Unit)]

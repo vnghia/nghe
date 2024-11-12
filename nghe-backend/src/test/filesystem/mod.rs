@@ -8,7 +8,6 @@ use typed_path::{TryAsRef as _, Utf8NativePath, Utf8NativePathBuf};
 
 use crate::filesystem::Filesystem;
 
-#[derive(Debug)]
 pub struct Mock {
     filesystem: Filesystem,
     local: local::Mock,
