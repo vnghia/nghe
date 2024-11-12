@@ -50,13 +50,13 @@ pub async fn handler(
         //  - No process is writing to it. The transcoding process is finish.
         //
         // In that case, we have two cases:
-        //  - if time offset is greater than 0, we can use the transcoded file as transcoder input
+        //  - If time offset is greater than 0, we can use the transcoded file as transcoder input
         //    so it only needs to activate `atrim` filter.
-        //  - otherwise, we only need to stream the transcoded file from local cache.
+        //  - Otherwise, we only need to stream the transcoded file from local cache.
         // If the lock can not be acquired, we have two cases:
-        //  - if time offset is greater than 0, we spawn a transcoding process without writing it
+        //  - If time offset is greater than 0, we spawn a transcoding process without writing it
         //    back to the local cache.
-        //  - otherwise, we spawn a transcoding process and let the sink tries acquiring the write
+        //  - Otherwise, we spawn a transcoding process and let the sink tries acquiring the write
         //    lock for further processing.
         if can_acquire_lock {
             if time_offset > 0 {
@@ -137,7 +137,9 @@ mod tests {
         let song_id = music_folder.query_id(0).await;
         let mut stream_set = tokio::task::JoinSet::new();
 
-        let config = &mock.config.transcode;
+        let database = mock.database();
+        let filesystem = mock.filesystem();
+        let config = mock.config.transcode.clone();
         let format = format::Transcode::Opus;
         let bitrate = 32;
         let time_offset = 0;
@@ -145,7 +147,8 @@ mod tests {
         let transcoded = {
             let path = music_folder.absolute_path(0);
             let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
-            transcode::Transcoder::spawn_collect(&input, config, format, bitrate, time_offset).await
+            transcode::Transcoder::spawn_collect(&input, &config, format, bitrate, time_offset)
+                .await
         };
 
         let request = Request {
@@ -156,8 +159,8 @@ mod tests {
         };
 
         for _ in 0..2 {
-            let database = mock.database().clone();
-            let filesystem = mock.filesystem().clone();
+            let database = database.clone();
+            let filesystem = filesystem.clone();
             let config = config.clone();
             stream_set.spawn(async move {
                 handler(&database, &filesystem, None, config, user_id, request)
@@ -180,5 +183,17 @@ mod tests {
             transcode_status.into_iter().sorted().collect_vec(),
             &[TranscodeStatus::NoCache, TranscodeStatus::WithCache]
         );
+
+        let (status, headers, body) = handler(database, filesystem, None, config, user_id, request)
+            .await
+            .unwrap()
+            .extract()
+            .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(
+            headers.typed_get::<crate::test::transcode::Header>().unwrap().0,
+            TranscodeStatus::ServeCachedOutput
+        );
+        assert_eq!(transcoded, body);
     }
 }

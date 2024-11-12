@@ -1,10 +1,10 @@
 use axum::http::{HeaderName, HeaderValue};
 use axum_extra::headers;
-use strum::{EnumIs, EnumString, IntoStaticStr};
+use strum::{EnumString, IntoStaticStr};
 
 static TRANSCODE_STATUS: HeaderName = HeaderName::from_static("x-transcode-status");
 
-#[derive(Debug, Clone, Copy, EnumString, IntoStaticStr, EnumIs, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, EnumString, IntoStaticStr, PartialEq, Eq, PartialOrd, Ord)]
 #[strum(serialize_all = "lowercase")]
 pub enum Status {
     NoCache,

@@ -37,14 +37,14 @@ impl DerefMut for Lock {
 }
 
 impl Lock {
-    #[instrument(err(level = "trace"))]
+    #[instrument(ret(level = "trace"), err(level = "debug"))]
     pub fn write(path: impl AsRef<Utf8NativePath> + Debug) -> Result<FileGuard<Self>, Error> {
         let inner = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
         let file = Self { inner };
         Ok(try_lock(file, file_guard::Lock::Exclusive, 0, 1)?)
     }
 
-    #[instrument(err(level = "trace"))]
+    #[instrument(ret(level = "trace"), err(level = "debug"))]
     pub fn read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<FileGuard<Self>, Error> {
         let inner = if cfg!(windows) {
             // On Windows, the file must be open with write permissions to lock it.
@@ -103,14 +103,20 @@ impl Sink {
     fn write(&mut self, data: &[u8]) -> i32 {
         let write_len = data.len().try_into().unwrap_or(ffi::AVERROR_BUG2);
 
-        let send_ok = self.tx.send(data.to_vec()).is_ok();
-        let write_ok = if let Some(file) = self.file.as_mut() {
-            (*file).write_all(data).is_ok()
-        } else {
-            true
-        };
+        let send_result = self.tx.send(data.to_vec());
+        let write_result = self.file.as_mut().map(|file| (*file).write_all(data));
 
-        if send_ok && write_ok { write_len } else { ffi::AVERROR_OUTPUT_CHANGED }
+        tracing::trace!(?write_len, ?send_result, ?write_result);
+
+        // We will keep continue writing in one of two cases below:
+        //  - We can still send data to the receiver. We don't care if we can write or not
+        //    (including the case where the file is none).
+        //  - We can write to the file (this means the file must not be none).
+        if send_result.is_ok() || write_result.is_some_and(|result| result.is_ok()) {
+            write_len
+        } else {
+            ffi::AVERROR_OUTPUT_CHANGED
+        }
     }
 }
 
