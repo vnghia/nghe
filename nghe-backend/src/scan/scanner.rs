@@ -9,6 +9,7 @@ use lofty::config::ParseOptions;
 use loole::Receiver;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
+use tracing::instrument;
 use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
@@ -135,6 +136,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .map_err(Error::from)
     }
 
+    #[instrument(skip(self, started_at), ret(level = "debug"), err)]
     async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
         let database = &self.database;
 
@@ -207,16 +209,20 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(())
     }
 
+    #[instrument(skip(self), fields(music_folder_data = ?self.music_folder.data), ret, err)]
     pub async fn run(&self) -> Result<(), Error> {
         let started_at = crate::time::now().await;
+        tracing::info!(?started_at);
 
         let (scan_handle, permit, rx) = self.init();
         let mut join_set = tokio::task::JoinSet::new();
 
         while let Ok(entry) = rx.recv_async().await {
+            let span = tracing::Span::current();
             let permit = permit.clone().acquire_owned().await?;
             let scan = self.clone().into_owned();
             join_set.spawn(async move {
+                let _entered = span.enter();
                 let _guard = permit;
                 scan.one(&entry, started_at).await
             });

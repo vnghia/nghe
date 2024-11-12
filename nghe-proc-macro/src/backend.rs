@@ -72,6 +72,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                                 pass_args.push(parse_quote!(#pat.map(|header| header.0)));
                             }
                         } else {
+                            if pat.ident == "config" {
+                                skip_debugs.push(&pat.ident);
+                            }
                             common_args.push(
                                 parse_quote!(extract::Extension(#pat): extract::Extension<#ty>),
                             );
@@ -79,7 +82,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                         }
                     }
                     syn::Type::Reference(ty) => {
-                        if pat.ident == "filesystem" {
+                        if pat.ident == "filesystem" || pat.ident == "config" {
                             skip_debugs.push(&pat.ident);
                         }
                         let ty = ty.elem.as_ref();

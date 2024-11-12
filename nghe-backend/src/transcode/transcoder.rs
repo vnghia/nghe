@@ -222,8 +222,9 @@ impl Transcoder {
         bitrate: u32,
         offset: u32,
     ) -> Result<tokio::task::JoinHandle<Result<(), Error>>, Error> {
-        let span = tracing::Span::current();
         let mut transcoder = Self::new(input, sink, bitrate, offset)?;
+
+        let span = tracing::Span::current();
         Ok(tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
             transcoder.transcode()
