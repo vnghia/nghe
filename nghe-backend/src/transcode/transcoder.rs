@@ -284,7 +284,7 @@ impl Transcoder {
 mod test {
     use futures_lite::{stream, StreamExt};
     use nghe_api::common::format;
-    use typed_path::Utf8NativePath;
+    use typed_path::Utf8NativePathBuf;
 
     use super::*;
     use crate::config;
@@ -297,7 +297,7 @@ mod test {
             bitrate: u32,
             offset: u32,
         ) -> Vec<u8> {
-            let (sink, rx) = Sink::new(config, format, None::<&Utf8NativePath>);
+            let (sink, rx) = Sink::new(config, format, None::<Utf8NativePathBuf>).await.unwrap();
             let handle = Transcoder::spawn(input, sink, bitrate, offset).unwrap();
             let data = rx.into_stream().map(stream::iter).flatten().collect().await;
             handle.await.unwrap().unwrap();

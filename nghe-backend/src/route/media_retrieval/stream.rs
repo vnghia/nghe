@@ -36,10 +36,14 @@ pub async fn handler(
     let property = source.property.replace(format);
 
     let transcode_config = if let Some(ref cache_dir) = config.cache_dir {
-        let output = property.path(cache_dir, bitrate.to_string().as_str());
-        let (can_acquire_lock, output) =
-            tokio::task::spawn_blocking(move || (transcode::Lock::read(&output).is_ok(), output))
-                .await?;
+        let output = property.path_create_dir(cache_dir, bitrate.to_string().as_str()).await?;
+
+        let span = tracing::Span::current();
+        let (can_acquire_lock, output) = tokio::task::spawn_blocking(move || {
+            let _entered = span.enter();
+            (transcode::Lock::read(&output).is_ok(), output)
+        })
+        .await?;
 
         // If local cache is turned on and we can acquire the read lock, it means that:
         //  - The file exists.
@@ -92,7 +96,7 @@ pub async fn handler(
     let input = transcode_config.0;
     let output = transcode_config.1;
 
-    let (sink, rx) = transcode::Sink::new(&config, format, output);
+    let (sink, rx) = transcode::Sink::new(&config, format, output).await?;
     #[cfg(test)]
     let transcode_status = sink.status(transcode_config.2);
     transcode::Transcoder::spawn(input, sink, bitrate, time_offset)?;
@@ -108,6 +112,8 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use axum::http::StatusCode;
+    use axum_extra::headers::HeaderMapExt;
+    use itertools::Itertools;
     use nghe_api::common::{filesystem, format};
     use rstest::rstest;
 
@@ -163,10 +169,16 @@ mod tests {
         }
 
         let responses = stream_set.join_all().await;
+        let mut transcode_status = vec![];
         assert_eq!(responses.len(), 2);
-        for (status, _, body) in responses.into_iter().take(2) {
+        for (status, headers, body) in responses.into_iter().take(2) {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(transcoded, body);
+            transcode_status.push(headers.typed_get::<crate::test::transcode::Header>().unwrap().0);
         }
+        assert_eq!(
+            transcode_status.into_iter().sorted().collect_vec(),
+            &[TranscodeStatus::NoCache, TranscodeStatus::WithCache]
+        );
     }
 }

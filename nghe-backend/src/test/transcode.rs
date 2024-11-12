@@ -4,7 +4,7 @@ use strum::{EnumIs, EnumString, IntoStaticStr};
 
 static TRANSCODE_STATUS: HeaderName = HeaderName::from_static("x-transcode-status");
 
-#[derive(Debug, Clone, Copy, EnumString, IntoStaticStr, EnumIs)]
+#[derive(Debug, Clone, Copy, EnumString, IntoStaticStr, EnumIs, PartialEq, Eq, PartialOrd, Ord)]
 #[strum(serialize_all = "lowercase")]
 pub enum Status {
     NoCache,

@@ -43,23 +43,37 @@ impl<F: format::Trait> Property<F> {
         Property { hash: self.hash, size: self.size, format }
     }
 
-    pub fn path(
-        &self,
-        base: impl AsRef<Utf8NativePath>,
-        name: impl Into<Option<&str>>,
-    ) -> Utf8NativePathBuf {
+    fn path_dir(&self, base: impl AsRef<Utf8NativePath>) -> Utf8NativePathBuf {
         let hash = self.hash.to_le_bytes();
 
         // Avoid putting too many files in a single directory
         let first = faster_hex::hex_string(&hash[..1]);
         let second = faster_hex::hex_string(&hash[1..]);
 
-        let path = base.as_ref().join(first).join(second).join(self.size.to_string());
+        base.as_ref().join(first).join(second).join(self.size.to_string())
+    }
+
+    pub fn path(
+        &self,
+        base: impl AsRef<Utf8NativePath>,
+        name: impl Into<Option<&str>>,
+    ) -> Utf8NativePathBuf {
+        let path = self.path_dir(base);
         if let Some(name) = name.into() {
             path.join(name).with_extension(self.format.extension())
         } else {
             path
         }
+    }
+
+    pub async fn path_create_dir(
+        &self,
+        base: impl AsRef<Utf8NativePath>,
+        name: &str,
+    ) -> Result<Utf8NativePathBuf, Error> {
+        let path = self.path_dir(base);
+        tokio::fs::create_dir_all(&path).await?;
+        Ok(path.join(name).with_extension(self.format.extension()))
     }
 }
 

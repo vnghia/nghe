@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use std::fmt::Debug;
 use std::io::Write;
 use std::ops::{Deref, DerefMut};
 
@@ -9,6 +10,7 @@ use nghe_api::common::format;
 use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
 use rsmpeg::avutil::AVMem;
 use rsmpeg::ffi;
+use tracing::instrument;
 use typed_path::Utf8NativePath;
 
 use crate::{config, Error};
@@ -35,16 +37,23 @@ impl DerefMut for Lock {
 }
 
 impl Lock {
-    pub fn write(path: impl AsRef<Utf8NativePath>) -> Result<FileGuard<Self>, Error> {
+    #[instrument(err(level = "trace"))]
+    pub fn write(path: impl AsRef<Utf8NativePath> + Debug) -> Result<FileGuard<Self>, Error> {
         let inner = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
         let file = Self { inner };
-        Ok(try_lock(file, file_guard::Lock::Exclusive, 0, 0)?)
+        Ok(try_lock(file, file_guard::Lock::Exclusive, 0, 1)?)
     }
 
-    pub fn read(path: impl AsRef<Utf8NativePath>) -> Result<FileGuard<Self>, Error> {
-        let inner = std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())?;
+    #[instrument(err(level = "trace"))]
+    pub fn read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<FileGuard<Self>, Error> {
+        let inner = if cfg!(windows) {
+            // On Windows, the file must be open with write permissions to lock it.
+            std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())?
+        } else {
+            std::fs::OpenOptions::new().read(true).open(path.as_ref())?
+        };
         let file = Self { inner };
-        Ok(try_lock(file, file_guard::Lock::Shared, 0, 0)?)
+        Ok(try_lock(file, file_guard::Lock::Shared, 0, 1)?)
     }
 }
 
@@ -59,19 +68,24 @@ pub struct Sink {
 }
 
 impl Sink {
-    pub fn new(
+    pub async fn new(
         config: &config::Transcode,
         format: format::Transcode,
-        output: Option<impl AsRef<Utf8NativePath>>,
-    ) -> (Self, Receiver<Vec<u8>>) {
+        output: Option<impl AsRef<Utf8NativePath> + Debug + Send + 'static>,
+    ) -> Result<(Self, Receiver<Vec<u8>>), Error> {
         let (tx, rx) = crate::sync::channel(config.channel_size);
         // It will fail in two cases:
         //  - The file already exists because of `create_new`.
         //  - The lock can not be acquired. In this case, another process is already writing to this
         //    file.
         // In both cases, we could start transcoding without writing to a file.
-        let file = output.map(Lock::write).transpose().ok().flatten();
-        (Self { tx, buffer_size: config.buffer_size, format, file }, rx)
+        let span = tracing::Span::current();
+        let file = tokio::task::spawn_blocking(move || {
+            let _entered = span.enter();
+            output.map(Lock::write).transpose().ok().flatten()
+        })
+        .await?;
+        Ok((Self { tx, buffer_size: config.buffer_size, format, file }, rx))
     }
 
     pub fn format(&self) -> &'static CStr {
