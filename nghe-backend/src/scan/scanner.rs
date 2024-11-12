@@ -9,7 +9,7 @@ use lofty::config::ParseOptions;
 use loole::Receiver;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
-use tracing::instrument;
+use tracing::{instrument, Instrument};
 use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
@@ -221,11 +221,13 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             let span = tracing::Span::current();
             let permit = permit.clone().acquire_owned().await?;
             let scan = self.clone().into_owned();
-            join_set.spawn(async move {
-                let _entered = span.enter();
-                let _guard = permit;
-                scan.one(&entry, started_at).await
-            });
+            join_set.spawn(
+                async move {
+                    let _guard = permit;
+                    scan.one(&entry, started_at).await
+                }
+                .instrument(span),
+            );
         }
 
         while let Some(result) = join_set.join_next().await {

@@ -1,5 +1,6 @@
 pub use nghe_api::scan::start::{Request, Response};
 use nghe_proc_macro::handler;
+use tracing::Instrument;
 
 use crate::database::Database;
 use crate::filesystem::Filesystem;
@@ -18,9 +19,6 @@ pub async fn handler(
         .into_owned();
 
     let span = tracing::Span::current();
-    tokio::task::spawn(async move {
-        let _entered = span.enter();
-        scanner.run().await
-    });
+    tokio::task::spawn(async move { scanner.run().await }.instrument(span));
     Ok(Response)
 }
