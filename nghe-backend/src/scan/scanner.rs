@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use derivative::Derivative;
 use diesel::{
     ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
 };
@@ -27,12 +26,9 @@ pub struct Config {
     pub index: config::Index,
 }
 
-#[derive(Derivative, Clone)]
-#[derivative(Debug)]
+#[derive(Clone)]
 pub struct Scanner<'db, 'fs, 'mf> {
-    #[derivative(Debug = "ignore")]
     pub database: Cow<'db, Database>,
-    #[derivative(Debug = "ignore")]
     pub filesystem: filesystem::Impl<'fs>,
     pub config: Config,
     pub music_folder: music_folders::MusicFolder<'mf>,
