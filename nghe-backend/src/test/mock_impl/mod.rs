@@ -8,6 +8,7 @@ use fake::{Fake, Faker};
 use lofty::config::{ParseOptions, WriteOptions};
 use nghe_api::common;
 use rstest::fixture;
+use typed_path::Utf8NativePath;
 
 use super::filesystem::Trait;
 use super::{database, filesystem};
@@ -25,6 +26,7 @@ pub struct Config {
     #[derivative(Default(value = "config::Parsing::test()"))]
     pub parsing: config::Parsing,
     pub index: config::Index,
+    pub transcode: config::Transcode,
 
     pub lofty_parse: ParseOptions,
     pub lofty_write: WriteOptions,
@@ -37,11 +39,18 @@ pub struct Mock {
     pub filesystem: filesystem::Mock,
 }
 
+impl Config {
+    fn with_prefix(self, prefix: impl AsRef<Utf8NativePath> + Copy) -> Self {
+        Self { transcode: self.transcode.with_prefix(prefix), ..self }
+    }
+}
+
 #[bon::bon]
 impl Mock {
     async fn new(prefix: Option<&str>, config: Config) -> Self {
         let database = database::Mock::new().await;
         let filesystem = filesystem::Mock::new(prefix, &config).await;
+        let config = config.with_prefix(&filesystem.prefix());
 
         Self { config, database, filesystem }
     }

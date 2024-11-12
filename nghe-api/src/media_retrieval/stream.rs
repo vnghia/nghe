@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::common::format;
 
 #[api_derive(request = true, serde = false)]
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub enum Format {
     #[default]
     Raw,
@@ -13,11 +13,18 @@ pub enum Format {
 
 #[api_derive(endpoint = true)]
 #[endpoint(path = "stream", binary = true)]
+#[derive(Clone, Copy)]
 pub struct Request {
     pub id: Uuid,
     pub max_bit_rate: Option<u32>,
     pub format: Option<Format>,
     pub time_offset: Option<u32>,
+}
+
+impl From<format::Transcode> for Format {
+    fn from(value: format::Transcode) -> Self {
+        Self::Transcode(value)
+    }
 }
 
 mod serde {

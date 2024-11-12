@@ -75,3 +75,69 @@ pub async fn handler(
 
     binary::Response::from_rx(rx, format)
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::http::StatusCode;
+    use nghe_api::common::{filesystem, format};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::file::audio;
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_stream(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] ty: filesystem::Type,
+    ) {
+        mock.add_music_folder().ty(ty).call().await;
+        let mut music_folder = mock.music_folder(0).await;
+        music_folder.add_audio_filesystem::<&str>().format(audio::Format::Flac).call().await;
+
+        let user_id = mock.user(0).await.user.id;
+        let song_id = music_folder.query_id(0).await;
+        let mut stream_set = tokio::task::JoinSet::new();
+
+        let config = &mock.config.transcode;
+        let format = format::Transcode::Opus;
+        let bitrate = 32;
+        let time_offset = 0;
+
+        let transcoded = {
+            let path = music_folder.absolute_path(0);
+            let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
+            transcode::Transcoder::spawn_collect(&input, config, format, bitrate, time_offset).await
+        };
+
+        let request = Request {
+            id: song_id,
+            max_bit_rate: Some(bitrate),
+            format: Some(format.into()),
+            time_offset: Some(time_offset),
+        };
+
+        for _ in 0..2 {
+            let database = mock.database().clone();
+            let filesystem = mock.filesystem().clone();
+            let config = config.clone();
+            stream_set.spawn(async move {
+                handler(&database, &filesystem, None, config, user_id, request)
+                    .await
+                    .unwrap()
+                    .extract()
+                    .await
+            });
+        }
+
+        let responses = stream_set.join_all().await;
+        assert_eq!(responses.len(), 2);
+        for (status, _, body) in responses.into_iter().take(2) {
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(transcoded, body);
+        }
+    }
+}

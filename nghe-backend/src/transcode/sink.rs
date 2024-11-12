@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use std::io::Write;
 use std::ops::{Deref, DerefMut};
 
 use file_guard::{try_lock, FileGuard};
@@ -78,19 +79,22 @@ impl Sink {
         }
     }
 
-    fn write(&self, data: impl Into<Vec<u8>>) -> i32 {
-        let data = data.into();
+    fn write(&mut self, data: &[u8]) -> i32 {
         let write_len = data.len().try_into().unwrap_or(ffi::AVERROR_BUG2);
 
-        match self.tx.send(data) {
-            Ok(()) => write_len,
-            Err(_) => ffi::AVERROR_OUTPUT_CHANGED,
-        }
+        let send_ok = self.tx.send(data.to_vec()).is_ok();
+        let write_ok = if let Some(file) = self.file.as_mut() {
+            (*file).write_all(data).is_ok()
+        } else {
+            true
+        };
+
+        if send_ok && write_ok { write_len } else { ffi::AVERROR_OUTPUT_CHANGED }
     }
 }
 
 impl From<Sink> for AVIOContextContainer {
-    fn from(sink: Sink) -> Self {
+    fn from(mut sink: Sink) -> Self {
         AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
             AVMem::new(sink.buffer_size),
             true,

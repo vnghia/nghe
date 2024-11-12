@@ -272,8 +272,33 @@ impl Transcoder {
 }
 
 #[cfg(test)]
-mod tests {
+mod test {
     use futures_lite::{stream, StreamExt};
+    use nghe_api::common::format;
+    use typed_path::Utf8NativePath;
+
+    use super::*;
+    use crate::config;
+
+    impl Transcoder {
+        pub async fn spawn_collect(
+            input: &CStr,
+            config: &config::Transcode,
+            format: format::Transcode,
+            bitrate: u32,
+            offset: u32,
+        ) -> Vec<u8> {
+            let (sink, rx) = Sink::new(config, format, None::<&Utf8NativePath>);
+            let handle = Transcoder::spawn(input, sink, bitrate, offset).unwrap();
+            let data = rx.into_stream().map(stream::iter).flatten().collect().await;
+            handle.await.unwrap().unwrap();
+            data
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
     use nghe_api::common::format;
     use rstest::rstest;
     use typed_path::Utf8NativePath;
@@ -292,17 +317,16 @@ mod tests {
         #[values(0, 10)] offset: u32,
     ) {
         let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
-        let (sink, rx) = Sink::new(&config::Transcode::default(), format, None::<&Utf8NativePath>);
-        let handle = Transcoder::spawn(&input, sink, bitrate, offset).unwrap();
+        let config = config::Transcode::default();
+        let data = Transcoder::spawn_collect(&input, &config, format, bitrate, offset).await;
 
         tokio::fs::write(
             Utf8NativePath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
                 .with_extension(format.as_ref()),
-            rx.into_stream().map(stream::iter).flatten().collect::<Vec<_>>().await,
+            &data,
         )
         .await
         .unwrap();
-        handle.await.unwrap().unwrap();
     }
 }

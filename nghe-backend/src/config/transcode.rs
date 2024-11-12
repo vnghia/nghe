@@ -19,3 +19,19 @@ pub struct Transcode {
     ))]
     pub cache_dir: Option<Utf8NativePathBuf>,
 }
+
+#[cfg(test)]
+mod test {
+    use typed_path::Utf8NativePath;
+
+    use super::*;
+
+    impl Transcode {
+        pub fn with_prefix(self, prefix: impl AsRef<Utf8NativePath>) -> Self {
+            Self {
+                cache_dir: self.cache_dir.map(|_| prefix.as_ref().join("cache").join("transcode")),
+                ..self
+            }
+        }
+    }
+}
