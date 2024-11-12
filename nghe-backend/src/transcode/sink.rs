@@ -112,3 +112,18 @@ impl From<Sink> for AVIOContextContainer {
         ))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test::transcode::Status;
+
+    impl Sink {
+        pub fn status(&self, status: Status) -> Status {
+            match status {
+                Status::WithCache if self.file.is_none() => Status::NoCache,
+                _ => status,
+            }
+        }
+    }
+}

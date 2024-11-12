@@ -10,6 +10,8 @@ use crate::database::Database;
 use crate::filesystem::{Filesystem, Trait};
 use crate::http::binary;
 use crate::http::header::ToOffset;
+#[cfg(test)]
+use crate::test::transcode::Status as TranscodeStatus;
 use crate::{config, transcode, Error};
 
 #[handler(role = stream, headers = [range])]
@@ -35,7 +37,7 @@ pub async fn handler(
     };
     let property = source.property.replace(format);
 
-    let (input, output) = if let Some(ref cache_dir) = config.cache_dir {
+    let transcode_config = if let Some(ref cache_dir) = config.cache_dir {
         let output = property.path(cache_dir, bitrate.to_string().as_str());
         let (can_acquire_lock, output) =
             tokio::task::spawn_blocking(move || (transcode::Lock::read(&output).is_ok(), output))
@@ -56,24 +58,53 @@ pub async fn handler(
         //    lock for further processing.
         if can_acquire_lock {
             if time_offset > 0 {
-                (CString::new(output.as_str())?, None)
+                (
+                    CString::new(output.as_str())?,
+                    None,
+                    #[cfg(test)]
+                    TranscodeStatus::UseCachedOutput,
+                )
             } else {
-                return binary::Response::from_path(output, format, size_offset).await;
+                return binary::Response::from_path(
+                    output,
+                    format,
+                    size_offset,
+                    #[cfg(test)]
+                    TranscodeStatus::ServeCachedOutput,
+                )
+                .await;
             }
         } else {
             (
                 filesystem.transcode_input(source.path.to_path()).await?,
                 if time_offset > 0 { None } else { Some(output) },
+                #[cfg(test)]
+                if time_offset > 0 { TranscodeStatus::NoCache } else { TranscodeStatus::WithCache },
             )
         }
     } else {
-        (filesystem.transcode_input(source.path.to_path()).await?, None)
+        (
+            filesystem.transcode_input(source.path.to_path()).await?,
+            None,
+            #[cfg(test)]
+            TranscodeStatus::NoCache,
+        )
     };
 
+    let input = transcode_config.0;
+    let output = transcode_config.1;
+
     let (sink, rx) = transcode::Sink::new(&config, format, output);
+    #[cfg(test)]
+    let transcode_status = sink.status(transcode_config.2);
     transcode::Transcoder::spawn(&input, sink, bitrate, time_offset)?;
 
-    binary::Response::from_rx(rx, format)
+    binary::Response::from_rx(
+        rx,
+        format,
+        #[cfg(test)]
+        transcode_status,
+    )
 }
 
 #[cfg(test)]

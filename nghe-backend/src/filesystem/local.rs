@@ -80,7 +80,14 @@ impl super::Trait for Filesystem {
         let path = source.path.to_path();
         let path: &Utf8NativePath =
             path.try_as_ref().ok_or_else(|| Error::FilesystemTypedPathWrongPlatform)?;
-        binary::Response::from_path_property(path, &source.property, offset).await
+        binary::Response::from_path_property(
+            path,
+            &source.property,
+            offset,
+            #[cfg(test)]
+            None,
+        )
+        .await
     }
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {

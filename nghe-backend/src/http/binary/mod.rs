@@ -17,6 +17,8 @@ use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use tokio_util::io::ReaderStream;
 use typed_path::Utf8NativePath;
 
+#[cfg(test)]
+use crate::test::transcode;
 use crate::{file, Error};
 
 struct RxStream(RecvStream<Vec<u8>>);
@@ -56,6 +58,7 @@ impl Response {
         body: Body,
         property: &P,
         offset: impl Into<Option<u64>>,
+        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
     ) -> Result<Self, Error> {
         let mut header = HeaderMap::new();
 
@@ -83,6 +86,11 @@ impl Response {
 
         header.typed_insert(P::cache_control());
 
+        #[cfg(test)]
+        if let Some(transcode_status) = transcode_status.into() {
+            header.typed_insert(transcode::Header(transcode_status));
+        }
+
         Ok(Self { status, header, body })
     }
 
@@ -90,17 +98,25 @@ impl Response {
         path: impl AsRef<Utf8NativePath>,
         format: impl format::Trait,
         offset: impl Into<Option<u64>> + Copy,
+        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
     ) -> Result<Self, Error> {
         let mut file = tokio::fs::File::open(path.as_ref()).await?;
         let size = file.seek(SeekFrom::End(0)).await?;
         file.seek(SeekFrom::Start(offset.into().unwrap_or(0))).await?;
-        Self::from_async_read(file, &file::PropertySize { size, format }, offset)
+        Self::from_async_read(
+            file,
+            &file::PropertySize { size, format },
+            offset,
+            #[cfg(test)]
+            transcode_status,
+        )
     }
 
     pub async fn from_path_property(
         path: impl AsRef<Utf8NativePath>,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>> + Copy,
+        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
     ) -> Result<Self, Error> {
         let mut file = tokio::fs::File::open(path.as_ref()).await?;
         if let Some(offset) = offset.into()
@@ -108,19 +124,42 @@ impl Response {
         {
             file.seek(SeekFrom::Start(offset)).await?;
         }
-        Self::from_async_read(file, property, offset)
+        Self::from_async_read(
+            file,
+            property,
+            offset,
+            #[cfg(test)]
+            transcode_status,
+        )
     }
 
     pub fn from_async_read(
         reader: impl AsyncRead + Send + 'static,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>>,
+        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
     ) -> Result<Self, Error> {
-        Self::new(Body::from_stream(ReaderStream::new(reader)), property, offset)
+        Self::new(
+            Body::from_stream(ReaderStream::new(reader)),
+            property,
+            offset,
+            #[cfg(test)]
+            transcode_status,
+        )
     }
 
-    pub fn from_rx(rx: Receiver<Vec<u8>>, property: format::Transcode) -> Result<Self, Error> {
-        Self::new(RxStream::new(rx).into(), &property, None)
+    pub fn from_rx(
+        rx: Receiver<Vec<u8>>,
+        property: format::Transcode,
+        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
+    ) -> Result<Self, Error> {
+        Self::new(
+            RxStream::new(rx).into(),
+            &property,
+            None,
+            #[cfg(test)]
+            transcode_status,
+        )
     }
 }
 
