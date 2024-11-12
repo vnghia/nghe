@@ -1,5 +1,3 @@
-use std::ffi::CString;
-
 use axum_extra::headers::Range;
 pub use nghe_api::media_retrieval::stream::{Format, Request};
 use nghe_proc_macro::handler;
@@ -59,7 +57,7 @@ pub async fn handler(
         if can_acquire_lock {
             if time_offset > 0 {
                 (
-                    CString::new(output.as_str())?,
+                    output.as_str().to_owned(),
                     None,
                     #[cfg(test)]
                     TranscodeStatus::UseCachedOutput,
@@ -97,7 +95,7 @@ pub async fn handler(
     let (sink, rx) = transcode::Sink::new(&config, format, output);
     #[cfg(test)]
     let transcode_status = sink.status(transcode_config.2);
-    transcode::Transcoder::spawn(&input, sink, bitrate, time_offset)?;
+    transcode::Transcoder::spawn(input, sink, bitrate, time_offset)?;
 
     binary::Response::from_rx(
         rx,

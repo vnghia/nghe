@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::ffi::CString;
 
 use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::operation::create_bucket::CreateBucketError;
@@ -70,7 +69,7 @@ impl filesystem::Trait for Mock {
         self.filesystem.read_to_binary(source, offset).await
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         self.filesystem.transcode_input(path).await
     }
 }

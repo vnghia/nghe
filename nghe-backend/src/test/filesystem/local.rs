@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::ffi::CString;
 
 use nghe_api::constant;
 use tempfile::{Builder, TempDir};
@@ -53,7 +52,7 @@ impl filesystem::Trait for Mock {
         self.filesystem.read_to_binary(source, offset).await
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         self.filesystem.transcode_input(path).await
     }
 }

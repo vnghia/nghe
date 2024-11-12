@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::ffi::{CStr, CString};
+use std::fmt::Debug;
 
 use concat_string::concat_string;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
@@ -217,12 +218,12 @@ impl<'graph> Filter<'graph> {
 impl Transcoder {
     #[instrument(err)]
     pub fn spawn(
-        input: &CStr,
+        input: impl Into<String> + Debug,
         sink: Sink,
         bitrate: u32,
         offset: u32,
     ) -> Result<tokio::task::JoinHandle<Result<(), Error>>, Error> {
-        let mut transcoder = Self::new(input, sink, bitrate, offset)?;
+        let mut transcoder = Self::new(&CString::new(input.into())?, sink, bitrate, offset)?;
 
         let span = tracing::Span::current();
         Ok(tokio::task::spawn_blocking(move || {
@@ -290,7 +291,7 @@ mod test {
 
     impl Transcoder {
         pub async fn spawn_collect(
-            input: &CStr,
+            input: impl Into<String> + Debug,
             config: &config::Transcode,
             format: format::Transcode,
             bitrate: u32,
@@ -324,9 +325,9 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
-        let input = CString::new(env!("NGHE_HEARING_TEST_INPUT")).unwrap();
+        let input = env!("NGHE_HEARING_TEST_INPUT");
         let config = config::Transcode::default();
-        let data = Transcoder::spawn_collect(&input, &config, format, bitrate, offset).await;
+        let data = Transcoder::spawn_collect(input, &config, format, bitrate, offset).await;
 
         tokio::fs::write(
             Utf8NativePath::new(env!("NGHE_HEARING_TEST_OUTPUT"))

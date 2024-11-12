@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::time::Duration;
 
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
@@ -173,18 +172,17 @@ impl super::Trait for Filesystem {
         )
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<CString, Error> {
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         let Path { bucket, key } = Self::split(path)?;
-        CString::new(
-            self.client
-                .get_object()
-                .bucket(bucket)
-                .key(key)
-                .presigned(PresigningConfig::expires_in(self.presigned_duration)?)
-                .await?
-                .uri(),
-        )
-        .map_err(Error::from)
+        Ok(self
+            .client
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .presigned(PresigningConfig::expires_in(self.presigned_duration)?)
+            .await?
+            .uri()
+            .to_owned())
     }
 }
 
