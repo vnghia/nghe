@@ -119,7 +119,38 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
+    use crate::test::transcode::{Header as TranscodeHeader, Status as TranscodeStatus};
     use crate::test::{mock, Mock};
+
+    async fn spawn_stream(
+        mock: &Mock,
+        n_task: usize,
+        user_id: Uuid,
+        request: Request,
+    ) -> (Vec<(StatusCode, Vec<u8>)>, Vec<TranscodeStatus>) {
+        let mut stream_set = tokio::task::JoinSet::new();
+        for _ in 0..n_task {
+            let database = mock.database().clone();
+            let filesystem = mock.filesystem().clone();
+            let config = mock.config.transcode.clone();
+            stream_set.spawn(async move {
+                handler(&database, &filesystem, None, config, user_id, request)
+                    .await
+                    .unwrap()
+                    .extract()
+                    .await
+            });
+        }
+        let (responses, transcode_status): (Vec<_>, Vec<_>) = stream_set
+            .join_all()
+            .await
+            .into_iter()
+            .map(|(status, headers, body)| {
+                ((status, body), headers.typed_get::<TranscodeHeader>().unwrap().0)
+            })
+            .unzip();
+        (responses, transcode_status.into_iter().sorted().collect())
+    }
 
     #[rstest]
     #[tokio::test]
@@ -135,19 +166,64 @@ mod tests {
 
         let user_id = mock.user(0).await.user.id;
         let song_id = music_folder.query_id(0).await;
-
-        let database = mock.database();
-        let filesystem = mock.filesystem();
-        let config = mock.config.transcode.clone();
         let format = format::Transcode::Opus;
         let bitrate = 32;
-        let time_offset = 0;
 
         let transcoded = {
             let path = music_folder.absolute_path(0);
             let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
-            transcode::Transcoder::spawn_collect(&input, &config, format, bitrate, time_offset)
-                .await
+            let config = &mock.config.transcode;
+            transcode::Transcoder::spawn_collect(&input, config, format, bitrate, 0).await
+        };
+
+        let request = Request {
+            id: song_id,
+            max_bit_rate: Some(bitrate),
+            format: Some(format.into()),
+            time_offset: None,
+        };
+
+        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        for (status, body) in responses {
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(transcoded, body);
+        }
+        assert_eq!(transcode_status, &[TranscodeStatus::NoCache, TranscodeStatus::WithCache]);
+
+        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        for (status, body) in responses {
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(transcoded, body);
+        }
+        assert_eq!(
+            transcode_status,
+            &[TranscodeStatus::ServeCachedOutput, TranscodeStatus::ServeCachedOutput]
+        );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_stream_time_offset(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] ty: filesystem::Type,
+    ) {
+        mock.add_music_folder().ty(ty).call().await;
+        let mut music_folder = mock.music_folder(0).await;
+        music_folder.add_audio_filesystem::<&str>().format(audio::Format::Flac).call().await;
+
+        let user_id = mock.user(0).await.user.id;
+        let song_id = music_folder.query_id(0).await;
+        let format = format::Transcode::Opus;
+        let bitrate = 32;
+        let time_offset = 10;
+
+        let transcoded = {
+            let path = music_folder.absolute_path(0);
+            let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
+            let config = &mock.config.transcode;
+            transcode::Transcoder::spawn_collect(&input, config, format, bitrate, time_offset).await
         };
 
         let request = Request {
@@ -157,58 +233,26 @@ mod tests {
             time_offset: Some(time_offset),
         };
 
-        let mut stream_set = tokio::task::JoinSet::new();
-        for _ in 0..2 {
-            let database = database.clone();
-            let filesystem = filesystem.clone();
-            let config = config.clone();
-            stream_set.spawn(async move {
-                handler(&database, &filesystem, None, config, user_id, request)
-                    .await
-                    .unwrap()
-                    .extract()
-                    .await
-            });
-        }
-
-        let responses = stream_set.join_all().await;
-        let mut transcode_status = vec![];
-        assert_eq!(responses.len(), 2);
-        for (status, headers, body) in responses.into_iter().take(2) {
+        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(transcoded, body);
-            transcode_status.push(headers.typed_get::<crate::test::transcode::Header>().unwrap().0);
         }
-        assert_eq!(
-            transcode_status.into_iter().sorted().collect_vec(),
-            &[TranscodeStatus::NoCache, TranscodeStatus::WithCache]
-        );
+        assert_eq!(transcode_status, &[TranscodeStatus::NoCache, TranscodeStatus::NoCache]);
 
-        let mut stream_set = tokio::task::JoinSet::new();
-        for _ in 0..2 {
-            let database = database.clone();
-            let filesystem = filesystem.clone();
-            let config = config.clone();
-            stream_set.spawn(async move {
-                handler(&database, &filesystem, None, config, user_id, request)
-                    .await
-                    .unwrap()
-                    .extract()
-                    .await
-            });
-        }
+        let transcode_status =
+            spawn_stream(&mock, 1, user_id, Request { time_offset: None, ..request }).await.1;
+        assert_eq!(transcode_status, &[TranscodeStatus::WithCache]);
 
-        let responses = stream_set.join_all().await;
-        let mut transcode_status = vec![];
-        assert_eq!(responses.len(), 2);
-        for (status, headers, body) in responses.into_iter().take(2) {
+        // We don't test the response body here because it does not take the same input as above.
+        // However, we want to make sure that the transcode status is equal to `UseCachedOutput`.
+        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        for (status, _) in responses {
             assert_eq!(status, StatusCode::OK);
-            assert_eq!(transcoded, body);
-            transcode_status.push(headers.typed_get::<crate::test::transcode::Header>().unwrap().0);
         }
         assert_eq!(
-            transcode_status.into_iter().sorted().collect_vec(),
-            &[TranscodeStatus::ServeCachedOutput, TranscodeStatus::ServeCachedOutput]
+            transcode_status,
+            &[TranscodeStatus::UseCachedOutput, TranscodeStatus::UseCachedOutput]
         );
     }
 }
