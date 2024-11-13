@@ -41,7 +41,7 @@ pub async fn handler(
         let span = tracing::Span::current();
         let (can_acquire_lock, output) = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
-            (transcode::Lock::read(&output).is_ok(), output)
+            (transcode::Sink::lock_read(&output).is_ok(), output)
         })
         .await?;
 

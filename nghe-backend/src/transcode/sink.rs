@@ -1,10 +1,9 @@
 use std::ffi::CStr;
 use std::fmt::Debug;
 use std::io::Write;
-use std::ops::{Deref, DerefMut};
 
 use derivative::Derivative;
-use file_guard::{try_lock, FileGuard};
+use fs4::fs_std::FileExt;
 use loole::{Receiver, Sender};
 use nghe_api::common::format;
 use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
@@ -17,54 +16,12 @@ use crate::{config, Error};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct Lock {
-    #[derivative(Debug = "ignore")]
-    inner: std::fs::File,
-}
-
-impl Deref for Lock {
-    type Target = std::fs::File;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl DerefMut for Lock {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
-impl Lock {
-    #[instrument(ret(level = "trace"), err(level = "debug"))]
-    pub fn write(path: impl AsRef<Utf8NativePath> + Debug) -> Result<FileGuard<Self>, Error> {
-        let inner = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
-        let file = Self { inner };
-        Ok(try_lock(file, file_guard::Lock::Exclusive, 0, 1)?)
-    }
-
-    #[instrument(ret(level = "trace"), err(level = "debug"))]
-    pub fn read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<FileGuard<Self>, Error> {
-        let inner = if cfg!(windows) {
-            // On Windows, the file must be open with write permissions to lock it.
-            std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())?
-        } else {
-            std::fs::OpenOptions::new().read(true).open(path.as_ref())?
-        };
-        let file = Self { inner };
-        Ok(try_lock(file, file_guard::Lock::Shared, 0, 1)?)
-    }
-}
-
-#[derive(Derivative)]
-#[derivative(Debug)]
 pub struct Sink {
     #[derivative(Debug = "ignore")]
     tx: Sender<Vec<u8>>,
     buffer_size: usize,
     format: format::Transcode,
-    file: Option<FileGuard<Lock>>,
+    file: Option<std::fs::File>,
 }
 
 impl Sink {
@@ -82,7 +39,7 @@ impl Sink {
         let span = tracing::Span::current();
         let file = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
-            output.map(Lock::write).transpose().ok().flatten()
+            output.map(Self::lock_write).transpose().ok().flatten()
         })
         .await?;
         Ok((Self { tx, buffer_size: config.buffer_size, format, file }, rx))
@@ -100,11 +57,30 @@ impl Sink {
         }
     }
 
+    #[instrument(err(level = "debug"))]
+    pub fn lock_write(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
+        let file = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
+        file.try_lock_exclusive()?;
+        Ok(file)
+    }
+
+    #[instrument(err(level = "debug"))]
+    pub fn lock_read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
+        let file = if cfg!(windows) {
+            // On Windows, the file must be open with write permissions to lock it.
+            std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())?
+        } else {
+            std::fs::OpenOptions::new().read(true).open(path.as_ref())?
+        };
+        file.try_lock_shared()?;
+        Ok(file)
+    }
+
     fn write(&mut self, data: &[u8]) -> i32 {
         let write_len = data.len().try_into().unwrap_or(ffi::AVERROR_BUG2);
 
         let send_result = self.tx.send(data.to_vec());
-        let write_result = self.file.as_mut().map(|file| (*file).write_all(data));
+        let write_result = self.file.as_mut().map(|file| file.write_all(data));
 
         tracing::trace!(?write_len, ?send_result, ?write_result);
 
