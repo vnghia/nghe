@@ -83,13 +83,13 @@ unicode-normalization = { version = "0.1.24" }
 xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
 
 [dev-dependencies]
+bon = { workspace = true }
 fake = { workspace = true }
 url = { workspace = true }
 rstest = { workspace = true }
 
 nghe_api = { path = "../nghe-api", features = ["test"] }
 
-bon = { version = "2.3.0" }
 http-body-util = { version = "0.1.2" }
 tempfile = { version = "3.10.1" }
 

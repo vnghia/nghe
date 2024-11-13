@@ -3919,6 +3919,7 @@ name = "nghe_api"
 version = "0.9.10"
 dependencies = [
  "bitcode",
+ "bon",
  "built",
  "const_format",
  "fake",
@@ -3928,6 +3929,7 @@ dependencies = [
  "paste",
  "serde",
  "serde_json",
+ "serde_with",
  "strum",
  "uuid",
 ]
