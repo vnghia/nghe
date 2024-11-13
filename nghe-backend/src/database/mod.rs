@@ -1,8 +1,10 @@
+mod config;
+
 use diesel_async::pooled_connection::{deadpool, AsyncDieselConnectionManager};
 use diesel_async::AsyncPgConnection;
 use libaes::Cipher;
 
-use crate::{config, Error};
+use crate::Error;
 
 type Connection = AsyncDieselConnectionManager<AsyncPgConnection>;
 type Pool = deadpool::Pool<AsyncPgConnection>;
@@ -18,7 +20,7 @@ pub struct Database {
 impl Database {
     const IV_LEN: usize = 16;
 
-    pub fn new(config: &config::Database) -> Self {
+    pub fn new(config: &crate::config::Database) -> Self {
         let pool = Pool::builder(Connection::new(&config.url))
             .build()
             .expect("Could not build database connection pool");

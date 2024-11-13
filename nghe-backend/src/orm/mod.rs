@@ -1,6 +1,7 @@
 pub mod albums;
 pub mod artists;
 pub mod binary;
+pub mod configs;
 pub mod genres;
 pub mod music_folders;
 pub mod permission;

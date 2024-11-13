@@ -24,6 +24,7 @@ use o2o::o2o;
 #[from_owned(std::ffi::NulError)]
 #[from_owned(std::str::Utf8Error)]
 #[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
+#[from_owned(std::string::FromUtf8Error)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),
@@ -40,6 +41,8 @@ pub enum Error {
     LanguageFromDatabaseIsNull,
     #[error("Inconsistency encountered while querying database for scan process")]
     DatabaseScanQueryInconsistent,
+    #[error("Invalid config format for key {0}")]
+    DatabaseInvalidConfigFormat(&'static str),
 
     #[error("{0}")]
     Unauthorized(&'static str),
