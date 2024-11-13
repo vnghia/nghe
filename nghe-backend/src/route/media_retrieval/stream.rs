@@ -135,7 +135,6 @@ mod tests {
 
         let user_id = mock.user(0).await.user.id;
         let song_id = music_folder.query_id(0).await;
-        let mut stream_set = tokio::task::JoinSet::new();
 
         let database = mock.database();
         let filesystem = mock.filesystem();
@@ -158,6 +157,7 @@ mod tests {
             time_offset: Some(time_offset),
         };
 
+        let mut stream_set = tokio::task::JoinSet::new();
         for _ in 0..2 {
             let database = database.clone();
             let filesystem = filesystem.clone();
@@ -184,16 +184,31 @@ mod tests {
             &[TranscodeStatus::NoCache, TranscodeStatus::WithCache]
         );
 
-        let (status, headers, body) = handler(database, filesystem, None, config, user_id, request)
-            .await
-            .unwrap()
-            .extract()
-            .await;
-        assert_eq!(status, StatusCode::OK);
+        let mut stream_set = tokio::task::JoinSet::new();
+        for _ in 0..2 {
+            let database = database.clone();
+            let filesystem = filesystem.clone();
+            let config = config.clone();
+            stream_set.spawn(async move {
+                handler(&database, &filesystem, None, config, user_id, request)
+                    .await
+                    .unwrap()
+                    .extract()
+                    .await
+            });
+        }
+
+        let responses = stream_set.join_all().await;
+        let mut transcode_status = vec![];
+        assert_eq!(responses.len(), 2);
+        for (status, headers, body) in responses.into_iter().take(2) {
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(transcoded, body);
+            transcode_status.push(headers.typed_get::<crate::test::transcode::Header>().unwrap().0);
+        }
         assert_eq!(
-            headers.typed_get::<crate::test::transcode::Header>().unwrap().0,
-            TranscodeStatus::ServeCachedOutput
+            transcode_status.into_iter().sorted().collect_vec(),
+            &[TranscodeStatus::ServeCachedOutput, TranscodeStatus::ServeCachedOutput]
         );
-        assert_eq!(transcoded, body);
     }
 }
