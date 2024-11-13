@@ -11,21 +11,25 @@ pub trait Config {
     const KEY: &'static str;
     const ENCRYPTED: bool;
 
-    fn value(&self) -> Cow<'_, str>;
+    fn value(&self) -> Result<Cow<'_, str>, Error>;
 }
 
 impl Database {
     pub async fn upsert_config<C: Config>(&self, config: &C) -> Result<(), Error> {
-        let value = config.value();
+        let value = config.value()?;
         let data = if C::ENCRYPTED {
             let value: &str = value.as_ref();
             configs::Data { text: None, byte: Some(self.encrypt(value).into()) }
         } else {
             configs::Data { text: Some(value), byte: None }
         };
+        let upsert = configs::Upsert { key: C::KEY, data };
 
         diesel::insert_into(configs::table)
-            .values(configs::Upsert { key: C::KEY, data })
+            .values(&upsert)
+            .on_conflict(configs::key)
+            .do_update()
+            .set(&upsert)
             .execute(&mut self.get().await?)
             .await?;
         Ok(())
@@ -56,31 +60,33 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
+    use fake::{Dummy, Fake, Faker};
     use rstest::rstest;
 
     use super::*;
     use crate::test::{mock, Mock};
 
+    #[derive(Dummy)]
     struct NonEncryptedConfig(String);
 
     impl Config for NonEncryptedConfig {
         const ENCRYPTED: bool = false;
         const KEY: &'static str = "non-encrypted";
 
-        fn value(&self) -> Cow<'_, str> {
-            (&self.0).into()
+        fn value(&self) -> Result<Cow<'_, str>, Error> {
+            Ok((&self.0).into())
         }
     }
 
+    #[derive(Dummy)]
     struct EncryptedConfig(String);
 
     impl Config for EncryptedConfig {
         const ENCRYPTED: bool = true;
         const KEY: &'static str = "encrypted";
 
-        fn value(&self) -> Cow<'_, str> {
-            (&self.0).into()
+        fn value(&self) -> Result<Cow<'_, str>, Error> {
+            Ok((&self.0).into())
         }
     }
 
@@ -90,12 +96,21 @@ mod tests {
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
+        #[values(true, false)] update: bool,
     ) {
         let database = mock.database();
-        let config = NonEncryptedConfig(Faker.fake());
+
+        let config: NonEncryptedConfig = Faker.fake();
         database.upsert_config(&config).await.unwrap();
         let database_config = database.get_config::<NonEncryptedConfig>().await.unwrap();
         assert_eq!(database_config, config.0);
+
+        if update {
+            let update: NonEncryptedConfig = Faker.fake();
+            database.upsert_config(&update).await.unwrap();
+            let database_update = database.get_config::<NonEncryptedConfig>().await.unwrap();
+            assert_eq!(database_update, update.0);
+        }
     }
 
     #[rstest]
@@ -104,11 +119,20 @@ mod tests {
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
+        #[values(true, false)] update: bool,
     ) {
         let database = mock.database();
-        let config = EncryptedConfig(Faker.fake());
+
+        let config: EncryptedConfig = Faker.fake();
         database.upsert_config(&config).await.unwrap();
         let database_config = database.get_config::<EncryptedConfig>().await.unwrap();
         assert_eq!(database_config, config.0);
+
+        if update {
+            let update: EncryptedConfig = Faker.fake();
+            database.upsert_config(&update).await.unwrap();
+            let database_update = database.get_config::<EncryptedConfig>().await.unwrap();
+            assert_eq!(database_update, update.0);
+        }
     }
 }

@@ -11,6 +11,8 @@ type Pool = deadpool::Pool<AsyncPgConnection>;
 
 pub type Key = [u8; libaes::AES_128_KEY_LEN];
 
+pub use config::Config;
+
 #[derive(Clone)]
 pub struct Database {
     pool: Pool,

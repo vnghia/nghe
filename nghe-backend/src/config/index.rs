@@ -1,5 +1,10 @@
+use std::borrow::Cow;
+
 use derivative::Derivative;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+
+use crate::{database, Error};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
 #[derivative(Default)]
@@ -13,10 +18,29 @@ impl Index {
     fn split(s: &str) -> Vec<String> {
         s.split_ascii_whitespace().map(|v| concat_string::concat_string!(v, " ")).collect()
     }
+
+    fn merge(prefixes: &[impl AsRef<str>]) -> Result<String, Error> {
+        Ok(prefixes
+            .iter()
+            .map(|prefix| prefix.as_ref().strip_suffix(' '))
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| Error::ConfigIndexIgnorePrefixEndWithoutSpace)?
+            .iter()
+            .join(" "))
+    }
+}
+
+impl database::Config for Index {
+    const KEY: &'static str = "ignored_articles";
+
+    const ENCRYPTED: bool = false;
+
+    fn value(&self) -> Result<Cow<'_, str>, Error> {
+        Self::merge(&self.ignore_prefixes).map(String::into)
+    }
 }
 
 mod split {
-    use itertools::Itertools;
     use serde::ser::Error;
     use serde::{Deserialize, Deserializer, Serializer};
 
@@ -26,21 +50,14 @@ mod split {
     where
         S: Serializer,
     {
-        serializer.serialize_str(
-            &prefixes
-                .iter()
-                .map(|prefix| prefix.strip_suffix(' '))
-                .collect::<Option<Vec<_>>>()
-                .ok_or_else(|| S::Error::custom("Prefix does not end with whitespace"))?
-                .iter()
-                .join(" "),
-        )
+        serializer
+            .serialize_str(&Index::merge(prefixes).map_err(|e| S::Error::custom(e.to_string()))?)
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
     where
         D: Deserializer<'de>,
     {
-        Ok(Index::split(&<String>::deserialize(deserializer)?))
+        Ok(Index::split(<&'de str>::deserialize(deserializer)?))
     }
 }

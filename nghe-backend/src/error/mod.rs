@@ -94,6 +94,9 @@ pub enum Error {
     #[error("Typed path has wrong platform information")]
     FilesystemTypedPathWrongPlatform,
 
+    #[error("Prefix does not end with whitespace")]
+    ConfigIndexIgnorePrefixEndWithoutSpace,
+
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
 }

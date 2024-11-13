@@ -209,7 +209,9 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(())
     }
 
-    #[instrument(skip(self), fields(music_folder_data = ?self.music_folder.data, started_at), ret, err)]
+    #[instrument(
+        skip(self), fields(music_folder_data = ?self.music_folder.data, started_at), ret, err
+    )]
     pub async fn run(&self) -> Result<(), Error> {
         let span = tracing::Span::current();
         let started_at = crate::time::now().await;
@@ -218,7 +220,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         let (scan_handle, permit, rx) = self.init();
         let mut join_set = tokio::task::JoinSet::new();
 
-        while let Ok(entry) = rx.recv_async().await {  
+        while let Ok(entry) = rx.recv_async().await {
             let permit = permit.clone().acquire_owned().await?;
             let scan = self.clone().into_owned();
             join_set.spawn(
@@ -237,6 +239,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
         audio::Information::cleanup(&self.database, started_at).await?;
 
+        self.database.upsert_config(&self.config.index).await?;
         Ok(())
     }
 }
