@@ -90,7 +90,7 @@ jobs:
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
           SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json
