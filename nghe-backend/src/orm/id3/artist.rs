@@ -82,33 +82,47 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_query_song_artist_only(#[future(awt)] mock: Mock) {
-        let database = mock.database();
-        let prefixes = &mock.config.index.ignore_prefixes;
-
+    async fn test_query_artist(
+        #[future(awt)] mock: Mock,
+        #[values(0, 5)] n_song: i64,
+        #[values(0, 6)] n_album: i64,
+        #[values(0, 7)] n_both: i64,
+    ) {
         let mut music_folder = mock.music_folder(0).await;
         let artist: audio::Artist = Faker.fake();
-        let artist_id = artist.upsert(database, prefixes).await.unwrap();
-        let n_song: i64 = (2..4).fake();
-        music_folder
-            .add_audio()
-            .artists(audio::Artists {
-                song: [artist].into(),
-                album: [Faker.fake()].into(),
-                compilation: false,
-            })
-            .n_song(n_song.try_into().unwrap())
-            .call()
-            .await;
+        let artist_id = artist.upsert_mock(&mock).await;
+
+        let mut add_audio_artist =
+            async |song: audio::Artist<'static>, album: audio::Artist<'static>, n_song: i64| {
+                // Each song will have a different album so `n_song` can be used here.
+                music_folder
+                    .add_audio()
+                    .artists(audio::Artists {
+                        song: [song].into(),
+                        album: [album].into(),
+                        compilation: false,
+                    })
+                    .n_song(n_song.try_into().unwrap())
+                    .call()
+                    .await;
+            };
+
+        add_audio_artist(artist.clone(), Faker.fake(), n_song).await;
+        add_audio_artist(Faker.fake(), artist.clone(), n_album).await;
+        add_audio_artist(artist.clone(), artist.clone(), n_both).await;
 
         let database_artist = query::artist(mock.user(0).await.user.id)
             .filter(artists::id.eq(artist_id))
             .select(Artist::as_select())
             .get_result(&mut mock.get().await)
-            .await
-            .unwrap();
+            .await;
 
-        assert_eq!(database_artist.song_count, n_song);
-        assert_eq!(database_artist.album_count, 0);
+        if n_song == 0 && n_album == 0 && n_both == 0 {
+            assert!(database_artist.is_err())
+        } else {
+            let database_artist = database_artist.unwrap();
+            assert_eq!(database_artist.song_count, n_song + n_both);
+            assert_eq!(database_artist.album_count, n_album + n_both);
+        }
     }
 }

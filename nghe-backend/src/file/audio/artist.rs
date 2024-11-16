@@ -281,6 +281,12 @@ mod test {
         }
     }
 
+    impl Artist<'_> {
+        pub async fn upsert_mock(&self, mock: &Mock) -> Uuid {
+            self.upsert(mock.database(), &mock.config.index.ignore_prefixes).await.unwrap()
+        }
+    }
+
     impl Artist<'static> {
         pub async fn query(mock: &Mock, id: Uuid) -> Self {
             artists::table
@@ -440,18 +446,15 @@ mod tests {
         #[values(true, false)] mbz_id: bool,
         #[values(true, false)] update_artist: bool,
     ) {
-        let database = mock.database();
-        let prefixes = &mock.config.index.ignore_prefixes;
-
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
         let artist = Artist { mbz_id, ..Faker.fake() };
-        let id = artist.upsert(database, prefixes).await.unwrap();
+        let id = artist.upsert_mock(&mock).await;
         let database_artist = Artist::query(&mock, id).await;
         assert_eq!(database_artist, artist);
 
         if update_artist {
             let update_artist = Artist { mbz_id, ..Faker.fake() };
-            let update_id = update_artist.upsert(database, prefixes).await.unwrap();
+            let update_id = update_artist.upsert_mock(&mock).await;
             let database_update_artist = Artist::query(&mock, id).await;
             if mbz_id.is_some() {
                 assert_eq!(id, update_id);
@@ -470,8 +473,8 @@ mod tests {
         // We want to make sure that insert the same artist with no mbz_id
         // twice does not result in any error.
         let artist = Artist { mbz_id: None, ..Faker.fake() };
-        let id = artist.upsert(mock.database(), &[""]).await.unwrap();
-        let update_id = artist.upsert(mock.database(), &[""]).await.unwrap();
+        let id = artist.upsert_mock(&mock).await;
+        let update_id = artist.upsert_mock(&mock).await;
         assert_eq!(update_id, id);
     }
 
