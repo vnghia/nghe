@@ -1,8 +1,10 @@
 use diesel::dsl::count_distinct;
 use diesel::prelude::*;
+use nghe_api::id3;
 use uuid::Uuid;
 
 use crate::orm::{albums, artists, songs};
+use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
@@ -25,6 +27,26 @@ pub struct Artist {
     pub song_count: i64,
     #[diesel(column_name = mbz_id)]
     pub music_brainz_id: Option<Uuid>,
+}
+
+impl Required {
+    pub fn into_api(self) -> id3::Artist {
+        id3::Artist::builder().id(self.id).name(self.name).build()
+    }
+}
+
+impl Artist {
+    pub fn try_into_api(self) -> Result<(String, id3::Artist), Error> {
+        Ok((
+            self.index,
+            id3::Artist::builder()
+                .id(self.required.id)
+                .name(self.required.name)
+                .album_count(self.album_count.try_into()?)
+                .maybe_music_brainz_id(self.music_brainz_id)
+                .build(),
+        ))
+    }
 }
 
 pub mod query {
@@ -118,7 +140,7 @@ mod tests {
             .await;
 
         if n_song == 0 && n_album == 0 && n_both == 0 {
-            assert!(database_artist.is_err())
+            assert!(database_artist.is_err());
         } else {
             let database_artist = database_artist.unwrap();
             assert_eq!(database_artist.song_count, n_song + n_both);
