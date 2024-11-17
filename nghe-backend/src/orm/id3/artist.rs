@@ -60,7 +60,7 @@ pub mod query {
     diesel::alias!(albums as albums_sa: AlbumsSA, songs as songs_saa: SongsSAA);
 
     #[auto_type]
-    fn artist() -> _ {
+    fn unchecked() -> _ {
         // We will do two joins:
         //
         //  - songs_artists -> songs -> albums.
@@ -82,9 +82,9 @@ pub mod query {
     }
 
     #[auto_type]
-    pub fn artist_permission(user_id: Uuid) -> _ {
+    pub fn permission(user_id: Uuid) -> _ {
         // Permission should be checked against `albums_sa` and `albums`.
-        artist().filter(exists(
+        unchecked().filter(exists(
             user_music_folder_permissions::table
                 .filter(user_music_folder_permissions::user_id.eq(user_id))
                 .filter(
@@ -97,9 +97,10 @@ pub mod query {
     }
 
     #[auto_type]
-    pub fn artist_music_folder<'ids>(music_folder_ids: &'ids [Uuid]) -> _ {
+    pub fn music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
         // Permission should be checked against `albums_sa` and `albums`.
-        artist().filter(
+        let permission: permission = permission(user_id);
+        permission.filter(
             albums_sa
                 .field(albums::music_folder_id)
                 .eq_any(music_folder_ids)
@@ -154,7 +155,7 @@ mod tests {
         add_audio_artist(&mock, 0, Faker.fake(), artist.clone(), n_album).await;
         add_audio_artist(&mock, 0, artist.clone(), artist.clone(), n_both).await;
 
-        let database_artist = query::artist_permission(mock.user(0).await.user.id)
+        let database_artist = query::permission(mock.user(0).await.user.id)
             .filter(artists::id.eq(artist_id))
             .select(Artist::as_select())
             .get_result(&mut mock.get().await)
@@ -180,6 +181,7 @@ mod tests {
         mock.add_music_folder().allow(allow).call().await;
         mock.add_music_folder().call().await;
 
+        let user_id = mock.user(0).await.user.id;
         let artist: audio::Artist = Faker.fake();
         let artist_id = artist.upsert_mock(&mock).await;
 
@@ -188,22 +190,22 @@ mod tests {
         add_audio_artist(&mock, 0, Faker.fake(), Faker.fake(), (2..4).fake()).await;
         add_audio_artist(&mock, 1, Faker.fake(), Faker.fake(), (2..4).fake()).await;
 
-        let database_artists = query::artist_permission(mock.user(0).await.user.id)
+        let database_artists = query::permission(user_id)
             .select(Artist::as_select())
             .get_results(&mut mock.get().await)
             .await
             .unwrap();
         assert_eq!(database_artists.len(), if allow { 5 } else { 2 });
 
-        let mut music_folder_ids = vec![mock.music_folder(1).await.id()];
-        if allow {
-            music_folder_ids.push(mock.music_folder(0).await.id());
-        }
-        let database_artists_music_folder = query::artist_music_folder(&music_folder_ids)
-            .select(Artist::as_select())
-            .get_results(&mut mock.get().await)
-            .await
-            .unwrap();
+        // Only allow music folders will be returned.
+        let database_artists_music_folder = query::music_folder(
+            user_id,
+            &[mock.music_folder(0).await.id(), mock.music_folder(1).await.id()],
+        )
+        .select(Artist::as_select())
+        .get_results(&mut mock.get().await)
+        .await
+        .unwrap();
         assert_eq!(database_artists, database_artists_music_folder);
 
         let database_artist =
