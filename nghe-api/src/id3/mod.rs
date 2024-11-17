@@ -1,3 +1,3 @@
 mod artist;
 
-pub use artist::Artist;
+pub use artist::{Artist, Role};

@@ -9,7 +9,7 @@ use crate::Error;
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct Required {
     pub id: Uuid,
     pub name: String,
@@ -18,32 +18,35 @@ pub struct Required {
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct Artist {
     #[diesel(embed)]
     pub required: Required,
     pub index: String,
-    #[diesel(select_expression = count_distinct(albums::id.nullable()))]
-    pub album_count: i64,
     #[diesel(select_expression = count_distinct(songs::id.nullable()))]
     pub song_count: i64,
+    #[diesel(select_expression = count_distinct(albums::id.nullable()))]
+    pub album_count: i64,
     #[diesel(column_name = mbz_id)]
     pub music_brainz_id: Option<Uuid>,
 }
 
-impl Required {
-    pub fn into_api(self) -> id3::Artist {
-        id3::Artist::builder().id(self.id).name(self.name).build()
-    }
-}
-
 impl Artist {
     pub fn try_into_api(self) -> Result<id3::Artist, Error> {
+        let mut roles = vec![];
+        if self.song_count > 0 {
+            roles.push(id3::Role::Artist);
+        }
+        if self.album_count > 0 {
+            roles.push(id3::Role::AlbumArtist);
+        }
+
         Ok(id3::Artist::builder()
             .id(self.required.id)
             .name(self.required.name)
             .album_count(self.album_count.try_into()?)
             .maybe_music_brainz_id(self.music_brainz_id)
+            .roles(roles)
             .build())
     }
 }
@@ -212,5 +215,20 @@ mod tests {
         } else {
             assert!(database_artist.is_none());
         }
+    }
+
+    #[rstest]
+    #[case(0, 0, &[])]
+    #[case(1, 0, &[id3::Role::Artist])]
+    #[case(0, 1, &[id3::Role::AlbumArtist])]
+    #[case(1, 1, &[id3::Role::Artist, id3::Role::AlbumArtist])]
+    fn test_try_into_api(
+        #[case] song_count: i64,
+        #[case] album_count: i64,
+        #[case] roles: &[id3::Role],
+    ) {
+        let artist = Artist { song_count, album_count, ..Faker.fake() };
+        let artist = artist.try_into_api().unwrap();
+        assert_eq!(artist.roles, roles);
     }
 }
