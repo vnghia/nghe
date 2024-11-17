@@ -6,7 +6,8 @@ use crate::id3;
 #[api_derive(endpoint = true)]
 #[endpoint(path = "getArtists")]
 pub struct Request {
-    pub music_folder_id: Option<Uuid>,
+    #[serde(rename = "musicFolderId")]
+    pub music_folder_ids: Option<Vec<Uuid>>,
 }
 
 #[api_derive(response = true)]

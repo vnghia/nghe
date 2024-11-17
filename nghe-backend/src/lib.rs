@@ -50,6 +50,7 @@ pub async fn build(config: config::Config) -> Router {
                 index: config.index,
             },
         ))
+        .merge(route::browsing::router())
         .with_state(database::Database::new(&config.database))
         .layer(TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
             tracing::info_span!(

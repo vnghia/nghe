@@ -38,21 +38,18 @@ impl Required {
 }
 
 impl Artist {
-    pub fn try_into_api(self) -> Result<(String, id3::Artist), Error> {
-        Ok((
-            self.index,
-            id3::Artist::builder()
-                .id(self.required.id)
-                .name(self.required.name)
-                .album_count(self.album_count.try_into()?)
-                .maybe_music_brainz_id(self.music_brainz_id)
-                .build(),
-        ))
+    pub fn try_into_api(self) -> Result<id3::Artist, Error> {
+        Ok(id3::Artist::builder()
+            .id(self.required.id)
+            .name(self.required.name)
+            .album_count(self.album_count.try_into()?)
+            .maybe_music_brainz_id(self.music_brainz_id)
+            .build())
     }
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, exists};
+    use diesel::dsl::{auto_type, exists, AsSelect};
 
     use super::*;
     use crate::orm::{songs_album_artists, songs_artists, user_music_folder_permissions};
@@ -70,6 +67,7 @@ pub mod query {
         //  - songs_album_artists -> songs -> albums.
         //  - use albums for extracting information and checking permission.
         //  - use songs for joining -> use alias `songs_saa`.
+        let artist: AsSelect<Artist, crate::orm::Type> = Artist::as_select();
         artists::table
             .left_join(songs_artists::table)
             .left_join(songs::table.on(songs::id.eq(songs_artists::song_id)))
@@ -79,6 +77,7 @@ pub mod query {
             .left_join(albums::table.on(albums::id.eq(songs_saa.field(songs::album_id))))
             .group_by(artists::id)
             .order_by((artists::index, artists::name))
+            .select(artist)
     }
 
     #[auto_type]
@@ -157,7 +156,6 @@ mod tests {
 
         let database_artist = query::permission(mock.user(0).await.user.id)
             .filter(artists::id.eq(artist_id))
-            .select(Artist::as_select())
             .get_result(&mut mock.get().await)
             .await;
 
@@ -190,11 +188,8 @@ mod tests {
         add_audio_artist(&mock, 0, Faker.fake(), Faker.fake(), (2..4).fake()).await;
         add_audio_artist(&mock, 1, Faker.fake(), Faker.fake(), (2..4).fake()).await;
 
-        let database_artists = query::permission(user_id)
-            .select(Artist::as_select())
-            .get_results(&mut mock.get().await)
-            .await
-            .unwrap();
+        let database_artists =
+            query::permission(user_id).get_results(&mut mock.get().await).await.unwrap();
         assert_eq!(database_artists.len(), if allow { 5 } else { 2 });
 
         // Only allow music folders will be returned.
@@ -202,7 +197,6 @@ mod tests {
             user_id,
             &[mock.music_folder(0).await.id(), mock.music_folder(1).await.id()],
         )
-        .select(Artist::as_select())
         .get_results(&mut mock.get().await)
         .await
         .unwrap();
