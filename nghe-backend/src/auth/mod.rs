@@ -33,14 +33,14 @@ trait FromIdRequest<R>: Sized {
     fn from_id_request(id: Uuid, request: R) -> Self;
 }
 
-pub trait Authorize: Sized {
-    fn authorize(self, role: users::Role) -> Result<Self, Error>;
+pub trait Authorize {
+    fn authorize(role: users::Role) -> Result<(), Error>;
 }
 
-async fn authenticate(
+async fn authenticate<A: Authorize>(
     database: &Database,
     data: Auth<'_, '_>,
-) -> Result<(Uuid, users::Role), Error> {
+) -> Result<Uuid, Error> {
     let users::Auth { id, password, role } = users::table
         .filter(users::username.eq(data.username))
         .select(users::Auth::as_select())
@@ -48,12 +48,9 @@ async fn authenticate(
         .await
         .map_err(|_| Error::Unauthenticated)?;
     let password = database.decrypt(password)?;
+    A::authorize(role)?;
 
-    if Auth::check(password, data.salt, &data.token) {
-        Ok((id, role))
-    } else {
-        Err(Error::Unauthenticated)
-    }
+    if Auth::check(password, data.salt, &data.token) { Ok(id) } else { Err(Error::Unauthenticated) }
 }
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
@@ -68,11 +65,10 @@ where
         .map_err(|_| Error::SerializeAuthParameters(input.to_owned()))?;
 
     let database = Database::from_ref(state);
-    let (id, role) = authenticate(&database, auth).await?;
+    let id = authenticate::<R>(&database, auth).await?;
 
     let request = serde_html_form::from_str::<R>(input)
-        .map_err(|_| Error::SerializeRequestParameters(input.to_owned()))?
-        .authorize(role)?;
+        .map_err(|_| Error::SerializeRequestParameters(input.to_owned()))?;
 
     Ok(U::from_id_request(id, request))
 }
@@ -147,8 +143,8 @@ where
                 bitcode::decode(&bytes).map_err(|_| Error::SerializeBinaryRequest)?;
 
             let database = Database::from_ref(state);
-            let (id, role) = authenticate(&database, auth).await?;
-            Ok(Self { id, request: request.authorize(role)? })
+            let id = authenticate::<R>(&database, auth).await?;
+            Ok(Self { id, request })
         } else {
             Ok(Self {
                 id: Uuid::default(),
@@ -185,8 +181,8 @@ mod tests {
     struct Response;
 
     impl Authorize for Request {
-        fn authorize(self, _: users::Role) -> Result<Self, Error> {
-            Ok(self)
+        fn authorize(_: users::Role) -> Result<(), Error> {
+            Ok(())
         }
     }
 
@@ -198,7 +194,7 @@ mod tests {
         mock: Mock,
     ) {
         let user = mock.user(0).await;
-        let id = authenticate(mock.database(), (&user.auth()).into()).await.unwrap().0;
+        let id = authenticate::<Request>(mock.database(), (&user.auth()).into()).await.unwrap();
         assert_eq!(id, user.id());
     }
 
@@ -213,7 +209,7 @@ mod tests {
 
         let username: String = Faker.fake();
         let auth = Auth { username: &username, ..(&auth).into() };
-        assert!(authenticate(mock.database(), auth).await.is_err());
+        assert!(authenticate::<Request>(mock.database(), auth).await.is_err());
     }
 
     #[rstest]
@@ -227,7 +223,7 @@ mod tests {
 
         let token = Auth::tokenize(Faker.fake::<String>(), &auth.salt);
         let auth = Auth { token, ..(&auth).into() };
-        assert!(authenticate(mock.database(), auth).await.is_err());
+        assert!(authenticate::<Request>(mock.database(), auth).await.is_err());
     }
 
     #[rstest]

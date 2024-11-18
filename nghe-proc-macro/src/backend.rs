@@ -279,9 +279,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use crate::auth::{Authorize, BinaryUser, GetUser, PostUser};
 
         impl Authorize for Request {
-            fn authorize(self, role: crate::orm::users::Role) -> Result<Self, Error> {
+            fn authorize(role: crate::orm::users::Role) -> Result<(), Error> {
                 if #authorize_fn {
-                    Ok(self)
+                    Ok(())
                 } else {
                     Err(Error::MissingRole(#missing_role))
                 }
