@@ -1,3 +1,4 @@
+#![feature(iterator_try_collect)]
 #![feature(let_chains)]
 
 use proc_macro::TokenStream;

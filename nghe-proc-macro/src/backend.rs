@@ -18,11 +18,66 @@ struct Handler {
 
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct BuildRouter {
-    modules: Vec<syn::Ident>,
+    modules: Vec<syn::Expr>,
     #[deluxe(default = false)]
     filesystem: bool,
     #[deluxe(default = vec![])]
     extensions: Vec<syn::Path>,
+}
+
+#[derive(Debug, bon::Builder)]
+struct ModuleConfig {
+    pub ident: syn::Ident,
+    #[builder(default = true)]
+    pub json: bool,
+    #[builder(default = true)]
+    pub binary: bool,
+}
+
+impl TryFrom<syn::Expr> for ModuleConfig {
+    type Error = Error;
+
+    fn try_from(value: syn::Expr) -> Result<Self, Self::Error> {
+        let span = value.span();
+        match value {
+            syn::Expr::Path(syn::ExprPath { path, .. }) => {
+                let ident = path
+                    .get_ident()
+                    .ok_or_else(|| Error::new(span, "Only `Path` with one segment is supported"))?
+                    .to_owned();
+                Ok(Self::builder().ident(ident).build())
+            }
+            syn::Expr::Struct(syn::ExprStruct { path, fields, .. }) => {
+                let ident = path
+                    .get_ident()
+                    .ok_or_else(|| {
+                        Error::new(span, "Only `Struct` path with one segment is supported")
+                    })?
+                    .to_owned();
+
+                let extract_bool = |key: &'static str| -> Option<bool> {
+                    fields.iter().find_map(|value| {
+                        if let syn::Member::Named(ref ident) = value.member
+                            && ident == key
+                            && let syn::Expr::Lit(syn::ExprLit { ref lit, .. }) = value.expr
+                            && let syn::Lit::Bool(syn::LitBool { value, .. }) = lit
+                        {
+                            Some(*value)
+                        } else {
+                            None
+                        }
+                    })
+                };
+
+                Ok(Self::builder()
+                    .ident(ident)
+                    .maybe_json(extract_bool("json"))
+                    .maybe_binary(extract_bool("binary"))
+                    .build())
+            }
+            _ => Err(Error::new(span, "Only `Path` and `Struct` expressions are supported")),
+        }
+    }
 }
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
@@ -49,9 +104,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             match pat.ident.to_string().as_str() {
                 "database" => {
                     skip_debugs.push(&pat.ident);
-                    common_args.push(
-                        parse_quote!(extract::State(database): extract::State<crate::database::Database>)
-                    );
+                    common_args.push(parse_quote! {
+                        extract::State(database): extract::State<crate::database::Database>
+                    });
                     pass_args.push(parse_quote!(&database));
                 }
                 "user_id" => {
@@ -214,35 +269,46 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
     let endpoints: Vec<_> = input
         .modules
         .into_iter()
-        .flat_map(|module| {
-            let module = format_ident!("{module}");
+        .map(|module| {
+            let config: ModuleConfig = module.try_into()?;
+            let module = config.ident;
             let request = quote! { <#module::Request as nghe_api::common::Endpoint> };
 
             let json_get_handler = quote! { #module::json_get_handler };
             let json_post_handler = quote! { #module::json_post_handler };
             let binary_handler = quote! { #module::binary_handler };
 
-            vec![
-                quote! {
+            let mut routers = vec![];
+
+            if config.json {
+                routers.push(quote! {
                     route(
                         #request::ENDPOINT,
                         axum::routing::get(#json_get_handler).post(#json_post_handler)
                     )
-                },
-                quote! {
+                });
+                routers.push(quote! {
                     route(
                         #request::ENDPOINT_VIEW,
                         axum::routing::get(#json_get_handler).post(#json_post_handler)
                     )
-                },
-                quote! {
+                });
+            }
+
+            if config.binary {
+                routers.push(quote! {
                     route(
                         #request::ENDPOINT_BINARY,
                         axum::routing::post(#binary_handler)
                     )
-                },
-            ]
+                });
+            }
+
+            Ok::<_, Error>(routers)
         })
+        .try_collect::<Vec<_>>()?
+        .into_iter()
+        .flatten()
         .collect();
 
     let mut router_args: Vec<syn::FnArg> = vec![];
