@@ -163,5 +163,7 @@ pub async fn mock(
     for _ in 0..n_music_folder {
         mock.add_music_folder().ty(Faker.fake::<common::filesystem::Type>()).call().await;
     }
+    mock.database().upsert_config(&mock.config.index).await.unwrap();
+
     mock
 }
