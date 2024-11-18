@@ -19,12 +19,12 @@ pub struct Song<'mf, 'path> {
 
 #[auto_type]
 pub fn query<'mf, 'path>(user_id: Uuid, song_id: Uuid) -> _ {
-    let permission_query: permission::query = permission::query(user_id);
+    let permission: permission::with_album = permission::with_album(user_id);
     let select_song: AsSelect<Song<'mf, 'path>, crate::orm::Type> = Song::as_select();
     albums::table
         .inner_join(songs::table)
         .inner_join(music_folders::table)
         .filter(songs::id.eq(song_id))
-        .filter(permission_query)
+        .filter(permission)
         .select(select_song)
 }
