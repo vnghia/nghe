@@ -30,17 +30,26 @@ pub struct SubsonicResponse<B> {
     root: RootResponse<B>,
 }
 
-pub trait Endpoint: DeserializeOwned + Encode + DecodeOwned {
-    const ENDPOINT: &'static str;
-    const ENDPOINT_VIEW: &'static str;
-    const ENDPOINT_BINARY: &'static str;
+pub trait JsonURL {
+    const URL: &'static str;
+    const URL_VIEW: &'static str;
 }
 
-pub trait EncodableEndpoint: Endpoint {
-    type Response: Serialize + Encode + DecodeOwned;
+pub trait JsonRequest = JsonURL + DeserializeOwned;
+
+pub trait JsonEndpoint: JsonRequest {
+    type Response: Serialize;
 }
 
-pub trait BinaryEndpoint: Endpoint {}
+pub trait BinaryURL {
+    const URL_BINARY: &'static str;
+}
+
+pub trait BinaryRequest = BinaryURL + Encode + DecodeOwned;
+
+pub trait BinaryEndpoint: BinaryRequest {
+    type Response: Encode + DecodeOwned;
+}
 
 impl<B> SubsonicResponse<B> {
     pub fn new(body: B) -> Self {

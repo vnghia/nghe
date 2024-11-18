@@ -15,7 +15,7 @@ pub struct Auth<'u, 't> {
 }
 
 #[api_derive(serde = false, fake = false)]
-pub struct BinaryRequest<'u, 't, R> {
+pub struct AuthRequest<'u, 't, R> {
     pub auth: Auth<'u, 't>,
     pub request: R,
 }

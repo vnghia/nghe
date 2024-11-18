@@ -12,7 +12,7 @@ pub enum Format {
 }
 
 #[api_derive(endpoint = true)]
-#[endpoint(path = "stream", binary = true)]
+#[endpoint(path = "stream", url_only = true)]
 #[derive(Clone, Copy)]
 pub struct Request {
     pub id: Uuid,

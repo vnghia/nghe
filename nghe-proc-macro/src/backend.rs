@@ -10,6 +10,10 @@ struct Handler {
     #[deluxe(default = "trace".into())]
     ret_level: String,
     role: Option<syn::Ident>,
+    #[deluxe(default = true)]
+    json: bool,
+    #[deluxe(default = true)]
+    binary: bool,
     #[deluxe(default = vec![])]
     headers: Vec<syn::Ident>,
     #[deluxe(default = true)]
@@ -82,7 +86,7 @@ impl TryFrom<syn::Expr> for ModuleConfig {
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemFn = syn::parse2(item)?;
-    let Handler { ret_level, role, headers, need_auth } = deluxe::parse2(attr)?;
+    let Handler { ret_level, role, json, binary, headers, need_auth } = deluxe::parse2(attr)?;
 
     let ident = &input.sig.ident;
     if ident != "handler" {
@@ -102,7 +106,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             && pat.ident != "request"
         {
             match pat.ident.to_string().as_str() {
-                "database" => {
+                "database" | "_database" => {
                     skip_debugs.push(&pat.ident);
                     common_args.push(parse_quote! {
                         extract::State(database): extract::State<crate::database::Database>
@@ -156,16 +160,6 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         }
     }
 
-    let json_get_args =
-        [common_args.as_slice(), [parse_quote!(user: GetUser<Request, #need_auth>)].as_slice()]
-            .concat();
-    let json_post_args =
-        [common_args.as_slice(), [parse_quote!(user: PostUser<Request>)].as_slice()].concat();
-    let binary_args =
-        [common_args.as_slice(), [parse_quote!(user: BinaryUser<Request, #need_auth>)].as_slice()]
-            .concat();
-    pass_args.push(parse_quote!(user.request));
-
     let (authorize_fn, missing_role) = if let Some(role) = role {
         if role == "admin" {
             (quote! { role.admin }, role.to_string())
@@ -192,53 +186,87 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         false
     };
 
-    let handler_block = if is_binary_respone {
-        quote! {
-            pub async fn json_get_handler(
-                #( #json_get_args ),*
-            ) -> Result<crate::http::binary::Response, Error> {
-                #ident(#( #pass_args ),*).await
-            }
+    pass_args.push(parse_quote!(user.request));
 
-            pub async fn json_post_handler(
-                #( #json_post_args ),*
-            ) -> Result<crate::http::binary::Response, Error> {
-                #ident(#( #pass_args ),*).await
-            }
+    let json_handler = if json {
+        let json_get_args =
+            [common_args.as_slice(), [parse_quote!(user: GetUser<Request, #need_auth>)].as_slice()]
+                .concat();
+        let json_post_args =
+            [common_args.as_slice(), [parse_quote!(user: PostUser<Request>)].as_slice()].concat();
 
-            pub async fn binary_handler(
-                #( #binary_args ),*
-            ) -> Result<crate::http::binary::Response, Error> {
-                #ident(#( #pass_args ),*).await
+        if is_binary_respone {
+            quote! {
+                #[axum::debug_handler]
+                pub async fn json_get_handler(
+                    #( #json_get_args ),*
+                ) -> Result<crate::http::binary::Response, Error> {
+                    #ident(#( #pass_args ),*).await
+                }
+
+                #[axum::debug_handler]
+                pub async fn json_post_handler(
+                    #( #json_post_args ),*
+                ) -> Result<crate::http::binary::Response, Error> {
+                    #ident(#( #pass_args ),*).await
+                }
+            }
+        } else {
+            quote! {
+                #[axum::debug_handler]
+                pub async fn json_get_handler(
+                    #( #json_get_args ),*
+                ) -> Result<
+                        axum::Json<SubsonicResponse<<Request as JsonEndpoint>::Response>
+                    >, Error> {
+                    let response = #ident(#( #pass_args ),*).await?;
+                    Ok(axum::Json(SubsonicResponse::new(response)))
+                }
+
+                #[axum::debug_handler]
+                pub async fn json_post_handler(
+                    #( #json_post_args ),*
+                ) -> Result<
+                        axum::Json<SubsonicResponse<<Request as JsonEndpoint>::Response>
+                    >, Error> {
+                    let response = #ident(#( #pass_args ),*).await?;
+                    Ok(axum::Json(SubsonicResponse::new(response)))
+                }
             }
         }
     } else {
-        quote! {
-            pub async fn json_get_handler(
-                #( #json_get_args ),*
-            ) -> Result<
-                    axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>
-                >, Error> {
-                let response = #ident(#( #pass_args ),*).await?;
-                Ok(axum::Json(SubsonicResponse::new(response)))
-            }
+        quote! {}
+    };
 
-            pub async fn json_post_handler(
-                #( #json_post_args ),*
-            ) -> Result<
-                    axum::Json<SubsonicResponse<<Request as EncodableEndpoint>::Response>
-                >, Error> {
-                let response = #ident(#( #pass_args ),*).await?;
-                Ok(axum::Json(SubsonicResponse::new(response)))
-            }
+    let binary_handler = if binary {
+        let binary_args = [
+            common_args.as_slice(),
+            [parse_quote!(user: BinaryUser<Request, #need_auth>)].as_slice(),
+        ]
+        .concat();
 
-            pub async fn binary_handler(
-                #( #binary_args ),*
-            ) -> Result<Vec<u8>, Error> {
-                let response = #ident(#( #pass_args ),*).await?;
-                Ok(bitcode::encode(&response))
+        if is_binary_respone {
+            quote! {
+                #[axum::debug_handler]
+                pub async fn binary_handler(
+                    #( #binary_args ),*
+                ) -> Result<crate::http::binary::Response, Error> {
+                    #ident(#( #pass_args ),*).await
+                }
+            }
+        } else {
+            quote! {
+                #[axum::debug_handler]
+                pub async fn binary_handler(
+                    #( #binary_args ),*
+                ) -> Result<Vec<u8>, Error> {
+                    let response = #ident(#( #pass_args ),*).await?;
+                    Ok(bitcode::encode(&response))
+                }
             }
         }
+    } else {
+        quote! {}
     };
 
     Ok(quote! {
@@ -246,7 +274,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         #input
 
         use axum::extract;
-        use nghe_api::common::{EncodableEndpoint, SubsonicResponse};
+        use nghe_api::common::{JsonEndpoint, SubsonicResponse};
 
         use crate::auth::{Authorize, BinaryUser, GetUser, PostUser};
 
@@ -260,7 +288,8 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             }
         }
 
-        #handler_block
+        #json_handler
+        #binary_handler
     })
 }
 
@@ -272,7 +301,6 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         .map(|module| {
             let config: ModuleConfig = module.try_into()?;
             let module = config.ident;
-            let request = quote! { <#module::Request as nghe_api::common::Endpoint> };
 
             let json_get_handler = quote! { #module::json_get_handler };
             let json_post_handler = quote! { #module::json_post_handler };
@@ -281,24 +309,28 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
             let mut routers = vec![];
 
             if config.json {
+                let request = quote! { <#module::Request as nghe_api::common::JsonURL> };
+
                 routers.push(quote! {
                     route(
-                        #request::ENDPOINT,
+                        #request::URL,
                         axum::routing::get(#json_get_handler).post(#json_post_handler)
                     )
                 });
                 routers.push(quote! {
                     route(
-                        #request::ENDPOINT_VIEW,
+                        #request::URL_VIEW,
                         axum::routing::get(#json_get_handler).post(#json_post_handler)
                     )
                 });
             }
 
             if config.binary {
+                let request = quote! { <#module::Request as nghe_api::common::BinaryURL> };
+
                 routers.push(quote! {
                     route(
-                        #request::ENDPOINT_BINARY,
+                        #request::URL_BINARY,
                         axum::routing::post(#binary_handler)
                     )
                 });

@@ -1,4 +1,5 @@
 #![feature(adt_const_params)]
+#![feature(trait_alias)]
 
 pub mod auth;
 pub mod browsing;

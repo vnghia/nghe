@@ -7,8 +7,12 @@ use syn::{parse_str, Error};
 #[deluxe(attributes(endpoint))]
 struct Endpoint {
     path: String,
-    #[deluxe(default = false)]
+    #[deluxe(default = true)]
+    json: bool,
+    #[deluxe(default = true)]
     binary: bool,
+    #[deluxe(default = false)]
+    url_only: bool,
     #[deluxe(default = true)]
     same_crate: bool,
 }
@@ -37,7 +41,8 @@ struct Derive {
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let mut input: syn::DeriveInput = syn::parse2(item)?;
-    let Endpoint { path, binary, same_crate } = deluxe::extract_attributes(&mut input)?;
+    let Endpoint { path, json, binary, url_only, same_crate } =
+        deluxe::extract_attributes(&mut input)?;
 
     let ident = &input.ident;
     if ident != "Request" {
@@ -47,32 +52,61 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         ));
     }
 
-    let endpoint = concat_string!("/rest/", &path);
-    let endpoint_view = concat_string!("/rest/", &path, ".view");
-    let endpoint_binary = concat_string!("/rest/", &path, ".bin");
-
     let crate_path = if same_crate { format_ident!("crate") } else { format_ident!("nghe_api") };
 
-    let impl_endpoint = if binary {
+    let impl_json = if json {
+        let url = concat_string!("/rest/", &path);
+        let url_view = concat_string!("/rest/", &path, ".view");
+
+        let impl_endpoint = if url_only {
+            quote! {}
+        } else {
+            quote! {
+                impl #crate_path::common::JsonEndpoint for #ident {
+                    type Response = Response;
+                }
+            }
+        };
+
         quote! {
-            impl #crate_path::common::BinaryEndpoint for #ident {}
+            impl #crate_path::common::JsonURL for #ident {
+                const URL: &'static str = #url;
+                const URL_VIEW: &'static str = #url_view;
+            }
+
+            #impl_endpoint
         }
     } else {
-        quote! {
-            impl #crate_path::common::EncodableEndpoint for #ident {
-                type Response = Response;
+        quote! {}
+    };
+
+    let impl_binary = if binary {
+        let url_binary = concat_string!("/rest/", &path, ".bin");
+
+        let impl_endpoint = if url_only {
+            quote! {}
+        } else {
+            quote! {
+                impl #crate_path::common::BinaryEndpoint for #ident {
+                    type Response = Response;
+                }
             }
+        };
+
+        quote! {
+            impl #crate_path::common::BinaryURL for #ident {
+                const URL_BINARY: &'static str = #url_binary;
+            }
+
+            #impl_endpoint
         }
+    } else {
+        quote! {}
     };
 
     Ok(quote! {
-        impl #crate_path::common::Endpoint for #ident {
-            const ENDPOINT: &'static str = #endpoint;
-            const ENDPOINT_VIEW: &'static str = #endpoint_view;
-            const ENDPOINT_BINARY: &'static str = #endpoint_binary;
-        }
-
-        #impl_endpoint
+        #impl_json
+        #impl_binary
     })
 }
 

@@ -3,8 +3,8 @@ use axum::extract::{FromRef, FromRequest, Request};
 use axum::RequestExt;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_api::auth::{Auth, BinaryRequest};
-use nghe_api::common::Endpoint;
+use nghe_api::auth::{Auth, AuthRequest};
+use nghe_api::common::{BinaryRequest, JsonRequest};
 use uuid::Uuid;
 
 use crate::database::Database;
@@ -57,7 +57,7 @@ async fn authenticate(
 }
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-async fn json_authenticate<S, R: Endpoint + Authorize, U: FromIdRequest<R>>(
+async fn json_authenticate<S, R: JsonRequest + Authorize, U: FromIdRequest<R>>(
     state: &S,
     input: &str,
 ) -> Result<U, Error>
@@ -94,7 +94,7 @@ impl<S, R, const NEED_AUTH: bool> FromRequest<S> for GetUser<R, NEED_AUTH>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: Endpoint + Authorize + Send,
+    R: JsonRequest + Authorize + Send,
 {
     type Rejection = Error;
 
@@ -119,7 +119,7 @@ impl<S, R> FromRequest<S> for PostUser<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: Endpoint + Authorize + Send,
+    R: JsonRequest + Authorize + Send,
 {
     type Rejection = Error;
 
@@ -134,7 +134,7 @@ impl<S, R, const NEED_AUTH: bool> FromRequest<S> for BinaryUser<R, NEED_AUTH>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: Endpoint + Authorize + Send,
+    R: BinaryRequest + Authorize + Send,
 {
     type Rejection = Error;
 
@@ -143,7 +143,7 @@ where
         let bytes: Bytes = request.extract().await?;
 
         if NEED_AUTH {
-            let BinaryRequest::<R> { auth, request } =
+            let AuthRequest::<R> { auth, request } =
                 bitcode::decode(&bytes).map_err(|_| Error::SerializeBinaryRequest)?;
 
             let database = Database::from_ref(state);
@@ -164,6 +164,7 @@ mod tests {
     use axum::http;
     use concat_string::concat_string;
     use fake::{Dummy, Fake, Faker};
+    use nghe_api::common::JsonURL as _;
     use nghe_proc_macro::api_derive;
     use rstest::rstest;
     use serde::Serialize;
@@ -253,7 +254,7 @@ mod tests {
         let http_request = http::Request::builder()
             .method(http::Method::GET)
             .uri(concat_string!(
-                Request::ENDPOINT,
+                Request::URL,
                 "?",
                 serde_html_form::to_string(RequestAuth { auth, request }).unwrap()
             ))
@@ -277,11 +278,7 @@ mod tests {
 
         let http_request = http::Request::builder()
             .method(http::Method::GET)
-            .uri(concat_string!(
-                Request::ENDPOINT,
-                "?",
-                serde_html_form::to_string(request).unwrap()
-            ))
+            .uri(concat_string!(Request::URL, "?", serde_html_form::to_string(request).unwrap()))
             .body(Body::empty())
             .unwrap();
 
@@ -306,7 +303,7 @@ mod tests {
 
         let http_request = http::Request::builder()
             .method(http::Method::POST)
-            .uri(Request::ENDPOINT)
+            .uri(Request::URL)
             .body(Body::from(concat_string!(
                 serde_html_form::to_string::<Auth>(auth).unwrap(),
                 "&",
@@ -335,7 +332,7 @@ mod tests {
 
         let http_request = http::Request::builder()
             .method(http::Method::POST)
-            .body(Body::from(bitcode::encode(&BinaryRequest { auth, request })))
+            .body(Body::from(bitcode::encode(&AuthRequest { auth, request })))
             .unwrap();
 
         let test_request =
