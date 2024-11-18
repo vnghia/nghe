@@ -29,7 +29,6 @@ uuid = { workspace = true }
 nghe_api = { path = "../nghe-api" }
 nghe_proc_macro = { path = "../nghe-proc-macro" }
 
-async-trait = { version = "0.1.80" }
 async-walkdir = { version = "2.0.0" }
 aws-config = { version = "1.5.5", default-features = false, features = [
   "rt-tokio",
@@ -43,8 +42,8 @@ aws-smithy-runtime = { version = "1.7.1", default-features = false, features = [
   "client",
   "connector-hyper-0-14-x",
 ] }
-axum = { version = "0.7.5", features = ["http2", "macros"] }
-axum-extra = { version = "0.9.4", features = ["typed-header"] }
+axum = { version = "0.8.0-alpha.1", features = ["http2", "macros"] }
+axum-extra = { version = "0.10.0-alpha.1", features = ["typed-header"] }
 diesel = { version = "2.2.2", features = ["time", "uuid"] }
 # TODO: remove this when diesel is released
 diesel_derives = { git = "https://github.com/diesel-rs/diesel", rev = "ecf6e9215a898045ed096f905f4a0e7e4a999dba" }

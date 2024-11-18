@@ -85,7 +85,6 @@ impl<R> FromIdRequest<R> for PostUser<R> {
     }
 }
 
-#[async_trait::async_trait]
 impl<S, R, const NEED_AUTH: bool> FromRequest<S> for GetUser<R, NEED_AUTH>
 where
     S: Send + Sync,
@@ -112,7 +111,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<S, R> FromRequest<S> for PostUser<R>
 where
     S: Send + Sync,
@@ -127,7 +125,6 @@ where
     }
 }
 
-#[async_trait::async_trait]
 impl<S, R, const NEED_AUTH: bool> FromRequest<S> for BinaryUser<R, NEED_AUTH>
 where
     S: Send + Sync,
