@@ -14,7 +14,7 @@ pub struct Auth<'u, 't> {
     pub token: Token,
 }
 
-#[api_derive(serde = false, fake = false)]
+#[api_derive(json = false, fake = false)]
 pub struct AuthRequest<'u, 't, R> {
     pub auth: Auth<'u, 't>,
     pub request: R,

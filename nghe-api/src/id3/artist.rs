@@ -4,7 +4,7 @@ use serde_with::skip_serializing_none;
 use strum::IntoStaticStr;
 use uuid::Uuid;
 
-#[api_derive(response = true, serde = false)]
+#[api_derive(response = true, json = false)]
 #[derive(IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum Role {

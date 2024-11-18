@@ -2,7 +2,6 @@ use nghe_proc_macro::api_derive;
 
 #[api_derive(endpoint = true, binary = false)]
 #[endpoint(path = "getOpenSubsonicExtensions")]
-#[endpoint(binary = false)]
 pub struct Request {}
 
 #[api_derive(response = true, binary = false)]

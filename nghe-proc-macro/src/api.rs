@@ -1,7 +1,7 @@
 use concat_string::concat_string;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_str, Error};
+use syn::{parse_quote, parse_str, Error};
 
 #[derive(Debug, deluxe::ExtractAttributes)]
 #[deluxe(attributes(endpoint))]
@@ -28,7 +28,7 @@ struct Derive {
     #[deluxe(default = true)]
     debug: bool,
     #[deluxe(default = true)]
-    serde: bool,
+    json: bool,
     #[deluxe(default = true)]
     binary: bool,
     #[deluxe(default = true)]
@@ -121,8 +121,9 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let is_enum = matches!(input.data, syn::Data::Enum(_));
 
     let mut derives: Vec<syn::Expr> = vec![];
+    let mut attributes: Vec<syn::Attribute> = vec![];
 
-    if args.serde {
+    if args.json {
         if is_request {
             derives.push(parse_str("::serde::Deserialize")?);
         }
@@ -140,45 +141,42 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     }
     if args.endpoint {
         derives.push(parse_str("nghe_proc_macro::Endpoint")?);
+        if !args.json {
+            attributes.push(parse_quote!(#[endpoint(json = false)]));
+        }
+        if !args.binary {
+            attributes.push(parse_quote!(#[endpoint(binary = false)]));
+        }
     }
 
-    let serde_rename = if args.serde {
-        quote! { #[serde(rename_all = "camelCase")] }
-    } else {
-        quote! {}
+    if args.json {
+        attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
     };
 
-    let fake_derive = if is_request && args.fake {
-        quote! { #[cfg_attr(feature = "fake", derive(fake::Dummy))] }
-    } else {
-        quote! {}
-    };
+    if is_request && args.fake {
+        attributes.push(parse_quote!(#[cfg_attr(feature = "fake", derive(fake::Dummy))]));
+    }
 
-    let enum_derive = if is_enum {
-        quote! { #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)] }
-    } else {
-        quote! {}
-    };
+    if is_enum {
+        derives.extend_from_slice(
+            &["Copy", "Clone", "PartialEq", "Eq", "PartialOrd", "Ord"]
+                .into_iter()
+                .map(parse_str)
+                .try_collect::<Vec<_>>()?,
+        );
+    }
 
-    let eq_derive = if !is_enum && args.eq {
-        quote! { #[cfg_attr(feature = "test", derive(PartialEq, Eq))] }
-    } else {
-        quote! {}
-    };
+    if !is_enum && args.eq {
+        attributes.push(parse_quote!(#[cfg_attr(feature = "test", derive(PartialEq, Eq))]));
+    }
 
-    let ord_derive = if !is_enum && args.ord {
-        quote! { #[cfg_attr(feature = "test", derive(PartialOrd, Ord))] }
-    } else {
-        quote! {}
-    };
+    if !is_enum && args.ord {
+        attributes.push(parse_quote!(#[cfg_attr(feature = "test", derive(PartialOrd, Ord))]));
+    }
 
     Ok(quote! {
         #[derive(#(#derives),*)]
-        #serde_rename
-        #fake_derive
-        #enum_derive
-        #eq_derive
-        #ord_derive
+        #( #attributes )*
         #input
     })
 }
