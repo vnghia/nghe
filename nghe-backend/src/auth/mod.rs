@@ -96,11 +96,13 @@ where
 
     #[tracing::instrument(skip_all, err)]
     async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let query = request.uri().query().ok_or_else(|| Error::GetRequestMissingQueryParameters)?;
+        let query = request.uri().query();
 
         if NEED_AUTH {
-            json_authenticate(state, query).await
+            json_authenticate(state, query.ok_or_else(|| Error::GetRequestMissingQueryParameters)?)
+                .await
         } else {
+            let query = query.unwrap_or_default();
             Ok(Self {
                 id: Uuid::default(),
                 request: serde_html_form::from_str(query)
