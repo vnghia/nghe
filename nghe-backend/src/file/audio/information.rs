@@ -170,7 +170,7 @@ mod tests {
         #[values(true, false)] update_information: bool,
     ) {
         let database = mock.database();
-        let music_folder_id = mock.music_folder(0).await.id();
+        let music_folder_id = mock.music_folder_id(0).await;
         let relative_path: String = Faker.fake();
         let prefixes = &mock.config.index.ignore_prefixes;
 

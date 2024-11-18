@@ -44,8 +44,8 @@ mod tests {
         mock: Mock,
         #[values(true, false)] allow: bool,
     ) {
-        mock.add_music_folder().call().await;
-        mock.add_music_folder().allow(allow).call().await;
+        let music_folder_id_permission = mock.add_music_folder().allow(allow).call().await;
+        let music_folder_id = mock.add_music_folder().call().await;
 
         let user_id = mock.user_id(0).await;
         let music_folders = handler(mock.database(), user_id, Request)
@@ -58,12 +58,9 @@ mod tests {
             .collect::<Vec<_>>();
 
         if allow {
-            assert_eq!(
-                music_folders,
-                &[mock.music_folder(0).await.id(), mock.music_folder(1).await.id()]
-            );
+            assert_eq!(music_folders, &[music_folder_id_permission, music_folder_id]);
         } else {
-            assert_eq!(music_folders, &[mock.music_folder(0).await.id()]);
+            assert_eq!(music_folders, &[music_folder_id]);
         }
     }
 }

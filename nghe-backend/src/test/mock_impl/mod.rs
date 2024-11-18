@@ -110,7 +110,7 @@ impl Mock {
         &self,
         #[builder(default = Faker.fake::<common::filesystem::Type>())] ty: common::filesystem::Type,
         #[builder(default = true)] allow: bool,
-    ) -> &Self {
+    ) -> Uuid {
         let filesystem = self.to_impl(ty);
         route::music_folder::add::handler(
             self.database(),
@@ -126,12 +126,16 @@ impl Mock {
             },
         )
         .await
-        .unwrap();
-        self
+        .unwrap()
+        .music_folder_id
     }
 
     pub async fn music_folder(&self, index: usize) -> music_folder::Mock<'_> {
         music_folder::Mock::new(self, index).await
+    }
+
+    pub async fn music_folder_id(&self, index: usize) -> Uuid {
+        self.music_folder(index).await.id()
     }
 
     #[builder]

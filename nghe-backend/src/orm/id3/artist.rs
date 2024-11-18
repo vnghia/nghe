@@ -178,8 +178,8 @@ mod tests {
         mock: Mock,
         #[values(true, false)] allow: bool,
     ) {
-        mock.add_music_folder().allow(allow).call().await;
-        mock.add_music_folder().call().await;
+        let music_folder_id_permission = mock.add_music_folder().allow(allow).call().await;
+        let music_folder_id = mock.add_music_folder().call().await;
 
         let user_id = mock.user_id(0).await;
         let artist: audio::Artist = Faker.fake();
@@ -195,13 +195,11 @@ mod tests {
         assert_eq!(database_artists.len(), if allow { 5 } else { 2 });
 
         // Only allow music folders will be returned.
-        let database_artists_music_folder = query::with_music_folder(
-            user_id,
-            &[mock.music_folder(0).await.id(), mock.music_folder(1).await.id()],
-        )
-        .get_results(&mut mock.get().await)
-        .await
-        .unwrap();
+        let database_artists_music_folder =
+            query::with_music_folder(user_id, &[music_folder_id_permission, music_folder_id])
+                .get_results(&mut mock.get().await)
+                .await
+                .unwrap();
         assert_eq!(database_artists, database_artists_music_folder);
 
         let database_artist =
