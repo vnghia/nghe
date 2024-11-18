@@ -79,7 +79,6 @@ pub mod query {
             .left_join(songs_saa.on(songs_saa.field(songs::id).eq(songs_album_artists::song_id)))
             .left_join(albums::table.on(albums::id.eq(songs_saa.field(songs::album_id))))
             .group_by(artists::id)
-            .order_by((artists::index, artists::name))
             .select(artist)
     }
 

@@ -4,7 +4,7 @@ use nghe_proc_macro::api_derive;
 
 #[repr(i16)]
 #[api_derive(request = true)]
-#[derive(Clone, Copy, PartialEq, Eq, ConstParamTy)]
+#[derive(ConstParamTy)]
 pub enum Type {
     Local,
     S3,

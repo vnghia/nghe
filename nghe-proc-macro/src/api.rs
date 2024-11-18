@@ -29,6 +29,10 @@ struct Derive {
     binary: bool,
     #[deluxe(default = true)]
     fake: bool,
+    #[deluxe(default = true)]
+    eq: bool,
+    #[deluxe(default = true)]
+    ord: bool,
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
@@ -80,6 +84,8 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let is_request = args.request || ident.ends_with("Request");
     let is_response = args.response || ident.ends_with("Response");
 
+    let is_enum = matches!(input.data, syn::Data::Enum(_));
+
     let mut derives: Vec<syn::Expr> = vec![];
 
     if args.serde {
@@ -114,10 +120,31 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         quote! {}
     };
 
+    let enum_derive = if is_enum {
+        quote! { #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)] }
+    } else {
+        quote! {}
+    };
+
+    let eq_derive = if !is_enum && args.eq {
+        quote! { #[cfg_attr(feature = "test", derive(PartialEq, Eq))] }
+    } else {
+        quote! {}
+    };
+
+    let ord_derive = if !is_enum && args.ord {
+        quote! { #[cfg_attr(feature = "test", derive(PartialOrd, Ord))] }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         #[derive(#(#derives),*)]
         #serde_rename
         #fake_derive
+        #enum_derive
+        #eq_derive
+        #ord_derive
         #input
     })
 }

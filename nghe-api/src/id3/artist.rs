@@ -5,7 +5,7 @@ use strum::IntoStaticStr;
 use uuid::Uuid;
 
 #[api_derive(response = true, serde = false)]
-#[derive(Clone, Copy, PartialEq, Eq, IntoStaticStr)]
+#[derive(IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum Role {
     Artist,
