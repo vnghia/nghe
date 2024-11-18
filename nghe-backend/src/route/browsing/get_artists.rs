@@ -2,7 +2,7 @@ use diesel_async::RunQueryDsl;
 use itertools::Itertools;
 use nghe_api::browsing::get_artists::Artists;
 pub use nghe_api::browsing::get_artists::{Index, Request, Response};
-use nghe_proc_macro::handler;
+use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 
 use crate::config;
@@ -18,13 +18,9 @@ pub async fn handler(
 ) -> Result<Response, Error> {
     let ignored_articles = database.get_config::<config::Index>().await?;
 
-    let artists = if let Some(music_folder_ids) = request.music_folder_ids {
-        id3::artist::query::music_folder(user_id, &music_folder_ids)
-            .get_results(&mut database.get().await?)
-            .await?
-    } else {
-        id3::artist::query::permission(user_id).get_results(&mut database.get().await?).await?
-    };
+    let artists =
+        #[check_music_folder]
+        id3::artist::query::with_user_id(user_id).get_results(&mut database.get().await?).await?;
 
     let index = artists
         .into_iter()

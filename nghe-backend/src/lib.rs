@@ -2,9 +2,11 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(async_closure)]
 #![feature(duration_constructors)]
+#![feature(proc_macro_hygiene)]
 #![feature(integer_sign_cast)]
 #![feature(iterator_try_collect)]
 #![feature(let_chains)]
+#![feature(stmt_expr_attributes)]
 #![feature(try_blocks)]
 
 mod auth;

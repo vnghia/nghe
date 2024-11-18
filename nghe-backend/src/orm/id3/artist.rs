@@ -84,7 +84,7 @@ pub mod query {
     }
 
     #[auto_type]
-    pub fn permission(user_id: Uuid) -> _ {
+    pub fn with_user_id(user_id: Uuid) -> _ {
         // Permission should be checked against `albums_sa` and `albums`.
         unchecked().filter(exists(
             user_music_folder_permissions::table
@@ -99,10 +99,10 @@ pub mod query {
     }
 
     #[auto_type]
-    pub fn music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
+    pub fn with_music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
         // Permission should be checked against `albums_sa` and `albums`.
-        let permission: permission = permission(user_id);
-        permission.filter(
+        let with_user_id: with_user_id = with_user_id(user_id);
+        with_user_id.filter(
             albums_sa
                 .field(albums::music_folder_id)
                 .eq_any(music_folder_ids)
@@ -157,7 +157,7 @@ mod tests {
         add_audio_artist(&mock, 0, Faker.fake(), artist.clone(), n_album).await;
         add_audio_artist(&mock, 0, artist.clone(), artist.clone(), n_both).await;
 
-        let database_artist = query::permission(mock.user(0).await.user.id)
+        let database_artist = query::with_user_id(mock.user(0).await.user.id)
             .filter(artists::id.eq(artist_id))
             .get_result(&mut mock.get().await)
             .await;
@@ -192,11 +192,11 @@ mod tests {
         add_audio_artist(&mock, 1, Faker.fake(), Faker.fake(), (2..4).fake()).await;
 
         let database_artists =
-            query::permission(user_id).get_results(&mut mock.get().await).await.unwrap();
+            query::with_user_id(user_id).get_results(&mut mock.get().await).await.unwrap();
         assert_eq!(database_artists.len(), if allow { 5 } else { 2 });
 
         // Only allow music folders will be returned.
-        let database_artists_music_folder = query::music_folder(
+        let database_artists_music_folder = query::with_music_folder(
             user_id,
             &[mock.music_folder(0).await.id(), mock.music_folder(1).await.id()],
         )
