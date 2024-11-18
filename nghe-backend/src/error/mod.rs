@@ -25,11 +25,18 @@ use o2o::o2o;
 #[from_owned(std::str::Utf8Error)]
 #[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
 #[from_owned(std::string::FromUtf8Error)]
+#[from_owned(axum::extract::rejection::StringRejection)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),
-    #[error("Could not serialize request due to {0}")]
-    SerializeRequest(&'static str),
+    #[error("Could not serialize get request with no query parameters")]
+    GetRequestMissingQueryParameters,
+    #[error("Could not serialize auth parameters with query {0}")]
+    SerializeAuthParameters(String),
+    #[error("Could not serialize request parameters with query {0}")]
+    SerializeRequestParameters(String),
+    #[error("Could not serialize binary request")]
+    SerializeBinaryRequest,
     #[error(transparent)]
     ExtractRequestBody(#[from] axum::extract::rejection::BytesRejection),
 
@@ -104,9 +111,12 @@ pub enum Error {
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let (status_code, status_message) = match &self {
-            Error::InvalidParameter(_) | Error::SerializeRequest(_) | Error::InvalidRangeHeader => {
-                (StatusCode::BAD_REQUEST, self.to_string())
-            }
+            Error::InvalidParameter(_)
+            | Error::GetRequestMissingQueryParameters
+            | Error::SerializeAuthParameters(_)
+            | Error::SerializeRequestParameters(_)
+            | Error::SerializeBinaryRequest
+            | Error::InvalidRangeHeader => (StatusCode::BAD_REQUEST, self.to_string()),
             Error::ExtractRequestBody(_) => {
                 (StatusCode::BAD_REQUEST, "Could not extract request body".into())
             }

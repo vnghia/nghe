@@ -59,21 +59,19 @@ async fn authenticate(
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
 async fn json_authenticate<S, R: Endpoint + Authorize, U: FromIdRequest<R>>(
     state: &S,
-    input: impl AsRef<[u8]>,
+    input: &str,
 ) -> Result<U, Error>
 where
     Database: FromRef<S>,
 {
-    let input = input.as_ref();
-
-    let auth: Auth = serde_html_form::from_bytes(input)
-        .map_err(|_| Error::SerializeRequest("invalid auth parameters"))?;
+    let auth: Auth = serde_html_form::from_str(input)
+        .map_err(|_| Error::SerializeAuthParameters(input.to_owned()))?;
 
     let database = Database::from_ref(state);
     let (id, role) = authenticate(&database, auth).await?;
 
-    let request = serde_html_form::from_bytes::<R>(input)
-        .map_err(|_| Error::SerializeRequest("invalid request parameters"))?
+    let request = serde_html_form::from_str::<R>(input)
+        .map_err(|_| Error::SerializeRequestParameters(input.to_owned()))?
         .authorize(role)?;
 
     Ok(U::from_id_request(id, request))
@@ -102,10 +100,7 @@ where
 
     #[tracing::instrument(skip_all, err)]
     async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let query = request
-            .uri()
-            .query()
-            .ok_or_else(|| Error::SerializeRequest("missing query parameters"))?;
+        let query = request.uri().query().ok_or_else(|| Error::GetRequestMissingQueryParameters)?;
 
         if NEED_AUTH {
             json_authenticate(state, query).await
@@ -113,7 +108,7 @@ where
             Ok(Self {
                 id: Uuid::default(),
                 request: serde_html_form::from_str(query)
-                    .map_err(|_| Error::SerializeRequest("invalid request parameters"))?,
+                    .map_err(|_| Error::SerializeRequestParameters(query.to_owned()))?,
             })
         }
     }
@@ -130,7 +125,7 @@ where
 
     #[tracing::instrument(skip_all, err)]
     async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
-        json_authenticate(state, &request.extract::<Bytes, _>().await?).await
+        json_authenticate(state, &request.extract::<String, _>().await?).await
     }
 }
 
@@ -148,8 +143,8 @@ where
         let bytes: Bytes = request.extract().await?;
 
         if NEED_AUTH {
-            let BinaryRequest::<R> { auth, request } = bitcode::decode(&bytes)
-                .map_err(|_| Error::SerializeRequest("invalid request body"))?;
+            let BinaryRequest::<R> { auth, request } =
+                bitcode::decode(&bytes).map_err(|_| Error::SerializeBinaryRequest)?;
 
             let database = Database::from_ref(state);
             let (id, role) = authenticate(&database, auth).await?;
@@ -157,8 +152,7 @@ where
         } else {
             Ok(Self {
                 id: Uuid::default(),
-                request: bitcode::decode(&bytes)
-                    .map_err(|_| Error::SerializeRequest("invalid request body"))?,
+                request: bitcode::decode(&bytes).map_err(|_| Error::SerializeBinaryRequest)?,
             })
         }
     }

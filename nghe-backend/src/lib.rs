@@ -32,6 +32,7 @@ use axum::body::Body;
 use axum::http::Request;
 use axum::Router;
 use error::Error;
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
 pub async fn build(config: config::Config) -> Router {
@@ -53,10 +54,12 @@ pub async fn build(config: config::Config) -> Router {
             },
         ))
         .merge(route::browsing::router())
+        .merge(route::system::router())
         .with_state(database::Database::new(&config.database))
         .layer(TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
             tracing::info_span!(
-                "request", method = %request.method(), uri = %request.uri()
+                "request", method = %request.method(), path = %request.uri().path()
             )
         }))
+        .layer(CorsLayer::permissive())
 }
