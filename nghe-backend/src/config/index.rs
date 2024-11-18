@@ -58,6 +58,6 @@ mod split {
     where
         D: Deserializer<'de>,
     {
-        Ok(Index::split(<&'de str>::deserialize(deserializer)?))
+        Ok(Index::split(&<String>::deserialize(deserializer)?))
     }
 }
