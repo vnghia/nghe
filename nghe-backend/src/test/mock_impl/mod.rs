@@ -9,6 +9,7 @@ use lofty::config::{ParseOptions, WriteOptions};
 use nghe_api::common;
 use rstest::fixture;
 use typed_path::Utf8NativePath;
+use uuid::Uuid;
 
 use super::filesystem::Trait;
 use super::{database, filesystem};
@@ -90,6 +91,10 @@ impl Mock {
 
     pub async fn user(&self, index: usize) -> user::Mock<'_> {
         user::Mock::new(self, index).await
+    }
+
+    pub async fn user_id(&self, index: usize) -> Uuid {
+        self.user(index).await.id()
     }
 
     pub fn filesystem(&self) -> &Filesystem {

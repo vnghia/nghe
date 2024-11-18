@@ -65,19 +65,16 @@ mod tests {
             .call()
             .await;
 
-        let index = handler(
-            mock.database(),
-            mock.user(0).await.user.id,
-            Request { music_folder_ids: None },
-        )
-        .await
-        .unwrap()
-        .artists
-        .index;
+        let index =
+            handler(mock.database(), mock.user_id(0).await, Request { music_folder_ids: None })
+                .await
+                .unwrap()
+                .artists
+                .index;
 
         for (i, index) in index.into_iter().enumerate() {
             let name =
-                char::from_u32(('A' as u8 + u8::try_from(i).unwrap()).into()).unwrap().to_string();
+                char::from_u32((b'A' + u8::try_from(i).unwrap()).into()).unwrap().to_string();
             assert_eq!(index.name, name);
             for (j, artist) in index.artist.into_iter().enumerate() {
                 let name = concat_string!(&name, (j + 1).to_string());
@@ -101,7 +98,7 @@ mod tests {
         music_folder_deny.add_audio().n_song(10).call().await;
         music_folder_allow.add_audio().n_song(10).call().await;
 
-        let user_id = mock.user(0).await.user.id;
+        let user_id = mock.user_id(0).await;
         let with_user_id =
             handler(mock.database(), user_id, Request { music_folder_ids: None }).await.unwrap();
         let with_music_folder = handler(

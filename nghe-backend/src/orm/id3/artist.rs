@@ -156,7 +156,7 @@ mod tests {
         add_audio_artist(&mock, 0, Faker.fake(), artist.clone(), n_album).await;
         add_audio_artist(&mock, 0, artist.clone(), artist.clone(), n_both).await;
 
-        let database_artist = query::with_user_id(mock.user(0).await.user.id)
+        let database_artist = query::with_user_id(mock.user_id(0).await)
             .filter(artists::id.eq(artist_id))
             .get_result(&mut mock.get().await)
             .await;
@@ -181,7 +181,7 @@ mod tests {
         mock.add_music_folder().allow(allow).call().await;
         mock.add_music_folder().call().await;
 
-        let user_id = mock.user(0).await.user.id;
+        let user_id = mock.user_id(0).await;
         let artist: audio::Artist = Faker.fake();
         let artist_id = artist.upsert_mock(&mock).await;
 

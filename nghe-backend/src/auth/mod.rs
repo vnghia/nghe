@@ -187,9 +187,9 @@ mod tests {
         #[with(1, 0)]
         mock: Mock,
     ) {
-        let id =
-            authenticate(mock.database(), (&mock.user(0).await.auth()).into()).await.unwrap().0;
-        assert_eq!(id, mock.user(0).await.user.id);
+        let user = mock.user(0).await;
+        let id = authenticate(mock.database(), (&user.auth()).into()).await.unwrap().0;
+        assert_eq!(id, user.id());
     }
 
     #[rstest]

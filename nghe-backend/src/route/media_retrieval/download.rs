@@ -71,7 +71,7 @@ mod tests {
         let local_bytes = &local_bytes[offset.unwrap_or(0).try_into().unwrap()..];
 
         let range = offset.map(|offset| Range::bytes(offset..).unwrap());
-        let user_id = mock.user(0).await.user.id;
+        let user_id = mock.user_id(0).await;
         let request = Request { id: music_folder.query_id(0).await };
         let binary = handler(mock.database(), mock.filesystem(), range, user_id, request).await;
 

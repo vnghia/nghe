@@ -92,7 +92,7 @@ mod tests {
         #[case] permission_count: usize,
     ) {
         reset(&mock).await;
-        let user_id = if with_user { Some(mock.user(0).await.user.id) } else { None };
+        let user_id = if with_user { Some(mock.user_id(0).await) } else { None };
         let music_folder_id =
             if with_music_folder { Some(mock.music_folder(0).await.id()) } else { None };
         assert!(handler(mock.database(), Request { user_id, music_folder_id }).await.is_ok());

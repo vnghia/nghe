@@ -49,6 +49,6 @@ mod tests {
         mock: Mock,
     ) {
         let user_id = handler(mock.database(), Faker.fake()).await.unwrap().user_id;
-        assert_eq!(mock.user(0).await.user.id, user_id);
+        assert_eq!(mock.user_id(0).await, user_id);
     }
 }

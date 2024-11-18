@@ -3,6 +3,7 @@ use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use nghe_api::auth;
 use o2o::o2o;
+use uuid::Uuid;
 
 use crate::orm::users;
 
@@ -34,6 +35,10 @@ impl<'a> Mock<'a> {
                 .await
                 .unwrap(),
         }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.user.id
     }
 
     pub fn auth(&self) -> Auth {
