@@ -1,5 +1,4 @@
 #![feature(let_chains)]
-#![allow(clippy::needless_pass_by_value)]
 
 use proc_macro::TokenStream;
 
