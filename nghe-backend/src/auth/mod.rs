@@ -29,6 +29,10 @@ pub struct BinaryUser<R, const NEED_AUTH: bool> {
     pub request: R,
 }
 
+trait FromIdRequest<R>: Sized {
+    fn from_id_request(id: Uuid, request: R) -> Self;
+}
+
 pub trait Authorize: Sized {
     fn authorize(self, role: users::Role) -> Result<Self, Error>;
 }
@@ -52,20 +56,39 @@ async fn authenticate(
     }
 }
 
-async fn json_authenticate<S>(
-    query: &str,
+// TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
+async fn json_authenticate<S, R: Endpoint + Authorize, U: FromIdRequest<R>>(
     state: &S,
-) -> Result<(Database, Uuid, users::Role), Error>
+    input: impl AsRef<[u8]>,
+) -> Result<U, Error>
 where
     Database: FromRef<S>,
 {
-    let auth: Auth = serde_html_form::from_str(query)
+    let input = input.as_ref();
+
+    let auth: Auth = serde_html_form::from_bytes(input)
         .map_err(|_| Error::SerializeRequest("invalid auth parameters"))?;
 
     let database = Database::from_ref(state);
     let (id, role) = authenticate(&database, auth).await?;
 
-    Ok((database, id, role))
+    let request = serde_html_form::from_bytes::<R>(input)
+        .map_err(|_| Error::SerializeRequest("invalid request parameters"))?
+        .authorize(role)?;
+
+    Ok(U::from_id_request(id, request))
+}
+
+impl<R, const NEED_AUTH: bool> FromIdRequest<R> for GetUser<R, NEED_AUTH> {
+    fn from_id_request(id: Uuid, request: R) -> Self {
+        Self { id, request }
+    }
+}
+
+impl<R> FromIdRequest<R> for PostUser<R> {
+    fn from_id_request(id: Uuid, request: R) -> Self {
+        Self { id, request }
+    }
 }
 
 #[async_trait::async_trait]
@@ -84,14 +107,14 @@ where
             .query()
             .ok_or_else(|| Error::SerializeRequest("missing query parameters"))?;
 
-        let request: R = serde_html_form::from_str(query)
-            .map_err(|_| Error::SerializeRequest("invalid request parameters"))?;
         if NEED_AUTH {
-            // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-            let (_, id, role) = json_authenticate(query, state).await?;
-            Ok(Self { id, request: request.authorize(role)? })
+            json_authenticate(state, query).await
         } else {
-            Ok(Self { id: Uuid::default(), request })
+            Ok(Self {
+                id: Uuid::default(),
+                request: serde_html_form::from_str(query)
+                    .map_err(|_| Error::SerializeRequest("invalid request parameters"))?,
+            })
         }
     }
 }
@@ -107,15 +130,7 @@ where
 
     #[tracing::instrument(skip_all, err)]
     async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let query = request
-            .uri()
-            .query()
-            .ok_or_else(|| Error::SerializeRequest("missing query parameters"))?;
-
-        let (_, id, role) = json_authenticate(query, state).await?;
-        let request: R = serde_html_form::from_bytes(&request.extract::<Bytes, _>().await?)
-            .map_err(|_| Error::SerializeRequest("invalid request body"))?;
-        Ok(Self { id, request: request.authorize(role)? })
+        json_authenticate(state, &request.extract::<Bytes, _>().await?).await
     }
 }
 
@@ -297,12 +312,12 @@ mod tests {
 
         let http_request = http::Request::builder()
             .method(http::Method::POST)
-            .uri(concat_string!(
-                Request::ENDPOINT,
-                "?",
-                serde_html_form::to_string::<Auth>(auth).unwrap()
-            ))
-            .body(Body::from(serde_html_form::to_string(request).unwrap()))
+            .uri(Request::ENDPOINT)
+            .body(Body::from(concat_string!(
+                serde_html_form::to_string::<Auth>(auth).unwrap(),
+                "&",
+                serde_html_form::to_string(request).unwrap()
+            )))
             .unwrap();
 
         let test_request =
