@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 #[api_derive(endpoint = true)]
 #[endpoint(path = "getMusicFolders")]
-pub struct Request;
+pub struct Request {}
 
 #[api_derive(response = true)]
 pub struct MusicFolder {

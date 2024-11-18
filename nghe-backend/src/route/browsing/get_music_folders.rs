@@ -48,7 +48,7 @@ mod tests {
         let music_folder_id = mock.add_music_folder().call().await;
 
         let user_id = mock.user_id(0).await;
-        let music_folders = handler(mock.database(), user_id, Request)
+        let music_folders = handler(mock.database(), user_id, Request {})
             .await
             .unwrap()
             .music_folders
