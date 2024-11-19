@@ -8,7 +8,6 @@ use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
-#[diesel(treat_none_as_null = true)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct Required {
     pub id: Uuid,
@@ -17,7 +16,6 @@ pub struct Required {
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
-#[diesel(treat_none_as_null = true)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct Artist {
     #[diesel(embed)]
