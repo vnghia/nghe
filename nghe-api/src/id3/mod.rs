@@ -2,6 +2,7 @@ pub mod album;
 pub mod artist;
 pub mod date;
 pub mod genre;
+pub mod song;
 
 pub mod builder {
     pub mod artist {

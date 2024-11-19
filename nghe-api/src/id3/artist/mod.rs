@@ -4,7 +4,7 @@ use bon::Builder;
 use nghe_proc_macro::api_derive;
 use strum::IntoStaticStr;
 use uuid::Uuid;
-pub use with_albums::WithAlbum;
+pub use with_albums::WithAlbums;
 
 #[api_derive(response = true, json = false)]
 #[derive(IntoStaticStr)]

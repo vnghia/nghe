@@ -26,8 +26,8 @@ pub struct ArtistWithAlbums {
 }
 
 impl ArtistWithAlbums {
-    pub async fn try_into_api(self, database: &Database) -> Result<id3::artist::WithAlbum, Error> {
-        Ok(id3::artist::WithAlbum {
+    pub async fn try_into_api(self, database: &Database) -> Result<id3::artist::WithAlbums, Error> {
+        Ok(id3::artist::WithAlbums {
             artist: self.artist.try_into_api()?,
             album: album::id_duration::query::unchecked()
                 .filter(albums::id.eq_any(self.albums))

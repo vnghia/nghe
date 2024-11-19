@@ -4,12 +4,12 @@ use uuid::Uuid;
 use crate::id3;
 
 #[api_derive(endpoint = true)]
-#[endpoint(path = "getArtist")]
+#[endpoint(path = "getAlbum")]
 pub struct Request {
     pub id: Uuid,
 }
 
 #[api_derive]
 pub struct Response {
-    pub artist: id3::artist::WithAlbums,
+    pub album: id3::album::WithArtistsSongs,
 }

@@ -1,33 +1,35 @@
-mod with_artists_songs;
-
 use bon::Builder;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
-pub use with_artists_songs::WithArtistsSongs;
 
-use super::{artist, date, genre};
+use super::{artist, genre};
 
 #[serde_with::apply(
     Option => #[serde(skip_serializing_if = "Option::is_none")],
     Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
-    Date => #[serde(skip_serializing_if = "Date::is_none")],
 )]
 #[api_derive(response = true)]
 #[derive(Builder)]
 #[builder(state_mod(vis = "pub"))]
-pub struct Album {
+pub struct Song {
     pub id: Uuid,
-    pub name: String,
-    pub song_count: u16,
-    pub duration: u32,
+    pub title: String,
+    pub album: String,
+    pub track: Option<u16>,
     pub year: Option<u16>,
+    pub size: u32,
+    pub content_type: &'static str,
+    pub suffix: &'static str,
+    pub duration: u32,
+    pub bit_rate: u32,
+    pub bit_depth: Option<u8>,
+    pub sampling_rate: u32,
+    pub channel_count: u8,
+    pub disc_number: Option<u16>,
+    pub album_id: Uuid,
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]
     pub genres: genre::Genres,
     #[builder(default)]
     pub artists: Vec<artist::Artist>,
-    #[builder(default)]
-    pub original_release_date: date::Date,
-    #[builder(default)]
-    pub release_date: date::Date,
 }
