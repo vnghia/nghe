@@ -7,7 +7,7 @@ use nghe_api::id3;
 #[derive(Debug, Queryable, Selectable)]
 pub struct Genres {
     #[diesel(select_expression = sql(
-        "array_remove(array_agg(genres.value order by genres.value), null) genres"
+        "array_remove(array_agg(distinct genres.value order by genres.value), null) genres"
     ))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Text>>)]
     pub value: Vec<String>,
