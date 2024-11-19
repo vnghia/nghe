@@ -6,7 +6,8 @@ use diesel_async::RunQueryDsl;
 use nghe_api::id3;
 use uuid::Uuid;
 
-use super::{album, artist};
+use super::super::album;
+use super::Artist;
 use crate::database::Database;
 use crate::orm::albums;
 use crate::Error;
@@ -16,7 +17,7 @@ use crate::Error;
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct ArtistWithAlbums {
     #[diesel(embed)]
-    pub artist: artist::Artist,
+    pub artist: Artist,
     #[diesel(select_expression = sql(
         "array_remove(array_agg(distinct(albums.id)), null) album_ids"
     ))]
@@ -44,6 +45,7 @@ pub mod query {
     use uuid::Uuid;
 
     use super::*;
+    use crate::orm::id3::artist;
 
     #[auto_type]
     pub fn with_user_id(user_id: Uuid) -> _ {

@@ -1,3 +1,5 @@
+pub mod with_albums;
+
 use diesel::dsl::count_distinct;
 use diesel::prelude::*;
 use nghe_api::id3;
