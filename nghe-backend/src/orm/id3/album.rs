@@ -79,8 +79,8 @@ pub mod query {
         let album: AsSelect<Album, crate::orm::Type> = Album::as_select();
         albums::table
             .inner_join(songs::table)
-            .inner_join(songs_genres::table.on(songs_genres::song_id.eq(songs::id)))
-            .inner_join(genres::table.on(genres::id.eq(songs_genres::genre_id)))
+            .left_join(songs_genres::table.on(songs_genres::song_id.eq(songs::id)))
+            .left_join(genres::table.on(genres::id.eq(songs_genres::genre_id)))
             .group_by(albums::id)
             .order_by(albums::name)
             .select(album)

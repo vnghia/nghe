@@ -19,7 +19,7 @@ use crate::Error;
 #[try_map_owned(albums::Data<'a>, Error)]
 #[ref_try_into(songs::name_date_mbz::NameDateMbz<'a>, Error)]
 #[ref_try_into(albums::Data<'a>, Error)]
-#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
+#[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone, Default))]
 pub struct NameDateMbz<'a> {
     #[ref_into(Cow::Borrowed(~.as_ref()))]
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
@@ -67,6 +67,12 @@ mod test {
 
     use super::*;
     use crate::test::Mock;
+
+    impl<'a, S: Into<Cow<'a, str>>> From<S> for Album<'a> {
+        fn from(value: S) -> Self {
+            Self { name: value.into(), ..Self::default() }
+        }
+    }
 
     impl<'a> Album<'a> {
         pub async fn upsert_mock(&self, mock: &Mock, index: usize) -> Uuid {
