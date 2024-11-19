@@ -1,6 +1,7 @@
 use diesel::dsl::count_distinct;
 use diesel::prelude::*;
 use nghe_api::id3;
+use nghe_api::id3::builder::artist as builder;
 use uuid::Uuid;
 
 use crate::orm::{albums, artists, songs};
@@ -29,8 +30,23 @@ pub struct Artist {
     pub music_brainz_id: Option<Uuid>,
 }
 
+impl Required {
+    pub fn into_api_builder(self) -> builder::Builder<builder::SetName<builder::SetId>> {
+        id3::Artist::builder().id(self.id).name(self.name)
+    }
+}
+
 impl Artist {
-    pub fn try_into_api(self) -> Result<id3::Artist, Error> {
+    pub fn try_into_api_builder(
+        self,
+    ) -> Result<
+        builder::Builder<
+            builder::SetRoles<
+                builder::SetMusicBrainzId<builder::SetAlbumCount<builder::SetName<builder::SetId>>>,
+            >,
+        >,
+        Error,
+    > {
         let mut roles = vec![];
         if self.song_count > 0 {
             roles.push(id3::Role::Artist);
@@ -39,13 +55,16 @@ impl Artist {
             roles.push(id3::Role::AlbumArtist);
         }
 
-        Ok(id3::Artist::builder()
-            .id(self.required.id)
-            .name(self.required.name)
+        Ok(self
+            .required
+            .into_api_builder()
             .album_count(self.album_count.try_into()?)
             .maybe_music_brainz_id(self.music_brainz_id)
-            .roles(roles)
-            .build())
+            .roles(roles))
+    }
+
+    pub fn try_into_api(self) -> Result<id3::Artist, Error> {
+        Ok(self.try_into_api_builder()?.build())
     }
 }
 

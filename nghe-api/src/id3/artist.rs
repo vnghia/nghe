@@ -17,6 +17,7 @@ pub enum Role {
 )]
 #[api_derive(response = true)]
 #[derive(Builder)]
+#[builder(state_mod(vis = "pub"))]
 pub struct Artist {
     pub id: Uuid,
     pub name: String,
