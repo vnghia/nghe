@@ -30,23 +30,18 @@ pub struct Artist {
     pub music_brainz_id: Option<Uuid>,
 }
 
+pub type RequiredBuilderSet = builder::SetName<builder::SetId>;
+pub type ArtistBuilderSet =
+    builder::SetRoles<builder::SetMusicBrainzId<builder::SetAlbumCount<RequiredBuilderSet>>>;
+
 impl Required {
-    pub fn into_api_builder(self) -> builder::Builder<builder::SetName<builder::SetId>> {
+    pub fn into_api_builder(self) -> builder::Builder<RequiredBuilderSet> {
         id3::Artist::builder().id(self.id).name(self.name)
     }
 }
 
 impl Artist {
-    pub fn try_into_api_builder(
-        self,
-    ) -> Result<
-        builder::Builder<
-            builder::SetRoles<
-                builder::SetMusicBrainzId<builder::SetAlbumCount<builder::SetName<builder::SetId>>>,
-            >,
-        >,
-        Error,
-    > {
+    pub fn try_into_api_builder(self) -> Result<builder::Builder<ArtistBuilderSet>, Error> {
         let mut roles = vec![];
         if self.song_count > 0 {
             roles.push(id3::Role::Artist);

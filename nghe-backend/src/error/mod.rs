@@ -104,6 +104,9 @@ pub enum Error {
     #[error("Prefix does not end with whitespace")]
     ConfigIndexIgnorePrefixEndWithoutSpace,
 
+    #[error("Could not convert float to integer with value {0}")]
+    CouldNotConvertFloatToInteger(f32),
+
     #[error(transparent)]
     Internal(#[from] color_eyre::Report),
 }

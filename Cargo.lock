@@ -4086,6 +4086,7 @@ dependencies = [
  "loole",
  "nghe_api",
  "nghe_proc_macro",
+ "num-traits",
  "o2o",
  "rand",
  "rsmpeg",

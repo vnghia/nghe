@@ -2,9 +2,14 @@ use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
+use diesel_async::RunQueryDsl;
+use nghe_api::id3;
 use uuid::Uuid;
 
-use super::artist;
+use super::{album, artist};
+use crate::database::Database;
+use crate::orm::albums;
+use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
@@ -17,6 +22,21 @@ pub struct ArtistWithAlbums {
     ))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub albums: Vec<Uuid>,
+}
+
+impl ArtistWithAlbums {
+    pub async fn try_into_api(self, database: &Database) -> Result<id3::ArtistWithAlbum, Error> {
+        Ok(id3::ArtistWithAlbum {
+            artist: self.artist.try_into_api()?,
+            album: album::query::unchecked()
+                .filter(albums::id.eq_any(self.albums))
+                .get_results(&mut database.get().await?)
+                .await?
+                .into_iter()
+                .map(album::Album::try_into_api)
+                .try_collect()?,
+        })
+    }
 }
 
 pub mod query {
