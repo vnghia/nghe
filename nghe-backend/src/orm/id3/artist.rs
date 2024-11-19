@@ -132,27 +132,6 @@ mod tests {
     use crate::file::audio;
     use crate::test::{mock, Mock};
 
-    async fn add_audio_artist(
-        mock: &Mock,
-        index: usize,
-        song: audio::Artist<'static>,
-        album: audio::Artist<'static>,
-        n_song: i64,
-    ) {
-        let mut music_folder = mock.music_folder(index).await;
-        // Each song will have a different album so `n_song` can be used here.
-        music_folder
-            .add_audio()
-            .artists(audio::Artists {
-                song: [song].into(),
-                album: [album].into(),
-                compilation: false,
-            })
-            .n_song(n_song.try_into().unwrap())
-            .call()
-            .await;
-    }
-
     #[rstest]
     #[tokio::test]
     async fn test_query_artist(
@@ -164,9 +143,30 @@ mod tests {
         let artist: audio::Artist = Faker.fake();
         let artist_id = artist.upsert_mock(&mock).await;
 
-        add_audio_artist(&mock, 0, artist.clone(), Faker.fake(), n_song).await;
-        add_audio_artist(&mock, 0, Faker.fake(), artist.clone(), n_album).await;
-        add_audio_artist(&mock, 0, artist.clone(), artist.clone(), n_both).await;
+        mock.add_audio_artist(
+            0,
+            [artist.clone()],
+            [Faker.fake()],
+            false,
+            n_song.try_into().unwrap(),
+        )
+        .await;
+        mock.add_audio_artist(
+            0,
+            [Faker.fake()],
+            [artist.clone()],
+            false,
+            n_album.try_into().unwrap(),
+        )
+        .await;
+        mock.add_audio_artist(
+            0,
+            [artist.clone()],
+            [artist.clone()],
+            false,
+            n_both.try_into().unwrap(),
+        )
+        .await;
 
         let database_artist = query::with_user_id(mock.user_id(0).await)
             .filter(artists::id.eq(artist_id))
@@ -197,10 +197,17 @@ mod tests {
         let artist: audio::Artist = Faker.fake();
         let artist_id = artist.upsert_mock(&mock).await;
 
-        let n_both = (2..4).fake();
-        add_audio_artist(&mock, 0, artist.clone(), artist.clone(), n_both).await;
-        add_audio_artist(&mock, 0, Faker.fake(), Faker.fake(), (2..4).fake()).await;
-        add_audio_artist(&mock, 1, Faker.fake(), Faker.fake(), (2..4).fake()).await;
+        let n_both: i64 = (2..4).fake();
+        mock.add_audio_artist(
+            0,
+            [artist.clone()],
+            [artist.clone()],
+            false,
+            n_both.try_into().unwrap(),
+        )
+        .await;
+        mock.add_audio_artist(0, [Faker.fake()], [Faker.fake()], false, (2..4).fake()).await;
+        mock.add_audio_artist(1, [Faker.fake()], [Faker.fake()], false, (2..4).fake()).await;
 
         let database_artists =
             query::with_user_id(user_id).get_results(&mut mock.get().await).await.unwrap();

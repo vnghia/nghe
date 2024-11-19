@@ -546,14 +546,12 @@ mod tests {
             let mut music_folder = mock.music_folder(0).await;
             let artist: Artist = Faker.fake();
             music_folder
-                .add_audio()
-                .artists(Artists {
-                    song: [artist.clone(), Faker.fake()].into(),
-                    album: [Faker.fake()].into(),
+                .add_audio_artist(
+                    [artist.clone(), Faker.fake()],
+                    [Faker.fake()],
                     compilation,
-                })
-                .n_song(n_song)
-                .call()
+                    n_song,
+                )
                 .await;
             let song_ids: Vec<_> = music_folder.database.keys().collect();
             assert!(Artist::queries(&mock).await.contains(&artist));
@@ -592,14 +590,12 @@ mod tests {
                     let album: audio::Album = Faker.fake();
                     let album_id = album.upsert_mock(&mock, 0).await;
                     music_folder
-                        .add_audio()
-                        .artists(Artists {
-                            song: [Faker.fake()].into(),
-                            album: [artist.clone(), Faker.fake()].into(),
-                            compilation: false,
-                        })
-                        .n_song((1..3).fake())
-                        .call()
+                        .add_audio_artist(
+                            [Faker.fake()],
+                            [artist.clone(), Faker.fake()],
+                            false,
+                            (1..3).fake(),
+                        )
                         .await;
                     let song_ids = music_folder.database.keys().copied().collect();
                     (album_id, song_ids)

@@ -48,22 +48,19 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::file::audio;
     use crate::test::{mock, Mock};
 
     #[rstest]
     #[tokio::test]
     async fn test_sorted(#[future(awt)] mock: Mock) {
-        let mut music_folder = mock.music_folder(0).await;
-        music_folder
-            .add_audio()
-            .artists(audio::Artists {
-                song: ["A1".into(), "A2".into(), "C1".into(), "C2".into()].into(),
-                album: ["B1".into(), "B2".into()].into(),
-                compilation: false,
-            })
-            .call()
-            .await;
+        mock.add_audio_artist(
+            0,
+            ["A1".into(), "A2".into(), "C1".into(), "C2".into()],
+            ["B1".into(), "B2".into()],
+            false,
+            1,
+        )
+        .await;
 
         let index =
             handler(mock.database(), mock.user_id(0).await, Request { music_folder_ids: None })

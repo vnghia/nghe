@@ -191,6 +191,24 @@ impl<'a> Mock<'a> {
         self
     }
 
+    pub async fn add_audio_artist(
+        &mut self,
+        songs: impl IntoIterator<Item = audio::Artist<'static>>,
+        albums: impl IntoIterator<Item = audio::Artist<'static>>,
+        compilation: bool,
+        n_song: usize,
+    ) {
+        self.add_audio()
+            .artists(audio::Artists {
+                song: songs.into_iter().collect(),
+                album: albums.into_iter().collect(),
+                compilation,
+            })
+            .n_song(n_song)
+            .call()
+            .await;
+    }
+
     #[builder]
     pub async fn remove_audio_filesystem(
         &mut self,

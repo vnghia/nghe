@@ -156,6 +156,17 @@ impl Mock {
             ..Faker.fake()
         }
     }
+
+    pub async fn add_audio_artist(
+        &self,
+        index: usize,
+        songs: impl IntoIterator<Item = audio::Artist<'static>>,
+        albums: impl IntoIterator<Item = audio::Artist<'static>>,
+        compilation: bool,
+        n_song: usize,
+    ) {
+        self.music_folder(index).await.add_audio_artist(songs, albums, compilation, n_song).await;
+    }
 }
 
 #[fixture]
