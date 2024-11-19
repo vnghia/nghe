@@ -14,7 +14,6 @@ use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
-#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct WithAlbums {
     #[diesel(embed)]
     pub artist: Artist,

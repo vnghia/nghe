@@ -1,21 +1,15 @@
+pub mod required;
 pub mod with_albums;
 
 use diesel::dsl::count_distinct;
 use diesel::prelude::*;
 use nghe_api::id3;
 use nghe_api::id3::builder::artist as builder;
+pub use required::Required;
 use uuid::Uuid;
 
 use crate::orm::{albums, artists, songs};
 use crate::Error;
-
-#[derive(Debug, Queryable, Selectable)]
-#[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
-#[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
-pub struct Required {
-    pub id: Uuid,
-    pub name: String,
-}
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
@@ -32,18 +26,11 @@ pub struct Artist {
     pub music_brainz_id: Option<Uuid>,
 }
 
-pub type RequiredBuilderSet = builder::SetName<builder::SetId>;
-pub type ArtistBuilderSet =
-    builder::SetRoles<builder::SetMusicBrainzId<builder::SetAlbumCount<RequiredBuilderSet>>>;
-
-impl Required {
-    pub fn into_api_builder(self) -> builder::Builder<RequiredBuilderSet> {
-        id3::artist::Artist::builder().id(self.id).name(self.name)
-    }
-}
+pub type BuilderSet =
+    builder::SetRoles<builder::SetMusicBrainzId<builder::SetAlbumCount<required::BuilderSet>>>;
 
 impl Artist {
-    pub fn try_into_api_builder(self) -> Result<builder::Builder<ArtistBuilderSet>, Error> {
+    pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         let mut roles = vec![];
         if self.song_count > 0 {
             roles.push(id3::artist::Role::Artist);

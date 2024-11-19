@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use nghe_api::id3;
 use nghe_api::id3::builder::album as builder;
 
-use super::{Album, AlbumBuilderSet};
+use super::Album;
 use crate::orm::id3::song;
 use crate::Error;
 
@@ -14,10 +14,10 @@ pub struct IdDuration {
     pub id_duration: song::IdDuration,
 }
 
-pub type IdDurationBuilderSet = builder::SetDuration<builder::SetSongCount<AlbumBuilderSet>>;
+pub type BuilderSet = builder::SetDuration<builder::SetSongCount<super::BuilderSet>>;
 
 impl IdDuration {
-    pub fn try_into_api_builder(self) -> Result<builder::Builder<IdDurationBuilderSet>, Error> {
+    pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         Ok(self
             .album
             .try_into_api_builder()?

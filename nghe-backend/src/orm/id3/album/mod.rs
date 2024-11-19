@@ -1,4 +1,5 @@
 pub mod id_duration;
+pub mod with_artists_songs;
 
 use diesel::prelude::*;
 use nghe_api::id3;
@@ -26,7 +27,7 @@ pub struct Album {
     pub release_date: albums::date::Release,
 }
 
-pub type AlbumBuilderSet = builder::SetReleaseDate<
+pub type BuilderSet = builder::SetReleaseDate<
     builder::SetOriginalReleaseDate<
         builder::SetGenres<
             builder::SetMusicBrainzId<builder::SetYear<builder::SetName<builder::SetId>>>,
@@ -35,7 +36,7 @@ pub type AlbumBuilderSet = builder::SetReleaseDate<
 >;
 
 impl Album {
-    pub fn try_into_api_builder(self) -> Result<builder::Builder<AlbumBuilderSet>, Error> {
+    pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         Ok(id3::album::Album::builder()
             .id(self.id)
             .name(self.name)
@@ -54,12 +55,16 @@ pub mod query {
     use crate::orm::{genres, songs_genres};
 
     #[auto_type]
-    pub fn unchecked() -> _ {
+    pub fn unchecked_no_group_by() -> _ {
         albums::table
             .inner_join(songs::table)
             .left_join(songs_genres::table.on(songs_genres::song_id.eq(songs::id)))
             .left_join(genres::table.on(genres::id.eq(songs_genres::genre_id)))
-            .group_by(albums::id)
             .order_by(albums::name)
+    }
+
+    #[auto_type]
+    pub fn unchecked() -> _ {
+        unchecked_no_group_by().group_by(albums::id)
     }
 }
