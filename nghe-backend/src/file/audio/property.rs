@@ -3,6 +3,7 @@
 #[cfg_attr(test, derivative(PartialEq, Eq))]
 pub struct Property {
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
+    #[cfg_attr(test, dummy(faker = "100f32..300f32"))]
     pub duration: f32,
     pub bitrate: u32,
     pub bit_depth: Option<u8>,

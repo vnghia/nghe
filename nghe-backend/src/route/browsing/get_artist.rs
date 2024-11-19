@@ -61,7 +61,7 @@ mod tests {
             .artist;
         assert_eq!(
             artist.album.into_iter().map(|album| album.name).collect::<Vec<_>>(),
-            (0..n_album).into_iter().map(|i| i.to_string()).collect::<Vec<_>>()
+            (0..n_album).map(|i| i.to_string()).collect::<Vec<_>>()
         );
     }
 }
