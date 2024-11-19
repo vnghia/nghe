@@ -1,6 +1,5 @@
 use bon::Builder;
 use nghe_proc_macro::api_derive;
-use serde_with::skip_serializing_none;
 use strum::IntoStaticStr;
 use uuid::Uuid;
 
@@ -12,7 +11,10 @@ pub enum Role {
     AlbumArtist,
 }
 
-#[skip_serializing_none]
+#[serde_with::apply(
+    Option => #[serde(skip_serializing_if = "Option::is_none")],
+    Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
+)]
 #[api_derive(response = true)]
 #[derive(Builder)]
 pub struct Artist {
