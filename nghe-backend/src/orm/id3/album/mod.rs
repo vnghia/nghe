@@ -36,7 +36,7 @@ pub type AlbumBuilderSet = builder::SetReleaseDate<
 
 impl Album {
     pub fn try_into_api_builder(self) -> Result<builder::Builder<AlbumBuilderSet>, Error> {
-        Ok(id3::Album::builder()
+        Ok(id3::album::Album::builder()
             .id(self.id)
             .name(self.name)
             .maybe_year(self.date.year.map(i16::try_into).transpose()?)

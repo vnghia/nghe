@@ -38,7 +38,7 @@ pub type ArtistBuilderSet =
 
 impl Required {
     pub fn into_api_builder(self) -> builder::Builder<RequiredBuilderSet> {
-        id3::Artist::builder().id(self.id).name(self.name)
+        id3::artist::Artist::builder().id(self.id).name(self.name)
     }
 }
 
@@ -46,10 +46,10 @@ impl Artist {
     pub fn try_into_api_builder(self) -> Result<builder::Builder<ArtistBuilderSet>, Error> {
         let mut roles = vec![];
         if self.song_count > 0 {
-            roles.push(id3::Role::Artist);
+            roles.push(id3::artist::Role::Artist);
         }
         if self.album_count > 0 {
-            roles.push(id3::Role::AlbumArtist);
+            roles.push(id3::artist::Role::AlbumArtist);
         }
 
         Ok(self
@@ -60,7 +60,7 @@ impl Artist {
             .roles(roles))
     }
 
-    pub fn try_into_api(self) -> Result<id3::Artist, Error> {
+    pub fn try_into_api(self) -> Result<id3::artist::Artist, Error> {
         Ok(self.try_into_api_builder()?.build())
     }
 }
@@ -237,13 +237,13 @@ mod tests {
 
     #[rstest]
     #[case(0, 0, &[])]
-    #[case(1, 0, &[id3::Role::Artist])]
-    #[case(0, 1, &[id3::Role::AlbumArtist])]
-    #[case(1, 1, &[id3::Role::Artist, id3::Role::AlbumArtist])]
+    #[case(1, 0, &[id3::artist::Role::Artist])]
+    #[case(0, 1, &[id3::artist::Role::AlbumArtist])]
+    #[case(1, 1, &[id3::artist::Role::Artist, id3::artist::Role::AlbumArtist])]
     fn test_try_into_api(
         #[case] song_count: i64,
         #[case] album_count: i64,
-        #[case] roles: &[id3::Role],
+        #[case] roles: &[id3::artist::Role],
     ) {
         let artist = Artist { song_count, album_count, ..Faker.fake() };
         let artist = artist.try_into_api().unwrap();

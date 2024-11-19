@@ -9,7 +9,7 @@ use crate::Error;
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-#[owned_try_into(id3::Date, Error)]
+#[owned_try_into(id3::date::Date, Error)]
 pub struct Date {
     #[try_into(~.map(i16::try_into).transpose()?)]
     pub year: Option<i16>,
@@ -22,7 +22,7 @@ pub struct Date {
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-#[owned_try_into(id3::Date, Error)]
+#[owned_try_into(id3::date::Date, Error)]
 pub struct Release {
     #[try_into(~.map(i16::try_into).transpose()?)]
     #[diesel(column_name = release_year)]
@@ -38,7 +38,7 @@ pub struct Release {
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-#[owned_try_into(id3::Date, Error)]
+#[owned_try_into(id3::date::Date, Error)]
 pub struct OriginalRelease {
     #[try_into(~.map(i16::try_into).transpose()?)]
     #[diesel(column_name = original_release_year)]

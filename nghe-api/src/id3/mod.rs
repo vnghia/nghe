@@ -1,14 +1,7 @@
-mod album;
-mod artist;
-mod artist_with_albums;
-mod date;
-mod genre;
-
-pub use album::Album;
-pub use artist::{Artist, Role};
-pub use artist_with_albums::ArtistWithAlbum;
-pub use date::Date;
-pub use genre::{Genre, Genres};
+pub mod album;
+pub mod artist;
+pub mod date;
+pub mod genre;
 
 pub mod builder {
     pub mod artist {

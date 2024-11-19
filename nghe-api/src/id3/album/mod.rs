@@ -2,7 +2,7 @@ use bon::Builder;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-use super::{Artist, Date, Genres};
+use super::{artist, date, genre};
 
 #[serde_with::apply(
     Option => #[serde(skip_serializing_if = "Option::is_none")],
@@ -20,11 +20,11 @@ pub struct Album {
     pub year: Option<u16>,
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]
-    pub genres: Genres,
+    pub genres: genre::Genres,
     #[builder(default)]
-    pub artists: Vec<Artist>,
+    pub artists: Vec<artist::Artist>,
     #[builder(default)]
-    pub original_release_date: Date,
+    pub original_release_date: date::Date,
     #[builder(default)]
-    pub release_date: Date,
+    pub release_date: date::Date,
 }

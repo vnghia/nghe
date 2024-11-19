@@ -1,7 +1,10 @@
+mod with_albums;
+
 use bon::Builder;
 use nghe_proc_macro::api_derive;
 use strum::IntoStaticStr;
 use uuid::Uuid;
+pub use with_albums::WithAlbum;
 
 #[api_derive(response = true, json = false)]
 #[derive(IntoStaticStr)]

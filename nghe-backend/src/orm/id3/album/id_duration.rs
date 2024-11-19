@@ -25,7 +25,7 @@ impl IdDuration {
             .duration(self.id_duration.duration()?))
     }
 
-    pub fn try_into_api(self) -> Result<id3::Album, Error> {
+    pub fn try_into_api(self) -> Result<id3::album::Album, Error> {
         Ok(self.try_into_api_builder()?.build())
     }
 }

@@ -13,7 +13,7 @@ pub struct Genres {
     pub value: Vec<String>,
 }
 
-impl From<Genres> for id3::Genres {
+impl From<Genres> for id3::genre::Genres {
     fn from(value: Genres) -> Self {
         value.value.into_iter().collect()
     }

@@ -13,7 +13,7 @@ pub struct Request {
 #[api_derive(response = true)]
 pub struct Index {
     pub name: String,
-    pub artist: Vec<id3::Artist>,
+    pub artist: Vec<id3::artist::Artist>,
 }
 
 #[api_derive(response = true)]
