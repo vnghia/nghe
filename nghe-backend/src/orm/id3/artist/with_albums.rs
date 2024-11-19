@@ -15,7 +15,7 @@ use crate::Error;
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
-pub struct ArtistWithAlbums {
+pub struct WithAlbums {
     #[diesel(embed)]
     pub artist: Artist,
     #[diesel(select_expression = sql(
@@ -25,7 +25,7 @@ pub struct ArtistWithAlbums {
     pub albums: Vec<Uuid>,
 }
 
-impl ArtistWithAlbums {
+impl WithAlbums {
     pub async fn try_into_api(self, database: &Database) -> Result<id3::artist::WithAlbums, Error> {
         Ok(id3::artist::WithAlbums {
             artist: self.artist.try_into_api()?,
@@ -50,8 +50,7 @@ pub mod query {
     #[auto_type]
     pub fn with_user_id(user_id: Uuid) -> _ {
         let artist: artist::query::with_user_id = artist::query::with_user_id(user_id);
-        let artist_with_albums: AsSelect<ArtistWithAlbums, crate::orm::Type> =
-            ArtistWithAlbums::as_select();
+        let artist_with_albums: AsSelect<WithAlbums, crate::orm::Type> = WithAlbums::as_select();
         artist.select(artist_with_albums)
     }
 }
