@@ -2,8 +2,11 @@ use bon::Builder;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
+use super::artist;
+
 #[serde_with::apply(
     Option => #[serde(skip_serializing_if = "Option::is_none")],
+    Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
 )]
 #[api_derive(response = true)]
 #[derive(Builder)]
@@ -22,5 +25,6 @@ pub struct Song {
     pub sampling_rate: u32,
     pub channel_count: u8,
     pub disc_number: Option<u16>,
+    pub artists: Vec<artist::Required>,
     pub music_brainz_id: Option<Uuid>,
 }

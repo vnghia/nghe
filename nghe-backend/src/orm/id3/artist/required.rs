@@ -40,11 +40,16 @@ pub mod query {
     use diesel::dsl::auto_type;
 
     use super::*;
-    use crate::orm::songs_album_artists;
+    use crate::orm::{songs_album_artists, songs_artists};
 
     #[auto_type]
     pub fn album() -> _ {
         artists::table.on(artists::id.eq(songs_album_artists::album_artist_id))
+    }
+
+    #[auto_type]
+    pub fn song() -> _ {
+        artists::table.on(artists::id.eq(songs_artists::artist_id))
     }
 }
 

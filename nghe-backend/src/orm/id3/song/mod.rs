@@ -7,6 +7,7 @@ use nghe_api::id3::builder::song as builder;
 use num_traits::ToPrimitive;
 use uuid::Uuid;
 
+use super::artist;
 use crate::orm::songs;
 use crate::Error;
 
@@ -25,22 +26,28 @@ pub struct Song {
     pub property: songs::property::Property,
     #[diesel(embed)]
     pub disc: songs::position::Disc,
+    #[diesel(embed)]
+    pub artists: artist::required::Artists,
     #[diesel(column_name = mbz_id)]
     pub music_brainz_id: Option<Uuid>,
 }
 
 pub type BuilderSet = builder::SetMusicBrainzId<
-    builder::SetDiscNumber<
-        builder::SetChannelCount<
-            builder::SetSamplingRate<
-                builder::SetBitDepth<
-                    builder::SetBitRate<
-                        builder::SetDuration<
-                            builder::SetSuffix<
-                                builder::SetContentType<
-                                    builder::SetSize<
-                                        builder::SetYear<
-                                            builder::SetTrack<builder::SetTitle<builder::SetId>>,
+    builder::SetArtists<
+        builder::SetDiscNumber<
+            builder::SetChannelCount<
+                builder::SetSamplingRate<
+                    builder::SetBitDepth<
+                        builder::SetBitRate<
+                            builder::SetDuration<
+                                builder::SetSuffix<
+                                    builder::SetContentType<
+                                        builder::SetSize<
+                                            builder::SetYear<
+                                                builder::SetTrack<
+                                                    builder::SetTitle<builder::SetId>,
+                                                >,
+                                            >,
                                         >,
                                     >,
                                 >,
@@ -75,10 +82,36 @@ impl Song {
             .sampling_rate(self.property.sample_rate.try_into()?)
             .channel_count(self.property.channel_count.try_into()?)
             .maybe_disc_number(self.disc.number.map(u16::try_from).transpose()?)
+            .artists(self.artists.into())
             .maybe_music_brainz_id(self.music_brainz_id))
     }
 
     pub fn try_into_api(self) -> Result<id3::song::Song, Error> {
         Ok(self.try_into_api_builder()?.build())
+    }
+}
+
+pub mod query {
+    use diesel::dsl::{auto_type, AsSelect};
+
+    use super::*;
+    use crate::orm::songs_artists;
+
+    #[auto_type]
+    pub fn unchecked_no_group_by() -> _ {
+        songs::table
+            .inner_join(songs_artists::table)
+            .inner_join(artist::required::query::song())
+            .order_by((
+                songs::disc_number.asc().nulls_last(),
+                songs::track_number.asc().nulls_last(),
+                songs::title.asc(),
+            ))
+    }
+
+    #[auto_type]
+    pub fn unchecked() -> _ {
+        let song: AsSelect<Song, crate::orm::Type> = Song::as_select();
+        unchecked_no_group_by().group_by(songs::id).select(song)
     }
 }

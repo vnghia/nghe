@@ -32,10 +32,8 @@ impl WithArtistsSongs {
         self,
         database: &Database,
     ) -> Result<id3::album::WithArtistsSongs, Error> {
-        let song: Vec<_> = songs::table
+        let song = song::query::unchecked()
             .filter(songs::id.eq_any(self.songs))
-            .order_by((songs::track_number.asc().nulls_last(), songs::title.asc()))
-            .select(song::Song::as_select())
             .get_results(&mut database.get().await?)
             .await?;
         let duration: f32 = song.iter().map(|song| song.property.duration).sum();
