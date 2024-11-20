@@ -40,7 +40,7 @@ impl Album {
         Ok(id3::album::Album::builder()
             .id(self.id)
             .name(self.name)
-            .maybe_year(self.date.year.map(i16::try_into).transpose()?)
+            .maybe_year(self.date.year.map(u16::try_from).transpose()?)
             .maybe_music_brainz_id(self.music_brainz_id)
             .genres(self.genres.into())
             .original_release_date(self.original_release_date.try_into()?)

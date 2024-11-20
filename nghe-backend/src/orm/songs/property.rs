@@ -31,9 +31,9 @@ pub struct Property {
 pub struct File {
     #[map(~ as _)]
     #[diesel(column_name = file_hash)]
-    hash: i64,
+    pub hash: i64,
     #[map(~ as _)]
     #[diesel(column_name = file_size)]
-    size: i32,
-    format: audio::Format,
+    pub size: i32,
+    pub format: audio::Format,
 }

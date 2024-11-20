@@ -14,4 +14,9 @@ pub mod builder {
         pub use super::super::album::album_builder::*;
         pub use super::super::album::AlbumBuilder as Builder;
     }
+
+    pub mod song {
+        pub use super::super::song::song_builder::*;
+        pub use super::super::song::SongBuilder as Builder;
+    }
 }

@@ -25,7 +25,7 @@ impl Required {
         id3::artist::Artist::builder().id(self.id).name(self.name)
     }
 
-    pub fn try_into_api(self) -> id3::artist::Artist {
+    pub fn into_api(self) -> id3::artist::Artist {
         self.into_api_builder().build()
     }
 }
