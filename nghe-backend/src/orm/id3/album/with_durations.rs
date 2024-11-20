@@ -37,14 +37,28 @@ impl TryFrom<WithDurations> for id3::album::Album {
 
 pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
+    use uuid::Uuid;
 
     use super::*;
     use crate::orm::id3::album;
+    use crate::orm::{albums, permission};
 
     #[auto_type]
     pub fn unchecked() -> _ {
         let with_durations: AsSelect<WithDurations, crate::orm::Type> = WithDurations::as_select();
         album::query::unchecked().select(with_durations)
+    }
+
+    #[auto_type]
+    pub fn with_user_id(user_id: Uuid) -> _ {
+        let permission: permission::with_album = permission::with_album(user_id);
+        unchecked().filter(permission)
+    }
+
+    #[auto_type]
+    pub fn with_music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
+        let with_user_id: with_user_id = with_user_id(user_id);
+        with_user_id.filter(albums::id.eq_any(music_folder_ids))
     }
 }
 
