@@ -1,4 +1,7 @@
+mod with_count;
+
 use nghe_proc_macro::api_derive;
+pub use with_count::WithCount;
 
 #[api_derive(response = true)]
 #[cfg_attr(feature = "test", derive(Clone, Hash))]
