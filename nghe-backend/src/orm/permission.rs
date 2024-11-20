@@ -14,7 +14,7 @@ pub fn with_album(user_id: Uuid) -> _ {
 }
 
 #[auto_type]
-pub fn with_music_folder_id(user_id: Uuid) -> _ {
+pub fn with_music_folder(user_id: Uuid) -> _ {
     exists(
         user_music_folder_permissions::table
             .filter(user_music_folder_permissions::user_id.eq(user_id))

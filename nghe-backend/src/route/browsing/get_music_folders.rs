@@ -17,7 +17,7 @@ pub async fn handler(
     Ok(Response {
         music_folders: MusicFolders {
             music_folder: music_folders::table
-                .filter(permission::with_music_folder_id(user_id))
+                .filter(permission::with_music_folder(user_id))
                 .order_by(music_folders::created_at)
                 .select((music_folders::id, music_folders::name))
                 .get_results::<(Uuid, String)>(&mut database.get().await?)
