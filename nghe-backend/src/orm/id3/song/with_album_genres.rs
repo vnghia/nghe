@@ -52,3 +52,42 @@ pub mod query {
         unchecked().filter(permission)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use diesel_async::RunQueryDsl;
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::orm::songs;
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_query(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+        #[values(true, false)] allow: bool,
+    ) {
+        mock.add_music_folder().allow(allow).call().await;
+        let mut music_folder = mock.music_folder(0).await;
+
+        music_folder.add_audio_artist(["1".into(), "2".into()], [Faker.fake()], false, 1).await;
+        let song_id = music_folder.song_id(0);
+
+        let database_song = query::with_user_id(mock.user_id(0).await)
+            .filter(songs::id.eq(song_id))
+            .get_result(&mut mock.get().await)
+            .await;
+
+        if allow {
+            let database_song = database_song.unwrap();
+            let artists: Vec<String> = database_song.song.artists.into();
+            assert_eq!(artists, &["1", "2"]);
+        } else {
+            assert!(database_song.is_err());
+        }
+    }
+}

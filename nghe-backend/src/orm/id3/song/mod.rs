@@ -99,8 +99,8 @@ pub mod query {
             .inner_join(songs_artists::table)
             .inner_join(artist::required::query::song())
             .order_by((
-                songs::disc_number.asc().nulls_last(),
-                songs::track_number.asc().nulls_last(),
+                songs::disc_number.asc().nulls_first(),
+                songs::track_number.asc().nulls_first(),
                 songs::title.asc(),
             ))
     }

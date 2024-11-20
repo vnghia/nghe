@@ -54,11 +54,8 @@ mod tests {
                 })
                 .song(audio::Song {
                     track_disc: audio::TrackDisc {
-                        track: audio::position::Position {
-                            number: Some((i + 1).try_into().unwrap()),
-                            ..Faker.fake()
-                        },
-                        ..Faker.fake()
+                        track: audio::position::Position { number: Some(i + 1), ..Faker.fake() },
+                        disc: audio::position::Position { number: None, ..Faker.fake() },
                     },
                     ..Faker.fake()
                 })
@@ -82,7 +79,7 @@ mod tests {
 
         assert_eq!(album.album.duration, music_folder.database.duration().unwrap());
 
-        let n_song: usize = n_song.try_into().unwrap();
+        let n_song: usize = n_song.into();
         assert_eq!(album.song.len(), n_song);
         for (i, song) in album.song.into_iter().enumerate() {
             let track: u16 = (i + 1).try_into().unwrap();

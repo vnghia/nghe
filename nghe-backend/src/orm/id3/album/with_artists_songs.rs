@@ -84,6 +84,7 @@ pub mod query {
 mod tests {
     use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};
+    use indexmap::IndexSet;
     use rstest::rstest;
 
     use super::*;
@@ -104,25 +105,7 @@ mod tests {
 
         let album: audio::Album = Faker.fake();
         let album_id = album.upsert_mock(&mock, 0).await;
-
-        let n_song = (2..4).fake();
-        for i in 0..n_song {
-            music_folder
-                .add_audio()
-                .album(album.clone())
-                .song(audio::Song {
-                    track_disc: audio::TrackDisc {
-                        track: audio::position::Position {
-                            number: Some((i + 1).try_into().unwrap()),
-                            ..Faker.fake()
-                        },
-                        ..Faker.fake()
-                    },
-                    ..Faker.fake()
-                })
-                .call()
-                .await;
-        }
+        music_folder.add_audio().album(album.clone()).n_song((2..4).fake()).call().await;
 
         let database_album = query::with_user_id(mock.user_id(0).await)
             .filter(albums::id.eq(album_id))
@@ -132,8 +115,8 @@ mod tests {
         if allow {
             let database_album = database_album.unwrap();
             assert_eq!(
-                database_album.songs,
-                music_folder.database.keys().copied().collect::<Vec<_>>()
+                database_album.songs.iter().collect::<IndexSet<_>>(),
+                music_folder.database.keys().collect::<IndexSet<_>>()
             );
         } else {
             assert!(database_album.is_err());
