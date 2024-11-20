@@ -1,5 +1,5 @@
-pub mod id_duration;
 pub mod with_artists_songs;
+pub mod with_durations;
 
 use diesel::prelude::*;
 use nghe_api::id3;

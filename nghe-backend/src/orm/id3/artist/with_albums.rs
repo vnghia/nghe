@@ -28,12 +28,12 @@ impl WithAlbums {
     pub async fn try_into_api(self, database: &Database) -> Result<id3::artist::WithAlbums, Error> {
         Ok(id3::artist::WithAlbums {
             artist: self.artist.try_into_api()?,
-            album: album::id_duration::query::unchecked()
+            album: album::with_durations::query::unchecked()
                 .filter(albums::id.eq_any(self.albums))
                 .get_results(&mut database.get().await?)
                 .await?
                 .into_iter()
-                .map(album::id_duration::IdDuration::try_into_api)
+                .map(album::with_durations::WithDurations::try_into_api)
                 .try_collect()?,
         })
     }

@@ -50,6 +50,8 @@ pub enum Error {
     DatabaseScanQueryInconsistent,
     #[error("Invalid config format for key {0}")]
     DatabaseInvalidConfigFormat(&'static str),
+    #[error("Song duration is empty")]
+    DatabaseSongDurationIsEmpty,
 
     #[error("{0}")]
     Unauthorized(&'static str),

@@ -7,22 +7,22 @@ use crate::orm::id3::song;
 use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
-pub struct IdDuration {
+pub struct WithDurations {
     #[diesel(embed)]
     pub album: Album,
     #[diesel(embed)]
-    pub id_duration: song::IdDuration,
+    pub durations: song::durations::Durations,
 }
 
 pub type BuilderSet = builder::SetDuration<builder::SetSongCount<super::BuilderSet>>;
 
-impl IdDuration {
+impl WithDurations {
     pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         Ok(self
             .album
             .try_into_api_builder()?
-            .song_count(self.id_duration.song_count().try_into()?)
-            .duration(self.id_duration.duration()?))
+            .song_count(self.durations.count().try_into()?)
+            .duration(self.durations.sum()?))
     }
 
     pub fn try_into_api(self) -> Result<id3::album::Album, Error> {
@@ -38,8 +38,8 @@ pub mod query {
 
     #[auto_type]
     pub fn unchecked() -> _ {
-        let id_duration: AsSelect<IdDuration, crate::orm::Type> = IdDuration::as_select();
-        album::query::unchecked().select(id_duration)
+        let with_durations: AsSelect<WithDurations, crate::orm::Type> = WithDurations::as_select();
+        album::query::unchecked().select(with_durations)
     }
 }
 
@@ -80,11 +80,8 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(database_album.id_duration.song_count(), n_song);
-        assert_eq!(
-            database_album.id_duration.duration().unwrap(),
-            duration.ceil().to_u32().unwrap()
-        );
+        assert_eq!(database_album.durations.count(), n_song);
+        assert_eq!(database_album.durations.sum().unwrap(), duration.ceil().to_u32().unwrap());
         assert_eq!(database_album.album.genres.value.len(), n_genre);
     }
 }

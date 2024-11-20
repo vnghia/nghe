@@ -1,7 +1,6 @@
-pub mod id_duration;
+pub mod durations;
 
 use diesel::prelude::*;
-pub use id_duration::IdDuration;
 use nghe_api::common::format::Trait;
 use nghe_api::id3;
 use nghe_api::id3::builder::song as builder;
