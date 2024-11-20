@@ -92,3 +92,64 @@ pub mod query {
         unchecked().filter(permission)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use diesel_async::RunQueryDsl;
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::file::audio;
+    use crate::orm::albums;
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_query(
+        #[future(awt)]
+        #[with(1, 0)]
+        mock: Mock,
+        #[values(true, false)] allow: bool,
+    ) {
+        mock.add_music_folder().allow(allow).call().await;
+        let mut music_folder = mock.music_folder(0).await;
+
+        let album: audio::Album = Faker.fake();
+        let album_id = album.upsert_mock(&mock, 0).await;
+
+        let n_song = (2..4).fake();
+        for i in 0..n_song {
+            music_folder
+                .add_audio()
+                .album(album.clone())
+                .song(audio::Song {
+                    track_disc: audio::TrackDisc {
+                        track: audio::position::Position {
+                            number: Some((i + 1).try_into().unwrap()),
+                            ..Faker.fake()
+                        },
+                        ..Faker.fake()
+                    },
+                    ..Faker.fake()
+                })
+                .call()
+                .await;
+        }
+
+        let database_album = query::with_user_id(mock.user_id(0).await)
+            .filter(albums::id.eq(album_id))
+            .get_result(&mut mock.get().await)
+            .await;
+
+        if allow {
+            let database_album = database_album.unwrap();
+            assert_eq!(
+                database_album.songs,
+                music_folder.database.keys().copied().collect::<Vec<_>>()
+            );
+        } else {
+            assert!(database_album.is_err());
+        }
+    }
+}
