@@ -275,6 +275,10 @@ impl<'a> Mock<'a> {
             .unwrap()
     }
 
+    pub fn song_id(&self, index: usize) -> Uuid {
+        *self.database.get_index(index).unwrap().0
+    }
+
     pub async fn song_id_filesystem(&self, index: usize) -> Uuid {
         self.optional_song_id_filesystem(index).await.unwrap()
     }

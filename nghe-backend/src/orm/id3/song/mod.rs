@@ -110,3 +110,32 @@ pub mod query {
         unchecked_no_group_by().group_by(songs::id).select(song)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use diesel_async::RunQueryDsl;
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::orm::songs;
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_query(#[future(awt)] mock: Mock) {
+        let mut music_folder = mock.music_folder(0).await;
+
+        music_folder.add_audio_artist(["1".into(), "2".into()], [Faker.fake()], false, 1).await;
+        let song_id = music_folder.song_id(0);
+
+        let database_song = query::unchecked()
+            .filter(songs::id.eq(song_id))
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+
+        let artists: Vec<String> = database_song.artists.into();
+        assert_eq!(artists, &["1", "2"]);
+    }
+}

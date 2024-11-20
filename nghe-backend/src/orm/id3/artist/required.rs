@@ -59,3 +59,14 @@ impl FromSql<SqlType, crate::orm::Type> for Required {
         Ok(Self { id, name })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    impl From<Artists> for Vec<String> {
+        fn from(value: Artists) -> Self {
+            value.value.into_iter().map(|artist| artist.name).collect()
+        }
+    }
+}
