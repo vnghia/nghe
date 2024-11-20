@@ -5,8 +5,8 @@ use nghe_proc_macro::handler;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::error::Error;
 use crate::orm::{id3, songs};
+use crate::Error;
 
 #[handler]
 pub async fn handler(

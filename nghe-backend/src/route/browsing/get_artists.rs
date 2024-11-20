@@ -5,10 +5,9 @@ pub use nghe_api::browsing::get_artists::{Index, Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 
-use crate::config;
 use crate::database::Database;
-use crate::error::Error;
 use crate::orm::id3;
+use crate::{config, Error};
 
 #[handler]
 pub async fn handler(
