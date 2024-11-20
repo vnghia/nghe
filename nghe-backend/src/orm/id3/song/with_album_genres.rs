@@ -76,10 +76,14 @@ mod test {
         mock.add_music_folder().allow(allow).call().await;
         let mut music_folder = mock.music_folder(0).await;
 
+        let album: audio::Album = Faker.fake();
+        let album_id = album.upsert_mock(&mock, 0).await;
+        let artists: Vec<_> = (0..(2..4).fake()).map(|i| i.to_string()).collect();
         music_folder
             .add_audio()
+            .album(album.clone())
             .artists(audio::Artists {
-                song: ["1".into(), "2".into()].into(),
+                song: artists.clone().into_iter().map(String::into).collect(),
                 album: [Faker.fake()].into(),
                 compilation: false,
             })
@@ -95,8 +99,10 @@ mod test {
 
         if allow {
             let database_song = database_song.unwrap();
-            let artists: Vec<String> = database_song.song.artists.into();
-            assert_eq!(artists, &["1", "2"]);
+            let database_artists: Vec<String> = database_song.song.artists.into();
+            assert_eq!(database_song.album, album.name);
+            assert_eq!(database_song.album_id, album_id);
+            assert_eq!(database_artists, artists);
             assert_eq!(database_song.genres.value.len(), n_genre);
         } else {
             assert!(database_song.is_err());
