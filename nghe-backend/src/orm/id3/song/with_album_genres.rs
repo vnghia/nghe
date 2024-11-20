@@ -60,6 +60,7 @@ mod test {
     use rstest::rstest;
 
     use super::*;
+    use crate::file::audio;
     use crate::orm::songs;
     use crate::test::{mock, Mock};
 
@@ -70,11 +71,21 @@ mod test {
         #[with(1, 0)]
         mock: Mock,
         #[values(true, false)] allow: bool,
+        #[values(0, 2)] n_genre: usize,
     ) {
         mock.add_music_folder().allow(allow).call().await;
         let mut music_folder = mock.music_folder(0).await;
 
-        music_folder.add_audio_artist(["1".into(), "2".into()], [Faker.fake()], false, 1).await;
+        music_folder
+            .add_audio()
+            .artists(audio::Artists {
+                song: ["1".into(), "2".into()].into(),
+                album: [Faker.fake()].into(),
+                compilation: false,
+            })
+            .genres(fake::vec![String; n_genre].into_iter().collect())
+            .call()
+            .await;
         let song_id = music_folder.song_id(0);
 
         let database_song = query::with_user_id(mock.user_id(0).await)
@@ -86,6 +97,7 @@ mod test {
             let database_song = database_song.unwrap();
             let artists: Vec<String> = database_song.song.artists.into();
             assert_eq!(artists, &["1", "2"]);
+            assert_eq!(database_song.genres.value.len(), n_genre);
         } else {
             assert!(database_song.is_err());
         }
