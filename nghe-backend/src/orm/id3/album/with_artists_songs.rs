@@ -74,7 +74,7 @@ pub mod query {
 
     use super::*;
     use crate::orm::id3::album;
-    use crate::orm::{albums, artists, songs, songs_album_artists};
+    use crate::orm::{albums, artists, permission, songs, songs_album_artists};
 
     #[auto_type]
     pub fn unchecked() -> _ {
@@ -85,5 +85,11 @@ pub mod query {
             .inner_join(artists::table.on(artists::id.eq(songs_album_artists::album_artist_id)))
             .group_by(albums::id)
             .select(with_artists_songs)
+    }
+
+    #[auto_type]
+    pub fn with_user_id(user_id: Uuid) -> _ {
+        let permission: permission::with_album = permission::with_album(user_id);
+        unchecked().filter(permission)
     }
 }
