@@ -1,3 +1,5 @@
+pub mod with_count;
+
 use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
