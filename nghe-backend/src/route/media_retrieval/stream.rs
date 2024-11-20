@@ -165,7 +165,7 @@ mod tests {
         music_folder.add_audio_filesystem::<&str>().format(audio::Format::Flac).call().await;
 
         let user_id = mock.user_id(0).await;
-        let song_id = music_folder.query_id(0).await;
+        let song_id = music_folder.song_id_filesystem(0).await;
         let format = format::Transcode::Opus;
         let bitrate = 32;
 
@@ -214,7 +214,7 @@ mod tests {
         music_folder.add_audio_filesystem::<&str>().format(audio::Format::Flac).call().await;
 
         let user_id = mock.user_id(0).await;
-        let song_id = music_folder.query_id(0).await;
+        let song_id = music_folder.song_id_filesystem(0).await;
         let format = format::Transcode::Opus;
         let bitrate = 32;
         let time_offset = 10;

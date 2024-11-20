@@ -262,7 +262,7 @@ impl<'a> Mock<'a> {
         .unwrap()
     }
 
-    async fn query_optional_id(&self, index: usize) -> Option<Uuid> {
+    async fn optional_song_id_filesystem(&self, index: usize) -> Option<Uuid> {
         let path = self.filesystem.get_index(index).unwrap().0.as_str();
         albums::table
             .inner_join(songs::table)
@@ -275,8 +275,8 @@ impl<'a> Mock<'a> {
             .unwrap()
     }
 
-    pub async fn query_id(&self, index: usize) -> Uuid {
-        self.query_optional_id(index).await.unwrap()
+    pub async fn song_id_filesystem(&self, index: usize) -> Uuid {
+        self.optional_song_id_filesystem(index).await.unwrap()
     }
 
     pub async fn query_filesystem(
@@ -284,7 +284,7 @@ impl<'a> Mock<'a> {
         absolutize: bool,
     ) -> IndexMap<Utf8TypedPathBuf, audio::Information<'static>> {
         let song_ids: Vec<_> = stream::iter(0..self.filesystem.len())
-            .then(async |index| self.query_optional_id(index).await)
+            .then(async |index| self.optional_song_id_filesystem(index).await)
             .filter_map(std::convert::identity)
             .collect()
             .await;

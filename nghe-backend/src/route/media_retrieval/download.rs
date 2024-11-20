@@ -72,7 +72,7 @@ mod tests {
 
         let range = offset.map(|offset| Range::bytes(offset..).unwrap());
         let user_id = mock.user_id(0).await;
-        let request = Request { id: music_folder.query_id(0).await };
+        let request = Request { id: music_folder.song_id_filesystem(0).await };
         let binary = handler(mock.database(), mock.filesystem(), range, user_id, request).await;
 
         assert_eq!(binary.is_ok(), allow);
