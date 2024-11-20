@@ -62,7 +62,7 @@ pub type BuilderSet = builder::SetMusicBrainzId<
 >;
 
 impl Song {
-    pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
+    pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         let duration = self.duration()?;
         Ok(id3::song::Song::builder()
             .id(self.id)
@@ -81,9 +81,13 @@ impl Song {
             .artists(self.artists.into())
             .maybe_music_brainz_id(self.music_brainz_id))
     }
+}
 
-    pub fn try_into_api(self) -> Result<id3::song::Song, Error> {
-        Ok(self.try_into_api_builder()?.build())
+impl TryFrom<Song> for id3::song::Song {
+    type Error = Error;
+
+    fn try_from(value: Song) -> Result<Self, Self::Error> {
+        Ok(value.try_into_builder()?.build())
     }
 }
 

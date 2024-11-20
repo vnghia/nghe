@@ -25,15 +25,15 @@ pub struct WithAlbums {
 }
 
 impl WithAlbums {
-    pub async fn try_into_api(self, database: &Database) -> Result<id3::artist::WithAlbums, Error> {
+    pub async fn try_into(self, database: &Database) -> Result<id3::artist::WithAlbums, Error> {
         Ok(id3::artist::WithAlbums {
-            artist: self.artist.try_into_api()?,
+            artist: self.artist.try_into()?,
             album: album::with_durations::query::unchecked()
                 .filter(albums::id.eq_any(self.albums))
                 .get_results(&mut database.get().await?)
                 .await?
                 .into_iter()
-                .map(album::with_durations::WithDurations::try_into_api)
+                .map(album::with_durations::WithDurations::try_into)
                 .try_collect()?,
         })
     }

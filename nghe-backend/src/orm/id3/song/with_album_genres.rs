@@ -13,7 +13,7 @@ use crate::Error;
 #[derive(Debug, Queryable, Selectable, o2o)]
 #[owned_try_into(id3::song::WithAlbumGenres, Error)]
 pub struct WithAlbumGenres {
-    #[into(~.try_into_api()?)]
+    #[into(~.try_into()?)]
     #[diesel(embed)]
     pub song: Song,
     #[diesel(select_expression = sql("any_value(albums.name) album_name"))]

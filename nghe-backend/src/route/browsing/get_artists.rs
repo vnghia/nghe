@@ -33,7 +33,7 @@ pub async fn handler(
                 artist: artist
                     .into_iter()
                     .sorted_by(|lhs, rhs| Ord::cmp(&lhs.required.name, &rhs.required.name))
-                    .map(id3::artist::Artist::try_into_api)
+                    .map(id3::artist::Artist::try_into)
                     .try_collect()?,
             })
         })

@@ -18,16 +18,20 @@ pub struct WithDurations {
 pub type BuilderSet = builder::SetDuration<builder::SetSongCount<super::BuilderSet>>;
 
 impl WithDurations {
-    pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
+    pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         Ok(self
             .album
-            .try_into_api_builder()?
+            .try_into_builder()?
             .song_count(self.durations.count().try_into()?)
             .duration(self.durations.duration()?))
     }
+}
 
-    pub fn try_into_api(self) -> Result<id3::album::Album, Error> {
-        Ok(self.try_into_api_builder()?.build())
+impl TryFrom<WithDurations> for id3::album::Album {
+    type Error = Error;
+
+    fn try_from(value: WithDurations) -> Result<Self, Self::Error> {
+        Ok(value.try_into_builder()?.build())
     }
 }
 

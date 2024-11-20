@@ -30,7 +30,7 @@ pub type BuilderSet =
     builder::SetRoles<builder::SetMusicBrainzId<builder::SetAlbumCount<builder::SetRequired>>>;
 
 impl Artist {
-    pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
+    pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         let mut roles = vec![];
         if self.song_count > 0 {
             roles.push(id3::artist::Role::Artist);
@@ -45,9 +45,13 @@ impl Artist {
             .maybe_music_brainz_id(self.music_brainz_id)
             .roles(roles))
     }
+}
 
-    pub fn try_into_api(self) -> Result<id3::artist::Artist, Error> {
-        Ok(self.try_into_api_builder()?.build())
+impl TryFrom<Artist> for id3::artist::Artist {
+    type Error = Error;
+
+    fn try_from(value: Artist) -> Result<Self, Self::Error> {
+        Ok(value.try_into_builder()?.build())
     }
 }
 
@@ -231,8 +235,8 @@ mod tests {
         #[case] album_count: i64,
         #[case] roles: &[id3::artist::Role],
     ) {
-        let artist = Artist { song_count, album_count, ..Faker.fake() };
-        let artist = artist.try_into_api().unwrap();
+        let artist: id3::artist::Artist =
+            Artist { song_count, album_count, ..Faker.fake() }.try_into().unwrap();
         assert_eq!(artist.roles, roles);
     }
 }

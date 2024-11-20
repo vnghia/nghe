@@ -28,7 +28,7 @@ pub struct WithArtistsSongs {
 }
 
 impl WithArtistsSongs {
-    pub async fn try_into_api(
+    pub async fn try_into(
         self,
         database: &Database,
     ) -> Result<id3::album::WithArtistsSongs, Error> {
@@ -37,11 +37,11 @@ impl WithArtistsSongs {
             .get_results(&mut database.get().await?)
             .await?;
         let duration = song.duration()?;
-        let song: Vec<_> = song.into_iter().map(song::Song::try_into_api).try_collect()?;
+        let song: Vec<_> = song.into_iter().map(song::Song::try_into).try_collect()?;
 
         let album = self
             .album
-            .try_into_api_builder()?
+            .try_into_builder()?
             .song_count(song.len().try_into()?)
             .duration(duration)
             .build();

@@ -36,7 +36,7 @@ pub type BuilderSet = builder::SetReleaseDate<
 >;
 
 impl Album {
-    pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
+    pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         Ok(id3::album::Album::builder()
             .id(self.id)
             .name(self.name)
