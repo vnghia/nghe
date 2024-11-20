@@ -275,6 +275,12 @@ mod test {
         }
     }
 
+    impl From<String> for Artist<'static> {
+        fn from(value: String) -> Self {
+            Self { name: value.into(), mbz_id: None }
+        }
+    }
+
     impl<'a> From<(&'a str, Uuid)> for Artist<'a> {
         fn from(value: (&'a str, Uuid)) -> Self {
             Self { name: value.0.into(), mbz_id: Some(value.1) }

@@ -61,7 +61,7 @@ impl Song {
             .title(self.title)
             .maybe_track(self.track.number.map(u16::try_from).transpose()?)
             .maybe_year(self.date.year.map(u16::try_from).transpose()?)
-            .size(self.file.size.try_into()?)
+            .size(self.file.size.cast_unsigned())
             .content_type(self.file.format.mime())
             .suffix(self.file.format.extension())
             .duration(

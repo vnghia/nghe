@@ -52,6 +52,7 @@ mod tests {
                     compilation: false,
                     ..Faker.fake()
                 })
+                .genres(fake::vec![String; 0..4].iter().map(|genre| genre.to_lowercase()).collect())
                 .call()
                 .await;
         }

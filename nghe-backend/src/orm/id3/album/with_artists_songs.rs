@@ -18,11 +18,10 @@ pub struct WithArtistsSongs {
     #[diesel(embed)]
     pub album: Album,
     #[diesel(select_expression = sql(
-        "array_agg(distinct(artists.id, artists.name) order by artists.name) album_artists"
+        "array_agg(distinct (artists.name, artists.id) \
+        order by (artists.name, artists.id)) album_artists"
     ))]
-    #[diesel(select_expression_type =
-        SqlLiteral::<sql_types::Array<sql_types::Record<(sql_types::Uuid, sql_types::Text)>>>
-    )]
+    #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<artist::required::SqlType>>)]
     pub artists: Vec<artist::Required>,
     #[diesel(select_expression = sql("bool_or(songs_album_artists.compilation) is_compilation"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Bool>)]

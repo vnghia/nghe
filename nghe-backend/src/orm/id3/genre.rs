@@ -6,6 +6,7 @@ use nghe_api::id3;
 
 #[derive(Debug, Queryable, Selectable)]
 pub struct Genres {
+    // Be careful, order by in postgresql might be case-insensitive.
     #[diesel(select_expression = sql(
         "array_remove(array_agg(distinct genres.value order by genres.value), null) genres"
     ))]

@@ -18,7 +18,7 @@ pub struct Required {
 
 pub type BuilderSet = builder::SetName<builder::SetId>;
 
-pub type SqlType = sql_types::Record<(sql_types::Uuid, sql_types::Text)>;
+pub type SqlType = sql_types::Record<(sql_types::Text, sql_types::Uuid)>;
 
 impl Required {
     pub fn into_api_builder(self) -> builder::Builder<BuilderSet> {
@@ -32,7 +32,7 @@ impl Required {
 
 impl FromSql<SqlType, crate::orm::Type> for Required {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
-        let (id, name) = FromSql::<SqlType, crate::orm::Type>::from_sql(bytes)?;
+        let (name, id) = FromSql::<SqlType, crate::orm::Type>::from_sql(bytes)?;
         Ok(Self { id, name })
     }
 }

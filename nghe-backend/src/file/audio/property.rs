@@ -5,8 +5,10 @@ pub struct Property {
     #[cfg_attr(test, derivative(PartialEq = "ignore"))]
     #[cfg_attr(test, dummy(faker = "100f32..300f32"))]
     pub duration: f32,
+    #[cfg_attr(test, dummy(faker = "32000..640000"))]
     pub bitrate: u32,
     pub bit_depth: Option<u8>,
+    #[cfg_attr(test, dummy(faker = "10000..44000"))]
     pub sample_rate: u32,
     pub channel_count: u8,
 }
