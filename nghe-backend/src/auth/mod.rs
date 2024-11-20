@@ -169,7 +169,7 @@ mod tests {
 
     #[api_derive(endpoint = true)]
     #[endpoint(path = "test", same_crate = false)]
-    #[derive(Clone, Copy, Serialize, Dummy, PartialEq, Eq)]
+    #[derive(Clone, Copy, Serialize, Dummy)]
     struct Request {
         param_one: i32,
         param_two: u32,

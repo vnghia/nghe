@@ -34,6 +34,8 @@ struct Derive {
     #[deluxe(default = true)]
     fake: bool,
     #[deluxe(default = true)]
+    copy: bool,
+    #[deluxe(default = true)]
     eq: bool,
     #[deluxe(default = true)]
     ord: bool,
@@ -150,6 +152,9 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     }
 
     if args.json {
+        if is_enum {
+            attributes.push(parse_quote!(#[serde(rename_all_fields = "camelCase")]));
+        }
         attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
     };
 
@@ -159,19 +164,24 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
 
     if is_enum {
         derives.extend_from_slice(
-            &["Copy", "Clone", "PartialEq", "Eq", "PartialOrd", "Ord"]
+            &["Clone", "PartialEq", "Eq", "PartialOrd", "Ord"]
                 .into_iter()
                 .map(parse_str)
                 .try_collect::<Vec<_>>()?,
         );
+        if args.copy {
+            derives.push(parse_str("Copy")?);
+        }
     }
 
     if !is_enum && args.eq {
-        attributes.push(parse_quote!(#[cfg_attr(feature = "test", derive(PartialEq, Eq))]));
+        attributes
+            .push(parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialEq, Eq))]));
     }
 
     if !is_enum && args.ord {
-        attributes.push(parse_quote!(#[cfg_attr(feature = "test", derive(PartialOrd, Ord))]));
+        attributes
+            .push(parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialOrd, Ord))]));
     }
 
     Ok(quote! {
