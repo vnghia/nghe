@@ -75,7 +75,7 @@ mod tests {
             assert_eq!(index.name, name);
             for (j, artist) in index.artist.into_iter().enumerate() {
                 let name = concat_string!(&name, (j + 1).to_string());
-                assert_eq!(artist.name, name);
+                assert_eq!(artist.required.name, name);
             }
         }
     }

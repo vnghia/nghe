@@ -27,7 +27,7 @@ pub struct Artist {
 }
 
 pub type BuilderSet =
-    builder::SetRoles<builder::SetMusicBrainzId<builder::SetAlbumCount<required::BuilderSet>>>;
+    builder::SetRoles<builder::SetMusicBrainzId<builder::SetAlbumCount<builder::SetRequired>>>;
 
 impl Artist {
     pub fn try_into_api_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
@@ -39,9 +39,8 @@ impl Artist {
             roles.push(id3::artist::Role::AlbumArtist);
         }
 
-        Ok(self
-            .required
-            .into_api_builder()
+        Ok(id3::artist::Artist::builder()
+            .required(self.required.into())
             .album_count(self.album_count.try_into()?)
             .maybe_music_brainz_id(self.music_brainz_id)
             .roles(roles))

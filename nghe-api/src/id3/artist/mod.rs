@@ -1,7 +1,9 @@
+mod required;
 mod with_albums;
 
 use bon::Builder;
 use nghe_proc_macro::api_derive;
+pub use required::Required;
 use strum::IntoStaticStr;
 use uuid::Uuid;
 pub use with_albums::WithAlbums;
@@ -22,9 +24,9 @@ pub enum Role {
 #[derive(Builder)]
 #[builder(state_mod(vis = "pub"))]
 pub struct Artist {
-    pub id: Uuid,
-    pub name: String,
-    pub album_count: Option<u16>,
+    #[serde(flatten)]
+    pub required: Required,
+    pub album_count: u16,
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]
     pub roles: Vec<Role>,

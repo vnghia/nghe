@@ -10,7 +10,7 @@ use crate::id3::{artist, song};
 pub struct WithArtistsSongs {
     #[serde(flatten)]
     pub album: Album,
-    pub artists: Vec<artist::Artist>,
+    pub artists: Vec<artist::Required>,
     pub is_compilation: bool,
     pub song: Vec<song::Song>,
 }

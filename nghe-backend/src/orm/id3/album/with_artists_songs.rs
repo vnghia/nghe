@@ -57,7 +57,7 @@ impl WithArtistsSongs {
             )
             .build();
 
-        let artists = self.artists.into_iter().map(artist::Required::into_api).collect();
+        let artists = self.artists.into_iter().map(artist::Required::into).collect();
 
         Ok(id3::album::WithArtistsSongs {
             album,
