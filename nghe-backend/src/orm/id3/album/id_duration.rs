@@ -47,6 +47,7 @@ pub mod query {
 mod tests {
     use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};
+    use num_traits::ToPrimitive as _;
     use rstest::rstest;
 
     use super::*;
@@ -57,8 +58,6 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_query(#[future(awt)] mock: Mock, #[values(0, 2)] n_genre: usize) {
-        use num_traits::ToPrimitive as _;
-
         let mut music_folder = mock.music_folder(0).await;
 
         let album: audio::Album = Faker.fake();

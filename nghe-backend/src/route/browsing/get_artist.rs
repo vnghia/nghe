@@ -27,6 +27,7 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use itertools::Itertools;
     use rstest::rstest;
 
     use super::*;
@@ -59,9 +60,13 @@ mod tests {
             .await
             .unwrap()
             .artist;
-        assert_eq!(
-            artist.album.into_iter().map(|album| album.name).collect::<Vec<_>>(),
-            (0..n_album).map(|i| i.to_string()).collect::<Vec<_>>()
-        );
+
+        let n_album: usize = n_album.try_into().unwrap();
+        assert_eq!(artist.album.len(), n_album);
+        for (i, album) in artist.album.into_iter().enumerate() {
+            assert_eq!(album.name, i.to_string());
+            let genres = album.genres.value;
+            assert_eq!(genres, genres.iter().cloned().unique().sorted().collect::<Vec<_>>());
+        }
     }
 }
