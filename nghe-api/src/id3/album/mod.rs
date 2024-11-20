@@ -10,7 +10,7 @@ use super::{artist, date, genre};
 #[serde_with::apply(
     Option => #[serde(skip_serializing_if = "Option::is_none")],
     Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
-    Date => #[serde(skip_serializing_if = "Date::is_none")],
+    date::Date => #[serde(skip_serializing_if = "date::Date::is_none")],
 )]
 #[api_derive(response = true)]
 #[derive(Builder)]
