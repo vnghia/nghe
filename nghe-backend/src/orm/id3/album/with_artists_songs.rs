@@ -17,12 +17,8 @@ use crate::Error;
 pub struct WithArtistsSongs {
     #[diesel(embed)]
     pub album: Album,
-    #[diesel(select_expression = sql(
-        "array_agg(distinct (artists.name, artists.id) \
-        order by (artists.name, artists.id)) album_artists"
-    ))]
-    #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<artist::required::SqlType>>)]
-    pub artists: Vec<artist::Required>,
+    #[diesel(embed)]
+    pub artists: artist::required::Artists,
     #[diesel(select_expression = sql("bool_or(songs_album_artists.compilation) is_compilation"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Bool>)]
     pub is_compilation: bool,
@@ -57,11 +53,9 @@ impl WithArtistsSongs {
             )
             .build();
 
-        let artists = self.artists.into_iter().map(artist::Required::into).collect();
-
         Ok(id3::album::WithArtistsSongs {
             album,
-            artists,
+            artists: self.artists.into(),
             is_compilation: self.is_compilation,
             song,
         })
@@ -73,7 +67,7 @@ pub mod query {
 
     use super::*;
     use crate::orm::id3::album;
-    use crate::orm::{albums, artists, permission, songs, songs_album_artists};
+    use crate::orm::{albums, permission, songs, songs_album_artists};
 
     #[auto_type]
     pub fn unchecked() -> _ {
@@ -81,7 +75,7 @@ pub mod query {
             WithArtistsSongs::as_select();
         album::query::unchecked_no_group_by()
             .inner_join(songs_album_artists::table.on(songs_album_artists::song_id.eq(songs::id)))
-            .inner_join(artists::table.on(artists::id.eq(songs_album_artists::album_artist_id)))
+            .inner_join(artist::required::query::album())
             .group_by(albums::id)
             .select(with_artists_songs)
     }
