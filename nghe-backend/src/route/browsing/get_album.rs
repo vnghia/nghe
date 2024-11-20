@@ -27,6 +27,7 @@ pub async fn handler(
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use id3::duration::Trait as _;
     use rstest::rstest;
 
     use super::*;
@@ -78,6 +79,8 @@ mod tests {
         };
         assert_eq!(artists, expected_artists);
         assert_eq!(album.is_compilation, compilation);
+
+        assert_eq!(album.album.duration, music_folder.database.duration().unwrap());
 
         let n_song: usize = n_song.try_into().unwrap();
         assert_eq!(album.song.len(), n_song);

@@ -3,6 +3,7 @@ use nghe_api::id3;
 use nghe_api::id3::builder::album as builder;
 
 use super::Album;
+use crate::orm::id3::duration::Trait as _;
 use crate::orm::id3::song;
 use crate::Error;
 
@@ -22,7 +23,7 @@ impl WithDurations {
             .album
             .try_into_api_builder()?
             .song_count(self.durations.count().try_into()?)
-            .duration(self.durations.sum()?))
+            .duration(self.durations.duration()?))
     }
 
     pub fn try_into_api(self) -> Result<id3::album::Album, Error> {
@@ -47,7 +48,6 @@ pub mod query {
 mod tests {
     use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};
-    use num_traits::ToPrimitive as _;
     use rstest::rstest;
 
     use super::*;
@@ -71,8 +71,6 @@ mod tests {
             .n_song(n_song)
             .call()
             .await;
-        let duration: f32 =
-            music_folder.database.values().map(|information| information.property.duration).sum();
 
         let database_album = query::unchecked()
             .filter(albums::id.eq(album_id))
@@ -81,7 +79,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(database_album.durations.count(), n_song);
-        assert_eq!(database_album.durations.sum().unwrap(), duration.ceil().to_u32().unwrap());
+        assert_eq!(
+            database_album.durations.duration().unwrap(),
+            music_folder.database.duration().unwrap()
+        );
         assert_eq!(database_album.album.genres.value.len(), n_genre);
     }
 }

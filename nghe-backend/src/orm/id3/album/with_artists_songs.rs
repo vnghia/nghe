@@ -4,11 +4,11 @@ use diesel::prelude::*;
 use diesel::sql_types;
 use diesel_async::RunQueryDsl;
 use nghe_api::id3;
-use num_traits::ToPrimitive;
 use uuid::Uuid;
 
 use super::Album;
 use crate::database::Database;
+use crate::orm::id3::duration::Trait;
 use crate::orm::id3::{artist, song};
 use crate::orm::songs;
 use crate::Error;
@@ -36,19 +36,14 @@ impl WithArtistsSongs {
             .filter(songs::id.eq_any(self.songs))
             .get_results(&mut database.get().await?)
             .await?;
-        let duration: f32 = song.iter().map(|song| song.property.duration).sum();
+        let duration = song.duration()?;
         let song: Vec<_> = song.into_iter().map(song::Song::try_into_api).try_collect()?;
 
         let album = self
             .album
             .try_into_api_builder()?
             .song_count(song.len().try_into()?)
-            .duration(
-                duration
-                    .ceil()
-                    .to_u32()
-                    .ok_or_else(|| Error::CouldNotConvertFloatToInteger(duration))?,
-            )
+            .duration(duration)
             .build();
 
         Ok(id3::album::WithArtistsSongs {

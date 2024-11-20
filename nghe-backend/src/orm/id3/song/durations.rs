@@ -6,14 +6,11 @@ use diesel::expression::SqlLiteral;
 use diesel::pg::PgValue;
 use diesel::prelude::*;
 use diesel::{deserialize, sql_types};
-use num_traits::ToPrimitive;
 use uuid::Uuid;
-
-use crate::Error;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Duration {
-    value: f32,
+    pub value: f32,
 }
 
 pub type SqlType = sql_types::Record<(sql_types::Uuid, sql_types::Float)>;
@@ -38,17 +35,6 @@ impl Add for Duration {
 impl Durations {
     pub fn count(&self) -> usize {
         self.value.len()
-    }
-
-    pub fn sum(&self) -> Result<u32, Error> {
-        let duration = self
-            .value
-            .iter()
-            .copied()
-            .reduce(Duration::add)
-            .ok_or_else(|| Error::DatabaseSongDurationIsEmpty)?
-            .value;
-        duration.ceil().to_u32().ok_or_else(|| Error::CouldNotConvertFloatToInteger(duration))
     }
 }
 
