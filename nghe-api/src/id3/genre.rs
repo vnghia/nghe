@@ -13,6 +13,12 @@ pub struct Genres {
     pub value: Vec<Genre>,
 }
 
+impl Genres {
+    pub fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
+}
+
 impl<S: Into<String>> From<S> for Genre {
     fn from(genre: S) -> Self {
         Self { name: genre.into() }
