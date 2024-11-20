@@ -97,6 +97,7 @@ pub mod query {
 mod tests {
     use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};
+    use indexmap::IndexSet;
     use rstest::rstest;
 
     use super::*;
@@ -145,8 +146,8 @@ mod tests {
         if allow {
             let database_album = database_album.unwrap();
             assert_eq!(
-                database_album.songs,
-                music_folder.database.keys().copied().collect::<Vec<_>>()
+                database_album.songs.iter().collect::<IndexSet<_>>(),
+                music_folder.database.keys().collect::<IndexSet<_>>()
             );
         } else {
             assert!(database_album.is_err());
