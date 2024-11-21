@@ -58,7 +58,7 @@ pub mod query {
     #[auto_type]
     pub fn with_music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
         let with_user_id: with_user_id = with_user_id(user_id);
-        with_user_id.filter(albums::id.eq_any(music_folder_ids))
+        with_user_id.filter(albums::music_folder_id.eq_any(music_folder_ids))
     }
 }
 
