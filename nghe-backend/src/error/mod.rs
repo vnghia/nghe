@@ -39,6 +39,8 @@ pub enum Error {
     SerializeBinaryRequest,
     #[error(transparent)]
     ExtractRequestBody(#[from] axum::extract::rejection::BytesRejection),
+    #[error("Scrobble request must have more id than time")]
+    ScrobbleRequestMustHaveBeMoreIdThanTime,
 
     #[error("Could not checkout a connection from connection pool")]
     CheckoutConnectionPool,

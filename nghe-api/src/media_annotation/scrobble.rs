@@ -7,7 +7,7 @@ pub struct Request {
     #[serde(rename = "id")]
     pub ids: Vec<Uuid>,
     #[serde(rename = "id")]
-    pub times: Vec<u64>,
+    pub times: Option<Vec<u64>>,
     pub submission: Option<bool>,
 }
 
