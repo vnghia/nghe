@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::Role;
 
-#[api_derive(endpoint = true)]
+#[api_derive]
 #[endpoint(path = "createUser")]
 pub struct Request {
     pub username: String,

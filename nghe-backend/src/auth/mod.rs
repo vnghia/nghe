@@ -167,7 +167,7 @@ mod tests {
     use super::*;
     use crate::test::{mock, Mock};
 
-    #[api_derive(endpoint = true)]
+    #[api_derive]
     #[endpoint(path = "test", same_crate = false)]
     #[derive(Clone, Copy, Serialize, Dummy)]
     struct Request {

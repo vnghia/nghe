@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::id3;
 
-#[api_derive(endpoint = true)]
+#[api_derive]
 #[endpoint(path = "getSong")]
 pub struct Request {
     pub id: Uuid,

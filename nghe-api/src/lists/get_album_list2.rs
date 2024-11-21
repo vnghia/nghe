@@ -31,7 +31,7 @@ pub enum Type {
     },
 }
 
-#[api_derive(endpoint = true)]
+#[api_derive]
 #[endpoint(path = "getAlbumList2")]
 #[cfg_attr(test, derive(Default))]
 pub struct Request {

@@ -119,6 +119,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let input: syn::DeriveInput = syn::parse2(item)?;
 
     let ident = input.ident.to_string();
+    let is_request_struct = ident == "Request";
     let is_request = args.request || ident.ends_with("Request");
     let is_response = args.response || ident.ends_with("Response");
 
@@ -143,7 +144,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         derives.push(parse_str("bitcode::Encode")?);
         derives.push(parse_str("bitcode::Decode")?);
     }
-    if args.endpoint {
+    if args.endpoint || is_request_struct {
         derives.push(parse_str("nghe_proc_macro::Endpoint")?);
         if !args.json {
             attributes.push(parse_quote!(#[endpoint(json = false)]));

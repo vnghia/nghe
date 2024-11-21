@@ -1,7 +1,7 @@
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-#[api_derive(endpoint = true)]
+#[api_derive]
 #[endpoint(path = "getMusicFolders")]
 pub struct Request {}
 

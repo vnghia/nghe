@@ -1,6 +1,6 @@
 use nghe_proc_macro::api_derive;
 
-#[api_derive(endpoint = true)]
+#[api_derive]
 #[endpoint(path = "ping")]
 pub struct Request {}
 
