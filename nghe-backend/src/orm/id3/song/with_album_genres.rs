@@ -51,6 +51,12 @@ pub mod query {
         let permission: permission::with_album = permission::with_album(user_id);
         unchecked().filter(permission)
     }
+
+    #[auto_type]
+    pub fn with_music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
+        let with_user_id: with_user_id = with_user_id(user_id);
+        with_user_id.filter(albums::music_folder_id.eq_any(music_folder_ids))
+    }
 }
 
 #[cfg(test)]
