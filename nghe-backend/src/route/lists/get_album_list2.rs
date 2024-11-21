@@ -1,4 +1,7 @@
-use diesel::{ExpressionMethods, QueryDsl};
+use diesel::dsl::{max, sum};
+use diesel::{
+    ExpressionMethods, JoinOnDsl, NullableExpressionMethods, PgSortExpressionMethods as _, QueryDsl,
+};
 use diesel_async::RunQueryDsl;
 use nghe_api::lists::get_album_list2::{AlbumList2, ByYear, Type};
 pub use nghe_api::lists::get_album_list2::{Request, Response};
@@ -6,7 +9,8 @@ use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::orm::{albums, function, genres, id3};
+use crate::orm::{albums, function, genres, id3, playbacks};
+use crate::schema::songs;
 use crate::Error;
 
 #[handler]
@@ -31,8 +35,22 @@ pub async fn handler(
                     .get_results(&mut database.get().await?)
                     .await?
             }
-            Type::Frequent => todo!(),
-            Type::Recent => todo!(),
+            Type::Frequent => {
+                query
+                    .inner_join(playbacks::table.on(playbacks::song_id.eq(songs::id)))
+                    .filter(playbacks::user_id.eq(user_id))
+                    .order_by(sum(playbacks::count.nullable()).desc().nulls_last())
+                    .get_results(&mut database.get().await?)
+                    .await?
+            }
+            Type::Recent => {
+                query
+                    .inner_join(playbacks::table.on(playbacks::song_id.eq(songs::id)))
+                    .filter(playbacks::user_id.eq(user_id))
+                    .order_by(max(playbacks::updated_at.nullable()).desc().nulls_last())
+                    .get_results(&mut database.get().await?)
+                    .await?
+            }
             Type::AlphabeticalByName => query.get_results(&mut database.get().await?).await?,
             Type::ByYear(ByYear { from_year, to_year }) => {
                 let from_year: i16 = from_year.try_into()?;
