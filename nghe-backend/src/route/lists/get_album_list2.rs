@@ -1,7 +1,5 @@
 use diesel::dsl::{max, sum};
-use diesel::{
-    ExpressionMethods, JoinOnDsl, NullableExpressionMethods, PgSortExpressionMethods as _, QueryDsl,
-};
+use diesel::{ExpressionMethods, JoinOnDsl, PgSortExpressionMethods as _, QueryDsl};
 use diesel_async::RunQueryDsl;
 use nghe_api::lists::get_album_list2::{AlbumList2, ByYear, Type};
 pub use nghe_api::lists::get_album_list2::{Request, Response};
@@ -35,10 +33,12 @@ pub async fn handler(
                     .await?
             }
             Type::Frequent => {
+                // Since each playback count is accounted for a song, we make a sum here to get the
+                // playback count of the whole album.
                 query
                     .inner_join(playbacks::table.on(playbacks::song_id.eq(songs::id)))
                     .filter(playbacks::user_id.eq(user_id))
-                    .order_by(sum(playbacks::count.nullable()).desc().nulls_last())
+                    .order_by(sum(playbacks::count).desc().nulls_last())
                     .get_results(&mut database.get().await?)
                     .await?
             }
@@ -46,7 +46,7 @@ pub async fn handler(
                 query
                     .inner_join(playbacks::table.on(playbacks::song_id.eq(songs::id)))
                     .filter(playbacks::user_id.eq(user_id))
-                    .order_by(max(playbacks::updated_at.nullable()).desc().nulls_last())
+                    .order_by(max(playbacks::updated_at).desc().nulls_last())
                     .get_results(&mut database.get().await?)
                     .await?
             }
