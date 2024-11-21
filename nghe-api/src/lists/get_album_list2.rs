@@ -1,13 +1,17 @@
 use nghe_proc_macro::api_derive;
+use serde_with::serde_as;
 use uuid::Uuid;
 
 use crate::id3;
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-#[api_derive(request = true, json = false, eq = false, ord = false)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[serde_as]
+#[api_derive(request = true, test_only = false)]
+#[derive(Clone, Copy)]
 pub struct ByYear {
+    #[serde_as(as = "serde_with::DisplayFromStr")]
     pub from_year: u16,
+    #[serde_as(as = "serde_with::DisplayFromStr")]
     pub to_year: u16,
 }
 
@@ -47,31 +51,6 @@ pub struct AlbumList2 {
 #[api_derive]
 pub struct Response {
     pub album_list2: AlbumList2,
-}
-
-mod serde {
-    use ::serde::{de, Deserialize, Deserializer};
-
-    use super::*;
-
-    #[api_derive(request = true, binary = false)]
-    struct ByYearString {
-        from_year: String,
-        to_year: String,
-    }
-
-    impl<'de> Deserialize<'de> for ByYear {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            let ByYearString { from_year, to_year } = ByYearString::deserialize(deserializer)?;
-            Ok(Self {
-                from_year: from_year.parse().map_err(de::Error::custom)?,
-                to_year: to_year.parse().map_err(de::Error::custom)?,
-            })
-        }
-    }
 }
 
 #[cfg(test)]

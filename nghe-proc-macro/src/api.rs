@@ -39,6 +39,8 @@ struct Derive {
     eq: bool,
     #[deluxe(default = true)]
     ord: bool,
+    #[deluxe(default = true)]
+    test_only: bool,
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
@@ -175,13 +177,27 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     }
 
     if !is_enum && args.eq {
-        attributes
-            .push(parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialEq, Eq))]));
+        if args.test_only {
+            attributes.push(
+                parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialEq, Eq))]),
+            );
+        } else {
+            derives.extend_from_slice(
+                &["PartialEq", "Eq"].into_iter().map(parse_str).try_collect::<Vec<_>>()?,
+            );
+        }
     }
 
     if !is_enum && args.ord {
-        attributes
-            .push(parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialOrd, Ord))]));
+        if args.test_only {
+            attributes.push(
+                parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialOrd, Ord))]),
+            );
+        } else {
+            derives.extend_from_slice(
+                &["PartialOrd", "Ord"].into_iter().map(parse_str).try_collect::<Vec<_>>()?,
+            );
+        }
     }
 
     Ok(quote! {
