@@ -6,8 +6,7 @@ use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::orm::{albums, function, genres, id3};
-use crate::schema::songs;
+use crate::orm::{albums, function, genres, id3, songs};
 use crate::Error;
 
 #[handler]
