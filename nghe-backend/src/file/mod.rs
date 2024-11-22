@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod picture;
 
 use std::time::Duration;
 

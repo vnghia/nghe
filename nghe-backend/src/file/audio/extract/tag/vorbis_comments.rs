@@ -4,10 +4,11 @@ use color_eyre::eyre::OptionExt;
 use indexmap::IndexSet;
 use isolang::Language;
 use itertools::Itertools;
-use lofty::ogg::VorbisComments;
+use lofty::ogg::{OggPictureStorage, VorbisComments};
 use uuid::Uuid;
 
 use crate::file::audio::{extract, Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
+use crate::file::picture::Picture;
 use crate::{config, Error};
 
 impl Date {
@@ -99,5 +100,9 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
         Ok(self.get_all(&config.vorbis_comments.genres).collect())
+    }
+
+    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
+        self.pictures().iter().next().map(|(picture, _)| picture.try_into()).transpose()
     }
 }

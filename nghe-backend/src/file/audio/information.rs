@@ -142,6 +142,7 @@ mod test {
                         album,
                         artists,
                         genres,
+                        picture: None,
                     },
                     property: upsert.data.property.try_into().unwrap(),
                     file: upsert.data.file.into(),

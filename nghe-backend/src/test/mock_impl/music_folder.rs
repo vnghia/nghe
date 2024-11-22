@@ -11,7 +11,7 @@ use indexmap::IndexMap;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 
-use crate::file::{self, audio, File};
+use crate::file::{self, audio, picture, File};
 use crate::filesystem::Trait as _;
 use crate::orm::{albums, music_folders, songs};
 use crate::scan::scanner;
@@ -98,6 +98,7 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
+        picture: Option<Option<picture::Picture<'static>>>,
         #[builder(default = 1)] n_song: usize,
     ) -> &mut Self {
         for _ in 0..n_song {
@@ -107,6 +108,7 @@ impl<'a> Mock<'a> {
                 .maybe_album(album.clone())
                 .maybe_artists(artists.clone())
                 .maybe_genres(genres.clone())
+                .maybe_picture(picture.clone())
                 .call();
             let song_id = information
                 .upsert(
@@ -135,6 +137,7 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
+        picture: Option<Option<picture::Picture<'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
     ) -> &mut Self {
@@ -159,6 +162,7 @@ impl<'a> Mock<'a> {
                 .maybe_album(album.clone())
                 .maybe_artists(artists.clone())
                 .maybe_genres(genres.clone())
+                .maybe_picture(picture.clone())
                 .call()
                 .metadata;
 

@@ -91,6 +91,10 @@ rstest = { workspace = true }
 nghe_api = { path = "../nghe-api", features = ["test"] }
 
 http-body-util = { version = "0.1.2" }
+image = { version = "0.25.5", default-features = false, features = [
+  "jpeg",
+  "png",
+] }
 tempfile = { version = "3.10.1" }
 
 [target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]

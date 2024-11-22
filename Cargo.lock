@@ -1975,9 +1975,9 @@ dependencies = [
 
 [[package]]
 name = "dummy"
-version = "0.7.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e57e12b69e57fad516e01e2b3960f122696fdb13420e1a88ed8e210316f2876"
+checksum = "b3ee4e39146145f7dd28e6c85ffdce489d93c0d9c88121063b8aacabbd9858d2"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -2162,14 +2162,13 @@ dependencies = [
 
 [[package]]
 name = "fake"
-version = "2.9.2"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c25829bde82205da46e1823b2259db6273379f626fc211f126f65654a2669be"
+checksum = "661cb0601b5f4050d1e65452c5b0ea555c0b3e88fb5ed7855906adc6c42523ef"
 dependencies = [
  "deunicode",
  "dummy",
  "rand",
- "serde_json",
  "time",
  "uuid",
 ]
@@ -3290,9 +3289,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.25.4"
+version = "0.25.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc144d44a31d753b02ce64093d532f55ff8dc4ebf2ffb8a63c0dda691385acae"
+checksum = "cd6f44aed642f18953a158afeb30206f4d50da59fbc66ecb53c66488de73563b"
 dependencies = [
  "bytemuck",
  "byteorder-lite",
@@ -4080,6 +4079,7 @@ dependencies = [
  "http-body-util",
  "hyper 0.14.29",
  "hyper-tls",
+ "image",
  "indexmap 2.6.0",
  "isolang",
  "itertools",

@@ -86,6 +86,10 @@ pub enum Error {
     MediaFlacMissingVorbisComments,
     #[error("Could not find audio track in the media file")]
     MediaAudioTrackMissing,
+    #[error("Media picture format is missing")]
+    MediaPictureMissingFormat,
+    #[error("Media picture format {0} is unsupported")]
+    MediaPictureUnsupportedFormat(String),
 
     #[error("Transcode output format is not supported")]
     TranscodeOutputFormatNotSupported,

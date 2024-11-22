@@ -1,3 +1,5 @@
+#![allow(clippy::option_option)]
+
 mod music_folder;
 mod user;
 
@@ -14,7 +16,7 @@ use uuid::Uuid;
 use super::filesystem::Trait;
 use super::{database, filesystem};
 use crate::database::Database;
-use crate::file::audio;
+use crate::file::{audio, picture};
 use crate::filesystem::Filesystem;
 use crate::orm::users;
 use crate::{config, route};
@@ -145,6 +147,7 @@ impl Mock {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
+        picture: Option<Option<picture::Picture<'static>>>,
     ) -> audio::Information<'static> {
         audio::Information {
             metadata: metadata.unwrap_or_else(|| audio::Metadata {
@@ -152,6 +155,7 @@ impl Mock {
                 album: album.unwrap_or_else(|| Faker.fake()),
                 artists: artists.unwrap_or_else(|| Faker.fake()),
                 genres: genres.unwrap_or_else(|| Faker.fake()),
+                picture: picture.unwrap_or_else(|| Faker.fake()),
             }),
             ..Faker.fake()
         }
