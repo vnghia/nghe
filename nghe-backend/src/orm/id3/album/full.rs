@@ -14,7 +14,7 @@ use crate::orm::songs;
 use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
-pub struct WithArtistsSongs {
+pub struct Full {
     #[diesel(embed)]
     pub album: Album,
     #[diesel(embed)]
@@ -27,11 +27,8 @@ pub struct WithArtistsSongs {
     pub songs: Vec<Uuid>,
 }
 
-impl WithArtistsSongs {
-    pub async fn try_into(
-        self,
-        database: &Database,
-    ) -> Result<id3::album::WithArtistsSongs, Error> {
+impl Full {
+    pub async fn try_into(self, database: &Database) -> Result<id3::album::Full, Error> {
         let song = song::query::unchecked()
             .filter(songs::id.eq_any(self.songs))
             .get_results(&mut database.get().await?)
@@ -46,7 +43,7 @@ impl WithArtistsSongs {
             .duration(duration)
             .build();
 
-        Ok(id3::album::WithArtistsSongs {
+        Ok(id3::album::Full {
             album,
             artists: self.artists.into(),
             is_compilation: self.is_compilation,
@@ -64,13 +61,12 @@ pub mod query {
 
     #[auto_type]
     pub fn unchecked() -> _ {
-        let with_artists_songs: AsSelect<WithArtistsSongs, crate::orm::Type> =
-            WithArtistsSongs::as_select();
+        let full: AsSelect<Full, crate::orm::Type> = Full::as_select();
         album::query::unchecked_no_group_by()
             .inner_join(songs_album_artists::table.on(songs_album_artists::song_id.eq(songs::id)))
             .inner_join(artist::required::query::album())
             .group_by(albums::id)
-            .select(with_artists_songs)
+            .select(full)
     }
 
     #[auto_type]

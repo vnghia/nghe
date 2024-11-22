@@ -15,7 +15,7 @@ pub async fn handler(
     request: Request,
 ) -> Result<Response, Error> {
     Ok(Response {
-        album: id3::album::with_artists_songs::query::with_user_id(user_id)
+        album: id3::album::full::query::with_user_id(user_id)
             .filter(albums::id.eq(request.id))
             .get_result(&mut database.get().await?)
             .await?

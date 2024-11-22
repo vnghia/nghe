@@ -11,5 +11,5 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response {
-    pub album: id3::album::WithArtistsSongs,
+    pub album: id3::album::Full,
 }

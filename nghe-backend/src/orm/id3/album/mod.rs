@@ -1,4 +1,4 @@
-pub mod with_artists_songs;
+pub mod full;
 pub mod with_durations;
 
 use diesel::prelude::*;
