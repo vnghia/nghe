@@ -96,7 +96,7 @@ mod test {
     }
 
     impl Dummy<Faker> for Date {
-        fn dummy_with_rng<R: rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
+        fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
             let date: time::Date = config.fake_with_rng(rng);
 
             let year =
