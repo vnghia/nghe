@@ -1,23 +1,60 @@
 use std::borrow::Cow;
 
+use diesel::sql_types::Text;
+use diesel::{AsExpression, FromSqlRow};
 use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
+use o2o::o2o;
 use strum::{EnumString, IntoStaticStr};
+use typed_path::Utf8NativePath;
+use uuid::Uuid;
 
+use super::Property;
+use crate::database::Database;
+use crate::orm::cover_arts;
+use crate::orm::upsert::Insert;
 use crate::Error;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumString, IntoStaticStr)]
-#[cfg_attr(test, derive(fake::Dummy, o2o::o2o))]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    EnumString,
+    IntoStaticStr,
+    AsExpression,
+    FromSqlRow,
+)]
+#[diesel(sql_type = Text)]
+#[strum(serialize_all = "snake_case")]
+#[cfg_attr(test, derive(fake::Dummy, o2o))]
 #[cfg_attr(test, owned_into(MimeType))]
 pub enum Format {
     Png,
     Jpeg,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(test, derive(PartialEq, Eq))]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, EnumString, IntoStaticStr, AsExpression, FromSqlRow,
+)]
+#[diesel(sql_type = Text)]
+#[strum(serialize_all = "snake_case")]
+#[cfg_attr(test, derive(fake::Dummy))]
+pub enum Source {
+    Embed,
+}
+
+#[derive(Debug, o2o)]
+#[cfg_attr(test, derive(Clone, PartialEq, Eq))]
+#[ref_into(cover_arts::Upsert)]
 pub struct Picture<'a> {
-    pub format: Format,
+    pub source: Source,
+    #[map(~.into())]
+    pub property: Property<Format>,
+    #[ghost]
     pub data: Cow<'a, [u8]>,
 }
 
@@ -50,18 +87,44 @@ impl<'a> TryFrom<&'a LoftyPicture> for Picture<'a> {
     type Error = Error;
 
     fn try_from(value: &'a LoftyPicture) -> Result<Self, Self::Error> {
-        Ok(Picture {
-            format: value
-                .mime_type()
-                .ok_or_else(|| Error::MediaPictureMissingFormat)?
-                .try_into()?,
-            data: value.data().into(),
-        })
+        Picture::new(
+            value.data(),
+            Source::Embed,
+            value.mime_type().ok_or_else(|| Error::MediaPictureMissingFormat)?.try_into()?,
+        )
     }
 }
 
-impl Picture<'_> {
+impl<'a> Picture<'a> {
+    pub const FILENAME: &'static str = "cover_art";
     pub const TEST_DESCRIPTION: &'static str = "nghe-picture-test-description";
+
+    pub fn new(
+        data: impl Into<Cow<'a, [u8]>>,
+        source: Source,
+        format: Format,
+    ) -> Result<Self, Error> {
+        let data = data.into();
+        let property = Property::new(&data, format)?;
+        Ok(Self { source, property, data })
+    }
+
+    pub async fn dump(&self, dir: impl AsRef<Utf8NativePath>) -> Result<(), Error> {
+        let path = self.property.path_create_dir(dir, Self::FILENAME).await?;
+        tokio::fs::write(path, &self.data).await?;
+        Ok(())
+    }
+
+    pub async fn upsert(
+        &self,
+        database: &Database,
+        dir: impl AsRef<Utf8NativePath>,
+    ) -> Result<Uuid, Error> {
+        // TODO: Checking for its existence before dump.
+        self.dump(dir).await?;
+        let upsert: cover_arts::Upsert = self.into();
+        upsert.insert(database).await
+    }
 }
 
 #[cfg(test)]
@@ -73,6 +136,7 @@ mod test {
     use lofty::picture::PictureType;
 
     use super::*;
+    use crate::file;
 
     impl Dummy<Faker> for Picture<'_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
@@ -94,7 +158,7 @@ mod test {
             .unwrap();
             cursor.set_position(0);
 
-            Self { format, data: cursor.into_inner().into() }
+            Self::new(cursor.into_inner(), Source::Embed, format).unwrap()
         }
     }
 
@@ -102,10 +166,19 @@ mod test {
         fn from(value: Picture<'_>) -> Self {
             Self::new_unchecked(
                 PictureType::Other,
-                Some(value.format.into()),
+                Some(value.property.format.into()),
                 Some(Picture::TEST_DESCRIPTION.to_owned()),
                 value.data.into_owned(),
             )
+        }
+    }
+
+    impl Picture<'_> {
+        pub async fn load(dir: impl AsRef<Utf8NativePath>, cover_art: cover_arts::Upsert) -> Self {
+            let property: file::Property<Format> = cover_art.property.into();
+            let path = property.path(dir, Self::FILENAME);
+            let data = tokio::fs::read(path).await.unwrap();
+            Self { source: cover_art.source, property, data: data.into() }
         }
     }
 }

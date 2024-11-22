@@ -2,6 +2,7 @@ pub mod albums;
 pub mod artists;
 pub mod binary;
 pub mod configs;
+pub mod cover_arts;
 pub mod function;
 pub mod genres;
 pub mod id3;

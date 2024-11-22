@@ -67,7 +67,9 @@ diesel::table! {
         format -> Text,
         file_hash -> Int8,
         file_size -> Int4,
-        upserted_at -> Timestamptz,
+        source -> Text,
+        updated_at -> Timestamptz,
+        scanned_at -> Timestamptz,
     }
 }
 
