@@ -15,6 +15,7 @@ use super::{artist, date, genre};
 )]
 #[api_derive(response = true)]
 #[derive(Builder)]
+#[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
 pub struct Album {
     pub id: Uuid,

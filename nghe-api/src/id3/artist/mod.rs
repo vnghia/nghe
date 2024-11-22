@@ -22,6 +22,7 @@ pub enum Role {
 )]
 #[api_derive(response = true)]
 #[derive(Builder)]
+#[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
 pub struct Artist {
     #[serde(flatten)]

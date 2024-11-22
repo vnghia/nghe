@@ -13,6 +13,7 @@ use super::artist;
 )]
 #[api_derive(response = true)]
 #[derive(Builder)]
+#[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
 pub struct Song {
     pub id: Uuid,

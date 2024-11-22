@@ -42,7 +42,7 @@ impl Artist {
         Ok(id3::artist::Artist::builder()
             .required(self.required.into())
             .album_count(self.album_count.try_into()?)
-            .maybe_music_brainz_id(self.music_brainz_id)
+            .music_brainz_id(self.music_brainz_id)
             .roles(roles))
     }
 }
