@@ -497,7 +497,7 @@ mod tests {
         let information: audio::Information = Faker.fake();
         let album_id = information.metadata.album.upsert_mock(&mock, 0).await;
         let song_id = information
-            .upsert_song(database, album_id, Faker.fake::<String>(), None)
+            .upsert_song(database, album_id.into(), Faker.fake::<String>(), None)
             .await
             .unwrap();
 

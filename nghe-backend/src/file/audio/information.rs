@@ -49,11 +49,11 @@ impl Information<'_> {
     pub async fn upsert_song(
         &self,
         database: &Database,
-        album_id: Uuid,
+        foreign: songs::Foreign,
         relative_path: impl Into<Cow<'_, str>>,
         id: impl Into<Option<Uuid>>,
     ) -> Result<Uuid, Error> {
-        songs::Upsert { album_id, relative_path: relative_path.into(), data: self.try_into()? }
+        songs::Upsert { foreign, relative_path: relative_path.into(), data: self.try_into()? }
             .upsert(database, id)
             .await
     }
@@ -67,7 +67,8 @@ impl Information<'_> {
         song_id: impl Into<Option<Uuid>>,
     ) -> Result<Uuid, Error> {
         let album_id = self.upsert_album(database, music_folder_id).await?;
-        let song_id = self.upsert_song(database, album_id, relative_path, song_id).await?;
+        let song_id =
+            self.upsert_song(database, songs::Foreign { album_id }, relative_path, song_id).await?;
         self.upsert_artists(database, prefixes, song_id).await?;
         self.upsert_genres(database, song_id).await?;
         Ok(song_id)
@@ -130,7 +131,7 @@ mod test {
 
         pub async fn query_path(mock: &Mock, id: Uuid) -> (String, Self) {
             let upsert = Self::query_upsert(mock, id).await;
-            let album = audio::Album::query(mock, upsert.album_id).await;
+            let album = audio::Album::query(mock, upsert.foreign.album_id).await;
             let artists = audio::Artists::query(mock, id).await;
             let genres = audio::Genres::query(mock, id).await;
 

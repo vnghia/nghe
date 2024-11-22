@@ -20,6 +20,13 @@ pub mod property;
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
+pub struct Foreign {
+    pub album_id: Uuid,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
 pub struct Song<'a> {
     #[diesel(embed)]
     pub main: name_date_mbz::NameDateMbz<'a>,
@@ -44,7 +51,8 @@ pub struct Data<'a> {
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Upsert<'a> {
-    pub album_id: Uuid,
+    #[diesel(embed)]
+    pub foreign: Foreign,
     pub relative_path: Cow<'a, str>,
     #[diesel(embed)]
     pub data: Data<'a>,
@@ -93,5 +101,16 @@ impl ToSql<Text, super::Type> for audio::Format {
 impl FromSql<Text, super::Type> for audio::Format {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         Ok(audio::Format::from_str(core::str::from_utf8(bytes.as_bytes())?)?)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    impl From<Uuid> for Foreign {
+        fn from(value: Uuid) -> Self {
+            Self { album_id: value }
+        }
     }
 }
