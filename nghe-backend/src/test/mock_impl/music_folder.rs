@@ -24,6 +24,7 @@ pub struct Mock<'a> {
     music_folder: music_folders::MusicFolder<'static>,
     pub filesystem: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
     pub database: IndexMap<Uuid, audio::Information<'static>>,
+    pub config: scanner::Config,
 }
 
 #[bon::bon]
@@ -40,11 +41,8 @@ impl<'a> Mock<'a> {
                 .unwrap(),
             filesystem: IndexMap::new(),
             database: IndexMap::new(),
+            config: mock.config.scanner(),
         }
-    }
-
-    pub fn config(&self) -> &super::Config {
-        &self.mock.config
     }
 
     pub fn id(&self) -> Uuid {
@@ -111,13 +109,7 @@ impl<'a> Mock<'a> {
                 .maybe_picture(picture.clone())
                 .call();
             let song_id = information
-                .upsert(
-                    self.mock.database(),
-                    self.id(),
-                    Faker.fake::<String>(),
-                    &self.mock.config.index.ignore_prefixes,
-                    None,
-                )
+                .upsert(self.mock.database(), &self.config, self.id(), Faker.fake::<String>(), None)
                 .await
                 .unwrap();
             self.database.insert(song_id, information);
@@ -152,8 +144,7 @@ impl<'a> Mock<'a> {
 
             let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
             let mut asset = Cursor::new(data.clone());
-            let mut file =
-                File::new(data, format).unwrap().audio(self.config().lofty_parse).unwrap();
+            let mut file = File::new(data, format).unwrap().audio(self.config.lofty).unwrap();
             asset.set_position(0);
 
             let metadata = super::Mock::information()
@@ -167,8 +158,8 @@ impl<'a> Mock<'a> {
                 .metadata;
 
             file.clear()
-                .dump_metadata(&self.config().parsing, metadata.clone())
-                .save_to(&mut asset, self.config().lofty_write);
+                .dump_metadata(&self.config.parsing, metadata.clone())
+                .save_to(&mut asset, self.mock.config.lofty_write);
 
             asset.flush().unwrap();
             asset.set_position(0);
@@ -241,7 +232,7 @@ impl<'a> Mock<'a> {
         let path = self.absolutize(path).with_extension(format.as_ref());
         File::new(self.to_impl().read(path.to_path()).await.unwrap(), format)
             .unwrap()
-            .audio(self.config().lofty_parse)
+            .audio(self.config.lofty)
             .unwrap()
     }
 
@@ -249,12 +240,7 @@ impl<'a> Mock<'a> {
         scanner::Scanner::new_orm(
             self.mock.database(),
             self.mock.filesystem(),
-            scanner::Config {
-                lofty: self.config().lofty_parse,
-                scan: self.config().filesystem.scan,
-                parsing: self.config().parsing.clone(),
-                index: self.config().index.clone(),
-            },
+            self.config.clone(),
             music_folders::MusicFolder {
                 id: self.music_folder.id,
                 data: music_folders::Data {

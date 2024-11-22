@@ -19,6 +19,7 @@ use crate::database::Database;
 use crate::file::{audio, picture};
 use crate::filesystem::Filesystem;
 use crate::orm::users;
+use crate::scan::scanner;
 use crate::{config, route};
 
 #[derive(Debug, Derivative)]
@@ -45,6 +46,15 @@ pub struct Mock {
 impl Config {
     fn with_prefix(self, prefix: impl AsRef<Utf8NativePath> + Copy) -> Self {
         Self { transcode: self.transcode.with_prefix(prefix), ..self }
+    }
+
+    pub fn scanner(&self) -> scanner::Config {
+        scanner::Config {
+            lofty: self.lofty_parse,
+            scan: self.filesystem.scan,
+            parsing: self.parsing.clone(),
+            index: self.index.clone(),
+        }
     }
 }
 

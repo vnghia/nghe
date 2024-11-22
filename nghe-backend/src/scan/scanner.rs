@@ -196,13 +196,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         let audio = file.audio(self.config.lofty)?;
         let information = audio.extract(&self.config.parsing)?;
         let song_id = information
-            .upsert(
-                database,
-                self.music_folder.id,
-                relative_path,
-                &self.config.index.ignore_prefixes,
-                song_id,
-            )
+            .upsert(database, &self.config, self.music_folder.id, relative_path, song_id)
             .await?;
         audio::Information::cleanup_one(database, started_at, song_id).await?;
 
