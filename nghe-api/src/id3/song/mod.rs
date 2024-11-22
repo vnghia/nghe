@@ -19,6 +19,7 @@ pub struct Song {
     pub title: String,
     pub track: Option<u16>,
     pub year: Option<u16>,
+    pub cover_art: Option<Uuid>,
     pub size: u32,
     pub content_type: &'static str,
     pub suffix: &'static str,

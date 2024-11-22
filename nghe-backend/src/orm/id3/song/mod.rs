@@ -21,6 +21,8 @@ pub struct Song {
     pub track: songs::position::Track,
     #[diesel(embed)]
     pub date: songs::date::Date,
+    #[diesel(column_name = cover_art_id)]
+    pub cover_art: Option<Uuid>,
     #[diesel(embed)]
     pub file: songs::property::File,
     #[diesel(embed)]
@@ -44,9 +46,11 @@ pub type BuilderSet = builder::SetMusicBrainzId<
                                 builder::SetSuffix<
                                     builder::SetContentType<
                                         builder::SetSize<
-                                            builder::SetYear<
-                                                builder::SetTrack<
-                                                    builder::SetTitle<builder::SetId>,
+                                            builder::SetCoverArt<
+                                                builder::SetYear<
+                                                    builder::SetTrack<
+                                                        builder::SetTitle<builder::SetId>,
+                                                    >,
                                                 >,
                                             >,
                                         >,
@@ -69,6 +73,7 @@ impl Song {
             .title(self.title)
             .maybe_track(self.track.number.map(u16::try_from).transpose()?)
             .maybe_year(self.date.year.map(u16::try_from).transpose()?)
+            .maybe_cover_art(self.cover_art)
             .size(self.file.size.cast_unsigned())
             .content_type(self.file.format.mime())
             .suffix(self.file.format.extension())
