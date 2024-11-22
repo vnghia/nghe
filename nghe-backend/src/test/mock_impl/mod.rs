@@ -59,6 +59,7 @@ impl Config {
             scan: self.filesystem.scan,
             parsing: self.parsing.clone(),
             index: self.index.clone(),
+            cover_art: self.cover_art.clone(),
         }
     }
 }

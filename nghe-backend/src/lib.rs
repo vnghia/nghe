@@ -51,6 +51,7 @@ pub async fn build(config: config::Config) -> Router {
                 scan: config.filesystem.scan,
                 parsing: config.parsing,
                 index: config.index,
+                cover_art: config.cover_art,
             },
         ))
         .merge(route::browsing::router())

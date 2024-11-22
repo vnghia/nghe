@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use o2o::o2o;
+use typed_path::Utf8NativePath;
 use uuid::Uuid;
 
 use super::{Album, Artists, Genres};
@@ -47,6 +48,22 @@ impl Information<'_> {
         Genres::upsert_song(database, song_id, &genre_ids).await
     }
 
+    pub async fn upsert_cover_art(
+        &self,
+        database: &Database,
+        dir: Option<&impl AsRef<Utf8NativePath>>,
+    ) -> Result<Option<Uuid>, Error> {
+        Ok(
+            if let Some(ref picture) = self.metadata.picture
+                && let Some(dir) = dir
+            {
+                Some(picture.upsert(database, dir).await?)
+            } else {
+                None
+            },
+        )
+    }
+
     pub async fn upsert_song(
         &self,
         database: &Database,
@@ -68,8 +85,10 @@ impl Information<'_> {
         song_id: impl Into<Option<Uuid>>,
     ) -> Result<Uuid, Error> {
         let album_id = self.upsert_album(database, music_folder_id).await?;
-        let song_id =
-            self.upsert_song(database, songs::Foreign { album_id }, relative_path, song_id).await?;
+        let cover_art_id = self.upsert_cover_art(database, config.cover_art.dir.as_ref()).await?;
+        let foreign = songs::Foreign { album_id, cover_art_id };
+
+        let song_id = self.upsert_song(database, foreign, relative_path, song_id).await?;
         self.upsert_artists(database, &config.index.ignore_prefixes, song_id).await?;
         self.upsert_genres(database, song_id).await?;
         Ok(song_id)
@@ -107,7 +126,7 @@ mod test {
     use uuid::Uuid;
 
     use super::Information;
-    use crate::file::audio;
+    use crate::file::{audio, picture};
     use crate::orm::songs;
     use crate::test::Mock;
 
@@ -135,6 +154,7 @@ mod test {
             let album = audio::Album::query(mock, upsert.foreign.album_id).await;
             let artists = audio::Artists::query(mock, id).await;
             let genres = audio::Genres::query(mock, id).await;
+            let picture = picture::Picture::query_song(mock, id).await;
 
             (
                 upsert.relative_path.into_owned(),
@@ -144,7 +164,7 @@ mod test {
                         album,
                         artists,
                         genres,
-                        picture: None,
+                        picture,
                     },
                     property: upsert.data.property.try_into().unwrap(),
                     file: upsert.data.file.into(),

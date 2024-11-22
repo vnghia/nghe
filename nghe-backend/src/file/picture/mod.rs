@@ -131,12 +131,16 @@ impl<'a> Picture<'a> {
 mod test {
     use std::io::Cursor;
 
+    use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
+    use diesel_async::RunQueryDsl;
     use fake::{Dummy, Fake, Faker};
     use image::{ImageFormat, Rgb, RgbImage};
     use lofty::picture::PictureType;
 
     use super::*;
     use crate::file;
+    use crate::schema::songs;
+    use crate::test::Mock;
 
     impl Dummy<Faker> for Picture<'_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
@@ -174,11 +178,27 @@ mod test {
     }
 
     impl Picture<'_> {
-        pub async fn load(dir: impl AsRef<Utf8NativePath>, cover_art: cover_arts::Upsert) -> Self {
-            let property: file::Property<Format> = cover_art.property.into();
+        async fn load(dir: impl AsRef<Utf8NativePath>, upsert: cover_arts::Upsert) -> Self {
+            let property: file::Property<Format> = upsert.property.into();
             let path = property.path(dir, Self::FILENAME);
             let data = tokio::fs::read(path).await.unwrap();
-            Self { source: cover_art.source, property, data: data.into() }
+            Self { source: upsert.source, property, data: data.into() }
+        }
+
+        pub async fn query_song(mock: &Mock, song_id: Uuid) -> Option<Self> {
+            if let Some(ref dir) = mock.config.cover_art.dir {
+                let upsert = cover_arts::table
+                    .inner_join(songs::table)
+                    .filter(songs::id.eq(song_id))
+                    .select(cover_arts::Upsert::as_select())
+                    .get_result(&mut mock.get().await)
+                    .await
+                    .optional()
+                    .unwrap();
+                if let Some(upsert) = upsert { Some(Self::load(dir, upsert).await) } else { None }
+            } else {
+                None
+            }
         }
     }
 }

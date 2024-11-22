@@ -25,6 +25,7 @@ pub struct Config {
     pub scan: config::filesystem::Scan,
     pub parsing: config::Parsing,
     pub index: config::Index,
+    pub cover_art: config::CoverArt,
 }
 
 #[derive(Clone)]

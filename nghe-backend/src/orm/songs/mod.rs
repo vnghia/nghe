@@ -20,8 +20,10 @@ pub mod property;
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
+#[cfg_attr(test, derive(Default))]
 pub struct Foreign {
     pub album_id: Uuid,
+    pub cover_art_id: Option<Uuid>,
 }
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
@@ -110,7 +112,7 @@ mod test {
 
     impl From<Uuid> for Foreign {
         fn from(value: Uuid) -> Self {
-            Self { album_id: value }
+            Self { album_id: value, ..Default::default() }
         }
     }
 }
