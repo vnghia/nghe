@@ -18,7 +18,7 @@ pub async fn handler(
 ) -> Result<Response, Error> {
     #[check_music_folder]
     {
-        let query = id3::album::with_durations::query::with_user_id(user_id)
+        let query = id3::album::short::query::with_user_id(user_id)
             .limit(request.size.unwrap_or(10).into())
             .offset(request.offset.unwrap_or(0).into());
 
@@ -80,10 +80,7 @@ pub async fn handler(
 
         Ok(Response {
             album_list2: AlbumList2 {
-                album: albums
-                    .into_iter()
-                    .map(id3::album::with_durations::WithDurations::try_into)
-                    .try_collect()?,
+                album: albums.into_iter().map(id3::album::short::Short::try_into).try_collect()?,
             },
         })
     }

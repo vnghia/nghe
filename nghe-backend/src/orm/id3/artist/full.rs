@@ -28,12 +28,12 @@ impl Full {
     pub async fn try_into(self, database: &Database) -> Result<id3::artist::Full, Error> {
         Ok(id3::artist::Full {
             artist: self.artist.try_into()?,
-            album: album::with_durations::query::unchecked()
+            album: album::short::query::unchecked()
                 .filter(albums::id.eq_any(self.albums))
                 .get_results(&mut database.get().await?)
                 .await?
                 .into_iter()
-                .map(album::with_durations::WithDurations::try_into)
+                .map(album::short::Short::try_into)
                 .try_collect()?,
         })
     }

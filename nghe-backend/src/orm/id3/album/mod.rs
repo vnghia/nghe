@@ -1,5 +1,5 @@
 pub mod full;
-pub mod with_durations;
+pub mod short;
 
 use diesel::prelude::*;
 use nghe_api::id3;

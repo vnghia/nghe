@@ -8,7 +8,7 @@ use crate::orm::id3::song;
 use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
-pub struct WithDurations {
+pub struct Short {
     #[diesel(embed)]
     pub album: Album,
     #[diesel(embed)]
@@ -17,7 +17,7 @@ pub struct WithDurations {
 
 pub type BuilderSet = builder::SetDuration<builder::SetSongCount<super::BuilderSet>>;
 
-impl WithDurations {
+impl Short {
     pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         Ok(self
             .album
@@ -27,10 +27,10 @@ impl WithDurations {
     }
 }
 
-impl TryFrom<WithDurations> for id3::album::Album {
+impl TryFrom<Short> for id3::album::Album {
     type Error = Error;
 
-    fn try_from(value: WithDurations) -> Result<Self, Self::Error> {
+    fn try_from(value: Short) -> Result<Self, Self::Error> {
         Ok(value.try_into_builder()?.build())
     }
 }
@@ -45,8 +45,8 @@ pub mod query {
 
     #[auto_type]
     pub fn unchecked() -> _ {
-        let with_durations: AsSelect<WithDurations, crate::orm::Type> = WithDurations::as_select();
-        album::query::unchecked().select(with_durations)
+        let short: AsSelect<Short, crate::orm::Type> = Short::as_select();
+        album::query::unchecked().select(short)
     }
 
     #[auto_type]
