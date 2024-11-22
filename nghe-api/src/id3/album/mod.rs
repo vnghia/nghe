@@ -20,6 +20,7 @@ use super::{artist, date, genre};
 pub struct Album {
     pub id: Uuid,
     pub name: String,
+    pub cover_art: Option<Uuid>,
     pub song_count: u16,
     pub duration: u32,
     pub year: Option<u16>,

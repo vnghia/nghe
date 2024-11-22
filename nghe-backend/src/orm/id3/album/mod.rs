@@ -1,7 +1,10 @@
 pub mod full;
 pub mod short;
 
+use diesel::dsl::sql;
+use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
+use diesel::sql_types;
 use nghe_api::id3;
 use nghe_api::id3::builder::album as builder;
 use uuid::Uuid;
@@ -15,6 +18,14 @@ use crate::Error;
 pub struct Album {
     pub id: Uuid,
     pub name: String,
+    #[diesel(select_expression = sql(
+        "(array_agg(songs.cover_art_id order by \
+        songs.disc_number asc nulls last, songs.track_number \
+        asc nulls last, songs.cover_art_id asc) filter \
+        (where songs.cover_art_id is not null))[1] cover_art_id"
+    ))]
+    #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Uuid>>)]
+    pub cover_art: Option<Uuid>,
     #[diesel(embed)]
     pub date: albums::date::Date,
     #[diesel(column_name = mbz_id)]
@@ -30,7 +41,9 @@ pub struct Album {
 pub type BuilderSet = builder::SetReleaseDate<
     builder::SetOriginalReleaseDate<
         builder::SetGenres<
-            builder::SetMusicBrainzId<builder::SetYear<builder::SetName<builder::SetId>>>,
+            builder::SetMusicBrainzId<
+                builder::SetYear<builder::SetCoverArt<builder::SetName<builder::SetId>>>,
+            >,
         >,
     >,
 >;
@@ -40,6 +53,7 @@ impl Album {
         Ok(id3::album::Album::builder()
             .id(self.id)
             .name(self.name)
+            .cover_art(self.cover_art)
             .year(self.date.year.map(u16::try_from).transpose()?)
             .music_brainz_id(self.music_brainz_id)
             .genres(self.genres.into())
