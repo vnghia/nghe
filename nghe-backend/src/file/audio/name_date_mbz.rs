@@ -35,7 +35,7 @@ pub struct NameDateMbz<'a> {
 
 pub type Album<'a> = NameDateMbz<'a>;
 
-impl<'a> Album<'a> {
+impl Album<'_> {
     pub async fn upsert(&self, database: &Database, music_folder_id: Uuid) -> Result<Uuid, Error> {
         albums::Upsert { music_folder_id, data: self.try_into()? }.insert(database).await
     }
@@ -74,7 +74,7 @@ mod test {
         }
     }
 
-    impl<'a> Album<'a> {
+    impl Album<'_> {
         pub async fn upsert_mock(&self, mock: &Mock, index: usize) -> Uuid {
             self.upsert(mock.database(), mock.music_folder_id(index).await).await.unwrap()
         }

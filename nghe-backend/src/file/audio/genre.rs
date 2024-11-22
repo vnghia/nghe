@@ -50,7 +50,7 @@ where
     }
 }
 
-impl<'a> Genres<'a> {
+impl Genres<'_> {
     pub async fn upsert(&self, database: &Database) -> Result<Vec<Uuid>, Error> {
         diesel::insert_into(genres::table)
             .values::<Vec<genres::Data<'_>>>(self.into())

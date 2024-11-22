@@ -59,7 +59,7 @@ mod upsert {
     use crate::database::Database;
     use crate::Error;
 
-    impl<'a> crate::orm::upsert::Insert for Upsert<'a> {
+    impl crate::orm::upsert::Insert for Upsert<'_> {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
             diesel::insert_into(songs::table)
                 .values(self)
@@ -70,7 +70,7 @@ mod upsert {
         }
     }
 
-    impl<'a> crate::orm::upsert::Update for Upsert<'a> {
+    impl crate::orm::upsert::Update for Upsert<'_> {
         async fn update(&self, database: &Database, id: Uuid) -> Result<(), Error> {
             diesel::update(songs::table)
                 .filter(songs::id.eq(id))

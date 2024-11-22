@@ -72,7 +72,7 @@ impl Sink {
         } else {
             std::fs::OpenOptions::new().read(true).open(path.as_ref())?
         };
-        file.try_lock_shared()?;
+        FileExt::try_lock_shared(&file)?;
         Ok(file)
     }
 

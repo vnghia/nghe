@@ -35,7 +35,7 @@ pub trait Trait: filesystem::Trait {
     async fn delete(&self, path: Utf8TypedPath<'_>);
 }
 
-impl<'fs> filesystem::Trait for Impl<'fs> {
+impl filesystem::Trait for Impl<'_> {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         match self {
             Impl::Local(filesystem) => filesystem.check_folder(path).await,
@@ -80,7 +80,7 @@ impl<'fs> filesystem::Trait for Impl<'fs> {
     }
 }
 
-impl<'fs> Trait for Impl<'fs> {
+impl Trait for Impl<'_> {
     fn prefix(&self) -> Utf8TypedPath<'_> {
         match self {
             Impl::Local(filesystem) => filesystem.prefix(),

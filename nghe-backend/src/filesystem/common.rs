@@ -49,7 +49,7 @@ pub trait Trait {
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error>;
 }
 
-impl<'fs> Trait for Impl<'fs> {
+impl Trait for Impl<'_> {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         match self {
             Impl::Local(filesystem) => filesystem.check_folder(path).await,

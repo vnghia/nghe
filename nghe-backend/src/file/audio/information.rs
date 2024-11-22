@@ -23,7 +23,7 @@ pub struct Information<'a> {
     pub file: file::Property<super::Format>,
 }
 
-impl<'a> Information<'a> {
+impl Information<'_> {
     pub async fn upsert_album(
         &self,
         database: &Database,

@@ -155,6 +155,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    #![allow(unexpected_cfgs)]
+
     use axum::body::Body;
     use axum::http;
     use concat_string::concat_string;

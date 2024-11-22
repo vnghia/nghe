@@ -32,7 +32,7 @@ mod upsert {
     use crate::database::Database;
     use crate::Error;
 
-    impl<'a> crate::orm::upsert::Insert for Upsert<'a> {
+    impl crate::orm::upsert::Insert for Upsert<'_> {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
             if self.data.mbz_id.is_some() {
                 diesel::insert_into(artists::table)
