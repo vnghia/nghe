@@ -1,12 +1,12 @@
+mod full;
 mod required;
-mod with_albums;
 
 use bon::Builder;
+pub use full::Full;
 use nghe_proc_macro::api_derive;
 pub use required::Required;
 use strum::IntoStaticStr;
 use uuid::Uuid;
-pub use with_albums::WithAlbums;
 
 #[api_derive(response = true, json = false)]
 #[derive(IntoStaticStr)]

@@ -7,7 +7,7 @@ use crate::id3::album;
     Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
 )]
 #[api_derive(response = true)]
-pub struct WithAlbums {
+pub struct Full {
     #[serde(flatten)]
     pub artist: Artist,
     pub album: Vec<album::Album>,
