@@ -90,6 +90,8 @@ pub enum Error {
     MediaPictureMissingFormat,
     #[error("Media picture format {0} is unsupported")]
     MediaPictureUnsupportedFormat(String),
+    #[error("Media cover art dir is not enabled")]
+    MediaCoverArtDirIsNotEnabled,
 
     #[error("Transcode output format is not supported")]
     TranscodeOutputFormatNotSupported,
@@ -135,6 +137,7 @@ impl IntoResponse for Error {
             Error::Unauthorized(_) | Error::MissingRole(_) => {
                 (StatusCode::UNAUTHORIZED, self.to_string())
             }
+            Error::MediaCoverArtDirIsNotEnabled => (StatusCode::NOT_FOUND, self.to_string()),
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into()),
         };
         (status_code, status_message).into_response()

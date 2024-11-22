@@ -1,5 +1,6 @@
 #![allow(clippy::too_many_lines)]
 
+use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::spanned::Spanned;
@@ -355,7 +356,7 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         let arg = extension
             .segments
             .iter()
-            .map(|segment| segment.ident.to_string().to_lowercase())
+            .map(|segment| segment.ident.to_string().to_case(Case::Snake))
             .collect::<Vec<_>>()
             .join("_");
         let arg = format_ident!("{arg}");
