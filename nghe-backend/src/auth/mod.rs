@@ -160,7 +160,7 @@ mod tests {
     use axum::body::Body;
     use axum::http;
     use concat_string::concat_string;
-    use fake::{Dummy, Fake, Faker};
+    use fake::{Fake, Faker};
     use nghe_api::common::JsonURL as _;
     use nghe_proc_macro::api_derive;
     use rstest::rstest;
@@ -171,7 +171,7 @@ mod tests {
 
     #[api_derive]
     #[endpoint(path = "test", same_crate = false)]
-    #[derive(Clone, Copy, Serialize, Dummy)]
+    #[derive(Clone, Copy, Serialize)]
     struct Request {
         param_one: i32,
         param_two: u32,

@@ -1,5 +1,6 @@
 pub mod filesystem;
 pub mod format;
+pub mod typed_uuid;
 
 use bitcode::{DecodeOwned, Encode};
 use nghe_proc_macro::api_derive;

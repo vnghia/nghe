@@ -162,7 +162,8 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     };
 
     if is_request && args.fake {
-        attributes.push(parse_quote!(#[cfg_attr(feature = "fake", derive(fake::Dummy))]));
+        attributes
+            .push(parse_quote!(#[cfg_attr(any(test, feature = "fake"), derive(fake::Dummy))]));
     }
 
     if is_enum {
