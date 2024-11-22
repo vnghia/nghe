@@ -1,3 +1,4 @@
+mod cover_art;
 mod database;
 pub mod filesystem;
 mod index;
@@ -5,6 +6,7 @@ pub mod parsing;
 mod server;
 mod transcode;
 
+pub use cover_art::CoverArt;
 pub use database::Database;
 use figment::providers::{Env, Serialized};
 use figment::Figment;
@@ -24,6 +26,7 @@ pub struct Config {
     pub parsing: Parsing,
     pub index: Index,
     pub transcode: Transcode,
+    pub cover_art: CoverArt,
 }
 
 impl Default for Config {
@@ -35,6 +38,7 @@ impl Default for Config {
             .join(Serialized::default("parsing", Parsing::default()))
             .join(Serialized::default("index", Index::default()))
             .join(Serialized::default("transcode", Transcode::default()))
+            .join(Serialized::default("cover_art", CoverArt::default()))
             .extract()
             .expect("Could not parse config")
     }

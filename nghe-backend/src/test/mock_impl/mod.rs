@@ -31,6 +31,7 @@ pub struct Config {
     pub parsing: config::Parsing,
     pub index: config::Index,
     pub transcode: config::Transcode,
+    pub cover_art: config::CoverArt,
 
     pub lofty_parse: ParseOptions,
     pub lofty_write: WriteOptions,
@@ -45,7 +46,11 @@ pub struct Mock {
 
 impl Config {
     fn with_prefix(self, prefix: impl AsRef<Utf8NativePath> + Copy) -> Self {
-        Self { transcode: self.transcode.with_prefix(prefix), ..self }
+        Self {
+            transcode: self.transcode.with_prefix(prefix),
+            cover_art: self.cover_art.with_prefix(prefix),
+            ..self
+        }
     }
 
     pub fn scanner(&self) -> scanner::Config {
