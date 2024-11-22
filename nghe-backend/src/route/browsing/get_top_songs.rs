@@ -20,7 +20,7 @@ pub async fn handler(
     // playback count.
     Ok(Response {
         top_songs: TopSongs {
-            song: id3::song::with_album_genres::query::with_user_id(user_id)
+            song: id3::song::full::query::with_user_id(user_id)
                 .filter(artists::name.eq(request.artist))
                 .left_join(playbacks::table.on(playbacks::song_id.eq(songs::id)))
                 .order_by(sum(playbacks::count).desc().nulls_last())
@@ -28,7 +28,7 @@ pub async fn handler(
                 .get_results(&mut database.get().await?)
                 .await?
                 .into_iter()
-                .map(id3::song::with_album_genres::WithAlbumGenres::try_into)
+                .map(id3::song::full::Full::try_into)
                 .try_collect()?,
         },
     })

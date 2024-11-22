@@ -1,9 +1,9 @@
-mod with_album_genres;
+mod full;
 
 use bon::Builder;
+pub use full::Full;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
-pub use with_album_genres::WithAlbumGenres;
 
 use super::artist;
 

@@ -16,7 +16,7 @@ pub struct Request {
 
 #[api_derive(response = true)]
 pub struct RandomSong {
-    pub song: Vec<id3::song::WithAlbumGenres>,
+    pub song: Vec<id3::song::Full>,
 }
 
 #[api_derive]

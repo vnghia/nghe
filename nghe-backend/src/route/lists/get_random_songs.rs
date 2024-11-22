@@ -17,7 +17,7 @@ pub async fn handler(
 ) -> Result<Response, Error> {
     #[check_music_folder]
     {
-        let mut query = id3::song::with_album_genres::query::with_user_id(user_id)
+        let mut query = id3::song::full::query::with_user_id(user_id)
             .limit(request.size.unwrap_or(10).into())
             .order_by(function::random())
             .into_boxed();
@@ -40,7 +40,7 @@ pub async fn handler(
                     .get_results(&mut database.get().await?)
                     .await?
                     .into_iter()
-                    .map(id3::song::with_album_genres::WithAlbumGenres::try_into)
+                    .map(id3::song::full::Full::try_into)
                     .try_collect()?,
             },
         })

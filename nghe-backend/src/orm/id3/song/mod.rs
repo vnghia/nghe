@@ -1,5 +1,5 @@
 pub mod durations;
-pub mod with_album_genres;
+pub mod full;
 
 use diesel::prelude::*;
 use nghe_api::common::format::Trait as _;

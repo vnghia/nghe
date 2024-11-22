@@ -11,8 +11,8 @@ use crate::orm::id3::genre;
 use crate::Error;
 
 #[derive(Debug, Queryable, Selectable, o2o)]
-#[owned_try_into(id3::song::WithAlbumGenres, Error)]
-pub struct WithAlbumGenres {
+#[owned_try_into(id3::song::Full, Error)]
+pub struct Full {
     #[into(~.try_into()?)]
     #[diesel(embed)]
     pub song: Song,
@@ -36,14 +36,13 @@ pub mod query {
 
     #[auto_type]
     pub fn unchecked() -> _ {
-        let with_album_genres: AsSelect<WithAlbumGenres, crate::orm::Type> =
-            WithAlbumGenres::as_select();
+        let full: AsSelect<Full, crate::orm::Type> = Full::as_select();
         song::query::unchecked_no_group_by()
             .inner_join(albums::table)
             .left_join(songs_genres::table.on(songs_genres::song_id.eq(songs::id)))
             .left_join(genres::table.on(genres::id.eq(songs_genres::genre_id)))
             .group_by(songs::id)
-            .select(with_album_genres)
+            .select(full)
     }
 
     #[auto_type]

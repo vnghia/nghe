@@ -8,7 +8,7 @@ use crate::id3::genre;
     genre::Genres => #[serde(skip_serializing_if = "genre::Genres::is_empty")],
 )]
 #[api_derive(response = true)]
-pub struct WithAlbumGenres {
+pub struct Full {
     #[serde(flatten)]
     pub song: Song,
     pub album: String,

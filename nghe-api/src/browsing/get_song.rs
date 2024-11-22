@@ -11,5 +11,5 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response {
-    pub song: id3::song::WithAlbumGenres,
+    pub song: id3::song::Full,
 }
