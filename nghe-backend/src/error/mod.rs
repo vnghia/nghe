@@ -8,8 +8,7 @@ use loole::SendError;
 use o2o::o2o;
 
 #[derive(Debug, thiserror::Error, o2o)]
-#[from_owned(diesel::result::Error| repeat(), return Self::Internal(@.into()))]
-#[from_owned(std::io::Error)]
+#[from_owned(std::io::Error| repeat(), return Self::Internal(@.into()))]
 #[from_owned(isolang::ParseLanguageError)]
 #[from_owned(uuid::Error)]
 #[from_owned(lofty::error::LoftyError)]
@@ -41,6 +40,9 @@ pub enum Error {
     ExtractRequestBody(#[from] axum::extract::rejection::BytesRejection),
     #[error("Scrobble request must have more id than time")]
     ScrobbleRequestMustHaveBeMoreIdThanTime,
+
+    #[error("Resource not found")]
+    NotFound,
 
     #[error("Could not checkout a connection from connection pool")]
     CheckoutConnectionPool,
@@ -137,7 +139,7 @@ impl IntoResponse for Error {
             Error::Unauthorized(_) | Error::MissingRole(_) => {
                 (StatusCode::UNAUTHORIZED, self.to_string())
             }
-            Error::MediaCoverArtDirIsNotEnabled => (StatusCode::NOT_FOUND, self.to_string()),
+            Error::NotFound => (StatusCode::NOT_FOUND, self.to_string()),
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into()),
         };
         (status_code, status_message).into_response()
@@ -147,5 +149,14 @@ impl IntoResponse for Error {
 impl<T: Send + Sync + 'static> From<SendError<T>> for Error {
     fn from(value: SendError<T>) -> Self {
         Self::Internal(value.into())
+    }
+}
+
+impl From<diesel::result::Error> for Error {
+    fn from(value: diesel::result::Error) -> Self {
+        match value {
+            diesel::result::Error::NotFound => Error::NotFound,
+            _ => Error::Internal(value.into()),
+        }
     }
 }
