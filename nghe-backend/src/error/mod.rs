@@ -2,6 +2,7 @@ use std::ffi::OsString;
 
 use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::operation::get_object::GetObjectError;
+use aws_sdk_s3::operation::head_object::HeadObjectError;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use loole::SendError;
@@ -19,6 +20,7 @@ use o2o::o2o;
 #[from_owned(tokio::task::JoinError)]
 #[from_owned(tokio::sync::AcquireError)]
 #[from_owned(SdkError<GetObjectError>)]
+#[from_owned(SdkError<HeadObjectError>)]
 #[from_owned(rsmpeg::error::RsmpegError)]
 #[from_owned(std::ffi::NulError)]
 #[from_owned(std::str::Utf8Error)]

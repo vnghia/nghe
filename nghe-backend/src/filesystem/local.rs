@@ -67,6 +67,10 @@ impl super::Trait for Filesystem {
         Ok(())
     }
 
+    async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
+        tokio::fs::try_exists(path.as_str()).await.map_err(Error::from)
+    }
+
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         tokio::fs::read(path.as_str()).await.map_err(Error::from)
     }

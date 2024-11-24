@@ -39,6 +39,8 @@ pub trait Trait {
         prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error>;
 
+    async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error>;
+
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error>;
     async fn read_to_binary(
         &self,
@@ -65,6 +67,13 @@ impl Trait for Impl<'_> {
         match self {
             Impl::Local(filesystem) => filesystem.scan_folder(sender, prefix).await,
             Impl::S3(filesystem) => filesystem.scan_folder(sender, prefix).await,
+        }
+    }
+
+    async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
+        match self {
+            Impl::Local(filesystem) => filesystem.exists(path).await,
+            Impl::S3(filesystem) => filesystem.exists(path).await,
         }
     }
 
@@ -203,5 +212,20 @@ mod tests {
             scanned_entries.into_iter().sorted().collect_vec(),
             entries.into_iter().sorted().collect_vec()
         );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_exists(
+        #[future(awt)]
+        #[with(0, 0)]
+        mock: Mock,
+        #[values(filesystem::Type::Local, filesystem::Type::S3)] ty: filesystem::Type,
+    ) {
+        let filesystem = mock.to_impl(ty);
+        let path = filesystem.prefix().join(Faker.fake::<String>());
+        assert!(!filesystem.exists(path.to_path()).await.unwrap());
+        filesystem.write(path.to_path(), &fake::vec![u8; 10..20]).await;
+        assert!(filesystem.exists(path.to_path()).await.unwrap());
     }
 }

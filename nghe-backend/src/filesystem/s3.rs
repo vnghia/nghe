@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
+use aws_sdk_s3::error::SdkError;
+use aws_sdk_s3::operation::head_object::HeadObjectError;
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
@@ -128,6 +130,23 @@ impl super::Trait for Filesystem {
         }
 
         Ok(())
+    }
+
+    async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
+        let Path { bucket, key } = Self::split(path)?;
+        let result = self.client.head_object().bucket(bucket).key(key).send().await;
+
+        if let Err(err) = result {
+            if let SdkError::ServiceError(ref err) = err
+                && let HeadObjectError::NotFound(_) = err.err()
+            {
+                Ok(false)
+            } else {
+                Err(err.into())
+            }
+        } else {
+            Ok(true)
+        }
     }
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {

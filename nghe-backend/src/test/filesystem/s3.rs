@@ -57,6 +57,10 @@ impl filesystem::Trait for Mock {
         self.filesystem.scan_folder(sender, prefix).await
     }
 
+    async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
+        self.filesystem.exists(path).await
+    }
+
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         self.filesystem.read(path).await
     }

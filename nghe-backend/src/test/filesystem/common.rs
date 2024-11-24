@@ -54,6 +54,13 @@ impl filesystem::Trait for Impl<'_> {
         }
     }
 
+    async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
+        match self {
+            Impl::Local(filesystem) => filesystem.exists(path).await,
+            Impl::S3(filesystem) => filesystem.exists(path).await,
+        }
+    }
+
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         match self {
             Impl::Local(filesystem) => filesystem.read(path).await,
