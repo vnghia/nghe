@@ -41,7 +41,7 @@ impl Metadata for FlacFile {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self {
         if let Some(picture) = picture {
             self.insert_picture(picture.into(), None).unwrap();
         }

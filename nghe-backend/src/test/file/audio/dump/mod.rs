@@ -14,7 +14,7 @@ pub trait Metadata {
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self;
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self;
     fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self;
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self;
+    fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self;
 
     fn dump_metadata(
         &mut self,
@@ -88,7 +88,7 @@ impl Metadata for File {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self {
         match self {
             File::Flac { audio, .. } => {
                 audio.dump_picture(picture);

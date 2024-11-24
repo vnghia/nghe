@@ -32,7 +32,7 @@ impl<'a> Metadata<'a> for FlacFile {
         self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.genres(config)
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
         let mut iter = self.pictures().iter();
         if cfg!(test) {
             iter.find_map(|(picture, _)| {

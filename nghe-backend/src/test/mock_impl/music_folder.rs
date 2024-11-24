@@ -96,7 +96,7 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static>>>,
+        picture: Option<Option<picture::Picture<'static, 'static>>>,
         #[builder(default = 1)] n_song: usize,
     ) -> &mut Self {
         for _ in 0..n_song {
@@ -129,7 +129,7 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static>>>,
+        picture: Option<Option<picture::Picture<'static, 'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
     ) -> &mut Self {
@@ -144,7 +144,7 @@ impl<'a> Mock<'a> {
 
             let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
             let mut asset = Cursor::new(data.clone());
-            let mut file = File::new(data, format).unwrap().audio(self.config.lofty).unwrap();
+            let mut file = File::new(format, data).unwrap().audio(self.config.lofty).unwrap();
             asset.set_position(0);
 
             let metadata = super::Mock::information()
@@ -174,7 +174,7 @@ impl<'a> Mock<'a> {
                 audio::Information {
                     metadata,
                     property: audio::Property::default(format),
-                    file: file::Property::new(&data, format).unwrap(),
+                    file: file::Property::new(format, &data).unwrap(),
                 },
             );
         }
@@ -230,7 +230,7 @@ impl<'a> Mock<'a> {
 
     pub async fn file(&self, path: Utf8TypedPath<'_>, format: audio::Format) -> audio::File {
         let path = self.absolutize(path).with_extension(format.as_ref());
-        File::new(self.to_impl().read(path.to_path()).await.unwrap(), format)
+        File::new(format, self.to_impl().read(path.to_path()).await.unwrap())
             .unwrap()
             .audio(self.config.lofty)
             .unwrap()

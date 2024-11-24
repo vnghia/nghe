@@ -27,6 +27,7 @@ use o2o::o2o;
 #[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
 #[from_owned(std::string::FromUtf8Error)]
 #[from_owned(axum::extract::rejection::StringRejection)]
+#[from_owned(strum::ParseError)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),
@@ -106,6 +107,10 @@ pub enum Error {
     #[error("Name is missing for sample format {0}")]
     TranscodeSampleFmtNameMissing(i32),
 
+    #[error("Path extension is missing")]
+    PathExtensionMissing,
+    #[error("Absolute file path does not have parent directory")]
+    AbsoluteFilePathDoesNotHaveParentDirectory,
     #[error("S3 path is not an absolute unix path: {0}")]
     FilesystemS3InvalidPath(String),
     #[error("S3 object does not have size information")]

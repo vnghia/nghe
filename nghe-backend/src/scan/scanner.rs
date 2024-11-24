@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use diesel::{
@@ -14,7 +15,7 @@ use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::file::{self, audio, File};
+use crate::file::{self, audio, picture, File};
 use crate::filesystem::{self, entry, Entry, Filesystem, Trait};
 use crate::orm::{albums, music_folders, songs};
 use crate::{config, Error};
@@ -137,6 +138,23 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .map_err(Error::from)
     }
 
+    async fn scan_dir_cover_art(&self, dir: Utf8TypedPath<'_>) -> Result<Option<Uuid>, Error> {
+        if let Some(ref art_dir) = self.config.cover_art.dir {
+            for name in &self.config.cover_art.names {
+                let path = dir.join(name);
+                if self.filesystem.exists(path.to_path()).await? {
+                    let format = picture::Format::from_str(
+                        path.extension().ok_or_else(|| Error::PathExtensionMissing)?,
+                    )?;
+                    let data = self.filesystem.read(path.to_path()).await?;
+                    let picture = picture::Picture::new(Some(path.as_str().into()), format, data)?;
+                    return Ok(Some(picture.upsert(&self.database, art_dir).await?));
+                }
+            }
+        }
+        Ok(None)
+    }
+
     #[instrument(skip(self, started_at), ret(level = "debug"), err)]
     async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
         let database = &self.database;
@@ -154,7 +172,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             None
         };
 
-        let file = File::new(self.filesystem.read(entry.path.to_path()).await?, entry.format)?;
+        let file = File::new(entry.format, self.filesystem.read(entry.path.to_path()).await?)?;
 
         let relative_path = self.relative_path(entry)?;
         let relative_path = relative_path.as_str();
@@ -196,6 +214,15 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
         let audio = file.audio(self.config.lofty)?;
         let information = audio.extract(&self.config.parsing)?;
+
+        let dir_cover_art_id = self
+            .scan_dir_cover_art(
+                entry
+                    .path
+                    .parent()
+                    .ok_or_else(|| Error::AbsoluteFilePathDoesNotHaveParentDirectory)?,
+            )
+            .await?;
         let song_id = information
             .upsert(database, &self.config, self.music_folder.id, relative_path, song_id)
             .await?;

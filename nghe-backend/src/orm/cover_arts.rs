@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::str::FromStr;
 
 use diesel::deserialize::{self, FromSql};
@@ -30,8 +31,8 @@ pub struct Property {
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = cover_arts, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-pub struct Upsert {
-    pub source: picture::Source,
+pub struct Upsert<'s> {
+    pub source: Option<Cow<'s, str>>,
     #[diesel(embed)]
     pub property: Property,
 }
@@ -44,7 +45,7 @@ mod upsert {
     use crate::database::Database;
     use crate::Error;
 
-    impl crate::orm::upsert::Insert for Upsert {
+    impl crate::orm::upsert::Insert for Upsert<'_> {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
             diesel::insert_into(cover_arts::table)
                 .values(self)
@@ -68,17 +69,5 @@ impl ToSql<Text, super::Type> for picture::Format {
 impl FromSql<Text, super::Type> for picture::Format {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         Ok(picture::Format::from_str(core::str::from_utf8(bytes.as_bytes())?)?)
-    }
-}
-
-impl ToSql<Text, super::Type> for picture::Source {
-    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, super::Type>) -> serialize::Result {
-        <str as ToSql<Text, super::Type>>::to_sql(self.into(), out)
-    }
-}
-
-impl FromSql<Text, super::Type> for picture::Source {
-    fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
-        Ok(picture::Source::from_str(core::str::from_utf8(bytes.as_bytes())?)?)
     }
 }

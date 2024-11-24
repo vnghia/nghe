@@ -138,7 +138,7 @@ mod tests {
 
     #[rstest]
     fn test_media(#[values(Format::Flac)] format: Format) {
-        let file = File::new(std::fs::read(assets::path(format).as_str()).unwrap(), format)
+        let file = File::new(format, std::fs::read(assets::path(format).as_str()).unwrap())
             .unwrap()
             .audio(ParseOptions::default())
             .unwrap();

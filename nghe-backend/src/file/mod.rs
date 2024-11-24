@@ -34,7 +34,7 @@ pub struct File<F: format::Trait> {
 }
 
 impl<F: format::Trait> Property<F> {
-    pub fn new(data: impl AsRef<[u8]>, format: F) -> Result<Self, Error> {
+    pub fn new(format: F, data: impl AsRef<[u8]>) -> Result<Self, Error> {
         let data = data.as_ref();
         let hash = xxh3_64(data);
         let size = data.len().try_into()?;
@@ -120,8 +120,8 @@ impl<F: format::Trait> property::Trait for PropertySize<F> {
 }
 
 impl<F: format::Trait> File<F> {
-    pub fn new(data: Vec<u8>, format: F) -> Result<Self, Error> {
-        let property = Property::new(&data, format)?;
+    pub fn new(format: F, data: Vec<u8>) -> Result<Self, Error> {
+        let property = Property::new(format, &data)?;
         Ok(Self { data, property })
     }
 }

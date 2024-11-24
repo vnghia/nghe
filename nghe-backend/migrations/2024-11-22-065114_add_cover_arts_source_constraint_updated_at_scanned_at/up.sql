@@ -1,6 +1,6 @@
 -- Your SQL goes here
 alter table cover_arts
-add column source text not null,
+add column source text,
 add column updated_at timestamptz not null default now(),
 add column scanned_at timestamptz not null default now(),
 drop column upserted_at,

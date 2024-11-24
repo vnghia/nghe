@@ -163,7 +163,7 @@ impl Mock {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static>>>,
+        picture: Option<Option<picture::Picture<'static, 'static>>>,
     ) -> audio::Information<'static> {
         audio::Information {
             metadata: metadata.unwrap_or_else(|| audio::Metadata {

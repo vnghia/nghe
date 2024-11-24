@@ -37,25 +37,16 @@ pub enum Format {
     Jpeg,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, EnumString, IntoStaticStr, AsExpression, FromSqlRow,
-)]
-#[diesel(sql_type = Text)]
-#[strum(serialize_all = "snake_case")]
-#[cfg_attr(test, derive(fake::Dummy))]
-pub enum Source {
-    Embed,
-}
-
 #[derive(Debug, o2o)]
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
-#[ref_into(cover_arts::Upsert)]
-pub struct Picture<'a> {
-    pub source: Source,
-    #[map(~.into())]
+#[ref_into(cover_arts::Upsert<'s>)]
+pub struct Picture<'s, 'd> {
+    #[into(~.as_ref().map(std::convert::AsRef::as_ref).map(Cow::Borrowed))]
+    pub source: Option<Cow<'s, str>>,
+    #[into(~.into())]
     pub property: Property<Format>,
     #[ghost]
-    pub data: Cow<'a, [u8]>,
+    pub data: Cow<'d, [u8]>,
 }
 
 impl TryFrom<&MimeType> for Format {
@@ -83,29 +74,29 @@ impl format::Trait for Format {
     }
 }
 
-impl<'a> TryFrom<&'a LoftyPicture> for Picture<'a> {
+impl<'d> TryFrom<&'d LoftyPicture> for Picture<'static, 'd> {
     type Error = Error;
 
-    fn try_from(value: &'a LoftyPicture) -> Result<Self, Self::Error> {
+    fn try_from(value: &'d LoftyPicture) -> Result<Self, Self::Error> {
         Picture::new(
-            value.data(),
-            Source::Embed,
+            None,
             value.mime_type().ok_or_else(|| Error::MediaPictureMissingFormat)?.try_into()?,
+            value.data(),
         )
     }
 }
 
-impl<'a> Picture<'a> {
+impl<'s, 'd> Picture<'s, 'd> {
     pub const FILENAME: &'static str = "cover_art";
     pub const TEST_DESCRIPTION: &'static str = "nghe-picture-test-description";
 
     pub fn new(
-        data: impl Into<Cow<'a, [u8]>>,
-        source: Source,
+        source: Option<Cow<'s, str>>,
         format: Format,
+        data: impl Into<Cow<'d, [u8]>>,
     ) -> Result<Self, Error> {
         let data = data.into();
-        let property = Property::new(&data, format)?;
+        let property = Property::new(format, &data)?;
         Ok(Self { source, property, data })
     }
 
@@ -142,7 +133,7 @@ mod test {
     use crate::schema::songs;
     use crate::test::Mock;
 
-    impl Dummy<Faker> for Picture<'_> {
+    impl Dummy<Faker> for Picture<'_, '_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
             let format: Format = config.fake_with_rng(rng);
 
@@ -162,12 +153,12 @@ mod test {
             .unwrap();
             cursor.set_position(0);
 
-            Self::new(cursor.into_inner(), Source::Embed, format).unwrap()
+            Self::new(None, format, cursor.into_inner()).unwrap()
         }
     }
 
-    impl From<Picture<'_>> for LoftyPicture {
-        fn from(value: Picture<'_>) -> Self {
+    impl From<Picture<'_, '_>> for LoftyPicture {
+        fn from(value: Picture<'_, '_>) -> Self {
             Self::new_unchecked(
                 PictureType::Other,
                 Some(value.property.format.into()),
@@ -177,8 +168,8 @@ mod test {
         }
     }
 
-    impl Picture<'_> {
-        async fn load(dir: impl AsRef<Utf8NativePath>, upsert: cover_arts::Upsert) -> Self {
+    impl<'s> Picture<'s, '_> {
+        async fn load(dir: impl AsRef<Utf8NativePath>, upsert: cover_arts::Upsert<'s>) -> Self {
             let property: file::Property<Format> = upsert.property.into();
             let path = property.path(dir, Self::FILENAME);
             let data = tokio::fs::read(path).await.unwrap();

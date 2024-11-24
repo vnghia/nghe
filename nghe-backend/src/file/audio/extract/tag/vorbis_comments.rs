@@ -102,7 +102,7 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
         Ok(self.get_all(&config.vorbis_comments.genres).collect())
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
         self.pictures().iter().next().map(|(picture, _)| picture.try_into()).transpose()
     }
 }
