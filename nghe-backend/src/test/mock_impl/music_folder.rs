@@ -70,7 +70,7 @@ impl<'a> Mock<'a> {
         let music_folder_path = self.path();
 
         if path.is_absolute() {
-            if path.starts_with(&music_folder_path) {
+            if path.starts_with(music_folder_path) {
                 path.to_path_buf()
             } else {
                 panic!("Path {path} does not start with music folder path {music_folder_path}")
@@ -81,7 +81,7 @@ impl<'a> Mock<'a> {
     }
 
     pub fn relativize<'b>(&self, path: &'b Utf8TypedPath<'b>) -> Utf8TypedPath<'b> {
-        if path.is_absolute() { path.strip_prefix(self.path()).unwrap() } else { path.clone() }
+        if path.is_absolute() { path.strip_prefix(self.path()).unwrap() } else { *path }
     }
 
     pub fn to_impl(&self) -> filesystem::Impl<'_> {
@@ -165,9 +165,10 @@ impl<'a> Mock<'a> {
             asset.set_position(0);
             let data = asset.into_inner();
 
-            self.to_impl().write(path.to_path(), &data).await;
+            let path = path.to_path();
+            self.to_impl().write(path, &data).await;
 
-            let relative_path = self.relativize(&path.to_path()).to_path_buf();
+            let relative_path = self.relativize(&path).to_path_buf();
             self.filesystem.shift_remove(&relative_path);
             self.filesystem.insert(
                 relative_path,

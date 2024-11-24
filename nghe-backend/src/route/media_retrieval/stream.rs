@@ -34,6 +34,7 @@ pub async fn handler(
         Format::Transcode(format) => format,
     };
     let property = source.property.replace(format);
+    let source_path = source.path.to_path();
 
     let transcode_config = if let Some(ref cache_dir) = config.cache_dir {
         let output = property.path_create_dir(cache_dir, bitrate.to_string().as_str()).await?;
@@ -78,7 +79,7 @@ pub async fn handler(
             }
         } else {
             (
-                filesystem.transcode_input(source.path.to_path()).await?,
+                filesystem.transcode_input(source_path).await?,
                 if time_offset > 0 { None } else { Some(output) },
                 #[cfg(test)]
                 if time_offset > 0 { TranscodeStatus::NoCache } else { TranscodeStatus::WithCache },
@@ -86,7 +87,7 @@ pub async fn handler(
         }
     } else {
         (
-            filesystem.transcode_input(source.path.to_path()).await?,
+            filesystem.transcode_input(source_path).await?,
             None,
             #[cfg(test)]
             TranscodeStatus::NoCache,

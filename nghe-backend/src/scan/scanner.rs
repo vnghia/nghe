@@ -142,11 +142,12 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         if let Some(ref art_dir) = self.config.cover_art.dir {
             for name in &self.config.cover_art.names {
                 let path = dir.join(name);
-                if self.filesystem.exists(path.to_path()).await? {
+                let path = path.to_path();
+                if self.filesystem.exists(path).await? {
                     let format = picture::Format::from_str(
                         path.extension().ok_or_else(|| Error::PathExtensionMissing)?,
                     )?;
-                    let data = self.filesystem.read(path.to_path()).await?;
+                    let data = self.filesystem.read(path).await?;
                     let picture = picture::Picture::new(Some(path.as_str().into()), format, data)?;
                     return Ok(Some(picture.upsert(&self.database, art_dir).await?));
                 }

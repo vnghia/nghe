@@ -224,8 +224,9 @@ mod tests {
     ) {
         let filesystem = mock.to_impl(ty);
         let path = filesystem.prefix().join(Faker.fake::<String>());
-        assert!(!filesystem.exists(path.to_path()).await.unwrap());
-        filesystem.write(path.to_path(), &fake::vec![u8; 10..20]).await;
-        assert!(filesystem.exists(path.to_path()).await.unwrap());
+        let path = path.to_path();
+        assert!(!filesystem.exists(path).await.unwrap());
+        filesystem.write(path, &fake::vec![u8; 10..20]).await;
+        assert!(filesystem.exists(path).await.unwrap());
     }
 }

@@ -3956,7 +3956,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "typed-path",
+ "typed-path 0.9.3",
  "unicode-normalization",
  "url",
  "uuid",
@@ -4105,7 +4105,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "typed-path",
+ "typed-path 0.10.0",
  "unicode-normalization",
  "url",
  "uuid",
@@ -6222,6 +6222,11 @@ name = "typed-path"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "82205ffd44a9697e34fc145491aa47310f9871540bb7909eaa9365e0a9a46607"
+
+[[package]]
+name = "typed-path"
+version = "0.10.0"
+source = "git+https://github.com/vnghia/typed-path?rev=bd796e64b3cee53181a3fc2f15245f5bf731bd8c#bd796e64b3cee53181a3fc2f15245f5bf731bd8c"
 
 [[package]]
 name = "typenum"
