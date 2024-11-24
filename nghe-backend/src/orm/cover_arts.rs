@@ -38,6 +38,7 @@ pub struct Upsert<'s> {
 }
 
 mod upsert {
+    use diesel::ExpressionMethods;
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
@@ -49,9 +50,9 @@ mod upsert {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
             diesel::insert_into(cover_arts::table)
                 .values(self)
-                .on_conflict((cover_arts::file_hash, cover_arts::file_size))
+                .on_conflict((cover_arts::source, cover_arts::file_hash, cover_arts::file_size))
                 .do_update()
-                .set(self)
+                .set(cover_arts::format.eq(self.property.format))
                 .returning(cover_arts::id)
                 .get_result(&mut database.get().await?)
                 .await

@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 use super::{Album, Artists, Genres};
 use crate::database::Database;
-use crate::orm::songs;
 use crate::orm::upsert::Upsert as _;
+use crate::orm::{albums, songs};
 use crate::scan::scanner;
 use crate::{file, Error};
 
@@ -29,9 +29,9 @@ impl Information<'_> {
     pub async fn upsert_album(
         &self,
         database: &Database,
-        music_folder_id: Uuid,
+        foreign: albums::Foreign,
     ) -> Result<Uuid, Error> {
-        self.metadata.album.upsert(database, music_folder_id).await
+        self.metadata.album.upsert(database, foreign).await
     }
 
     pub async fn upsert_artists(
@@ -80,11 +80,11 @@ impl Information<'_> {
         &self,
         database: &Database,
         config: &scanner::Config,
-        music_folder_id: Uuid,
+        foreign: albums::Foreign,
         relative_path: impl Into<Cow<'_, str>>,
         song_id: impl Into<Option<Uuid>>,
     ) -> Result<Uuid, Error> {
-        let album_id = self.upsert_album(database, music_folder_id).await?;
+        let album_id = self.upsert_album(database, foreign).await?;
         let cover_art_id = self.upsert_cover_art(database, config.cover_art.dir.as_ref()).await?;
         let foreign = songs::Foreign { album_id, cover_art_id };
 
@@ -199,7 +199,7 @@ mod tests {
 
         let information: Information = Faker.fake();
         let id = information
-            .upsert(database, config, music_folder_id, &relative_path, None)
+            .upsert(database, config, music_folder_id.into(), &relative_path, None)
             .await
             .unwrap();
         let database_information = Information::query(&mock, id).await;
@@ -210,7 +210,7 @@ mod tests {
 
             let update_information: Information = Faker.fake();
             let update_id = update_information
-                .upsert(database, config, music_folder_id, &relative_path, id)
+                .upsert(database, config, music_folder_id.into(), &relative_path, id)
                 .await
                 .unwrap();
             Information::cleanup_one(database, timestamp, id).await.unwrap();

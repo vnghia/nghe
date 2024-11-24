@@ -22,6 +22,7 @@ diesel::table! {
         mbz_id -> Nullable<Uuid>,
         ts -> Tsvector,
         music_folder_id -> Uuid,
+        cover_art_id -> Nullable<Uuid>,
     }
 }
 
@@ -287,6 +288,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(albums -> cover_arts (cover_art_id));
 diesel::joinable!(albums -> music_folders (music_folder_id));
 diesel::joinable!(artists -> cover_arts (cover_art_id));
 diesel::joinable!(lyrics -> songs (song_id));

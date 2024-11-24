@@ -11,6 +11,15 @@ pub mod date;
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
+#[cfg_attr(test, derive(Default))]
+pub struct Foreign {
+    pub music_folder_id: Uuid,
+    pub cover_art_id: Option<Uuid>,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
+#[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
 pub struct Data<'a> {
     pub name: Cow<'a, str>,
     #[diesel(embed)]
@@ -26,7 +35,8 @@ pub struct Data<'a> {
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Upsert<'a> {
-    pub music_folder_id: Uuid,
+    #[diesel(embed)]
+    pub foreign: Foreign,
     #[diesel(embed)]
     pub data: Data<'a>,
 }
@@ -75,6 +85,17 @@ mod upsert {
                     .await
             }
             .map_err(Error::from)
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    impl From<Uuid> for Foreign {
+        fn from(value: Uuid) -> Self {
+            Self { music_folder_id: value, ..Default::default() }
         }
     }
 }

@@ -109,7 +109,13 @@ impl<'a> Mock<'a> {
                 .maybe_picture(picture.clone())
                 .call();
             let song_id = information
-                .upsert(self.mock.database(), &self.config, self.id(), Faker.fake::<String>(), None)
+                .upsert(
+                    self.mock.database(),
+                    &self.config,
+                    self.id().into(),
+                    Faker.fake::<String>(),
+                    None,
+                )
                 .await
                 .unwrap();
             self.database.insert(song_id, information);

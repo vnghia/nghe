@@ -36,8 +36,12 @@ pub struct NameDateMbz<'a> {
 pub type Album<'a> = NameDateMbz<'a>;
 
 impl Album<'_> {
-    pub async fn upsert(&self, database: &Database, music_folder_id: Uuid) -> Result<Uuid, Error> {
-        albums::Upsert { music_folder_id, data: self.try_into()? }.insert(database).await
+    pub async fn upsert(
+        &self,
+        database: &Database,
+        foreign: albums::Foreign,
+    ) -> Result<Uuid, Error> {
+        albums::Upsert { foreign, data: self.try_into()? }.insert(database).await
     }
 
     pub async fn cleanup(database: &Database) -> Result<(), Error> {
@@ -76,7 +80,7 @@ mod test {
 
     impl Album<'_> {
         pub async fn upsert_mock(&self, mock: &Mock, index: usize) -> Uuid {
-            self.upsert(mock.database(), mock.music_folder_id(index).await).await.unwrap()
+            self.upsert(mock.database(), mock.music_folder_id(index).await.into()).await.unwrap()
         }
     }
 

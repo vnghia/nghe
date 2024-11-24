@@ -140,6 +140,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
     async fn scan_dir_cover_art(&self, dir: Utf8TypedPath<'_>) -> Result<Option<Uuid>, Error> {
         if let Some(ref art_dir) = self.config.cover_art.dir {
+            // TODO: Checking source before upserting.
             for name in &self.config.cover_art.names {
                 let path = dir.join(name);
                 let path = path.to_path();
@@ -225,7 +226,16 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             )
             .await?;
         let song_id = information
-            .upsert(database, &self.config, self.music_folder.id, relative_path, song_id)
+            .upsert(
+                database,
+                &self.config,
+                albums::Foreign {
+                    music_folder_id: self.music_folder.id,
+                    cover_art_id: dir_cover_art_id,
+                },
+                relative_path,
+                song_id,
+            )
             .await?;
         audio::Information::cleanup_one(database, started_at, song_id).await?;
 
