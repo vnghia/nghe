@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use diesel::{ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl};
@@ -132,25 +131,6 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .map_err(Error::from)
     }
 
-    async fn scan_dir_cover_art(&self, dir: Utf8TypedPath<'_>) -> Result<Option<Uuid>, Error> {
-        if let Some(ref art_dir) = self.config.cover_art.dir {
-            // TODO: Checking source before upserting.
-            for name in &self.config.cover_art.names {
-                let path = dir.join(name);
-                let path = path.to_path();
-                if self.filesystem.exists(path).await? {
-                    let format = picture::Format::from_str(
-                        path.extension().ok_or_else(|| Error::PathExtensionMissing)?,
-                    )?;
-                    let data = self.filesystem.read(path).await?;
-                    let picture = picture::Picture::new(Some(path.as_str().into()), format, data)?;
-                    return Ok(Some(picture.upsert(&self.database, art_dir).await?));
-                }
-            }
-        }
-        Ok(None)
-    }
-
     #[instrument(skip(self, started_at), ret(level = "debug"), err)]
     async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
         let database = &self.database;
@@ -211,21 +191,20 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         let audio = file.audio(self.config.lofty)?;
         let information = audio.extract(&self.config.parsing)?;
 
-        let dir_cover_art_id = self
-            .scan_dir_cover_art(
-                entry
-                    .path
-                    .parent()
-                    .ok_or_else(|| Error::AbsoluteFilePathDoesNotHaveParentDirectory)?,
-            )
-            .await?;
+        let dir_picture_id = picture::Picture::scan(
+            &self.database,
+            &self.filesystem,
+            &self.config.cover_art,
+            entry.path.parent().ok_or_else(|| Error::AbsoluteFilePathDoesNotHaveParentDirectory)?,
+        )
+        .await?;
         let song_id = information
             .upsert(
                 database,
                 &self.config,
                 albums::Foreign {
                     music_folder_id: self.music_folder.id,
-                    cover_art_id: dir_cover_art_id,
+                    cover_art_id: dir_picture_id,
                 },
                 relative_path,
                 song_id,

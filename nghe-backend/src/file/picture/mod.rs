@@ -6,14 +6,15 @@ use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
 use o2o::o2o;
 use strum::{EnumString, IntoStaticStr};
-use typed_path::Utf8NativePath;
+use typed_path::{Utf8NativePath, Utf8TypedPath};
 use uuid::Uuid;
 
 use super::Property;
 use crate::database::Database;
+use crate::filesystem::Trait as _;
 use crate::orm::cover_arts;
 use crate::orm::upsert::Insert;
-use crate::Error;
+use crate::{config, filesystem, Error};
 
 #[derive(
     Debug,
@@ -115,6 +116,29 @@ impl<'s, 'd> Picture<'s, 'd> {
         self.dump(dir).await?;
         let upsert: cover_arts::Upsert = self.into();
         upsert.insert(database).await
+    }
+
+    pub async fn scan(
+        database: &Database,
+        filesystem: &filesystem::Impl<'_>,
+        config: &config::CoverArt,
+        dir: Utf8TypedPath<'_>,
+    ) -> Result<Option<Uuid>, Error> {
+        if let Some(ref art_dir) = config.dir {
+            // TODO: Checking source before upserting.
+            for name in &config.names {
+                let path = dir.join(name);
+                let path = path.to_path();
+                if filesystem.exists(path).await? {
+                    let format =
+                        path.extension().ok_or_else(|| Error::PathExtensionMissing)?.parse()?;
+                    let data = filesystem.read(path).await?;
+                    let picture = Picture::new(Some(path.as_str().into()), format, data)?;
+                    return Ok(Some(picture.upsert(database, art_dir).await?));
+                }
+            }
+        }
+        Ok(None)
     }
 }
 
