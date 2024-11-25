@@ -2,9 +2,7 @@ use std::borrow::Cow;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use diesel::{
-    ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
-};
+use diesel::{ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl};
 use diesel_async::RunQueryDsl;
 use lofty::config::ParseOptions;
 use loole::Receiver;
@@ -48,11 +46,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             database,
             filesystem,
             config,
-            music_folders::table
-                .filter(music_folders::id.eq(music_folder_id))
-                .select(music_folders::MusicFolder::as_select())
-                .get_result(&mut database.get().await?)
-                .await?,
+            music_folders::MusicFolder::query(database, music_folder_id).await?,
         )
     }
 
@@ -291,7 +285,7 @@ mod tests {
         let mut music_folder = mock.music_folder(0).await;
         music_folder.add_audio_filesystem::<&str>().n_song(n_song).call().await;
 
-        let database_audio = music_folder.query_filesystem(false).await;
+        let database_audio = music_folder.query_filesystem().await;
         assert_eq!(database_audio, music_folder.filesystem);
     }
 
@@ -308,7 +302,7 @@ mod tests {
         }
         join_set.join_all().await;
 
-        let database_audio = music_folder.query_filesystem(false).await;
+        let database_audio = music_folder.query_filesystem().await;
         assert_eq!(database_audio, music_folder.filesystem);
     }
 
@@ -322,11 +316,11 @@ mod tests {
             let album: audio::Album = Faker.fake();
 
             music_folder.add_audio_filesystem().album(album.clone()).path("test").call().await;
-            let database_audio = music_folder.query_filesystem(false).await;
+            let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
 
             music_folder.add_audio_filesystem().album(album.clone()).path("test").call().await;
-            let database_audio = music_folder.query_filesystem(false).await;
+            let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
         }
 
@@ -337,7 +331,7 @@ mod tests {
             music_folder.add_audio_filesystem::<&str>().n_song(10).call().await;
             music_folder.remove_audio_filesystem::<&str>().call().await;
 
-            let database_audio = music_folder.query_filesystem(false).await;
+            let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
         }
 
@@ -351,15 +345,22 @@ mod tests {
             music_folder
                 .add_audio_filesystem::<&str>()
                 .n_song(1)
-                .metadata(audio.metadata.clone())
-                .format(audio.file.format)
+                .metadata(audio.information.metadata.clone())
+                .format(audio.information.file.format)
                 .call()
                 .await;
 
-            let mut database_audio = music_folder.query_filesystem(false).await;
+            let mut database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio.len(), 1);
             let (database_path, database_audio) = database_audio.shift_remove_index(0).unwrap();
-            assert!(music_folder.filesystem.contains_key(&database_path));
+
+            let (path, audio) = music_folder
+                .filesystem
+                .shift_remove_index(usize::from(
+                    audio.relative_path != database_audio.relative_path,
+                ))
+                .unwrap();
+            assert_eq!(database_path, path);
             assert_eq!(database_audio, audio);
         }
 
@@ -374,12 +375,12 @@ mod tests {
             music_folder
                 .add_audio_filesystem::<&str>()
                 .n_song(1)
-                .metadata(audio.metadata.clone())
-                .format(audio.file.format)
+                .metadata(audio.information.metadata.clone())
+                .format(audio.information.file.format)
                 .call()
                 .await;
 
-            let database_audio = music_folder.query_filesystem(false).await;
+            let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
         }
     }

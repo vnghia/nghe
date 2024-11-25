@@ -1,5 +1,6 @@
 #![allow(clippy::option_option)]
 
+mod information;
 mod music_folder;
 mod user;
 

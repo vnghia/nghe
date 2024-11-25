@@ -85,15 +85,17 @@ mod test {
     }
 
     impl Album<'static> {
-        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+        pub async fn query_upsert(mock: &Mock, id: Uuid) -> albums::Upsert<'static> {
             albums::table
                 .filter(albums::id.eq(id))
-                .select(albums::Data::as_select())
+                .select(albums::Upsert::as_select())
                 .get_result(&mut mock.get().await)
                 .await
                 .unwrap()
-                .try_into()
-                .unwrap()
+        }
+
+        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+            Self::query_upsert(mock, id).await.data.try_into().unwrap()
         }
 
         pub async fn queries(mock: &Mock) -> Vec<Self> {

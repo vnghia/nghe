@@ -83,3 +83,24 @@ impl MusicFolder<'_> {
         MusicFolder { id: self.id, data: self.data.into_owned() }
     }
 }
+
+mod query {
+    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+    use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
+
+    use super::{music_folders, MusicFolder};
+    use crate::database::Database;
+    use crate::Error;
+
+    impl MusicFolder<'static> {
+        pub async fn query(database: &Database, id: Uuid) -> Result<Self, Error> {
+            music_folders::table
+                .filter(music_folders::id.eq(id))
+                .select(Self::as_select())
+                .get_result(&mut database.get().await?)
+                .await
+                .map_err(Error::from)
+        }
+    }
+}

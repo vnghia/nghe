@@ -11,6 +11,7 @@ use indexmap::IndexMap;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 
+use super::information;
 use crate::file::{self, audio, picture, File};
 use crate::filesystem::Trait as _;
 use crate::orm::{albums, music_folders, songs};
@@ -22,8 +23,8 @@ use crate::test::filesystem::{self, Trait as _};
 pub struct Mock<'a> {
     mock: &'a super::Mock,
     music_folder: music_folders::MusicFolder<'static>,
-    pub filesystem: IndexMap<Utf8TypedPathBuf, audio::Information<'static>>,
-    pub database: IndexMap<Uuid, audio::Information<'static>>,
+    pub filesystem: IndexMap<Utf8TypedPathBuf, information::Mock<'static, 'static>>,
+    pub database: IndexMap<Uuid, information::Mock<'static, 'static>>,
     pub config: scanner::Config,
 }
 
@@ -100,6 +101,7 @@ impl<'a> Mock<'a> {
         #[builder(default = 1)] n_song: usize,
     ) -> &mut Self {
         for _ in 0..n_song {
+            let relative_path = Faker.fake::<String>();
             let information = super::Mock::information()
                 .maybe_metadata(metadata.clone())
                 .maybe_song(song.clone())
@@ -109,16 +111,13 @@ impl<'a> Mock<'a> {
                 .maybe_picture(picture.clone())
                 .call();
             let song_id = information
-                .upsert(
-                    self.mock.database(),
-                    &self.config,
-                    self.id().into(),
-                    Faker.fake::<String>(),
-                    None,
-                )
+                .upsert(self.mock.database(), &self.config, self.id().into(), &relative_path, None)
                 .await
                 .unwrap();
-            self.database.insert(song_id, information);
+            self.database.insert(
+                song_id,
+                information::Mock { information, relative_path: relative_path.into() },
+            );
         }
 
         self
@@ -177,11 +176,14 @@ impl<'a> Mock<'a> {
             let relative_path = self.relativize(&path).to_path_buf();
             self.filesystem.shift_remove(&relative_path);
             self.filesystem.insert(
-                relative_path,
-                audio::Information {
-                    metadata,
-                    property: audio::Property::default(format),
-                    file: file::Property::new(format, &data).unwrap(),
+                relative_path.clone(),
+                information::Mock {
+                    information: audio::Information {
+                        metadata,
+                        property: audio::Property::default(format),
+                        file: file::Property::new(format, &data).unwrap(),
+                    },
+                    relative_path: relative_path.to_string().into(),
                 },
             );
         }
@@ -282,8 +284,7 @@ impl<'a> Mock<'a> {
 
     pub async fn query_filesystem(
         &self,
-        absolutize: bool,
-    ) -> IndexMap<Utf8TypedPathBuf, audio::Information<'static>> {
+    ) -> IndexMap<Utf8TypedPathBuf, information::Mock<'static, 'static>> {
         let song_ids: Vec<_> = stream::iter(0..self.filesystem.len())
             .then(async |index| self.optional_song_id_filesystem(index).await)
             .filter_map(std::convert::identity)
@@ -291,9 +292,8 @@ impl<'a> Mock<'a> {
             .await;
         stream::iter(song_ids)
             .then(async |id| {
-                let (path, information) = audio::Information::query_path(self.mock, id).await;
-                let path = if absolutize { self.absolutize(path) } else { self.path_string(path) };
-                (path, information)
+                let mock = information::Mock::query(self.mock, id).await;
+                (self.path_str(&mock.relative_path).to_path_buf(), mock)
             })
             .collect()
             .await
@@ -305,9 +305,12 @@ mod duration {
     use crate::orm::id3::duration::Trait;
     use crate::Error;
 
-    impl Trait for IndexMap<Uuid, audio::Information<'static>> {
+    impl Trait for IndexMap<Uuid, information::Mock<'static, 'static>> {
         fn duration(&self) -> Result<u32, Error> {
-            self.values().map(|information| information.property.duration).sum::<f32>().duration()
+            self.values()
+                .map(|information| information.information.property.duration)
+                .sum::<f32>()
+                .duration()
         }
     }
 }
