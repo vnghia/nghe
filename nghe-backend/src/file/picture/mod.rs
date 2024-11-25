@@ -154,6 +154,7 @@ mod test {
 
     use super::*;
     use crate::file;
+    use crate::orm::albums;
     use crate::schema::songs;
     use crate::test::Mock;
 
@@ -200,11 +201,27 @@ mod test {
             Self { source: upsert.source, property, data: data.into() }
         }
 
-        pub async fn query_song(mock: &Mock, song_id: Uuid) -> Option<Self> {
+        pub async fn query_song(mock: &Mock, id: Uuid) -> Option<Self> {
             if let Some(ref dir) = mock.config.cover_art.dir {
                 let upsert = cover_arts::table
                     .inner_join(songs::table)
-                    .filter(songs::id.eq(song_id))
+                    .filter(songs::id.eq(id))
+                    .select(cover_arts::Upsert::as_select())
+                    .get_result(&mut mock.get().await)
+                    .await
+                    .optional()
+                    .unwrap();
+                if let Some(upsert) = upsert { Some(Self::load(dir, upsert).await) } else { None }
+            } else {
+                None
+            }
+        }
+
+        pub async fn query_album(mock: &Mock, id: Uuid) -> Option<Self> {
+            if let Some(ref dir) = mock.config.cover_art.dir {
+                let upsert = cover_arts::table
+                    .inner_join(albums::table)
+                    .filter(albums::id.eq(id))
                     .select(cover_arts::Upsert::as_select())
                     .get_result(&mut mock.get().await)
                     .await

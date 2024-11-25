@@ -7,11 +7,12 @@ use uuid::Uuid;
 
 use super::music_folder;
 use crate::file::{self, audio, picture};
-use crate::orm::songs;
+use crate::orm::{albums, songs};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mock<'info, 'path> {
     pub information: audio::Information<'info>,
+    pub dir_picture: Option<picture::Picture<'static, 'static>>,
     pub relative_path: Cow<'path, str>,
 }
 
@@ -32,10 +33,13 @@ impl Mock<'static, 'static> {
 
     pub async fn query(mock: &super::Mock, id: Uuid) -> Self {
         let upsert = Self::query_upsert(mock, id).await;
+        let album_id = upsert.foreign.album_id;
         let album = audio::Album::query_upsert(mock, upsert.foreign.album_id).await;
         let artists = audio::Artists::query(mock, id).await;
         let genres = audio::Genres::query(mock, id).await;
         let picture = picture::Picture::query_song(mock, id).await;
+
+        let dir_picture = picture::Picture::query_album(mock, album_id).await;
 
         Self {
             information: audio::Information {
@@ -49,6 +53,7 @@ impl Mock<'static, 'static> {
                 property: upsert.data.property.try_into().unwrap(),
                 file: upsert.data.file.into(),
             },
+            dir_picture,
             relative_path: upsert.relative_path,
         }
     }
@@ -67,6 +72,7 @@ impl Mock<'static, 'static> {
         picture: Option<Option<picture::Picture<'static, 'static>>>,
         format: Option<audio::Format>,
         property: Option<audio::Property>,
+        dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
         relative_path: Option<Cow<'static, str>>,
     ) -> Self {
         let metadata = metadata.unwrap_or_else(|| audio::Metadata {
@@ -79,10 +85,16 @@ impl Mock<'static, 'static> {
         let file =
             file::Property { format: format.unwrap_or_else(|| Faker.fake()), ..Faker.fake() };
         let property = property.unwrap_or_else(|| audio::Property::default(file.format));
+
+        let dir_picture = dir_picture.unwrap_or_else(|| Faker.fake());
         let relative_path =
             relative_path.map_or_else(|| Faker.fake::<String>().into(), std::convert::Into::into);
 
-        Self { information: audio::Information { metadata, property, file }, relative_path }
+        Self {
+            information: audio::Information { metadata, property, file },
+            dir_picture,
+            relative_path,
+        }
     }
 }
 
@@ -92,11 +104,23 @@ impl Mock<'_, '_> {
         music_folder: &music_folder::Mock<'_>,
         song_id: impl Into<Option<Uuid>>,
     ) -> Uuid {
+        let database = music_folder.database();
+        let dir_picture_id = if let Some(ref dir) = music_folder.config.cover_art.dir
+            && let Some(ref picture) = self.dir_picture
+        {
+            Some(picture.upsert(database, dir).await.unwrap())
+        } else {
+            None
+        };
+
         self.information
             .upsert(
-                music_folder.database(),
+                database,
                 &music_folder.config,
-                music_folder.id().into(),
+                albums::Foreign {
+                    music_folder_id: music_folder.id(),
+                    cover_art_id: dir_picture_id,
+                },
                 self.relative_path.as_str(),
                 song_id,
             )

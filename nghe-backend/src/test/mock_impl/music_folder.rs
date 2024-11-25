@@ -102,6 +102,7 @@ impl<'a> Mock<'a> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         picture: Option<Option<picture::Picture<'static, 'static>>>,
+        dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
         #[builder(default = 1)] n_song: usize,
     ) -> &mut Self {
         let builder = Information::builder()
@@ -110,7 +111,8 @@ impl<'a> Mock<'a> {
             .maybe_album(album)
             .maybe_artists(artists)
             .maybe_genres(genres)
-            .maybe_picture(picture);
+            .maybe_picture(picture)
+            .maybe_dir_picture(dir_picture);
 
         for _ in 0..n_song {
             let information = builder.clone().build();
@@ -133,6 +135,7 @@ impl<'a> Mock<'a> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         picture: Option<Option<picture::Picture<'static, 'static>>>,
+        dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
     ) -> &mut Self {
@@ -142,7 +145,8 @@ impl<'a> Mock<'a> {
             .maybe_album(album)
             .maybe_artists(artists)
             .maybe_genres(genres)
-            .maybe_picture(picture);
+            .maybe_picture(picture)
+            .maybe_dir_picture(dir_picture);
 
         for _ in 0..n_song {
             let path = if let Some(ref path) = path {
