@@ -104,22 +104,18 @@ impl<'a> Mock<'a> {
         picture: Option<Option<picture::Picture<'static, 'static>>>,
         #[builder(default = 1)] n_song: usize,
     ) -> &mut Self {
+        let builder = Information::builder()
+            .maybe_metadata(metadata)
+            .maybe_song(song)
+            .maybe_album(album)
+            .maybe_artists(artists)
+            .maybe_genres(genres)
+            .maybe_picture(picture);
+
         for _ in 0..n_song {
-            let relative_path = Faker.fake::<String>();
-            let information = super::Mock::information()
-                .maybe_metadata(metadata.clone())
-                .maybe_song(song.clone())
-                .maybe_album(album.clone())
-                .maybe_artists(artists.clone())
-                .maybe_genres(genres.clone())
-                .maybe_picture(picture.clone())
-                .call();
-            let song_id = information
-                .upsert(self.mock.database(), &self.config, self.id().into(), &relative_path, None)
-                .await
-                .unwrap();
-            self.database
-                .insert(song_id, Information { information, relative_path: relative_path.into() });
+            let information = builder.clone().build();
+            let song_id = information.upsert(self, None).await;
+            self.database.insert(song_id, information);
         }
 
         self
@@ -140,6 +136,14 @@ impl<'a> Mock<'a> {
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
     ) -> &mut Self {
+        let builder = Information::builder()
+            .maybe_metadata(metadata)
+            .maybe_song(song)
+            .maybe_album(album)
+            .maybe_artists(artists)
+            .maybe_genres(genres)
+            .maybe_picture(picture);
+
         for _ in 0..n_song {
             let path = if let Some(ref path) = path {
                 assert_eq!(n_song, 1, "The same path is supplied for multiple audio");
@@ -148,44 +152,38 @@ impl<'a> Mock<'a> {
                 self.absolutize(self.to_impl().fake_path(depth))
             }
             .with_extension(format.as_ref());
+            let path = path.to_path();
+            let relative_path = self.relativize(&path).to_path_buf();
 
             let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
             let mut asset = Cursor::new(data.clone());
             let mut file = File::new(format, data).unwrap().audio(self.config.lofty).unwrap();
             asset.set_position(0);
 
-            let metadata = super::Mock::information()
-                .maybe_metadata(metadata.clone())
-                .maybe_song(song.clone())
-                .maybe_album(album.clone())
-                .maybe_artists(artists.clone())
-                .maybe_genres(genres.clone())
-                .maybe_picture(picture.clone())
-                .call()
-                .metadata;
+            let information = builder
+                .clone()
+                .format(format)
+                .relative_path(relative_path.to_string().into())
+                .build();
 
             file.clear()
-                .dump_metadata(&self.config.parsing, metadata.clone())
+                .dump_metadata(&self.config.parsing, information.information.metadata.clone())
                 .save_to(&mut asset, self.mock.config.lofty_write);
 
             asset.flush().unwrap();
             asset.set_position(0);
             let data = asset.into_inner();
-
-            let path = path.to_path();
             self.to_impl().write(path, &data).await;
 
-            let relative_path = self.relativize(&path).to_path_buf();
             self.filesystem.shift_remove(&relative_path);
             self.filesystem.insert(
                 relative_path.clone(),
                 Information {
                     information: audio::Information {
-                        metadata,
-                        property: audio::Property::default(format),
                         file: file::Property::new(format, &data).unwrap(),
+                        ..information.information
                     },
-                    relative_path: relative_path.to_string().into(),
+                    ..information
                 },
             );
         }

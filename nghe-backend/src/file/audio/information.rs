@@ -121,7 +121,6 @@ impl Information<'_> {
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
     use rstest::rstest;
 
     use crate::test::{mock, Information, Mock};
@@ -132,7 +131,7 @@ mod tests {
         #[future(awt)] mock: Mock,
         #[values(true, false)] update_information: bool,
     ) {
-        let information: Information = Faker.fake();
+        let information = Information::builder().build();
         let id = information.upsert_mock(&mock, 0, None).await;
         let database_information = Information::query(&mock, id).await;
         assert_eq!(database_information, information);
@@ -140,10 +139,7 @@ mod tests {
         if update_information {
             let timestamp = crate::time::now().await;
 
-            let update_information = Information {
-                relative_path: information.relative_path.as_str().into(),
-                ..Faker.fake()
-            };
+            let update_information = Information::builder().build();
             let update_id = update_information.upsert_mock(&mock, 0, id).await;
             super::Information::cleanup_one(mock.database(), timestamp, id).await.unwrap();
             let database_update_information = Information::query(&mock, id).await;

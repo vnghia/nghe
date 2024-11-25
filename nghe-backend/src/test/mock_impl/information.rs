@@ -2,20 +2,20 @@ use std::borrow::Cow;
 
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use fake::{Dummy, Fake, Faker};
+use fake::{Fake, Faker};
 use uuid::Uuid;
 
 use super::music_folder;
-use crate::file::{audio, picture};
+use crate::file::{self, audio, picture};
 use crate::orm::songs;
 
-#[derive(Debug, Clone, Dummy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mock<'info, 'path> {
     pub information: audio::Information<'info>,
-    #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub relative_path: Cow<'path, str>,
 }
 
+#[bon::bon]
 impl Mock<'static, 'static> {
     pub async fn query_upsert(mock: &super::Mock, id: Uuid) -> songs::Upsert<'static> {
         songs::table
@@ -51,6 +51,38 @@ impl Mock<'static, 'static> {
             },
             relative_path: upsert.relative_path,
         }
+    }
+
+    #[builder(
+        builder_type(name = "Builder", vis = "pub"),
+        state_mod(name = "builder", vis = "pub"),
+        derive(Clone)
+    )]
+    pub fn builder(
+        metadata: Option<audio::Metadata<'static>>,
+        song: Option<audio::Song<'static>>,
+        album: Option<audio::Album<'static>>,
+        artists: Option<audio::Artists<'static>>,
+        genres: Option<audio::Genres<'static>>,
+        picture: Option<Option<picture::Picture<'static, 'static>>>,
+        format: Option<audio::Format>,
+        property: Option<audio::Property>,
+        relative_path: Option<Cow<'static, str>>,
+    ) -> Self {
+        let metadata = metadata.unwrap_or_else(|| audio::Metadata {
+            song: song.unwrap_or_else(|| Faker.fake()),
+            album: album.unwrap_or_else(|| Faker.fake()),
+            artists: artists.unwrap_or_else(|| Faker.fake()),
+            genres: genres.unwrap_or_else(|| Faker.fake()),
+            picture: picture.unwrap_or_else(|| Faker.fake()),
+        });
+        let file =
+            file::Property { format: format.unwrap_or_else(|| Faker.fake()), ..Faker.fake() };
+        let property = property.unwrap_or_else(|| audio::Property::default(file.format));
+        let relative_path =
+            relative_path.map_or_else(|| Faker.fake::<String>().into(), std::convert::Into::into);
+
+        Self { information: audio::Information { metadata, property, file }, relative_path }
     }
 }
 

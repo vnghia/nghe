@@ -18,7 +18,7 @@ use uuid::Uuid;
 use super::filesystem::Trait;
 use super::{database, filesystem};
 use crate::database::Database;
-use crate::file::{audio, picture};
+use crate::file::audio;
 use crate::filesystem::Filesystem;
 use crate::orm::users;
 use crate::scan::scanner;
@@ -156,27 +156,6 @@ impl Mock {
 
     pub async fn music_folder_id(&self, index: usize) -> Uuid {
         self.music_folder(index).await.id()
-    }
-
-    #[builder]
-    pub fn information(
-        metadata: Option<audio::Metadata<'static>>,
-        song: Option<audio::Song<'static>>,
-        album: Option<audio::Album<'static>>,
-        artists: Option<audio::Artists<'static>>,
-        genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static, 'static>>>,
-    ) -> audio::Information<'static> {
-        audio::Information {
-            metadata: metadata.unwrap_or_else(|| audio::Metadata {
-                song: song.unwrap_or_else(|| Faker.fake()),
-                album: album.unwrap_or_else(|| Faker.fake()),
-                artists: artists.unwrap_or_else(|| Faker.fake()),
-                genres: genres.unwrap_or_else(|| Faker.fake()),
-                picture: picture.unwrap_or_else(|| Faker.fake()),
-            }),
-            ..Faker.fake()
-        }
     }
 
     pub async fn add_audio_artist(
