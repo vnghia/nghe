@@ -21,7 +21,7 @@ use crate::Error;
 #[ref_into(artists::Data<'a>)]
 #[cfg_attr(test, derive(Dummy, Clone, PartialOrd, Ord))]
 pub struct Artist<'a> {
-    #[ref_into(Cow::Borrowed(~.as_ref()))]
+    #[ref_into(~.as_str().into())]
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub name: Cow<'a, str>,
     pub mbz_id: Option<Uuid>,

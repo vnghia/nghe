@@ -17,7 +17,7 @@ use crate::Error;
 #[ref_into(genres::Data<'a>)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Genre<'a> {
-    #[ref_into(Cow::Borrowed(~.as_ref()))]
+    #[ref_into(~.as_str().into())]
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub value: Cow<'a, str>,
 }

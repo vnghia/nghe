@@ -21,7 +21,7 @@ use crate::Error;
 #[ref_try_into(albums::Data<'a>, Error)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone, Default))]
 pub struct NameDateMbz<'a> {
-    #[ref_into(Cow::Borrowed(~.as_ref()))]
+    #[ref_into(~.as_str().into())]
     #[cfg_attr(test, dummy(expr = "Faker.fake::<String>().into()"))]
     pub name: Cow<'a, str>,
     #[map(~.try_into()?)]

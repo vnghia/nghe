@@ -42,7 +42,7 @@ pub enum Format {
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
 #[ref_into(cover_arts::Upsert<'s>)]
 pub struct Picture<'s, 'd> {
-    #[into(~.as_ref().map(std::convert::AsRef::as_ref).map(Cow::Borrowed))]
+    #[into(~.as_ref().map(|value| value.as_str().into()))]
     pub source: Option<Cow<'s, str>>,
     #[into(~.into())]
     pub property: Property<Format>,

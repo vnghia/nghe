@@ -65,7 +65,7 @@ impl Mock<'_, '_> {
                 music_folder.database(),
                 &music_folder.config,
                 music_folder.id().into(),
-                Cow::Borrowed(self.relative_path.as_ref()),
+                self.relative_path.as_str(),
                 song_id,
             )
             .await

@@ -1,6 +1,5 @@
 #![allow(clippy::struct_field_names)]
 
-use std::borrow::Cow;
 use std::io::{Cursor, Write};
 
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
@@ -256,7 +255,7 @@ impl<'a> Mock<'a> {
             music_folders::MusicFolder {
                 id: self.music_folder.id,
                 data: music_folders::Data {
-                    path: Cow::Borrowed(self.music_folder.data.path.as_ref()),
+                    path: self.music_folder.data.path.as_str().into(),
                     ty: self.music_folder.data.ty,
                 },
             },
