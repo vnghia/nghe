@@ -8,6 +8,7 @@ use derivative::Derivative;
 use diesel_async::pooled_connection::deadpool;
 use diesel_async::AsyncPgConnection;
 use fake::{Fake, Faker};
+pub use information::Mock as Information;
 use lofty::config::{ParseOptions, WriteOptions};
 use nghe_api::common;
 use rstest::fixture;

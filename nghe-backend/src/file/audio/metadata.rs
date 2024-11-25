@@ -54,7 +54,7 @@ mod tests {
 
     use super::*;
     use crate::file::{self, audio};
-    use crate::test::{mock, Mock};
+    use crate::test::{mock, Information, Mock};
 
     #[rstest]
     #[tokio::test]
@@ -69,7 +69,7 @@ mod tests {
             .await
             .unwrap();
 
-        let database_data = audio::Information::query_data(&mock, id).await;
+        let database_data = Information::query_data(&mock, id).await;
         let database_song: Song = database_data.song.try_into().unwrap();
         let database_property: audio::Property = database_data.property.try_into().unwrap();
         let database_file: file::Property<_> = database_data.file.into();
@@ -84,7 +84,7 @@ mod tests {
                 .await
                 .unwrap();
 
-            let update_database_data = audio::Information::query_data(&mock, update_id).await;
+            let update_database_data = Information::query_data(&mock, update_id).await;
             let update_database_song: Song = update_database_data.song.try_into().unwrap();
             let update_database_property: audio::Property =
                 update_database_data.property.try_into().unwrap();

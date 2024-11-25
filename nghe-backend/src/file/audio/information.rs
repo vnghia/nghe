@@ -120,71 +120,11 @@ impl Information<'_> {
 }
 
 #[cfg(test)]
-mod test {
-    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
-    use diesel_async::RunQueryDsl;
-    use uuid::Uuid;
-
-    use super::Information;
-    use crate::file::{audio, picture};
-    use crate::orm::songs;
-    use crate::test::Mock;
-
-    impl Information<'static> {
-        pub async fn query_data(mock: &Mock, id: Uuid) -> songs::Data<'static> {
-            songs::table
-                .filter(songs::id.eq(id))
-                .select(songs::Data::as_select())
-                .get_result(&mut mock.get().await)
-                .await
-                .unwrap()
-        }
-
-        pub async fn query_upsert(mock: &Mock, id: Uuid) -> songs::Upsert<'static> {
-            songs::table
-                .filter(songs::id.eq(id))
-                .select(songs::Upsert::as_select())
-                .get_result(&mut mock.get().await)
-                .await
-                .unwrap()
-        }
-
-        pub async fn query_path(mock: &Mock, id: Uuid) -> (String, Self) {
-            let upsert = Self::query_upsert(mock, id).await;
-            let album = audio::Album::query(mock, upsert.foreign.album_id).await;
-            let artists = audio::Artists::query(mock, id).await;
-            let genres = audio::Genres::query(mock, id).await;
-            let picture = picture::Picture::query_song(mock, id).await;
-
-            (
-                upsert.relative_path.into_owned(),
-                Self {
-                    metadata: audio::Metadata {
-                        song: upsert.data.song.try_into().unwrap(),
-                        album,
-                        artists,
-                        genres,
-                        picture,
-                    },
-                    property: upsert.data.property.try_into().unwrap(),
-                    file: upsert.data.file.into(),
-                },
-            )
-        }
-
-        pub async fn query(mock: &Mock, id: Uuid) -> Self {
-            Self::query_path(mock, id).await.1
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
     use rstest::rstest;
 
-    use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{mock, Information, Mock};
 
     #[rstest]
     #[tokio::test]
@@ -192,28 +132,20 @@ mod tests {
         #[future(awt)] mock: Mock,
         #[values(true, false)] update_information: bool,
     ) {
-        let database = mock.database();
-        let music_folder_id = mock.music_folder_id(0).await;
-        let relative_path: String = Faker.fake();
-        let config = &mock.config.scanner();
-
         let information: Information = Faker.fake();
-        let id = information
-            .upsert(database, config, music_folder_id.into(), &relative_path, None)
-            .await
-            .unwrap();
+        let id = information.upsert_mock(&mock, 0, None).await;
         let database_information = Information::query(&mock, id).await;
         assert_eq!(database_information, information);
 
         if update_information {
             let timestamp = crate::time::now().await;
 
-            let update_information: Information = Faker.fake();
-            let update_id = update_information
-                .upsert(database, config, music_folder_id.into(), &relative_path, id)
-                .await
-                .unwrap();
-            Information::cleanup_one(database, timestamp, id).await.unwrap();
+            let update_information = Information {
+                relative_path: information.relative_path.as_str().into(),
+                ..Faker.fake()
+            };
+            let update_id = update_information.upsert_mock(&mock, 0, id).await;
+            super::Information::cleanup_one(mock.database(), timestamp, id).await.unwrap();
             let database_update_information = Information::query(&mock, id).await;
             assert_eq!(update_id, id);
             assert_eq!(database_update_information, update_information);

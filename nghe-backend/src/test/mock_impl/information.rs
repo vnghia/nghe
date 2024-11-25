@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use fake::{Dummy, Fake, Faker};
 use uuid::Uuid;
 
+use super::music_folder;
 use crate::file::{audio, picture};
 use crate::orm::songs;
 
@@ -50,5 +51,34 @@ impl Mock<'static, 'static> {
             },
             relative_path: upsert.relative_path,
         }
+    }
+}
+
+impl Mock<'_, '_> {
+    pub async fn upsert(
+        &self,
+        music_folder: &music_folder::Mock<'_>,
+        song_id: impl Into<Option<Uuid>>,
+    ) -> Uuid {
+        self.information
+            .upsert(
+                music_folder.database(),
+                &music_folder.config,
+                music_folder.id().into(),
+                Cow::Borrowed(self.relative_path.as_ref()),
+                song_id,
+            )
+            .await
+            .unwrap()
+    }
+
+    pub async fn upsert_mock(
+        &self,
+        mock: &super::Mock,
+        index: usize,
+        song_id: impl Into<Option<Uuid>>,
+    ) -> Uuid {
+        let music_folder = mock.music_folder(index).await;
+        self.upsert(&music_folder, song_id).await
     }
 }

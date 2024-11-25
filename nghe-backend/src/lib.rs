@@ -7,6 +7,7 @@
 #![feature(let_chains)]
 #![feature(proc_macro_hygiene)]
 #![feature(stmt_expr_attributes)]
+#![feature(str_as_str)]
 #![feature(try_blocks)]
 
 mod auth;
