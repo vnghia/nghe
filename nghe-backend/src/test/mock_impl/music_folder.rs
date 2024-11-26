@@ -5,6 +5,7 @@ use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use futures_lite::{stream, StreamExt};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 
@@ -138,6 +139,7 @@ impl<'a> Mock<'a> {
         dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
+        #[builder(default = true)] recompute_dir_picture: bool,
     ) -> &mut Self {
         let builder = Information::builder()
             .maybe_metadata(metadata)
@@ -170,6 +172,27 @@ impl<'a> Mock<'a> {
 
         if scan {
             self.scan().run().await.unwrap();
+        }
+
+        if recompute_dir_picture {
+            let group = self
+                .filesystem
+                .clone()
+                .into_iter()
+                .into_group_map_by(|value| value.0.parent().unwrap().to_path_buf());
+            for (parent, files) in group {
+                let dir_picture = picture::Picture::scan_filesystem(
+                    &self.to_impl(),
+                    &self.config.cover_art,
+                    self.path().join(parent).to_path(),
+                )
+                .await;
+                for (path, information) in files {
+                    let information =
+                        Information { dir_picture: dir_picture.clone(), ..information };
+                    self.filesystem.insert(path, information);
+                }
+            }
         }
 
         self

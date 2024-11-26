@@ -261,10 +261,9 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
 #[cfg(test)]
 mod tests {
-    use fake::{Fake, Faker};
+    use fake::Fake;
     use rstest::rstest;
 
-    use crate::file::audio;
     use crate::test::{mock, Mock};
 
     #[rstest]
@@ -301,22 +300,26 @@ mod tests {
         #[tokio::test]
         async fn test_overwrite(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
-            let album: audio::Album = Faker.fake();
 
-            music_folder.add_audio_filesystem().album(album.clone()).path("test").call().await;
+            music_folder.add_audio_filesystem().path("test").call().await;
             let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
 
-            music_folder.add_audio_filesystem().album(album.clone()).path("test").call().await;
+            music_folder.add_audio_filesystem().path("test").call().await;
             let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
         }
 
         #[rstest]
         #[tokio::test]
-        async fn test_remove(#[future(awt)] mock: Mock) {
+        async fn test_remove(#[future(awt)] mock: Mock, #[values(true, false)] same_dir: bool) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio_filesystem::<&str>().n_song(10).call().await;
+            music_folder
+                .add_audio_filesystem::<&str>()
+                .n_song(10)
+                .depth(if same_dir { 0 } else { (1..3).fake() })
+                .call()
+                .await;
             music_folder.remove_audio_filesystem::<&str>().call().await;
 
             let database_audio = music_folder.query_filesystem().await;
@@ -327,12 +330,11 @@ mod tests {
         #[tokio::test]
         async fn test_duplicate(#[future(awt)] mock: Mock, #[values(true, false)] same_dir: bool) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio_filesystem::<&str>().n_song(1).depth(0).call().await;
+            music_folder.add_audio_filesystem::<&str>().depth(0).call().await;
             let audio = music_folder.filesystem[0].clone();
 
             music_folder
                 .add_audio_filesystem::<&str>()
-                .n_song(1)
                 .metadata(audio.information.metadata.clone())
                 .format(audio.information.file.format)
                 .depth(if same_dir { 0 } else { (1..3).fake() })
@@ -363,13 +365,12 @@ mod tests {
         #[tokio::test]
         async fn test_move(#[future(awt)] mock: Mock) {
             let mut music_folder = mock.music_folder(0).await;
-            music_folder.add_audio_filesystem::<&str>().n_song(1).call().await;
+            music_folder.add_audio_filesystem::<&str>().call().await;
             let audio = music_folder.filesystem[0].clone();
             music_folder.remove_audio_filesystem::<&str>().index(0).call().await;
 
             music_folder
                 .add_audio_filesystem::<&str>()
-                .n_song(1)
                 .metadata(audio.information.metadata.clone())
                 .format(audio.information.file.format)
                 .call()
@@ -384,7 +385,13 @@ mod tests {
     #[tokio::test]
     async fn test_scan_dir_picture(#[future(awt)] mock: Mock) {
         let mut music_folder = mock.music_folder(0).await;
-        music_folder.add_audio_filesystem::<&str>().n_song(10).depth(0).call().await;
+        music_folder
+            .add_audio_filesystem::<&str>()
+            .n_song(10)
+            .depth(0)
+            .recompute_dir_picture(false)
+            .call()
+            .await;
 
         // All pictures are the same. However, the picture will only be the same from the first
         // file that has a picture so we have to filter out none before checking.
