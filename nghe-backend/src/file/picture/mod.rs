@@ -214,6 +214,12 @@ mod test {
         }
     }
 
+    impl Picture<'_, '_> {
+        pub async fn upsert_mock(&self, mock: &Mock) -> Uuid {
+            self.upsert(mock.database(), mock.config.cover_art.dir.as_ref().unwrap()).await.unwrap()
+        }
+    }
+
     impl<'s> Picture<'s, '_> {
         async fn load_cache(
             dir: impl AsRef<Utf8NativePath>,
@@ -263,6 +269,10 @@ mod test {
             } else {
                 None
             }
+        }
+
+        pub fn with_source(self, source: Option<impl Into<Cow<'s, str>>>) -> Self {
+            Self { source: source.map(std::convert::Into::into), ..self }
         }
     }
 

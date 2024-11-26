@@ -1,7 +1,10 @@
 pub mod durations;
 pub mod full;
 
+use diesel::dsl::sql;
+use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
+use diesel::sql_types;
 use nghe_api::common::format::Trait as _;
 use nghe_api::id3;
 use nghe_api::id3::builder::song as builder;
@@ -21,7 +24,10 @@ pub struct Song {
     pub track: songs::position::Track,
     #[diesel(embed)]
     pub date: songs::date::Date,
-    #[diesel(column_name = cover_art_id)]
+    #[diesel(select_expression = sql(
+        "coalesce(songs.cover_art_id, any_value(albums.cover_art_id)) cover_art_id"
+    ))]
+    #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Uuid>>)]
     pub cover_art: Option<Uuid>,
     #[diesel(embed)]
     pub file: songs::property::File,
@@ -100,12 +106,13 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::songs_artists;
+    use crate::orm::{albums, songs_artists};
 
     #[auto_type]
     pub fn unchecked_no_group_by() -> _ {
         songs::table
             .inner_join(songs_artists::table)
+            .inner_join(albums::table)
             .inner_join(artist::required::query::song())
             .order_by((
                 songs::disc_number.asc().nulls_first(),
@@ -128,6 +135,7 @@ mod test {
     use rstest::rstest;
 
     use super::*;
+    use crate::file::picture;
     use crate::orm::songs;
     use crate::test::{mock, Mock};
 
@@ -147,5 +155,54 @@ mod test {
 
         let artists: Vec<String> = database_song.artists.into();
         assert_eq!(artists, &["1", "2"]);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_query_cover_art(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] has_picture: bool,
+        #[values(true, false)] has_dir_picture: bool,
+    ) {
+        let mut music_folder = mock.music_folder(0).await;
+
+        let (picture, picture_id) = if has_picture {
+            let picture: picture::Picture = Faker.fake();
+            let picture_id = picture.upsert_mock(&mock).await;
+            (Some(picture), Some(picture_id))
+        } else {
+            (None, None)
+        };
+
+        let (dir_picture, dir_picture_id) = if has_dir_picture {
+            let dir_picture: picture::Picture = Faker.fake();
+            let source = music_folder.path().join(dir_picture.property.format.name()).to_string();
+            let dir_picture = dir_picture.with_source(Some(source));
+            let dir_picture_id = dir_picture.upsert_mock(&mock).await;
+            (Some(dir_picture), Some(dir_picture_id))
+        } else {
+            (None, None)
+        };
+
+        music_folder
+            .add_audio_filesystem::<&str>()
+            .album(Faker.fake())
+            .picture(picture)
+            .dir_picture(dir_picture)
+            .depth(0)
+            .n_song(10)
+            .call()
+            .await;
+
+        let songs = query::unchecked().get_results(&mut mock.get().await).await.unwrap();
+        for song in songs {
+            if has_picture {
+                assert_eq!(song.cover_art, picture_id);
+            } else if has_dir_picture {
+                assert_eq!(song.cover_art, dir_picture_id);
+            } else {
+                assert!(song.cover_art.is_none());
+            }
+        }
     }
 }

@@ -38,7 +38,6 @@ pub mod query {
     pub fn unchecked() -> _ {
         let full: AsSelect<Full, crate::orm::Type> = Full::as_select();
         song::query::unchecked_no_group_by()
-            .inner_join(albums::table)
             .left_join(songs_genres::table.on(songs_genres::song_id.eq(songs::id)))
             .left_join(genres::table.on(genres::id.eq(songs_genres::genre_id)))
             .group_by(songs::id)
