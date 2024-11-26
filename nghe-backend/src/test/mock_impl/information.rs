@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::io::{Cursor, Write};
 
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
@@ -8,6 +9,9 @@ use uuid::Uuid;
 use super::music_folder;
 use crate::file::{self, audio, picture};
 use crate::orm::{albums, songs};
+use crate::test::assets;
+use crate::test::file::audio::dump::Metadata as _;
+use crate::test::filesystem::Trait as _;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Mock<'info, 'path> {
@@ -136,5 +140,52 @@ impl Mock<'_, '_> {
     ) -> Uuid {
         let music_folder = mock.music_folder(index).await;
         self.upsert(&music_folder, song_id).await
+    }
+
+    pub async fn dump(self, music_folder: &music_folder::Mock<'_>) -> Self {
+        let path = music_folder.path().join(&self.relative_path);
+        let path = path.to_path();
+
+        let format = self.information.file.format;
+        let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
+        let mut asset = Cursor::new(data.clone());
+        let mut file =
+            file::File::new(format, data).unwrap().audio(music_folder.config.lofty).unwrap();
+        asset.set_position(0);
+
+        file.clear()
+            .dump_metadata(&music_folder.config.parsing, self.information.metadata.clone())
+            .save_to(&mut asset, music_folder.write_options());
+
+        asset.flush().unwrap();
+        asset.set_position(0);
+        let data = asset.into_inner();
+
+        let filesystem = &music_folder.to_impl();
+        filesystem.write(path, &data).await;
+
+        let cover_art_config = &music_folder.config.cover_art;
+        let parent = path.parent().unwrap();
+        let dir_picture = if let Some(picture) =
+            picture::Picture::scan_filesystem(filesystem, cover_art_config, parent).await
+        {
+            Some(picture)
+        } else if let Some(picture) = self.dir_picture {
+            filesystem
+                .write(parent.join(picture.property.format.name()).to_path(), &picture.data)
+                .await;
+            Some(picture)
+        } else {
+            None
+        };
+
+        Self {
+            information: audio::Information {
+                file: file::Property::new(format, &data).unwrap(),
+                ..self.information
+            },
+            dir_picture,
+            ..self
+        }
     }
 }

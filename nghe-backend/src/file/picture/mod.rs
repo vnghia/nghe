@@ -6,7 +6,7 @@ use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
 use o2o::o2o;
 use strum::{EnumString, IntoStaticStr};
-use typed_path::{Utf8NativePath, Utf8TypedPath};
+use typed_path::{Utf8NativePath, Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 
 use super::Property;
@@ -30,8 +30,8 @@ use crate::{config, filesystem, Error};
     FromSqlRow,
 )]
 #[diesel(sql_type = Text)]
-#[strum(serialize_all = "snake_case")]
-#[cfg_attr(test, derive(fake::Dummy, o2o))]
+#[strum(serialize_all = "lowercase")]
+#[cfg_attr(test, derive(fake::Dummy, o2o, strum::EnumIter))]
 #[cfg_attr(test, owned_into(MimeType))]
 pub enum Format {
     Png,
@@ -91,7 +91,7 @@ impl<'s, 'd> Picture<'s, 'd> {
     pub const FILENAME: &'static str = "cover_art";
     pub const TEST_DESCRIPTION: &'static str = "nghe-picture-test-description";
 
-    pub fn new(
+    fn new(
         source: Option<Cow<'s, str>>,
         format: Format,
         data: impl Into<Cow<'d, [u8]>>,
@@ -128,15 +128,25 @@ impl<'s, 'd> Picture<'s, 'd> {
             // TODO: Checking source before upserting.
             for name in &config.names {
                 let path = dir.join(name);
-                let path = path.to_path();
-                if filesystem.exists(path).await? {
-                    let format =
-                        path.extension().ok_or_else(|| Error::PathExtensionMissing)?.parse()?;
-                    let data = filesystem.read(path).await?;
-                    let picture = Picture::new(Some(path.as_str().into()), format, data)?;
+                if let Some(picture) = Picture::load(filesystem, path).await? {
                     return Ok(Some(picture.upsert(database, art_dir).await?));
                 }
             }
+        }
+        Ok(None)
+    }
+}
+
+impl Picture<'static, 'static> {
+    pub async fn load(
+        filesystem: &filesystem::Impl<'_>,
+        source: Utf8TypedPathBuf,
+    ) -> Result<Option<Self>, Error> {
+        let path = source.to_path();
+        if filesystem.exists(path).await? {
+            let format = path.extension().ok_or_else(|| Error::PathExtensionMissing)?.parse()?;
+            let data = filesystem.read(path).await?;
+            return Ok(Some(Picture::new(Some(source.into_string().into()), format, data)?));
         }
         Ok(None)
     }
@@ -146,6 +156,7 @@ impl<'s, 'd> Picture<'s, 'd> {
 mod test {
     use std::io::Cursor;
 
+    use concat_string::concat_string;
     use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
     use fake::{Dummy, Fake, Faker};
@@ -156,7 +167,14 @@ mod test {
     use crate::file;
     use crate::orm::albums;
     use crate::schema::songs;
-    use crate::test::Mock;
+    use crate::test::filesystem::Trait as _;
+    use crate::test::{filesystem, Mock};
+
+    impl Format {
+        pub fn name(self) -> String {
+            concat_string!("cover", ".", std::convert::Into::<&'static str>::into(self))
+        }
+    }
 
     impl Dummy<Faker> for Picture<'_, '_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
@@ -194,7 +212,10 @@ mod test {
     }
 
     impl<'s> Picture<'s, '_> {
-        async fn load(dir: impl AsRef<Utf8NativePath>, upsert: cover_arts::Upsert<'s>) -> Self {
+        async fn load_cache(
+            dir: impl AsRef<Utf8NativePath>,
+            upsert: cover_arts::Upsert<'s>,
+        ) -> Self {
             let property: file::Property<Format> = upsert.property.into();
             let path = property.path(dir, Self::FILENAME);
             let data = tokio::fs::read(path).await.unwrap();
@@ -211,7 +232,11 @@ mod test {
                     .await
                     .optional()
                     .unwrap();
-                if let Some(upsert) = upsert { Some(Self::load(dir, upsert).await) } else { None }
+                if let Some(upsert) = upsert {
+                    Some(Self::load_cache(dir, upsert).await)
+                } else {
+                    None
+                }
             } else {
                 None
             }
@@ -227,10 +252,30 @@ mod test {
                     .await
                     .optional()
                     .unwrap();
-                if let Some(upsert) = upsert { Some(Self::load(dir, upsert).await) } else { None }
+                if let Some(upsert) = upsert {
+                    Some(Self::load_cache(dir, upsert).await)
+                } else {
+                    None
+                }
             } else {
                 None
             }
+        }
+    }
+
+    impl Picture<'static, 'static> {
+        pub async fn scan_filesystem(
+            filesystem: &filesystem::Impl<'_>,
+            config: &config::CoverArt,
+            dir: Utf8TypedPath<'_>,
+        ) -> Option<Self> {
+            for name in &config.names {
+                let path = dir.join(name);
+                if let Some(picture) = Self::load(&filesystem.main(), path).await.unwrap() {
+                    return Some(picture);
+                }
+            }
+            None
         }
     }
 }

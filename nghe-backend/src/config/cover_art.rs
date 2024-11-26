@@ -21,13 +21,18 @@ pub struct CoverArt {
 
 #[cfg(test)]
 mod test {
+    use strum::IntoEnumIterator;
     use typed_path::Utf8NativePath;
 
     use super::*;
+    use crate::file::picture;
 
     impl CoverArt {
         pub fn with_prefix(self, prefix: impl AsRef<Utf8NativePath>) -> Self {
-            Self { dir: self.dir.map(|_| prefix.as_ref().join("cache").join("cover_art")), ..self }
+            Self {
+                dir: self.dir.map(|_| prefix.as_ref().join("cache").join("cover_art")),
+                names: picture::Format::iter().map(picture::Format::name).collect(),
+            }
         }
     }
 }

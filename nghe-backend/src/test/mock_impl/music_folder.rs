@@ -1,7 +1,5 @@
 #![allow(clippy::struct_field_names)]
 
-use std::io::{Cursor, Write};
-
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
@@ -12,12 +10,10 @@ use uuid::Uuid;
 
 use super::Information;
 use crate::database::Database;
-use crate::file::{self, audio, picture, File};
+use crate::file::{audio, picture, File};
 use crate::filesystem::Trait as _;
 use crate::orm::{albums, music_folders, songs};
 use crate::scan::scanner;
-use crate::test::assets;
-use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::{self, Trait as _};
 
 pub struct Mock<'a> {
@@ -48,6 +44,10 @@ impl<'a> Mock<'a> {
 
     pub fn database(&self) -> &Database {
         self.mock.database()
+    }
+
+    pub fn write_options(&self) -> lofty::config::WriteOptions {
+        self.mock.config.lofty_write
     }
 
     pub fn id(&self) -> Uuid {
@@ -149,47 +149,23 @@ impl<'a> Mock<'a> {
             .maybe_dir_picture(dir_picture);
 
         for _ in 0..n_song {
-            let path = if let Some(ref path) = path {
+            let relative_path = if let Some(ref path) = path {
                 assert_eq!(n_song, 1, "The same path is supplied for multiple audio");
-                self.absolutize(path)
+                self.relativize(&self.path_str(path)).to_path_buf()
             } else {
-                self.absolutize(self.to_impl().fake_path(depth))
+                self.to_impl().fake_path(depth)
             }
             .with_extension(format.as_ref());
-            let path = path.to_path();
-            let relative_path = self.relativize(&path).to_path_buf();
-
-            let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
-            let mut asset = Cursor::new(data.clone());
-            let mut file = File::new(format, data).unwrap().audio(self.config.lofty).unwrap();
-            asset.set_position(0);
 
             let information = builder
                 .clone()
                 .format(format)
                 .relative_path(relative_path.to_string().into())
                 .build();
-
-            file.clear()
-                .dump_metadata(&self.config.parsing, information.information.metadata.clone())
-                .save_to(&mut asset, self.mock.config.lofty_write);
-
-            asset.flush().unwrap();
-            asset.set_position(0);
-            let data = asset.into_inner();
-            self.to_impl().write(path, &data).await;
+            let information = information.dump(self).await;
 
             self.filesystem.shift_remove(&relative_path);
-            self.filesystem.insert(
-                relative_path.clone(),
-                Information {
-                    information: audio::Information {
-                        file: file::Property::new(format, &data).unwrap(),
-                        ..information.information
-                    },
-                    ..information
-                },
-            );
+            self.filesystem.insert(relative_path.clone(), information);
         }
 
         if scan {
