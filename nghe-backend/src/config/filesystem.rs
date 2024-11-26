@@ -1,43 +1,44 @@
-use derivative::Derivative;
+use educe::Educe;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, Educe)]
+#[educe(Default)]
 pub struct Scan {
     // 100 KiB in bytes
-    #[derivative(Default(value = "102400"))]
+    #[educe(Default(expression = 100 * 1024))]
     pub minimum_size: usize,
-    #[derivative(Default(value = "Some(10)"))]
     #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
+    #[educe(Default(expression = Some(10)))]
     pub channel_size: Option<usize>,
-    #[derivative(Default(value = "10"))]
+    #[educe(Default(expression = 10))]
     pub pool_size: usize,
 }
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct Tls {
-    #[derivative(Default(value = "false"))]
+    #[educe(Default(expression = false))]
     pub accept_invalid_certs: bool,
-    #[derivative(Default(value = "false"))]
+    #[educe(Default(expression = false))]
     pub accept_invalid_hostnames: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct S3 {
-    #[derivative(Default(value = "std::env::var(\"AWS_ACCESS_KEY_ID\").is_ok() && \
-                                  std::env::var(\"AWS_SECRET_ACCESS_KEY\").is_ok()"))]
+    #[educe(Default(expression =
+        std::env::var("AWS_ACCESS_KEY_ID").is_ok() && std::env::var("AWS_SECRET_ACCESS_KEY").is_ok()
+    ))]
     pub enable: bool,
-    #[derivative(Default(value = "std::env::var(\"AWS_USE_PATH_STYLE_ENDPOINT\").is_ok()"))]
+    #[educe(Default(expression = std::env::var("AWS_USE_PATH_STYLE_ENDPOINT").is_ok()))]
     pub use_path_style_endpoint: bool,
-    #[derivative(Default(value = "15"))]
+    #[educe(Default(expression = 15))]
     pub presigned_duration: u64,
-    #[derivative(Default(value = "0"))]
+    #[educe(Default(expression = 0))]
     pub stalled_stream_grace_preriod: u64,
-    #[derivative(Default(value = "5"))]
+    #[educe(Default(expression = 5))]
     pub connect_timeout: u64,
 }
 

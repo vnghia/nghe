@@ -10,14 +10,13 @@ pub trait Metadata {
 }
 
 #[derive(Debug)]
-#[cfg_attr(test, derive(derivative::Derivative))]
-#[cfg_attr(test, derivative(PartialEq, Eq, PartialOrd, Ord))]
+#[cfg_attr(test, derive(educe::Educe))]
+#[cfg_attr(test, educe(PartialEq, Eq, PartialOrd, Ord))]
 pub struct Entry {
     pub format: audio::Format,
     pub path: Utf8TypedPathBuf,
-    #[cfg_attr(test, derivative(PartialEq = "ignore"))]
-    #[cfg_attr(test, derivative(PartialOrd = "ignore"))]
-    #[cfg_attr(test, derivative(Ord = "ignore"))]
+    #[cfg_attr(test, educe(PartialEq(ignore)))]
+    #[cfg_attr(test, educe(PartialOrd(ignore)))]
     pub last_modified: Option<OffsetDateTime>,
 }
 

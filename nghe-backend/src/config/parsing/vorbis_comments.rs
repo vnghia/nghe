@@ -1,4 +1,4 @@
-use derivative::Derivative;
+use educe::Educe;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
@@ -21,42 +21,42 @@ pub struct Artist {
     pub mbz_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct Artists {
-    #[derivative(Default(value = "Artist::default_song()"))]
+    #[educe(Default(expression = Artist::default_song()))]
     pub song: Artist,
-    #[derivative(Default(value = "Artist::default_album()"))]
+    #[educe(Default(expression = Artist::default_album()))]
     pub album: Artist,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct TrackDisc {
-    #[derivative(Default(value = "\"TRACKNUMBER\".into()"))]
+    #[educe(Default(expression = "TRACKNUMBER".into()))]
     pub track_number: String,
-    #[derivative(Default(value = "\"TRACKTOTAL\".into()"))]
+    #[educe(Default(expression = "TRACKTOTAL".into()))]
     pub track_total: String,
-    #[derivative(Default(value = "\"DISCNUMBER\".into()"))]
+    #[educe(Default(expression = "DISCNUMBER".into()))]
     pub disc_number: String,
-    #[derivative(Default(value = "\"DISCTOTAL\".into()"))]
+    #[educe(Default(expression = "DISCTOTAL".into()))]
     pub disc_total: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct VorbisComments {
-    #[derivative(Default(value = "Common::default_song()"))]
+    #[educe(Default(expression = Common::default_song()))]
     pub song: Common,
-    #[derivative(Default(value = "Common::default_album()"))]
+    #[educe(Default(expression = Common::default_album()))]
     pub album: Common,
     pub artists: Artists,
     pub track_disc: TrackDisc,
-    #[derivative(Default(value = "\"LANGUAGE\".into()"))]
+    #[educe(Default(expression = "LANGUAGE".into()))]
     pub languages: String,
-    #[derivative(Default(value = "\"GENRE\".into()"))]
+    #[educe(Default(expression = "GENRE".into()))]
     pub genres: String,
-    #[derivative(Default(value = "\"COMPILATION\".into()"))]
+    #[educe(Default(expression = "COMPILATION".into()))]
     pub compilation: String,
 }
 

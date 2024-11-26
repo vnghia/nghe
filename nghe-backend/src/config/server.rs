@@ -1,19 +1,19 @@
 use std::net::{IpAddr, SocketAddr};
 
-use derivative::Derivative;
+use educe::Educe;
 use serde::{Deserialize, Serialize};
 use typed_path::utils::utf8_current_dir;
 use typed_path::Utf8NativePathBuf;
 
-#[derive(Debug, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct Server {
-    #[derivative(Default(value = "[127u8, 0u8, 0u8, 1u8].into()"))]
+    #[educe(Default(expression = [127u8, 0u8, 0u8, 1u8].into()))]
     pub host: IpAddr,
-    #[derivative(Default(value = "3000"))]
+    #[educe(Default(expression = 3000))]
     pub port: u16,
     #[serde(with = "crate::filesystem::path::serde")]
-    #[derivative(Default(value = "utf8_current_dir().unwrap().join(\"frontend\").join(\"dist\")"))]
+    #[educe(Default(expression = utf8_current_dir().unwrap().join("frontend").join("dist")))]
     pub frontend_dir: Utf8NativePathBuf,
 }
 

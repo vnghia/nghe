@@ -2,7 +2,7 @@ use std::ffi::CStr;
 use std::fmt::Debug;
 use std::io::Write;
 
-use derivative::Derivative;
+use educe::Educe;
 use fs4::fs_std::FileExt;
 use loole::{Receiver, Sender};
 use nghe_api::common::format;
@@ -14,10 +14,10 @@ use typed_path::Utf8NativePath;
 
 use crate::{config, Error};
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Educe)]
+#[educe(Debug)]
 pub struct Sink {
-    #[derivative(Debug = "ignore")]
+    #[educe(Debug(ignore))]
     tx: Sender<Vec<u8>>,
     buffer_size: usize,
     format: format::Transcode,

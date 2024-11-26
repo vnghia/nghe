@@ -1,8 +1,8 @@
 #[derive(Debug, Clone, Copy)]
-#[cfg_attr(test, derive(derivative::Derivative, fake::Dummy))]
-#[cfg_attr(test, derivative(PartialEq, Eq))]
+#[cfg_attr(test, derive(educe::Educe, fake::Dummy))]
+#[cfg_attr(test, educe(PartialEq, Eq))]
 pub struct Property {
-    #[cfg_attr(test, derivative(PartialEq = "ignore"))]
+    #[cfg_attr(test, educe(PartialEq(ignore)))]
     #[cfg_attr(test, dummy(faker = "100f32..300f32"))]
     pub duration: f32,
     #[cfg_attr(test, dummy(faker = "32000..640000"))]

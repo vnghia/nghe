@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
-use derivative::Derivative;
+use educe::Educe;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::{database, Error};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct Index {
     #[serde(with = "split")]
-    #[derivative(Default(value = "Index::split(\"The An A Die Das Ein Eine Les Le La\")"))]
+    #[educe(Default(expression = Index::split("The An A Die Das Ein Eine Les Le La")))]
     pub ignore_prefixes: Vec<String>,
 }
 

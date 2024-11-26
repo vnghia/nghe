@@ -4,9 +4,9 @@ mod information;
 mod music_folder;
 mod user;
 
-use derivative::Derivative;
 use diesel_async::pooled_connection::deadpool;
 use diesel_async::AsyncPgConnection;
+use educe::Educe;
 use fake::{Fake, Faker};
 pub use information::Mock as Information;
 use lofty::config::{ParseOptions, WriteOptions};
@@ -24,12 +24,12 @@ use crate::orm::users;
 use crate::scan::scanner;
 use crate::{config, route};
 
-#[derive(Debug, Derivative)]
-#[derivative(Default)]
+#[derive(Debug, Educe)]
+#[educe(Default)]
 pub struct Config {
-    #[derivative(Default(value = "config::filesystem::Filesystem::test()"))]
+    #[educe(Default(expression = config::filesystem::Filesystem::test()))]
     pub filesystem: config::filesystem::Filesystem,
-    #[derivative(Default(value = "config::Parsing::test()"))]
+    #[educe(Default(expression = config::Parsing::test()))]
     pub parsing: config::Parsing,
     pub index: config::Index,
     pub transcode: config::Transcode,
