@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
+use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
 use o2o::o2o;
@@ -38,15 +39,17 @@ pub enum Format {
     Jpeg,
 }
 
-#[derive(Debug, o2o)]
-#[cfg_attr(test, derive(Clone, PartialEq, Eq))]
+#[derive(o2o, Educe)]
+#[educe(Debug)]
 #[ref_into(cover_arts::Upsert<'s>)]
+#[cfg_attr(test, derive(Clone, PartialEq, Eq))]
 pub struct Picture<'s, 'd> {
     #[into(~.as_ref().map(|value| value.as_str().into()))]
     pub source: Option<Cow<'s, str>>,
     #[into(~.into())]
     pub property: Property<Format>,
     #[ghost]
+    #[educe(Debug(ignore))]
     pub data: Cow<'d, [u8]>,
 }
 
