@@ -171,10 +171,9 @@ impl Mock<'_, '_> {
         {
             Some(picture)
         } else if let Some(picture) = self.dir_picture {
-            filesystem
-                .write(parent.join(picture.property.format.name()).to_path(), &picture.data)
-                .await;
-            Some(picture)
+            let path = parent.join(picture.property.format.name());
+            filesystem.write(path.to_path(), &picture.data).await;
+            Some(picture::Picture { source: Some(path.into_string().into()), ..picture })
         } else {
             None
         };
@@ -187,5 +186,15 @@ impl Mock<'_, '_> {
             dir_picture,
             ..self
         }
+    }
+
+    pub fn with_dir_picture(self, dir_picture: Option<picture::Picture<'static, 'static>>) -> Self {
+        Self { dir_picture, ..self }
+    }
+}
+
+impl<'path> Mock<'_, 'path> {
+    pub fn with_relative_path(self, relative_path: Cow<'path, str>) -> Self {
+        Self { relative_path, ..self }
     }
 }
