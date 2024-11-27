@@ -106,7 +106,7 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::{albums, songs_artists};
+    use crate::orm::{albums, permission, songs_artists};
 
     #[auto_type]
     pub fn unchecked_no_group_by() -> _ {
@@ -125,6 +125,18 @@ pub mod query {
     pub fn unchecked() -> _ {
         let song: AsSelect<Song, crate::orm::Type> = Song::as_select();
         unchecked_no_group_by().group_by(songs::id).select(song)
+    }
+
+    #[auto_type]
+    pub fn with_user_id(user_id: Uuid) -> _ {
+        let permission: permission::with_album = permission::with_album(user_id);
+        unchecked().filter(permission)
+    }
+
+    #[auto_type]
+    pub fn with_music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
+        let with_user_id: with_user_id = with_user_id(user_id);
+        with_user_id.filter(albums::music_folder_id.eq_any(music_folder_ids))
     }
 }
 
