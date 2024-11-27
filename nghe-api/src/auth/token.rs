@@ -1,6 +1,6 @@
 use nghe_proc_macro::api_derive;
 
-#[api_derive(request = true, response = true, json = false, eq = false)]
+#[api_derive(request = false, response = false, eq = false)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Token(pub [u8; 16]);
 

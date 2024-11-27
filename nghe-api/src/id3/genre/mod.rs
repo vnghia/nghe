@@ -3,13 +3,13 @@ mod with_count;
 use nghe_proc_macro::api_derive;
 pub use with_count::WithCount;
 
-#[api_derive(response = true)]
+#[api_derive]
 #[cfg_attr(feature = "test", derive(Clone, Hash))]
 pub struct Genre {
     pub name: String,
 }
 
-#[api_derive(response = true)]
+#[api_derive]
 #[derive(Default)]
 #[serde(transparent)]
 pub struct Genres {

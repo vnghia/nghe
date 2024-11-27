@@ -13,7 +13,7 @@ use super::{artist, date, genre};
     date::Date => #[serde(skip_serializing_if = "date::Date::is_none")],
     genre::Genres => #[serde(skip_serializing_if = "genre::Genres::is_empty")],
 )]
-#[api_derive(response = true)]
+#[api_derive]
 #[derive(Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]

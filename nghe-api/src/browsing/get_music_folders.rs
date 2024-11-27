@@ -5,13 +5,13 @@ use uuid::Uuid;
 #[endpoint(path = "getMusicFolders")]
 pub struct Request {}
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct MusicFolder {
     pub id: Uuid,
     pub name: String,
 }
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct MusicFolders {
     pub music_folder: Vec<MusicFolder>,
 }

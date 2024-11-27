@@ -20,7 +20,7 @@ pub struct Request {
 #[serde_with::apply(
     Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
 )]
-#[api_derive(response = true)]
+#[api_derive]
 pub struct SearchResult3 {
     pub artist: Vec<id3::artist::Artist>,
     pub album: Vec<id3::album::Album>,

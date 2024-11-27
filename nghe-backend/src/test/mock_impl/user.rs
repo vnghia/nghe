@@ -1,22 +1,10 @@
 use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
-use nghe_api::auth;
-use o2o::o2o;
+use nghe_api::auth::{self, Auth};
 use uuid::Uuid;
 
 use crate::orm::users;
-
-// TODO: remove this after https://github.com/SoftbearStudios/bitcode/issues/27
-#[derive(o2o)]
-#[ref_into(auth::Auth<'u, 's>)]
-pub struct Auth {
-    #[into(~.as_str())]
-    pub username: String,
-    #[into(~.as_str())]
-    pub salt: String,
-    pub token: auth::Token,
-}
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
@@ -41,10 +29,10 @@ impl<'a> Mock<'a> {
         self.user.id
     }
 
-    pub fn auth(&self) -> Auth {
+    pub fn auth(&self) -> Auth<'static, 'static> {
         let users::Data { username, password, .. } = &self.user.data;
         let salt: String = Faker.fake();
         let token = auth::Auth::tokenize(self.mock.database().decrypt(password).unwrap(), &salt);
-        Auth { username: username.to_string(), salt, token }
+        Auth { username: username.to_string().into(), salt: salt.into(), token }
     }
 }

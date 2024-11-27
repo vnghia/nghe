@@ -43,7 +43,7 @@ pub struct Request {
     pub music_folder_ids: Option<Vec<Uuid>>,
 }
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct AlbumList2 {
     pub album: Vec<id3::album::Album>,
 }

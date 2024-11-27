@@ -2,14 +2,13 @@ pub mod filesystem;
 pub mod format;
 pub mod typed_uuid;
 
-use bitcode::{DecodeOwned, Encode};
 use nghe_proc_macro::api_derive;
 use serde::de::DeserializeOwned;
 use serde::{Serialize, Serializer};
 
 use super::constant;
 
-#[api_derive(debug = false, binary = false)]
+#[api_derive(debug = false)]
 struct RootResponse<B> {
     #[serde(serialize_with = "emit_open_subsonic_version")]
     version: (),
@@ -25,7 +24,7 @@ struct RootResponse<B> {
     body: B,
 }
 
-#[api_derive(debug = false, binary = false)]
+#[api_derive(debug = false)]
 pub struct SubsonicResponse<B> {
     #[serde(rename = "subsonic-response")]
     root: RootResponse<B>,
@@ -46,10 +45,10 @@ pub trait BinaryURL {
     const URL_BINARY: &'static str;
 }
 
-pub trait BinaryRequest = BinaryURL + Encode + DecodeOwned;
+pub trait BinaryRequest = BinaryURL + Serialize + DeserializeOwned;
 
 pub trait BinaryEndpoint: BinaryRequest {
-    type Response: Encode + DecodeOwned;
+    type Response: Serialize + DeserializeOwned;
 }
 
 impl<B> SubsonicResponse<B> {
@@ -95,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_serialize_empty() {
-        #[api_derive(request = true, response = true, debug = false, binary = false)]
+        #[api_derive(debug = false)]
         struct TestBody {}
 
         assert_eq!(
@@ -114,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_serialize() {
-        #[api_derive(request = true, response = true, debug = false, binary = false)]
+        #[api_derive(debug = false)]
         struct TestBody {
             field: u16,
         }
@@ -137,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_serialize_case() {
-        #[api_derive(request = true, response = true, debug = false, binary = false)]
+        #[api_derive(debug = false)]
         struct TestBody {
             snake_case: u16,
         }

@@ -1,5 +1,7 @@
 mod full;
 
+use std::borrow::Cow;
+
 use bon::Builder;
 pub use full::Full;
 use nghe_proc_macro::api_derive;
@@ -11,7 +13,7 @@ use super::artist;
     Option => #[serde(skip_serializing_if = "Option::is_none")],
     Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
 )]
-#[api_derive(response = true)]
+#[api_derive]
 #[derive(Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
@@ -22,8 +24,8 @@ pub struct Song {
     pub year: Option<u16>,
     pub cover_art: Option<Uuid>,
     pub size: u32,
-    pub content_type: &'static str,
-    pub suffix: &'static str,
+    pub content_type: Cow<'static, str>,
+    pub suffix: Cow<'static, str>,
     pub duration: u32,
     pub bit_rate: u32,
     pub bit_depth: Option<u8>,

@@ -10,7 +10,7 @@ pub struct Request {
 #[serde_with::apply(
     Option => #[serde(skip_serializing_if = "Option::is_none")],
 )]
-#[api_derive(response = true)]
+#[api_derive]
 pub struct ArtistInfo2 {
     // TODO: add biography and lastfm url field
     pub music_brainz_id: Option<Uuid>,

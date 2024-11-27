@@ -6,7 +6,7 @@ use crate::id3::{artist, song};
 #[serde_with::apply(
     Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
 )]
-#[api_derive(response = true)]
+#[api_derive]
 pub struct Full {
     #[serde(flatten)]
     pub album: Album,
