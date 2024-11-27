@@ -27,6 +27,8 @@ struct Derive {
     endpoint: bool,
     #[deluxe(default = true)]
     debug: bool,
+    #[deluxe(default = true)]
+    apply: bool,
     #[deluxe(default = false)]
     fake: bool,
     #[deluxe(default = true)]
@@ -147,6 +149,28 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
     };
 
+    let apply_statement = if has_serde && args.apply {
+        quote! {
+            #[serde_with::apply(
+                Option => #[serde(skip_serializing_if = "Option::is_none", default)],
+                Vec => #[serde(skip_serializing_if = "Vec::is_empty", default)],
+                date::Date => #[serde(skip_serializing_if = "date::Date::is_none", default)],
+                genre::Genres => #[serde(
+                    skip_serializing_if = "genre::Genres::is_empty",
+                    default
+                )],
+                OffsetDateTime => #[serde(with = "crate::time::serde")],
+                Option<OffsetDateTime> => #[serde(
+                    with = "crate::time::serde::option",
+                    skip_serializing_if = "Option::is_none",
+                    default
+                )],
+            )]
+        }
+    } else {
+        quote! {}
+    };
+
     if args.fake {
         attributes
             .push(parse_quote!(#[cfg_attr(any(test, feature = "fake"), derive(fake::Dummy))]));
@@ -189,6 +213,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     }
 
     Ok(quote! {
+        #apply_statement
         #[derive(#(#derives),*)]
         #( #attributes )*
         #input

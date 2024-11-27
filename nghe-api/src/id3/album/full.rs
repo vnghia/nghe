@@ -3,9 +3,6 @@ use nghe_proc_macro::api_derive;
 use super::Album;
 use crate::id3::{artist, song};
 
-#[serde_with::apply(
-    Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
-)]
 #[api_derive]
 pub struct Full {
     #[serde(flatten)]

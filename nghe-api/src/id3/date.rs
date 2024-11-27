@@ -1,8 +1,5 @@
 use nghe_proc_macro::api_derive;
 
-#[serde_with::apply(
-    Option => #[serde(skip_serializing_if = "Option::is_none")],
-)]
 #[api_derive]
 #[derive(Default)]
 pub struct Date {

@@ -9,7 +9,7 @@ pub struct Genre {
     pub name: String,
 }
 
-#[api_derive]
+#[api_derive(apply = false)]
 #[derive(Default)]
 #[serde(transparent)]
 pub struct Genres {

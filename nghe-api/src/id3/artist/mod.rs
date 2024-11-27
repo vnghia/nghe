@@ -16,10 +16,6 @@ pub enum Role {
     AlbumArtist,
 }
 
-#[serde_with::apply(
-    Option => #[serde(skip_serializing_if = "Option::is_none")],
-    Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
-)]
 #[api_derive]
 #[derive(Builder)]
 #[builder(on(_, required))]
