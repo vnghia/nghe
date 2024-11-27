@@ -1,14 +1,6 @@
 [workspace]
-members = [
-  "frontend",
-  "lastfm-client",
-  "lastfm-proc-macros",
-  "proc_macros",
-  "types",
-  "nghe-api",
-  "nghe-proc-macro",
-  "nghe-backend",
-]
+resolver = "2"
+members = ["nghe-api", "nghe-proc-macro", "nghe-backend"]
 
 [workspace.package]
 version = "0.9.10"
@@ -27,137 +19,39 @@ return_self_not_must_use = { level = "allow", priority = 0 }
 struct_excessive_bools = { level = "allow", priority = 0 }
 wildcard_imports = { level = "allow", priority = 0 }
 
-[package]
-name = "nghe"
-version = { workspace = true }
-edition = { workspace = true }
-
 [workspace.dependencies]
-anyhow = { version = "1.0.86", features = ["backtrace"] }
 bitcode = { git = "https://github.com/vnghia/bitcode.git", rev = "5f6a56f", features = [
   "uuid",
 ] }
-bon = { version = "3.0.1" }
+bon = { version = "3.1.1" }
 color-eyre = { version = "0.6.3" }
 concat-string = { version = "1.0.1" }
-const_format = { version = "0.2.32", features = ["fmt"] }
-constcat = { version = "0.5.0" }
+const_format = { version = "0.2.33", features = ["fmt"] }
 convert_case = { version = "0.6.0" }
-derivative = { version = "2.2.0" }
-derive-new = { version = "0.6.0" }
 educe = { version = "0.6.0" }
 faster-hex = { version = "0.10.0" }
-hex = { version = "0.4.3" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
-serde = { version = "1.0.203", features = ["derive"] }
+serde = { version = "1.0.215", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
-serde_with = { version = "3.8.2", features = ["hex"] }
+serde_with = { version = "3.11.0" }
 strum = { version = "0.26.3", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }
-uuid = { version = "1.9.1", features = ["serde"] }
-reqwest = { version = "0.12.5", default-features = false, features = [
+uuid = { version = "1.11.0", features = ["serde"] }
+reqwest = { version = "0.12.9", default-features = false, features = [
   "rustls-tls",
   "json",
   "http2",
 ] }
 rstest = { version = "0.22.0" }
-thiserror = { version = "1.0.61" }
-url = { version = "2.5.2" }
+thiserror = { version = "1.0.69" }
+url = { version = "2.5.4" }
 
 # Dev
-serde_json = { version = "1.0.120" }
+serde_json = { version = "1.0.133" }
 fake = { version = "3.0.1", features = ["derive", "uuid", "time"] }
-
-[dependencies]
-anyhow = { workspace = true }
-concat-string = { workspace = true }
-constcat = { workspace = true }
-derivative = { workspace = true }
-hex = { workspace = true }
-isolang = { workspace = true }
-itertools = { workspace = true }
-rand = { workspace = true }
-reqwest = { workspace = true }
-serde = { workspace = true }
-serde_html_form = { workspace = true }
-serde_with = { workspace = true }
-strum = { workspace = true }
-thiserror = { workspace = true }
-time = { workspace = true }
-tracing = { workspace = true }
-uuid = { workspace = true }
-
-lastfm-client = { path = "lastfm-client" }
-nghe-proc_macros = { path = "proc_macros" }
-nghe-types = { path = "types" }
-
-async-trait = { version = "0.1.80" }
-aws-config = { version = "1.5.3", default-features = false, features = [
-  "client-hyper",
-  "rustls",
-  "rt-tokio",
-  "credentials-process",
-  "behavior-version-latest",
-] }
-aws-sdk-s3 = { version = "1.39.0", features = ["rt-tokio"] }
-axum = { version = "0.7.5", features = ["http2", "macros"] }
-axum-extra = { version = "0.9.3", features = ["form", "typed-header"] }
-diesel = { version = "2.2.2", features = ["64-column-tables", "time", "uuid"] }
-diesel-async = { version = "0.5.0", features = [
-  "postgres",
-  "deadpool",
-  "async-connection-wrapper",
-] }
-diesel_full_text_search = { version = "2.2.0", default-features = false }
-diesel_migrations = { version = "2.2.0", features = ["postgres"] }
-figment = { version = "0.10.19", features = ["env"] }
-flume = { version = "0.11.0", features = ["async"] }
-futures = { version = "0.3.30" }
-futures-buffered = { version = "0.2.6" }
-ignore = { version = "0.4.22" }
-libaes = { version = "0.7.0" }
-lofty = { version = "0.20.1" }
-lrc = { git = "https://github.com/vnghia/lrc.git", rev = "875a540" }
-mimalloc = { version = "0.1.43" }
-mime_guess = { version = "2.0.5" }
-phf = { version = "0.11.2", features = ["macros"] }
-rayon = { version = "1.10.0" }
-rsmpeg = { version = "0.15.1", default-features = false, features = [
-  "ffmpeg7",
-  "link_system_ffmpeg",
-] }
-rspotify = { version = "0.13.2", default-features = false, features = [
-  "client-reqwest",
-  "reqwest-rustls-tls",
-] }
-tokio = { version = "1.40.0", features = ["full"] }
-tokio-postgres = { version = "0.7.10" }
-tokio-util = { version = "0.7.11", features = ["io"] }
-tower = { version = "0.5.0", features = ["util"] }
-tower-http = { version = "0.6.0", features = ["cors", "fs", "trace"] }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-typed-path = { version = "0.9.0" }
-unicode-normalization = { version = "0.1.23" }
-xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
-
-[dev-dependencies]
-fake = { workspace = true }
-serde_json = { workspace = true }
-url = { workspace = true }
-
-http-body-util = { version = "0.1.2" }
-image = { version = "0.25.1", default-features = false, features = [
-  "jpeg",
-  "png",
-] }
-tempfile = { version = "3.10.1" }
-uuid = { version = "1.9.1", features = ["v4", "fast-rng"] }
-
-[target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
-diesel = { version = "2.2.2", features = ["postgres"] }
 
 [profile.dev.package.backtrace]
 opt-level = 3
@@ -173,25 +67,3 @@ codegen-units = 1
 [profile.profiling]
 inherits = "release"
 debug = true
-
-[package.metadata.vcpkg]
-dependencies = [
-  "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis,openssl]",
-]
-git = "https://github.com/microsoft/vcpkg"
-rev = "fe1cde61e971d53c9687cf9a46308f8f55da19fa"
-overlay-triplets-path = "vcpkg/triplets/"
-
-[package.metadata.vcpkg.target]
-x86_64-unknown-linux-gnu = { triplet = "x64-linux-release" }
-aarch64-unknown-linux-gnu = { triplet = "arm64-linux-release" }
-
-x86_64-unknown-linux-musl = { triplet = "x64-linux-musl-release" }
-aarch64-unknown-linux-musl = { triplet = "arm64-linux-musl-release" }
-
-x86_64-unknown-freebsd = { triplet = "x64-freebsd-release" }
-
-x86_64-apple-darwin = { triplet = "x64-osx-release" }
-aarch64-apple-darwin = { triplet = "arm64-osx-release" }
-
-x86_64-pc-windows-msvc = { triplet = "x64-windows-static-release" }

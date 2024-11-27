@@ -6,7 +6,7 @@ use uuid::Uuid;
 pub struct Request {
     #[serde(rename = "id")]
     pub ids: Vec<Uuid>,
-    #[serde(rename = "id")]
+    #[serde(rename = "time")]
     pub times: Option<Vec<u64>>,
     pub submission: Option<bool>,
 }

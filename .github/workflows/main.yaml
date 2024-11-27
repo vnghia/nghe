@@ -172,7 +172,7 @@ jobs:
           tool: cargo-vcpkg
       - name: Build vcpkg dependencies
         run: |
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
 
       - name: Install cross
         if: ${{ matrix.platform.command == 'cross' }}
@@ -195,7 +195,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
 
   build-docker:
@@ -396,7 +396,7 @@ jobs:
             mkdir -p ~/.cache/vcpkg/
             ln -s target/vcpkg-archives ~/.cache/vcpkg/archives
             cargo install cargo-vcpkg
-            cargo vcpkg --verbose build --target ${{ steps.build.outputs.target }}
+            cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
             cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
@@ -404,7 +404,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
-          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe
+          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
 
   build-windows:
@@ -461,7 +461,7 @@ jobs:
           tool: cargo-vcpkg
       - name: Build vcpkg dependencies
         run: |
-          cargo vcpkg --verbose build --target x86_64-pc-windows-msvc
+          cargo vcpkg --verbose build --manifest-path nghe-backend\Cargo.toml --target x86_64-pc-windows-msvc
 
       - name: Build and test
         run: |
@@ -551,7 +551,7 @@ jobs:
           tool: cargo-vcpkg
       - name: Build vcpkg dependencies
         run: |
-          cargo vcpkg --verbose build --target ${{ matrix.platform.target }}
+          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
 
       - name: Build and test
         run: |
@@ -565,7 +565,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
 
   upload-release:
