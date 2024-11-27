@@ -1,0 +1,101 @@
+[package]
+name = "nghe_backend"
+version = { workspace = true }
+edition = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+bitcode = { workspace = true }
+concat-string = { workspace = true }
+color-eyre = { workspace = true }
+const_format = { workspace = true }
+derive-new = { workspace = true }
+educe = { workspace = true }
+faster-hex = { workspace = true }
+isolang = { workspace = true }
+itertools = { workspace = true }
+rand = { workspace = true }
+serde_html_form = { workspace = true }
+serde_with = { workspace = true }
+serde = { workspace = true }
+strum = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+nghe_api = { path = "../nghe-api" }
+nghe_proc_macro = { path = "../nghe-proc-macro" }
+
+async-walkdir = { version = "2.0.0" }
+aws-config = { version = "1.5.5", default-features = false, features = [
+  "rt-tokio",
+  "behavior-version-latest",
+] }
+aws-sdk-s3 = { version = "1.47.0", default-features = false, features = [
+  "rt-tokio",
+  "sigv4a",
+] }
+aws-smithy-runtime = { version = "1.7.1", default-features = false, features = [
+  "client",
+  "connector-hyper-0-14-x",
+] }
+axum = { version = "0.8.0-alpha.1", features = ["http2", "macros"] }
+axum-extra = { version = "0.10.0-alpha.1", features = ["typed-header"] }
+diesel = { version = "2.2.2", features = ["time", "uuid"] }
+# TODO: remove this when diesel is released
+diesel_derives = { git = "https://github.com/diesel-rs/diesel", rev = "ecf6e9215a898045ed096f905f4a0e7e4a999dba" }
+diesel-async = { version = "0.5.0", features = [
+  "postgres",
+  "deadpool",
+  "async-connection-wrapper",
+] }
+diesel_full_text_search = { version = "2.2.0", default-features = false }
+diesel_migrations = { version = "2.2.0", features = ["postgres"] }
+figment = { version = "0.10.19", features = ["env"] }
+fs4 = { version = "0.11.1", features = ["sync"] }
+futures-lite = { version = "2.3.0" }
+hyper = { version = "0.14.29" }
+hyper-tls = { version = "0.5.0" }
+indexmap = { version = "2.5.0" }
+libaes = { version = "0.7.0" }
+lofty = { version = "0.21.1" }
+loole = { version = "0.4.0" }
+num-traits = { version = "0.2.19" }
+o2o = { version = "0.4.10" }
+rsmpeg = { version = "0.15.1", default-features = false, features = [
+  "ffmpeg7",
+  "link_system_ffmpeg",
+] }
+tokio = { version = "1.40.0", features = [
+  "fs",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+] }
+tokio-util = { version = "0.7.12", features = ["io"] }
+tower-http = { version = "0.6.1", features = ["cors", "trace"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+typed-path = { git = "https://github.com/vnghia/typed-path", rev = "bd796e64b3cee53181a3fc2f15245f5bf731bd8c" }
+unicode-normalization = { version = "0.1.24" }
+xxhash-rust = { version = "0.8.10", features = ["xxh3"] }
+
+[dev-dependencies]
+bon = { workspace = true }
+fake = { workspace = true }
+url = { workspace = true }
+rstest = { workspace = true }
+
+nghe_api = { path = "../nghe-api", features = ["test"] }
+
+http-body-util = { version = "0.1.2" }
+image = { version = "0.25.5", default-features = false, features = [
+  "jpeg",
+  "png",
+] }
+tempfile = { version = "3.10.1" }
+
+[target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
+diesel = { version = "2.2.2", features = ["postgres"] }

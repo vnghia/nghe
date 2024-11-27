@@ -1,0 +1,36 @@
+[package]
+name = "nghe_api"
+version = { workspace = true }
+edition = { workspace = true }
+
+[lints]
+workspace = true
+
+[dependencies]
+bitcode = { workspace = true }
+bon = { workspace = true }
+const_format = { workspace = true }
+faster-hex = { workspace = true }
+serde = { workspace = true }
+serde_with = { workspace = true }
+strum = { workspace = true }
+uuid = { workspace = true }
+
+fake = { workspace = true, optional = true }
+
+nghe_proc_macro = { path = "../nghe-proc-macro" }
+
+md5 = { version = "0.7.0" }
+paste = { version = "1.0.15" }
+
+[dev-dependencies]
+fake = { workspace = true }
+rstest = { workspace = true }
+serde_json = { workspace = true }
+serde_html_form = { workspace = true }
+
+[build-dependencies]
+built = { version = "0.7.3", features = ["git2"] }
+
+[features]
+test = ["fake"]
