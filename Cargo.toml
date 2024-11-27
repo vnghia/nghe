@@ -46,7 +46,7 @@ reqwest = { version = "0.12.9", default-features = false, features = [
   "http2",
 ] }
 rstest = { version = "0.22.0" }
-thiserror = { version = "1.0.69" }
+thiserror = { version = "2.0.0" }
 url = { version = "2.5.4" }
 
 # Dev
