@@ -23,34 +23,34 @@ wildcard_imports = { level = "allow", priority = 0 }
 bitcode = { git = "https://github.com/vnghia/bitcode.git", rev = "5f6a56f", features = [
   "uuid",
 ] }
-bon = { version = "3.0.1" }
+bon = { version = "3.1.1" }
 color-eyre = { version = "0.6.3" }
 concat-string = { version = "1.0.1" }
-const_format = { version = "0.2.32", features = ["fmt"] }
+const_format = { version = "0.2.33", features = ["fmt"] }
 convert_case = { version = "0.6.0" }
 educe = { version = "0.6.0" }
 faster-hex = { version = "0.10.0" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
-serde = { version = "1.0.203", features = ["derive"] }
+serde = { version = "1.0.215", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
-serde_with = { version = "3.8.2" }
+serde_with = { version = "3.11.0" }
 strum = { version = "0.26.3", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }
-uuid = { version = "1.9.1", features = ["serde"] }
-reqwest = { version = "0.12.5", default-features = false, features = [
+uuid = { version = "1.11.0", features = ["serde"] }
+reqwest = { version = "0.12.9", default-features = false, features = [
   "rustls-tls",
   "json",
   "http2",
 ] }
 rstest = { version = "0.22.0" }
-thiserror = { version = "1.0.61" }
-url = { version = "2.5.2" }
+thiserror = { version = "1.0.69" }
+url = { version = "2.5.4" }
 
 # Dev
-serde_json = { version = "1.0.120" }
+serde_json = { version = "1.0.133" }
 fake = { version = "3.0.1", features = ["derive", "uuid", "time"] }
 
 [profile.dev.package.backtrace]

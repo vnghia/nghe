@@ -30,7 +30,7 @@ serde_json = { workspace = true }
 serde_html_form = { workspace = true }
 
 [build-dependencies]
-built = { version = "0.7.3", features = ["git2"] }
+built = { version = "0.7.5", features = ["git2"] }
 
 [features]
 test = ["fake"]
