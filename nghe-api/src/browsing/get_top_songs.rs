@@ -9,7 +9,7 @@ pub struct Request {
     pub count: Option<u32>,
 }
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct TopSongs {
     pub song: Vec<id3::song::Full>,
 }

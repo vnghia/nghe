@@ -28,6 +28,7 @@ use o2o::o2o;
 #[from_owned(std::string::FromUtf8Error)]
 #[from_owned(axum::extract::rejection::StringRejection)]
 #[from_owned(strum::ParseError)]
+#[from_owned(bitcode::Error)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),

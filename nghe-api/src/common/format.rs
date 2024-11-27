@@ -6,7 +6,7 @@ pub trait Trait: Copy {
     fn extension(&self) -> &'static str;
 }
 
-#[api_derive(request = true)]
+#[api_derive]
 #[derive(IntoStaticStr, EnumString)]
 #[strum(serialize_all = "lowercase")]
 #[cfg_attr(feature = "test", derive(strum::AsRefStr))]

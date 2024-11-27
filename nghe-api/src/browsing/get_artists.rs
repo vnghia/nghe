@@ -10,13 +10,13 @@ pub struct Request {
     pub music_folder_ids: Option<Vec<Uuid>>,
 }
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct Index {
     pub name: String,
     pub artist: Vec<id3::artist::Artist>,
 }
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct Artists {
     pub ignored_articles: String,
     pub index: Vec<Index>,

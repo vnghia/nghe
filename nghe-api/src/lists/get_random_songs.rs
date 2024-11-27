@@ -14,7 +14,7 @@ pub struct Request {
     pub music_folder_ids: Option<Vec<Uuid>>,
 }
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct RandomSong {
     pub song: Vec<id3::song::Full>,
 }

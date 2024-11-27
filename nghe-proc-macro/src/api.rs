@@ -19,19 +19,17 @@ struct Endpoint {
 
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct Derive {
-    #[deluxe(default = false)]
+    #[deluxe(default = true)]
     request: bool,
-    #[deluxe(default = false)]
+    #[deluxe(default = true)]
     response: bool,
     #[deluxe(default = false)]
     endpoint: bool,
     #[deluxe(default = true)]
     debug: bool,
     #[deluxe(default = true)]
-    json: bool,
-    #[deluxe(default = true)]
-    binary: bool,
-    #[deluxe(default = true)]
+    apply: bool,
+    #[deluxe(default = false)]
     fake: bool,
     #[deluxe(default = true)]
     copy: bool,
@@ -122,46 +120,58 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let is_request_struct = ident == "Request";
     let is_request = args.request || ident.ends_with("Request");
     let is_response = args.response || ident.ends_with("Response");
+    let has_serde = is_request || is_response;
 
     let is_enum = matches!(input.data, syn::Data::Enum(_));
 
     let mut derives: Vec<syn::Expr> = vec![];
     let mut attributes: Vec<syn::Attribute> = vec![];
 
-    if args.json {
-        if is_request {
-            derives.push(parse_str("::serde::Deserialize")?);
-        }
-        if is_response {
-            derives.push(parse_str("::serde::Serialize")?);
-        }
+    if is_request {
+        derives.push(parse_str("::serde::Deserialize")?);
+    }
+    if is_response {
+        derives.push(parse_str("::serde::Serialize")?);
     }
 
     if args.debug {
         derives.push(parse_str("Debug")?);
     }
-    if args.binary {
-        derives.push(parse_str("bitcode::Encode")?);
-        derives.push(parse_str("bitcode::Decode")?);
-    }
+
     if args.endpoint || is_request_struct {
         derives.push(parse_str("nghe_proc_macro::Endpoint")?);
-        if !args.json {
-            attributes.push(parse_quote!(#[endpoint(json = false)]));
-        }
-        if !args.binary {
-            attributes.push(parse_quote!(#[endpoint(binary = false)]));
-        }
     }
 
-    if args.json {
+    if has_serde {
         if is_enum {
             attributes.push(parse_quote!(#[serde(rename_all_fields = "camelCase")]));
         }
         attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
     };
 
-    if is_request && args.fake {
+    let apply_statement = if has_serde && args.apply {
+        quote! {
+            #[serde_with::apply(
+                Option => #[serde(skip_serializing_if = "Option::is_none", default)],
+                Vec => #[serde(skip_serializing_if = "Vec::is_empty", default)],
+                date::Date => #[serde(skip_serializing_if = "date::Date::is_none", default)],
+                genre::Genres => #[serde(
+                    skip_serializing_if = "genre::Genres::is_empty",
+                    default
+                )],
+                OffsetDateTime => #[serde(with = "crate::time::serde")],
+                Option<OffsetDateTime> => #[serde(
+                    with = "crate::time::serde::option",
+                    skip_serializing_if = "Option::is_none",
+                    default
+                )],
+            )]
+        }
+    } else {
+        quote! {}
+    };
+
+    if args.fake {
         attributes
             .push(parse_quote!(#[cfg_attr(any(test, feature = "fake"), derive(fake::Dummy))]));
     }
@@ -203,6 +213,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     }
 
     Ok(quote! {
+        #apply_statement
         #[derive(#(#derives),*)]
         #( #attributes )*
         #input

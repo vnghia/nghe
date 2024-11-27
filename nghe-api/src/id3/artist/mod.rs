@@ -8,7 +8,7 @@ pub use required::Required;
 use strum::IntoStaticStr;
 use uuid::Uuid;
 
-#[api_derive(response = true, json = false)]
+#[api_derive(response = false)]
 #[derive(IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum Role {
@@ -16,11 +16,7 @@ pub enum Role {
     AlbumArtist,
 }
 
-#[serde_with::apply(
-    Option => #[serde(skip_serializing_if = "Option::is_none")],
-    Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
-)]
-#[api_derive(response = true)]
+#[api_derive]
 #[derive(Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]

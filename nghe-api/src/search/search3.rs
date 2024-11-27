@@ -17,10 +17,7 @@ pub struct Request {
     pub music_folder_ids: Option<Vec<Uuid>>,
 }
 
-#[serde_with::apply(
-    Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
-)]
-#[api_derive(response = true)]
+#[api_derive]
 pub struct SearchResult3 {
     pub artist: Vec<id3::artist::Artist>,
     pub album: Vec<id3::album::Album>,

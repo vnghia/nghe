@@ -50,7 +50,11 @@ async fn authenticate<A: Authorize>(
     let password = database.decrypt(password)?;
     A::authorize(role)?;
 
-    if Auth::check(password, data.salt, &data.token) { Ok(id) } else { Err(Error::Unauthenticated) }
+    if Auth::check(password, data.salt.as_bytes(), &data.token) {
+        Ok(id)
+    } else {
+        Err(Error::Unauthenticated)
+    }
 }
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
@@ -139,7 +143,7 @@ where
 
         if NEED_AUTH {
             let AuthRequest::<R> { auth, request } =
-                bitcode::decode(&bytes).map_err(|_| Error::SerializeBinaryRequest)?;
+                bitcode::deserialize(&bytes).map_err(|_| Error::SerializeBinaryRequest)?;
 
             let database = Database::from_ref(state);
             let id = authenticate::<R>(&database, auth).await?;
@@ -147,7 +151,7 @@ where
         } else {
             Ok(Self {
                 id: Uuid::default(),
-                request: bitcode::decode(&bytes).map_err(|_| Error::SerializeBinaryRequest)?,
+                request: bitcode::deserialize(&bytes).map_err(|_| Error::SerializeBinaryRequest)?,
             })
         }
     }
@@ -169,9 +173,9 @@ mod tests {
     use super::*;
     use crate::test::{mock, Mock};
 
-    #[api_derive]
+    #[api_derive(fake = true)]
     #[endpoint(path = "test", same_crate = false)]
-    #[derive(Clone, Copy, Serialize)]
+    #[derive(Clone, Copy)]
     struct Request {
         param_one: i32,
         param_two: u32,
@@ -195,7 +199,7 @@ mod tests {
         mock: Mock,
     ) {
         let user = mock.user(0).await;
-        let id = authenticate::<Request>(mock.database(), (&user.auth()).into()).await.unwrap();
+        let id = authenticate::<Request>(mock.database(), user.auth()).await.unwrap();
         assert_eq!(id, user.id());
     }
 
@@ -207,9 +211,7 @@ mod tests {
         mock: Mock,
     ) {
         let auth = mock.user(0).await.auth();
-
-        let username: String = Faker.fake();
-        let auth = Auth { username: &username, ..(&auth).into() };
+        let auth = Auth { username: Faker.fake::<String>().into(), ..auth };
         assert!(authenticate::<Request>(mock.database(), auth).await.is_err());
     }
 
@@ -221,9 +223,8 @@ mod tests {
         mock: Mock,
     ) {
         let auth = mock.user(0).await.auth();
-
-        let token = Auth::tokenize(Faker.fake::<String>(), &auth.salt);
-        let auth = Auth { token, ..(&auth).into() };
+        let token = Auth::tokenize(Faker.fake::<String>(), auth.salt.as_bytes());
+        let auth = Auth { token, ..auth };
         assert!(authenticate::<Request>(mock.database(), auth).await.is_err());
     }
 
@@ -243,17 +244,14 @@ mod tests {
         }
 
         let request: Request = Faker.fake();
-
         let user = mock.user(0).await;
-        let auth = user.auth();
-        let auth = (&auth).into();
 
         let http_request = http::Request::builder()
             .method(http::Method::GET)
             .uri(concat_string!(
                 Request::URL,
                 "?",
-                serde_html_form::to_string(RequestAuth { auth, request }).unwrap()
+                serde_html_form::to_string(RequestAuth { auth: user.auth(), request }).unwrap()
             ))
             .body(Body::empty())
             .unwrap();
@@ -293,16 +291,13 @@ mod tests {
         mock: Mock,
     ) {
         let request: Request = Faker.fake();
-
         let user = mock.user(0).await;
-        let auth = user.auth();
-        let auth = (&auth).into();
 
         let http_request = http::Request::builder()
             .method(http::Method::POST)
             .uri(Request::URL)
             .body(Body::from(concat_string!(
-                serde_html_form::to_string::<Auth>(auth).unwrap(),
+                serde_html_form::to_string(user.auth()).unwrap(),
                 "&",
                 serde_html_form::to_string(request).unwrap()
             )))
@@ -322,14 +317,13 @@ mod tests {
         mock: Mock,
     ) {
         let request: Request = Faker.fake();
-
         let user = mock.user(0).await;
-        let auth = user.auth();
-        let auth = (&auth).into();
 
         let http_request = http::Request::builder()
             .method(http::Method::POST)
-            .body(Body::from(bitcode::encode(&AuthRequest { auth, request })))
+            .body(Body::from(
+                bitcode::serialize(&AuthRequest { auth: user.auth(), request }).unwrap(),
+            ))
             .unwrap();
 
         let test_request =
@@ -349,7 +343,7 @@ mod tests {
 
         let http_request = http::Request::builder()
             .method(http::Method::POST)
-            .body(Body::from(bitcode::encode(&request)))
+            .body(Body::from(bitcode::serialize(&request).unwrap()))
             .unwrap();
 
         let test_request =

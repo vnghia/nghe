@@ -7,13 +7,7 @@ use uuid::Uuid;
 
 use super::{artist, date, genre};
 
-#[serde_with::apply(
-    Option => #[serde(skip_serializing_if = "Option::is_none")],
-    Vec => #[serde(skip_serializing_if = "Vec::is_empty")],
-    date::Date => #[serde(skip_serializing_if = "date::Date::is_none")],
-    genre::Genres => #[serde(skip_serializing_if = "genre::Genres::is_empty")],
-)]
-#[api_derive(response = true)]
+#[api_derive]
 #[derive(Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]

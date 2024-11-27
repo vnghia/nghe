@@ -6,7 +6,7 @@ use crate::id3;
 #[endpoint(path = "getGenres")]
 pub struct Request {}
 
-#[api_derive(response = true)]
+#[api_derive]
 pub struct Genres {
     pub genre: Vec<id3::genre::WithCount>,
 }

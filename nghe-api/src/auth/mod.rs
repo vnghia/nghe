@@ -1,21 +1,24 @@
 mod token;
 
+use std::borrow::Cow;
+
 use nghe_proc_macro::api_derive;
 pub use token::Token;
 
-#[api_derive(request = true, response = true, fake = false)]
-#[derive(Clone, Copy)]
+#[api_derive]
+#[derive(Clone)]
 pub struct Auth<'u, 't> {
     #[serde(rename = "u")]
-    pub username: &'u str,
+    pub username: Cow<'u, str>,
     #[serde(rename = "s")]
-    pub salt: &'t str,
+    pub salt: Cow<'t, str>,
     #[serde(rename = "t")]
     pub token: Token,
 }
 
-#[api_derive(json = false, fake = false)]
+#[api_derive]
 pub struct AuthRequest<'u, 't, R> {
+    #[serde(borrow)]
     pub auth: Auth<'u, 't>,
     pub request: R,
 }

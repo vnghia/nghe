@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::common::format;
 
-#[api_derive(request = true, json = false)]
+#[api_derive(request = false)]
 #[derive(Default)]
 pub enum Format {
     #[default]

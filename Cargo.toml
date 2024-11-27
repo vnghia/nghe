@@ -20,9 +20,7 @@ struct_excessive_bools = { level = "allow", priority = 0 }
 wildcard_imports = { level = "allow", priority = 0 }
 
 [workspace.dependencies]
-bitcode = { git = "https://github.com/vnghia/bitcode.git", rev = "5f6a56f", features = [
-  "uuid",
-] }
+bitcode = { version = "0.6.3", features = ["serde"] }
 bon = { version = "3.1.1" }
 color-eyre = { version = "0.6.3" }
 concat-string = { version = "1.0.1" }

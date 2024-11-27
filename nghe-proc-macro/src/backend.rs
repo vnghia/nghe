@@ -262,7 +262,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                     #( #binary_args ),*
                 ) -> Result<Vec<u8>, Error> {
                     let response = #ident(#( #pass_args ),*).await?;
-                    Ok(bitcode::encode(&response))
+                    Ok(bitcode::serialize(&response)?)
                 }
             }
         }
