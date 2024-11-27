@@ -3,6 +3,7 @@ mod full;
 use bon::Builder;
 pub use full::Full;
 use nghe_proc_macro::api_derive;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::{artist, date, genre};
@@ -17,6 +18,7 @@ pub struct Album {
     pub cover_art: Option<Uuid>,
     pub song_count: u16,
     pub duration: u32,
+    pub created: OffsetDateTime,
     pub year: Option<u16>,
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]

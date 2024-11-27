@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use bon::Builder;
 pub use full::Full;
 use nghe_proc_macro::api_derive;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::artist;
@@ -28,6 +29,7 @@ pub struct Song {
     pub sampling_rate: u32,
     pub channel_count: u8,
     pub disc_number: Option<u16>,
+    pub created: OffsetDateTime,
     pub artists: Vec<artist::Required>,
     pub music_brainz_id: Option<Uuid>,
 }
