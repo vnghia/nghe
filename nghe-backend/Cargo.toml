@@ -63,7 +63,7 @@ libaes = { version = "0.7.0" }
 lofty = { version = "0.21.1" }
 loole = { version = "0.4.0" }
 num-traits = { version = "0.2.19" }
-o2o = { version = "0.4.11" }
+o2o = { version = "0.5.0" }
 rsmpeg = { version = "0.15.1", default-features = false, features = [
   "ffmpeg7",
   "link_system_ffmpeg",
