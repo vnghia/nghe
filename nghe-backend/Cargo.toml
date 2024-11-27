@@ -57,7 +57,7 @@ figment = { version = "0.10.19", features = ["env"] }
 fs4 = { version = "0.11.1", features = ["sync"] }
 futures-lite = { version = "2.5.0" }
 hyper = { version = "0.14.31" }
-hyper-tls = { version = "0.5.0" }
+hyper-tls = { version = "0.6.0" }
 indexmap = { version = "2.6.0" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.21.1" }
