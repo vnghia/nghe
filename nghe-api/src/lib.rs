@@ -2,6 +2,7 @@
 #![feature(trait_alias)]
 
 pub mod auth;
+pub mod bookmarks;
 pub mod browsing;
 pub mod common;
 pub mod constant;
