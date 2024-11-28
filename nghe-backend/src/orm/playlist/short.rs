@@ -38,12 +38,14 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::playlist;
+    use crate::orm::{playlist, playlists_songs, songs};
 
     #[auto_type]
     pub fn unchecked() -> _ {
         let short: AsSelect<Short, crate::orm::Type> = Short::as_select();
-        playlist::query::unchecked().select(short)
+        playlist::query::unchecked()
+            .left_join(songs::table.on(songs::id.eq(playlists_songs::song_id)))
+            .select(short)
     }
 }
 

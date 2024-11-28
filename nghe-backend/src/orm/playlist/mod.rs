@@ -1,3 +1,4 @@
+pub mod full;
 pub mod permission;
 pub mod short;
 
@@ -48,13 +49,11 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::{playlists, playlists_songs, songs};
+    use crate::orm::{playlists, playlists_songs};
 
     #[auto_type]
     pub fn unchecked_no_group_by() -> _ {
-        playlists::table
-            .left_join(playlists_songs::table)
-            .left_join(songs::table.on(songs::id.eq(playlists_songs::song_id)))
+        playlists::table.left_join(playlists_songs::table)
     }
 
     #[auto_type]

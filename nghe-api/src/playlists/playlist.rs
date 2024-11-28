@@ -3,6 +3,8 @@ use nghe_proc_macro::api_derive;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+use crate::id3;
+
 #[api_derive]
 #[derive(Builder)]
 #[builder(on(_, required))]
@@ -16,6 +18,13 @@ pub struct Playlist {
     pub duration: u32,
     pub created: OffsetDateTime,
     pub changed: OffsetDateTime,
+}
+
+#[api_derive]
+pub struct Full {
+    #[serde(flatten)]
+    pub playlist: Playlist,
+    pub entry: Vec<id3::song::Song>,
 }
 
 pub mod builder {
