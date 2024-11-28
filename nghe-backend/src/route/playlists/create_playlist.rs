@@ -26,7 +26,7 @@ pub async fn handler(
             playlist_id
         }
         CreateOrUpdate::Update { playlist_id } => {
-            playlist::permission::check(database, playlist_id, user_id, true, false).await?;
+            playlist::permission::check_write(database, playlist_id, user_id, false).await?;
             diesel::delete(playlists_songs::table)
                 .filter(playlists_songs::playlist_id.eq(playlist_id))
                 .execute(&mut database.get().await?)
@@ -39,6 +39,12 @@ pub async fn handler(
     }
 
     Ok(Response {
-        playlist: get_playlist::handler_unchecked(database, user_id, playlist_id).await?.playlist,
+        playlist: get_playlist::handler(
+            database,
+            user_id,
+            get_playlist::Request { id: playlist_id },
+        )
+        .await?
+        .playlist,
     })
 }

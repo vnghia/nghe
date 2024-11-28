@@ -5,23 +5,18 @@ use uuid::Uuid;
 use crate::database::Database;
 use crate::Error;
 
-pub async fn check(
+pub async fn check_write(
     database: &Database,
     playlist_id: Uuid,
     user_id: Uuid,
-    write: bool,
     owner: bool,
 ) -> Result<(), Error> {
     let exist = if owner {
         select(exists(query::owner(playlist_id, user_id)))
             .get_result(&mut database.get().await?)
             .await?
-    } else if write {
-        select(exists(query::write(playlist_id, user_id)))
-            .get_result(&mut database.get().await?)
-            .await?
     } else {
-        select(exists(query::read(playlist_id, user_id)))
+        select(exists(query::write(playlist_id, user_id)))
             .get_result(&mut database.get().await?)
             .await?
     };

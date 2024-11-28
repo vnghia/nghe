@@ -8,11 +8,13 @@ use crate::database::Database;
 use crate::orm::{playlist, playlists};
 use crate::Error;
 
-pub async fn handler_unchecked(
+#[handler]
+pub async fn handler(
     database: &Database,
     user_id: Uuid,
-    playlist_id: Uuid,
+    request: Request,
 ) -> Result<Response, Error> {
+    let playlist_id = request.id;
     Ok(Response {
         playlist: playlist::full::query::with_user_id(user_id)
             .filter(playlists::id.eq(playlist_id))
@@ -23,28 +25,19 @@ pub async fn handler_unchecked(
     })
 }
 
-#[handler]
-pub async fn handler(
-    database: &Database,
-    user_id: Uuid,
-    request: Request,
-) -> Result<Response, Error> {
-    let playlist_id = request.id;
-    playlist::permission::check(database, playlist_id, user_id, false, false).await?;
-    handler_unchecked(database, user_id, playlist_id).await
-}
-
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
+    use futures_lite::{stream, StreamExt as _};
     use rstest::rstest;
 
+    use super::*;
     use crate::route::playlists::create_playlist;
     use crate::test::{mock, Mock};
 
     #[rstest]
     #[tokio::test]
-    async fn test_handler(
+    async fn test_handler_music_folder(
         #[future(awt)]
         #[with(1, 0)]
         mock: Mock,
@@ -83,5 +76,46 @@ mod tests {
         let database_song_ids: Vec<_> = playlist.entry.iter().map(|entry| entry.id).collect();
         let index = if allow { 0 } else { n_song_permission };
         assert_eq!(database_song_ids, song_ids[index..]);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_handler_user(
+        #[future(awt)]
+        #[with(2, 1)]
+        mock: Mock,
+    ) {
+        let mut music_folder = mock.music_folder(0).await;
+        music_folder.add_audio().n_song((2..4).fake()).call().await;
+        let song_ids: Vec<_> = music_folder.database.keys().copied().collect();
+
+        let (user_ids, playlist_ids): (Vec<_>, Vec<_>) = stream::iter(0..2)
+            .then(async |i| {
+                let user_id = mock.user_id(i).await;
+                (
+                    user_id,
+                    create_playlist::handler(
+                        mock.database(),
+                        user_id,
+                        create_playlist::Request {
+                            create_or_update: Faker.fake::<String>().into(),
+                            song_ids: Some(song_ids.clone()),
+                        },
+                    )
+                    .await
+                    .unwrap()
+                    .playlist
+                    .playlist
+                    .id,
+                )
+            })
+            .collect()
+            .await;
+
+        for i in 0..2 {
+            let user_id = user_ids[i];
+            let playlist_id = playlist_ids[1 - i];
+            assert!(handler(mock.database(), user_id, Request { id: playlist_id }).await.is_err());
+        }
     }
 }
