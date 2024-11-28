@@ -36,7 +36,7 @@ pub async fn handler(
 
         let song_ids: Vec<_> = song_indexes
             .into_iter()
-            .filter_map(|index| song_ids.get::<usize>((index - 1).into()))
+            .filter_map(|index| song_ids.get::<usize>(index.into()))
             .collect();
 
         diesel::delete(playlists_songs::table)
@@ -65,14 +65,14 @@ mod tests {
     #[rstest]
     #[case(0, false, &[], &[])]
     #[case(0, true, &[], &[])]
-    #[case(5, false, &[], &[6, 7, 8, 9, 10])]
-    #[case(5, true, &[], &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10])]
-    #[case(5, false, &[1, 2, 6, 10], &[8, 9, 10])]
-    #[case(5, true, &[1, 2, 6, 10], &[3, 4, 5, 7, 8, 9])]
-    #[case(5, false, &[6, 2, 1, 10], &[8, 9, 10])]
-    #[case(5, true, &[6, 2, 1, 10], &[3, 4, 5, 7, 8, 9])]
-    #[case(5, false, &[1, 2, 6, 10, 20], &[8, 9, 10])]
-    #[case(5, true, &[1, 2, 6, 10, 20], &[3, 4, 5, 7, 8, 9])]
+    #[case(5, false, &[], &[5, 6, 7, 8, 9])]
+    #[case(5, true, &[], &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])]
+    #[case(5, false, &[0, 1, 5, 9], &[7, 8, 9])]
+    #[case(5, true, &[0, 1, 5, 9], &[2, 3, 4, 6, 7, 8])]
+    #[case(5, false, &[5, 1, 0, 9], &[7, 8, 9])]
+    #[case(5, true, &[5, 1, 0, 9], &[2, 3, 4, 6, 7, 8])]
+    #[case(5, false, &[0, 1, 5, 9, 19], &[7, 8, 9])]
+    #[case(5, true, &[0, 1, 5, 9, 19], &[2, 3, 4, 6, 7, 8])]
     #[tokio::test]
     async fn test_delete(
         #[future(awt)]
@@ -128,7 +128,7 @@ mod tests {
 
         let song_ids: Vec<_> = retain_indexes
             .iter()
-            .filter_map(|index| song_ids.get::<usize>((index - 1).into()))
+            .filter_map(|index| song_ids.get::<usize>((*index).into()))
             .copied()
             .collect();
         let database_song_ids: Vec<_> = get_playlist::handler(
