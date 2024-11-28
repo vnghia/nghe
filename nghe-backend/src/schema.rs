@@ -162,7 +162,8 @@ diesel::table! {
     playlists_users (playlist_id, user_id) {
         playlist_id -> Uuid,
         user_id -> Uuid,
-        access_level -> Int2,
+        write -> Bool,
+        owner -> Bool,
     }
 }
 

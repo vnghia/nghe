@@ -10,16 +10,11 @@ create table playlists (
 
 select add_updated_at('playlists');
 
--- access level: 
---  1 - read songs
---  2 - add/remove songs
---  3 - admin (add/remove users, edit, delete)
 create table playlists_users (
     playlist_id uuid not null,
     user_id uuid not null,
-    access_level smallint not null constraint playlists_users_access_level check (
-        access_level between 1 and 3
-    ),
+    write boolean not null,
+    owner boolean not null default false,
     constraint playlists_users_pkey primary key (playlist_id, user_id),
     constraint playlists_users_playlist_id_fkey foreign key (
         playlist_id
@@ -28,6 +23,9 @@ create table playlists_users (
         user_id
     ) references users (id) on delete cascade
 );
+
+create unique index playlists_users_owner on playlists_users (playlist_id)
+where owner;
 
 create table playlists_songs (
     playlist_id uuid not null,

@@ -15,3 +15,23 @@ pub struct Upsert<'a> {
     pub comment: Option<Option<Cow<'a, str>>>,
     pub public: Option<bool>,
 }
+
+mod upsert {
+    use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
+
+    use super::{playlists, Upsert};
+    use crate::database::Database;
+    use crate::Error;
+
+    impl crate::orm::upsert::Insert for Upsert<'_> {
+        async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
+            diesel::insert_into(playlists::table)
+                .values(self)
+                .returning(playlists::id)
+                .get_result(&mut database.get().await?)
+                .await
+                .map_err(Error::from)
+        }
+    }
+}

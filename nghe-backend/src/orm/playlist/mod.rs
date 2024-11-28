@@ -1,3 +1,5 @@
+pub mod permission;
+
 use diesel::prelude::*;
 use time::OffsetDateTime;
 use uuid::Uuid;

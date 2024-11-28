@@ -62,6 +62,7 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::browsing::router())
         .merge(route::lists::router())
         .merge(route::media_annotation::router())
+        .merge(route::playlists::router())
         .merge(route::search::router())
         .merge(route::system::router())
         .with_state(database::Database::new(&config.database))
