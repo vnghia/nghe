@@ -60,11 +60,11 @@ mod test {
                 .unwrap()
                 .song;
 
-        assert_eq!(database_song.album, album.name);
-        assert_eq!(database_song.album_id, album_id);
+        assert_eq!(database_song.short.album, album.name);
+        assert_eq!(database_song.short.album_id, album_id);
 
         let database_artists: Vec<_> =
-            database_song.song.artists.into_iter().map(|artist| artist.name).collect();
+            database_song.short.song.artists.into_iter().map(|artist| artist.name).collect();
         assert_eq!(database_artists, artists);
 
         let genres = database_song.genres.value;
