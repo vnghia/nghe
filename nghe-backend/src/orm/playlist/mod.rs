@@ -52,8 +52,14 @@ pub mod query {
     use crate::orm::{albums, permission, playlists, playlists_songs, playlists_users, songs};
 
     #[auto_type]
-    pub fn with_user_id(user_id: Uuid) -> _ {
+    pub fn with_album(user_id: Uuid) -> _ {
         let permission: permission::with_album = permission::with_album(user_id);
+        albums::id.is_null().or(permission)
+    }
+
+    #[auto_type]
+    pub fn with_user_id(user_id: Uuid) -> _ {
+        let with_album: with_album = with_album(user_id);
         let playlist: AsSelect<Playlist, crate::orm::Type> = Playlist::as_select();
         playlists::table
             .inner_join(playlists_users::table)
@@ -61,7 +67,7 @@ pub mod query {
             .left_join(songs::table.on(songs::id.eq(playlists_songs::song_id)))
             .left_join(albums::table.on(albums::id.eq(songs::album_id)))
             .filter(playlists_users::user_id.eq(user_id))
-            .filter(albums::id.is_null().or(permission))
+            .filter(with_album)
             .group_by(playlists::id)
             .select(playlist)
     }
