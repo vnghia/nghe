@@ -26,7 +26,7 @@ pub struct Full {
 
 impl Full {
     pub async fn try_into(self, database: &Database) -> Result<playlist::Full, Error> {
-        let entry = song::query::unchecked()
+        let entry = song::short::query::unchecked()
             .inner_join(playlists_songs::table)
             .filter(songs::id.eq_any(self.entries))
             .filter(playlists_songs::playlist_id.eq(self.playlist.id))
@@ -34,7 +34,7 @@ impl Full {
             .get_results(&mut database.get().await?)
             .await?;
         let duration = entry.duration()?;
-        let entry: Vec<_> = entry.into_iter().map(song::Song::try_into).try_collect()?;
+        let entry: Vec<_> = entry.into_iter().map(song::short::Short::try_into).try_collect()?;
 
         let playlist = self
             .playlist

@@ -44,3 +44,9 @@ impl Trait for Vec<song::Song> {
         self.iter().map(|song| song.property.duration).sum::<f32>().duration()
     }
 }
+
+impl Trait for Vec<song::short::Short> {
+    fn duration(&self) -> Result<u32, Error> {
+        self.iter().map(|song| song.song.property.duration).sum::<f32>().duration()
+    }
+}

@@ -141,7 +141,7 @@ mod tests {
         .playlist
         .entry
         .into_iter()
-        .map(|entry| entry.id)
+        .map(|entry| entry.song.id)
         .collect();
         assert_eq!(database_song_ids, song_ids);
     }

@@ -73,7 +73,7 @@ mod tests {
         .unwrap()
         .playlist;
 
-        let database_song_ids: Vec<_> = playlist.entry.iter().map(|entry| entry.id).collect();
+        let database_song_ids: Vec<_> = playlist.entry.iter().map(|entry| entry.song.id).collect();
         let index = if allow { 0 } else { n_song_permission };
         assert_eq!(database_song_ids, song_ids[index..]);
     }

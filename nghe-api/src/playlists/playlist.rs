@@ -24,7 +24,7 @@ pub struct Playlist {
 pub struct Full {
     #[serde(flatten)]
     pub playlist: Playlist,
-    pub entry: Vec<id3::song::Song>,
+    pub entry: Vec<id3::song::Short>,
 }
 
 pub mod builder {
