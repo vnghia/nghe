@@ -30,6 +30,23 @@ pub struct Response {
     // TODO: Return playlist
 }
 
+#[cfg(any(test, feature = "test"))]
+mod test {
+    use super::*;
+
+    impl From<String> for CreateOrUpdate {
+        fn from(value: String) -> Self {
+            Self::Create { name: value }
+        }
+    }
+
+    impl From<Uuid> for CreateOrUpdate {
+        fn from(value: Uuid) -> Self {
+            Self::Update { playlist_id: value }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -41,9 +58,7 @@ mod tests {
     #[case(
         "name=ef14c42b-6efa-45f3-961c-74856fd431d5",
         Some(Request {
-            create_or_update: CreateOrUpdate::Create {
-                name: "ef14c42b-6efa-45f3-961c-74856fd431d5".to_owned()
-            },
+            create_or_update: "ef14c42b-6efa-45f3-961c-74856fd431d5".to_owned().into(),
             song_ids: None,
         })
     )]
@@ -51,18 +66,14 @@ mod tests {
         "name=ef14c42b-6efa-45f3-961c-74856fd431d5&\
         songId=2b839103-04ab-4b39-9b05-8c664590eda4",
         Some(Request {
-            create_or_update: CreateOrUpdate::Create {
-                name: "ef14c42b-6efa-45f3-961c-74856fd431d5".to_owned()
-            },
+            create_or_update: "ef14c42b-6efa-45f3-961c-74856fd431d5".to_owned().into(),
             song_ids: Some(vec![uuid!("2b839103-04ab-4b39-9b05-8c664590eda4")]),
         })
     )]
     #[case(
         "playlistId=ef14c42b-6efa-45f3-961c-74856fd431d5",
         Some(Request {
-            create_or_update: CreateOrUpdate::Update {
-                playlist_id: uuid!("ef14c42b-6efa-45f3-961c-74856fd431d5")
-            },
+            create_or_update: uuid!("ef14c42b-6efa-45f3-961c-74856fd431d5").into(),
             song_ids: None,
         })
     )]
@@ -70,9 +81,7 @@ mod tests {
         "playlistId=ef14c42b-6efa-45f3-961c-74856fd431d5&\
         songId=2b839103-04ab-4b39-9b05-8c664590eda4",
         Some(Request {
-            create_or_update: CreateOrUpdate::Update {
-                playlist_id: uuid!("ef14c42b-6efa-45f3-961c-74856fd431d5")
-            },
+            create_or_update: uuid!("ef14c42b-6efa-45f3-961c-74856fd431d5").into(),
             song_ids: Some(vec![uuid!("2b839103-04ab-4b39-9b05-8c664590eda4")]),
         })
     )]
