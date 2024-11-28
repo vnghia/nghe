@@ -2,9 +2,12 @@ use std::borrow::Cow;
 use std::str::FromStr;
 
 use diesel::deserialize::{self, FromSql};
+use diesel::dsl::sql;
+use diesel::expression::SqlLiteral;
 use diesel::pg::PgValue;
 use diesel::prelude::*;
 use diesel::serialize::{self, Output, ToSql};
+use diesel::sql_types;
 use diesel::sql_types::Text;
 use diesel_derives::AsChangeset;
 use uuid::Uuid;
@@ -34,7 +37,9 @@ pub struct Song<'a> {
     pub main: name_date_mbz::NameDateMbz<'a>,
     #[diesel(embed)]
     pub track_disc: position::TrackDisc,
-    pub languages: Vec<Option<Cow<'a, str>>>,
+    #[diesel(select_expression = sql("songs.languages languages"))]
+    #[diesel(select_expression_type = SqlLiteral<sql_types::Array<sql_types::Text>>)]
+    pub languages: Vec<Cow<'a, str>>,
 }
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
