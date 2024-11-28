@@ -2,6 +2,8 @@ use nghe_proc_macro::api_derive;
 use serde_with::serde_as;
 use uuid::Uuid;
 
+use super::playlist;
+
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
 #[serde_as]
 #[api_derive(request = true, copy = false)]
@@ -27,7 +29,7 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response {
-    // TODO: Return playlist
+    pub playlist: playlist::Full,
 }
 
 #[cfg(any(test, feature = "test"))]

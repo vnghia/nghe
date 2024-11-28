@@ -37,5 +37,11 @@ pub async fn handler(
         playlists_songs::Upsert::upserts(database, playlist_id, song_ids).await?;
     }
 
-    Ok(Response {})
+    Ok(Response {
+        playlist: playlist::full::query::unchecked()
+            .get_result(&mut database.get().await?)
+            .await?
+            .try_into(database)
+            .await?,
+    })
 }
