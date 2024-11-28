@@ -36,16 +36,16 @@ impl TryFrom<Short> for playlist::Playlist {
 
 pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
+    use uuid::Uuid;
 
     use super::*;
-    use crate::orm::{playlist, playlists_songs, songs};
+    use crate::orm::playlist;
 
     #[auto_type]
-    pub fn unchecked() -> _ {
-        let short: AsSelect<Short, crate::orm::Type> = Short::as_select();
-        playlist::query::unchecked()
-            .left_join(songs::table.on(songs::id.eq(playlists_songs::song_id)))
-            .select(short)
+    pub fn with_user_id(user_id: Uuid) -> _ {
+        let with_user_id: playlist::query::with_user_id = playlist::query::with_user_id(user_id);
+        let full: AsSelect<Short, crate::orm::Type> = Short::as_select();
+        with_user_id.select(full)
     }
 }
 
@@ -65,9 +65,10 @@ mod tests {
         let mut music_folder = mock.music_folder(0).await;
         music_folder.add_audio().n_song(n_song).call().await;
 
+        let user_id = mock.user_id(0).await;
         create_playlist::handler(
             mock.database(),
-            mock.user_id(0).await,
+            user_id,
             create_playlist::Request {
                 create_or_update: Faker.fake::<String>().into(),
                 song_ids: Some(music_folder.database.keys().copied().collect()),
@@ -76,7 +77,8 @@ mod tests {
         .await
         .unwrap();
 
-        let database_playlist = query::unchecked().get_result(&mut mock.get().await).await.unwrap();
+        let database_playlist =
+            query::with_user_id(user_id).get_result(&mut mock.get().await).await.unwrap();
         assert_eq!(database_playlist.durations.count(), n_song);
         assert_eq!(
             database_playlist.durations.duration().unwrap(),

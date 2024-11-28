@@ -14,7 +14,7 @@ pub async fn handler_unchecked(
     playlist_id: Uuid,
 ) -> Result<Response, Error> {
     Ok(Response {
-        playlist: playlist::full::query::unchecked()
+        playlist: playlist::full::query::with_user_id(user_id)
             .filter(playlists::id.eq(playlist_id))
             .get_result(&mut database.get().await?)
             .await?

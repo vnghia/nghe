@@ -18,7 +18,7 @@ pub struct Full {
     #[diesel(embed)]
     pub playlist: Playlist,
     #[diesel(select_expression = sql(
-        "array_remove(array_agg(distinct(playlists_songs.song_id)), null) entry_ids"
+        "array_remove(array_agg(distinct(songs.id)), null) entry_ids"
     ))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub entries: Vec<Uuid>,
@@ -54,9 +54,10 @@ pub mod query {
     use crate::orm::playlist;
 
     #[auto_type]
-    pub fn unchecked() -> _ {
+    pub fn with_user_id(user_id: Uuid) -> _ {
+        let with_user_id: playlist::query::with_user_id = playlist::query::with_user_id(user_id);
         let full: AsSelect<Full, crate::orm::Type> = Full::as_select();
-        playlist::query::unchecked().select(full)
+        with_user_id.select(full)
     }
 }
 
@@ -77,9 +78,10 @@ mod tests {
         let mut music_folder = mock.music_folder(0).await;
         music_folder.add_audio().n_song(n_song).call().await;
 
+        let user_id = mock.user_id(0).await;
         create_playlist::handler(
             mock.database(),
-            mock.user_id(0).await,
+            user_id,
             create_playlist::Request {
                 create_or_update: Faker.fake::<String>().into(),
                 song_ids: Some(music_folder.database.keys().copied().collect()),
@@ -88,7 +90,8 @@ mod tests {
         .await
         .unwrap();
 
-        let database_playlist = query::unchecked().get_result(&mut mock.get().await).await.unwrap();
+        let database_playlist =
+            query::with_user_id(user_id).get_result(&mut mock.get().await).await.unwrap();
         assert_eq!(
             database_playlist.entries.iter().collect::<IndexSet<_>>(),
             music_folder.database.keys().collect::<IndexSet<_>>()

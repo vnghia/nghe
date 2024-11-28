@@ -49,12 +49,19 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::{playlists, playlists_songs};
+    use crate::orm::{albums, permission, playlists, playlists_songs, songs};
 
     #[auto_type]
-    pub fn unchecked() -> _ {
+    pub fn with_user_id(user_id: Uuid) -> _ {
+        let permission: permission::with_album = permission::with_album(user_id);
         let playlist: AsSelect<Playlist, crate::orm::Type> = Playlist::as_select();
-        playlists::table.left_join(playlists_songs::table).group_by(playlists::id).select(playlist)
+        playlists::table
+            .left_join(playlists_songs::table)
+            .left_join(songs::table.on(songs::id.eq(playlists_songs::song_id)))
+            .left_join(albums::table.on(albums::id.eq(songs::album_id)))
+            .filter(albums::id.is_null().or(permission))
+            .group_by(playlists::id)
+            .select(playlist)
     }
 }
 
@@ -74,9 +81,10 @@ mod tests {
         let mut music_folder = mock.music_folder(0).await;
         music_folder.add_audio().n_song(n_song).call().await;
 
+        let user_id = mock.user_id(0).await;
         create_playlist::handler(
             mock.database(),
-            mock.user_id(0).await,
+            user_id,
             create_playlist::Request {
                 create_or_update: Faker.fake::<String>().into(),
                 song_ids: Some(music_folder.database.keys().copied().collect()),
@@ -85,7 +93,8 @@ mod tests {
         .await
         .unwrap();
 
-        let database_playlist = query::unchecked().get_result(&mut mock.get().await).await.unwrap();
+        let database_playlist =
+            query::with_user_id(user_id).get_result(&mut mock.get().await).await.unwrap();
         if n_song == 0 {
             assert_eq!(database_playlist.created, database_playlist.changed);
         } else {
