@@ -10,7 +10,7 @@ use super::Playlist;
 use crate::database::Database;
 use crate::orm::id3::duration::Trait;
 use crate::orm::id3::song;
-use crate::orm::songs;
+use crate::orm::{playlists_songs, songs};
 use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
@@ -27,7 +27,10 @@ pub struct Full {
 impl Full {
     pub async fn try_into(self, database: &Database) -> Result<playlist::Full, Error> {
         let entry = song::query::unchecked()
+            .inner_join(playlists_songs::table)
             .filter(songs::id.eq_any(self.entries))
+            .filter(playlists_songs::playlist_id.eq(self.playlist.id))
+            .order_by(sql::<sql_types::Timestamptz>("any_value(playlists_songs.created_at)"))
             .get_results(&mut database.get().await?)
             .await?;
         let duration = entry.duration()?;

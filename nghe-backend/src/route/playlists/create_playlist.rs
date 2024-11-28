@@ -5,6 +5,7 @@ pub use nghe_api::playlists::create_playlist::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use super::get_playlist;
 use crate::database::Database;
 use crate::orm::upsert::Insert;
 use crate::orm::{playlist, playlists, playlists_songs, playlists_users};
@@ -38,10 +39,6 @@ pub async fn handler(
     }
 
     Ok(Response {
-        playlist: playlist::full::query::unchecked()
-            .get_result(&mut database.get().await?)
-            .await?
-            .try_into(database)
-            .await?,
+        playlist: get_playlist::handler_unchecked(database, user_id, playlist_id).await?.playlist,
     })
 }

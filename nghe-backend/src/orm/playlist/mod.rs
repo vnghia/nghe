@@ -52,14 +52,9 @@ pub mod query {
     use crate::orm::{playlists, playlists_songs};
 
     #[auto_type]
-    pub fn unchecked_no_group_by() -> _ {
-        playlists::table.left_join(playlists_songs::table)
-    }
-
-    #[auto_type]
     pub fn unchecked() -> _ {
         let playlist: AsSelect<Playlist, crate::orm::Type> = Playlist::as_select();
-        unchecked_no_group_by().group_by(playlists::id).select(playlist)
+        playlists::table.left_join(playlists_songs::table).group_by(playlists::id).select(playlist)
     }
 }
 
