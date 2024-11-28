@@ -1,3 +1,4 @@
+pub mod bookmarks;
 pub mod browsing;
 pub mod lists;
 pub mod media_annotation;

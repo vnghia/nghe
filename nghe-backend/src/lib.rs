@@ -59,6 +59,7 @@ pub async fn build(config: config::Config) -> Router {
                 cover_art: config.cover_art,
             },
         ))
+        .merge(route::bookmarks::router())
         .merge(route::browsing::router())
         .merge(route::lists::router())
         .merge(route::media_annotation::router())
