@@ -1,11 +1,11 @@
 pub mod permission;
+pub mod short;
 
 use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
-use nghe_api::playlists::playlist;
-use nghe_api::playlists::playlist::builder;
+use nghe_api::playlists::playlist::{self, builder};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -48,11 +48,13 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::{playlists, playlists_songs};
+    use crate::orm::{playlists, playlists_songs, songs};
 
     #[auto_type]
     pub fn unchecked_no_group_by() -> _ {
-        playlists::table.left_join(playlists_songs::table)
+        playlists::table
+            .left_join(playlists_songs::table)
+            .left_join(songs::table.on(songs::id.eq(playlists_songs::song_id)))
     }
 
     #[auto_type]
@@ -74,7 +76,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_query_playlist(#[future(awt)] mock: Mock, #[values(0, 5)] n_song: usize) {
+    async fn test_query(#[future(awt)] mock: Mock, #[values(0, 5)] n_song: usize) {
         let mut music_folder = mock.music_folder(0).await;
         music_folder.add_audio().n_song(n_song).call().await;
 
@@ -89,11 +91,11 @@ mod tests {
         .await
         .unwrap();
 
-        let playlist = query::unchecked().get_result(&mut mock.get().await).await.unwrap();
+        let database_playlist = query::unchecked().get_result(&mut mock.get().await).await.unwrap();
         if n_song == 0 {
-            assert_eq!(playlist.created, playlist.changed);
+            assert_eq!(database_playlist.created, database_playlist.changed);
         } else {
-            assert!(playlist.changed > playlist.created);
+            assert!(database_playlist.changed > database_playlist.created);
         }
     }
 }
