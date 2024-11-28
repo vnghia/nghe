@@ -7,6 +7,7 @@ use diesel::prelude::*;
 use diesel::sql_types;
 use nghe_api::id3;
 use nghe_api::id3::builder::album as builder;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::genre::Genres;
@@ -25,6 +26,8 @@ pub struct Album {
     ))]
     #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Uuid>>)]
     pub cover_art: Option<Uuid>,
+    #[diesel(column_name = created_at)]
+    pub created: OffsetDateTime,
     #[diesel(embed)]
     pub date: albums::date::Date,
     #[diesel(column_name = mbz_id)]
@@ -41,7 +44,9 @@ pub type BuilderSet = builder::SetReleaseDate<
     builder::SetOriginalReleaseDate<
         builder::SetGenres<
             builder::SetMusicBrainzId<
-                builder::SetYear<builder::SetCoverArt<builder::SetName<builder::SetId>>>,
+                builder::SetYear<
+                    builder::SetCreated<builder::SetCoverArt<builder::SetName<builder::SetId>>>,
+                >,
             >,
         >,
     >,
@@ -53,6 +58,7 @@ impl Album {
             .id(self.id)
             .name(self.name)
             .cover_art(self.cover_art)
+            .created(self.created)
             .year(self.date.year.map(u16::try_from).transpose()?)
             .music_brainz_id(self.music_brainz_id)
             .genres(self.genres.into())

@@ -18,10 +18,11 @@ pub type SqlType = sql_types::Record<(sql_types::Uuid, sql_types::Float)>;
 #[derive(Debug, Queryable, Selectable)]
 pub struct Durations {
     #[diesel(select_expression = sql(
-        "array_agg(distinct(songs.id, songs.duration)) song_id_durations"
+        "array_agg(distinct(songs.id, songs.duration)) \
+        filter (where songs.id is not null) song_id_durations"
     ))]
-    #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<SqlType>>)]
-    pub value: Vec<Duration>,
+    #[diesel(select_expression_type = SqlLiteral::<sql_types::Nullable<sql_types::Array<SqlType>>>)]
+    pub value: Option<Vec<Duration>>,
 }
 
 impl Add for Duration {
@@ -34,7 +35,7 @@ impl Add for Duration {
 
 impl Durations {
     pub fn count(&self) -> usize {
-        self.value.len()
+        self.value.as_ref().map(Vec::len).unwrap_or_default()
     }
 }
 

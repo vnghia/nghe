@@ -1,7 +1,7 @@
 use diesel::dsl::{max, sum};
 use diesel::{ExpressionMethods, JoinOnDsl, PgSortExpressionMethods as _, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_api::lists::get_album_list2::{AlbumList2, ByYear, Type};
+use nghe_api::lists::get_album_list2::{AlbumList2, Type};
 pub use nghe_api::lists::get_album_list2::{Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
@@ -51,7 +51,7 @@ pub async fn handler(
                     .await?
             }
             Type::AlphabeticalByName => query.get_results(&mut database.get().await?).await?,
-            Type::ByYear(ByYear { from_year, to_year }) => {
+            Type::ByYear { from_year, to_year } => {
                 let from_year: i16 = from_year.try_into()?;
                 let to_year: i16 = to_year.try_into()?;
                 if from_year < to_year {

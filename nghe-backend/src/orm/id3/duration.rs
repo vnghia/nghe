@@ -18,12 +18,18 @@ impl Trait for f32 {
 impl Trait for song::durations::Durations {
     fn duration(&self) -> Result<u32, Error> {
         self.value
-            .iter()
-            .copied()
-            .reduce(song::durations::Duration::add)
-            .ok_or_else(|| Error::DatabaseSongDurationIsEmpty)?
-            .value
-            .duration()
+            .as_ref()
+            .map(|value| {
+                value
+                    .iter()
+                    .copied()
+                    .reduce(song::durations::Duration::add)
+                    .ok_or_else(|| Error::DatabaseSongDurationIsEmpty)?
+                    .value
+                    .duration()
+            })
+            .transpose()
+            .map(Option::unwrap_or_default)
     }
 }
 
@@ -36,5 +42,11 @@ impl Trait for song::Song {
 impl Trait for Vec<song::Song> {
     fn duration(&self) -> Result<u32, Error> {
         self.iter().map(|song| song.property.duration).sum::<f32>().duration()
+    }
+}
+
+impl Trait for Vec<song::short::Short> {
+    fn duration(&self) -> Result<u32, Error> {
+        self.iter().map(|song| song.song.property.duration).sum::<f32>().duration()
     }
 }

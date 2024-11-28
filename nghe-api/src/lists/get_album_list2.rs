@@ -6,16 +6,7 @@ use crate::id3;
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
 #[serde_as]
-#[api_derive(request = true, test_only = false)]
-#[derive(Clone, Copy)]
-pub struct ByYear {
-    #[serde_as(as = "serde_with::DisplayFromStr")]
-    pub from_year: u16,
-    #[serde_as(as = "serde_with::DisplayFromStr")]
-    pub to_year: u16,
-}
-
-#[api_derive(request = true, copy = false)]
+#[api_derive(copy = false)]
 #[serde(tag = "type")]
 #[cfg_attr(test, derive(Default))]
 pub enum Type {
@@ -25,7 +16,12 @@ pub enum Type {
     Frequent,
     Recent,
     AlphabeticalByName,
-    ByYear(ByYear),
+    ByYear {
+        #[serde_as(as = "serde_with::DisplayFromStr")]
+        from_year: u16,
+        #[serde_as(as = "serde_with::DisplayFromStr")]
+        to_year: u16,
+    },
     ByGenre {
         genre: String,
     },
@@ -75,17 +71,17 @@ mod tests {
     #[case(
         "type=byYear&fromYear=1000&toYear=2000",
         Some(Request {
-            ty: Type::ByYear (
-               ByYear{ from_year: 1000, to_year: 2000 }
-            ), size: None, ..Default::default()
+            ty: Type::ByYear {
+                from_year: 1000, to_year: 2000
+            }, size: None, ..Default::default()
         })
     )]
     #[case(
         "type=byYear&fromYear=1000&toYear=2000&size=10",
         Some(Request {
-            ty: Type::ByYear (
-                ByYear{ from_year: 1000, to_year: 2000 }
-            ), size: Some(10), ..Default::default()
+            ty: Type::ByYear {
+                from_year: 1000, to_year: 2000
+            }, size: Some(10), ..Default::default()
         })
     )]
     #[case(

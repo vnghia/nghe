@@ -93,7 +93,7 @@ pub async fn handler(
         let count = request.song_count.unwrap_or(20).into();
         let song = if count > 0 {
             let offset = request.song_offset.unwrap_or(0).into();
-            let query = id3::song::query::with_user_id(user_id).limit(count).offset(offset);
+            let query = id3::song::short::query::with_user_id(user_id).limit(count).offset(offset);
             if sync {
                 query
                     .order_by((songs::title, songs::mbz_id))
@@ -126,7 +126,7 @@ pub async fn handler(
             search_result3: SearchResult3 {
                 artist: artist.into_iter().map(id3::artist::Artist::try_into).try_collect()?,
                 album: album.into_iter().map(id3::album::short::Short::try_into).try_collect()?,
-                song: song.into_iter().map(id3::song::Song::try_into).try_collect()?,
+                song: song.into_iter().map(id3::song::short::Short::try_into).try_collect()?,
             },
         })
     }

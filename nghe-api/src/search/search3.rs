@@ -21,7 +21,7 @@ pub struct Request {
 pub struct SearchResult3 {
     pub artist: Vec<id3::artist::Artist>,
     pub album: Vec<id3::album::Album>,
-    pub song: Vec<id3::song::Song>,
+    pub song: Vec<id3::song::Short>,
 }
 
 #[api_derive]

@@ -1,5 +1,6 @@
 pub mod durations;
 pub mod full;
+pub mod short;
 
 use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
@@ -8,6 +9,7 @@ use diesel::sql_types;
 use nghe_api::common::format::Trait as _;
 use nghe_api::id3;
 use nghe_api::id3::builder::song as builder;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::artist;
@@ -35,6 +37,8 @@ pub struct Song {
     pub property: songs::property::Property,
     #[diesel(embed)]
     pub disc: songs::position::Disc,
+    #[diesel(column_name = created_at)]
+    pub created: OffsetDateTime,
     #[diesel(embed)]
     pub artists: artist::required::Artists,
     #[diesel(column_name = mbz_id)]
@@ -43,19 +47,21 @@ pub struct Song {
 
 pub type BuilderSet = builder::SetMusicBrainzId<
     builder::SetArtists<
-        builder::SetDiscNumber<
-            builder::SetChannelCount<
-                builder::SetSamplingRate<
-                    builder::SetBitDepth<
-                        builder::SetBitRate<
-                            builder::SetDuration<
-                                builder::SetSuffix<
-                                    builder::SetContentType<
-                                        builder::SetSize<
-                                            builder::SetCoverArt<
-                                                builder::SetYear<
-                                                    builder::SetTrack<
-                                                        builder::SetTitle<builder::SetId>,
+        builder::SetCreated<
+            builder::SetDiscNumber<
+                builder::SetChannelCount<
+                    builder::SetSamplingRate<
+                        builder::SetBitDepth<
+                            builder::SetBitRate<
+                                builder::SetDuration<
+                                    builder::SetSuffix<
+                                        builder::SetContentType<
+                                            builder::SetSize<
+                                                builder::SetCoverArt<
+                                                    builder::SetYear<
+                                                        builder::SetTrack<
+                                                            builder::SetTitle<builder::SetId>,
+                                                        >,
                                                     >,
                                                 >,
                                             >,
@@ -89,6 +95,7 @@ impl Song {
             .sampling_rate(self.property.sample_rate.try_into()?)
             .channel_count(self.property.channel_count.try_into()?)
             .disc_number(self.disc.number.map(u16::try_from).transpose()?)
+            .created(self.created)
             .artists(self.artists.into())
             .music_brainz_id(self.music_brainz_id))
     }
@@ -106,7 +113,7 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::{albums, permission, songs_artists};
+    use crate::orm::{albums, songs_artists};
 
     #[auto_type]
     pub fn unchecked_no_group_by() -> _ {
@@ -125,18 +132,6 @@ pub mod query {
     pub fn unchecked() -> _ {
         let song: AsSelect<Song, crate::orm::Type> = Song::as_select();
         unchecked_no_group_by().group_by(songs::id).select(song)
-    }
-
-    #[auto_type]
-    pub fn with_user_id(user_id: Uuid) -> _ {
-        let permission: permission::with_album = permission::with_album(user_id);
-        unchecked().filter(permission)
-    }
-
-    #[auto_type]
-    pub fn with_music_folder<'ids>(user_id: Uuid, music_folder_ids: &'ids [Uuid]) -> _ {
-        let with_user_id: with_user_id = with_user_id(user_id);
-        with_user_id.filter(albums::music_folder_id.eq_any(music_folder_ids))
     }
 }
 

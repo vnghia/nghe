@@ -1,12 +1,9 @@
-use diesel::dsl::sql;
-use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
-use diesel::sql_types;
 use nghe_api::id3;
 use o2o::o2o;
 use uuid::Uuid;
 
-use super::Song;
+use super::short::Short;
 use crate::orm::id3::genre;
 use crate::Error;
 
@@ -15,13 +12,7 @@ use crate::Error;
 pub struct Full {
     #[into(~.try_into()?)]
     #[diesel(embed)]
-    pub song: Song,
-    #[diesel(select_expression = sql("any_value(albums.name) album_name"))]
-    #[diesel(select_expression_type = SqlLiteral<sql_types::Text>)]
-    pub album: String,
-    #[diesel(select_expression = sql("any_value(albums.id) album_id"))]
-    #[diesel(select_expression_type = SqlLiteral<sql_types::Uuid>)]
-    pub album_id: Uuid,
+    pub short: Short,
     #[into(~.into())]
     #[diesel(embed)]
     pub genres: genre::Genres,
@@ -103,9 +94,9 @@ mod test {
 
         if allow {
             let database_song = database_song.unwrap();
-            let database_artists: Vec<String> = database_song.song.artists.into();
-            assert_eq!(database_song.album, album.name);
-            assert_eq!(database_song.album_id, album_id);
+            let database_artists: Vec<String> = database_song.short.song.artists.into();
+            assert_eq!(database_song.short.album, album.name);
+            assert_eq!(database_song.short.album_id, album_id);
             assert_eq!(database_artists, artists);
             assert_eq!(database_song.genres.value.len(), n_genre);
         } else {
