@@ -13,6 +13,7 @@ pub mod playlist;
 pub mod playlists;
 pub mod playlists_songs;
 pub mod playlists_users;
+pub mod playqueues;
 pub mod songs;
 pub mod songs_album_artists;
 pub mod songs_artists;

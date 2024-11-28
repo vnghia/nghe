@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 #[cfg(test)]
 use fake::{Dummy, Fake};
 use isolang::Language;
@@ -23,11 +21,9 @@ pub struct Song<'a> {
     #[map(~.try_into()?)]
     pub track_disc: position::TrackDisc,
     #[from(~.into_iter().map(
-        |language|Language::from_str(language.ok_or_else(
-            || Error::LanguageFromDatabaseIsNull)?.as_ref()
-        ).map_err(Error::from)
+        |language| language.as_str().parse().map_err(Error::from)
     ).try_collect()?)]
-    #[into(~.iter().map(|language| Some(language.to_639_3().into())).collect())]
+    #[into(~.iter().map(|language| language.to_639_3().into()).collect())]
     #[cfg_attr(
         test,
         dummy(expr = "((0..=7915), \

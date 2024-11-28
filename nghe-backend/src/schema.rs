@@ -171,6 +171,18 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
+    playqueues (user_id) {
+        user_id -> Uuid,
+        ids -> Array<Nullable<Uuid>>,
+        current -> Nullable<Uuid>,
+        position -> Nullable<Int8>,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     scans (started_at, music_folder_id) {
         started_at -> Timestamptz,
         is_scanning -> Bool,
@@ -299,6 +311,7 @@ diesel::joinable!(playlists_songs -> playlists (playlist_id));
 diesel::joinable!(playlists_songs -> songs (song_id));
 diesel::joinable!(playlists_users -> playlists (playlist_id));
 diesel::joinable!(playlists_users -> users (user_id));
+diesel::joinable!(playqueues -> users (user_id));
 diesel::joinable!(scans -> music_folders (music_folder_id));
 diesel::joinable!(songs -> albums (album_id));
 diesel::joinable!(songs -> cover_arts (cover_art_id));
@@ -323,6 +336,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     playlists,
     playlists_songs,
     playlists_users,
+    playqueues,
     scans,
     songs,
     songs_album_artists,

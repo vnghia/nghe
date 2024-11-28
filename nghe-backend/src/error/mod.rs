@@ -52,8 +52,6 @@ pub enum Error {
     CheckoutConnectionPool,
     #[error("Could not decrypt value from database")]
     DecryptDatabaseValue,
-    #[error("Language from database should not be null")]
-    LanguageFromDatabaseIsNull,
     #[error("Inconsistency encountered while querying database for scan process")]
     DatabaseScanQueryInconsistent,
     #[error("Invalid config format for key {0}")]
