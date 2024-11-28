@@ -33,6 +33,7 @@ use axum::body::Body;
 use axum::http::Request;
 use axum::Router;
 use error::Error;
+use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 
@@ -73,4 +74,5 @@ pub async fn build(config: config::Config) -> Router {
             )
         }))
         .layer(CorsLayer::permissive())
+        .layer(CompressionLayer::new().br(true).gzip(true).zstd(true))
 }
