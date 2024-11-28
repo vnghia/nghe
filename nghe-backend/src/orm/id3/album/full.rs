@@ -22,7 +22,7 @@ pub struct Full {
     #[diesel(select_expression = sql("bool_or(songs_album_artists.compilation) is_compilation"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Bool>)]
     pub is_compilation: bool,
-    #[diesel(select_expression = sql("array_agg(distinct(songs.id)) album_artists"))]
+    #[diesel(select_expression = sql("array_agg(distinct(songs.id)) song_ids"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Array<sql_types::Uuid>>)]
     pub songs: Vec<Uuid>,
 }
