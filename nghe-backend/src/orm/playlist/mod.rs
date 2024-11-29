@@ -62,11 +62,14 @@ pub mod query {
         let with_album: with_album = with_album(user_id);
         let playlist: AsSelect<Playlist, crate::orm::Type> = Playlist::as_select();
         playlists::table
-            .inner_join(playlists_users::table)
+            .inner_join(
+                playlists_users::table.on(playlists_users::playlist_id
+                    .eq(playlists::id)
+                    .and(playlists_users::user_id.eq(user_id))),
+            )
             .left_join(playlists_songs::table)
             .left_join(songs::table.on(songs::id.eq(playlists_songs::song_id)))
             .left_join(albums::table.on(albums::id.eq(songs::album_id)))
-            .filter(playlists_users::user_id.eq(user_id))
             .filter(with_album)
             .group_by(playlists::id)
             .select(playlist)

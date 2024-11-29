@@ -9,6 +9,8 @@ use crate::database::Database;
 use crate::orm::{id3, star_albums, star_artists, star_songs};
 use crate::Error;
 
+// TODO: Rethink unchecked while querying starred. We could filter before join but it requires a
+// `user_id`. Or maybe `with_user_id_unchecked`.
 #[handler]
 pub async fn handler(
     database: &Database,
