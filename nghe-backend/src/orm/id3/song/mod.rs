@@ -113,7 +113,7 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::{albums, songs_artists};
+    use crate::orm::{albums, songs_artists, star_songs};
 
     #[auto_type]
     pub fn unchecked_no_group_by() -> _ {
@@ -121,6 +121,7 @@ pub mod query {
             .inner_join(songs_artists::table)
             .inner_join(albums::table)
             .inner_join(artist::required::query::song())
+            .left_join(star_songs::table)
             .order_by((
                 songs::disc_number.asc().nulls_first(),
                 songs::track_number.asc().nulls_first(),

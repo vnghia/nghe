@@ -71,7 +71,7 @@ pub mod query {
     use diesel::dsl::{auto_type, AsSelect};
 
     use super::*;
-    use crate::orm::{genres, songs_genres};
+    use crate::orm::{genres, songs_genres, star_albums};
 
     #[auto_type]
     pub fn unchecked_no_group_by() -> _ {
@@ -79,6 +79,7 @@ pub mod query {
             .inner_join(songs::table)
             .left_join(songs_genres::table.on(songs_genres::song_id.eq(songs::id)))
             .left_join(genres::table.on(genres::id.eq(songs_genres::genre_id)))
+            .left_join(star_albums::table)
             .order_by(albums::name)
     }
 
