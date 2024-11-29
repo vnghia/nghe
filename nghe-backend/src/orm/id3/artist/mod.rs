@@ -59,7 +59,9 @@ pub mod query {
     use diesel::dsl::{auto_type, exists, AsSelect};
 
     use super::*;
-    use crate::orm::{songs_album_artists, songs_artists, user_music_folder_permissions};
+    use crate::orm::{
+        songs_album_artists, songs_artists, star_artists, user_music_folder_permissions,
+    };
 
     diesel::alias!(albums as albums_sa: AlbumsSA, songs as songs_saa: SongsSAA);
 
@@ -82,6 +84,7 @@ pub mod query {
             .left_join(songs_album_artists::table)
             .left_join(songs_saa.on(songs_saa.field(songs::id).eq(songs_album_artists::song_id)))
             .left_join(albums::table.on(albums::id.eq(songs_saa.field(songs::album_id))))
+            .left_join(star_artists::table)
             .group_by(artists::id)
             .select(artist)
     }

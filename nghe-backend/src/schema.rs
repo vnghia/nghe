@@ -277,6 +277,39 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
+    star_albums (user_id, album_id) {
+        user_id -> Uuid,
+        album_id -> Uuid,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
+    star_artists (user_id, artist_id) {
+        user_id -> Uuid,
+        artist_id -> Uuid,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
+    star_songs (user_id, song_id) {
+        user_id -> Uuid,
+        song_id -> Uuid,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     user_music_folder_permissions (user_id, music_folder_id) {
         user_id -> Uuid,
         music_folder_id -> Uuid,
@@ -321,6 +354,12 @@ diesel::joinable!(songs_artists -> artists (artist_id));
 diesel::joinable!(songs_artists -> songs (song_id));
 diesel::joinable!(songs_genres -> genres (genre_id));
 diesel::joinable!(songs_genres -> songs (song_id));
+diesel::joinable!(star_albums -> albums (album_id));
+diesel::joinable!(star_albums -> users (user_id));
+diesel::joinable!(star_artists -> artists (artist_id));
+diesel::joinable!(star_artists -> users (user_id));
+diesel::joinable!(star_songs -> songs (song_id));
+diesel::joinable!(star_songs -> users (user_id));
 diesel::joinable!(user_music_folder_permissions -> music_folders (music_folder_id));
 diesel::joinable!(user_music_folder_permissions -> users (user_id));
 
@@ -342,6 +381,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     songs_album_artists,
     songs_artists,
     songs_genres,
+    star_albums,
+    star_artists,
+    star_songs,
     user_music_folder_permissions,
     users,
 );
