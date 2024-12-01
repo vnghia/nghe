@@ -29,6 +29,7 @@ pub struct Config {
     pub index: Index,
     pub transcode: Transcode,
     pub cover_art: CoverArt,
+    pub integration: Integration,
 }
 
 impl Default for Config {

@@ -20,6 +20,7 @@ use super::{database, filesystem};
 use crate::database::Database;
 use crate::file::audio;
 use crate::filesystem::Filesystem;
+use crate::integration::Informant;
 use crate::orm::users;
 use crate::scan::scanner;
 use crate::{config, route};
@@ -34,6 +35,8 @@ pub struct Config {
     pub index: config::Index,
     pub transcode: config::Transcode,
     pub cover_art: config::CoverArt,
+    #[educe(Default(expression = config::Integration::from_env()))]
+    pub integration: config::Integration,
 
     pub lofty_parse: ParseOptions,
     pub lofty_write: WriteOptions,
@@ -44,6 +47,7 @@ pub struct Mock {
 
     pub database: database::Mock,
     pub filesystem: filesystem::Mock,
+    pub informant: Informant,
 }
 
 impl Config {
@@ -72,8 +76,9 @@ impl Mock {
         let database = database::Mock::new().await;
         let filesystem = filesystem::Mock::new(prefix, &config).await;
         let config = config.with_prefix(&filesystem.prefix());
+        let informant = Informant::new(config.integration.clone()).await;
 
-        Self { config, database, filesystem }
+        Self { config, database, filesystem, informant }
     }
 
     pub fn state(&self) -> &Database {

@@ -41,4 +41,10 @@ mod test {
             }
         }
     }
+
+    impl Integration {
+        pub fn from_env() -> Self {
+            Self { spotify: Spotify::from_env() }
+        }
+    }
 }

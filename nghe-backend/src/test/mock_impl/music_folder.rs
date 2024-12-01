@@ -253,6 +253,7 @@ impl<'a> Mock<'a> {
             self.mock.database(),
             self.mock.filesystem(),
             self.config.clone(),
+            self.mock.informant.clone(),
             music_folders::MusicFolder {
                 id: self.music_folder.id,
                 data: music_folders::Data {

@@ -14,8 +14,8 @@ pub struct Artist {
 pub struct Client(rspotify::ClientCredsSpotify);
 
 impl Client {
-    pub async fn new(config: config::integration::Spotify) -> Result<Option<Self>, Error> {
-        Ok(if let Some(id) = config.id {
+    pub async fn new(config: config::integration::Spotify) -> Option<Self> {
+        if let Some(id) = config.id {
             tracing::info!("Spotify integration enabled");
             let creds = rspotify::Credentials { id, secret: config.secret };
             let config = if let Some(token_path) = config.token_path {
@@ -28,11 +28,11 @@ impl Client {
                 rspotify::Config { token_cached: false, ..Default::default() }
             };
             let client = rspotify::ClientCredsSpotify::with_config(creds, config);
-            client.request_token().await?;
+            client.request_token().await.expect("Could not authenticate to spotify server");
             Some(Self(client))
         } else {
             None
-        })
+        }
     }
 
     pub async fn search_artist(&self, name: &str) -> Result<Option<Artist>, Error> {
@@ -62,7 +62,7 @@ mod tests {
     #[case("Micheal Learn To Rock")]
     #[tokio::test]
     async fn test_search_artist(#[case] name: &str) {
-        let client = Client::new(config::integration::Spotify::from_env()).await.unwrap().unwrap();
+        let client = Client::new(config::integration::Spotify::from_env()).await.unwrap();
         let artist = client.search_artist(name).await.unwrap().unwrap();
         picture::Picture::fetch(&reqwest::Client::default(), artist.image_url.unwrap())
             .await
