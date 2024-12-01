@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::Playlist;
 use crate::database::Database;
-use crate::orm::id3::duration::Trait;
+use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::song;
 use crate::orm::{playlists_songs, songs};
 use crate::Error;
@@ -33,14 +33,14 @@ impl Full {
             .order_by(sql::<sql_types::Timestamptz>("any_value(playlists_songs.created_at)"))
             .get_results(&mut database.get().await?)
             .await?;
-        let duration = entry.duration()?;
+        let duration = entry.duration();
         let entry: Vec<_> = entry.into_iter().map(song::short::Short::try_into).try_collect()?;
 
         let playlist = self
             .playlist
             .into_builder()
             .song_count(entry.len().try_into()?)
-            .duration(duration)
+            .duration(duration.into())
             .build();
 
         Ok(playlist::Full { playlist, entry })

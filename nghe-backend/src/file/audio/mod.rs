@@ -1,5 +1,6 @@
 mod artist;
 mod date;
+pub mod duration;
 mod extract;
 mod genre;
 mod information;
@@ -14,6 +15,7 @@ pub use artist::{Artist, Artists};
 pub use date::Date;
 use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
+pub use duration::Duration;
 use extract::{Metadata as _, Property as _};
 pub use genre::Genres;
 pub use information::Information;

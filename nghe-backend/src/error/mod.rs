@@ -17,6 +17,7 @@ use o2o::o2o;
 #[from_owned(std::num::TryFromIntError)]
 #[from_owned(typed_path::StripPrefixError)]
 #[from_owned(time::error::ComponentRange)]
+#[from_owned(time::error::ConversionRange)]
 #[from_owned(tokio::task::JoinError)]
 #[from_owned(tokio::sync::AcquireError)]
 #[from_owned(SdkError<GetObjectError>)]

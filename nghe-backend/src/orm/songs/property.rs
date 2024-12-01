@@ -1,4 +1,8 @@
+use diesel::deserialize::{self, FromSql};
+use diesel::pg::PgValue;
 use diesel::prelude::*;
+use diesel::serialize::{self, Output, ToSql};
+use diesel::sql_types::Float;
 use diesel_derives::AsChangeset;
 use o2o::o2o;
 
@@ -11,7 +15,7 @@ use crate::Error;
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Property {
-    pub duration: f32,
+    pub duration: audio::Duration,
     #[map(~ as _)]
     pub bitrate: i32,
     #[from(~.map(i16::from))]
@@ -36,4 +40,16 @@ pub struct File {
     #[diesel(column_name = file_size)]
     pub size: i32,
     pub format: audio::Format,
+}
+
+impl ToSql<Float, crate::orm::Type> for audio::Duration {
+    fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, crate::orm::Type>) -> serialize::Result {
+        <f32 as ToSql<Float, crate::orm::Type>>::to_sql(&(*self).into(), &mut out.reborrow())
+    }
+}
+
+impl FromSql<Float, crate::orm::Type> for audio::Duration {
+    fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
+        Ok(<f32 as FromSql<Float, crate::orm::Type>>::from_sql(bytes)?.into())
+    }
 }

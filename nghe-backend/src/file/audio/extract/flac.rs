@@ -56,7 +56,7 @@ impl Property for FlacFile {
     fn property(&self) -> Result<audio::Property, Error> {
         let properties = self.properties();
         Ok(audio::Property {
-            duration: properties.duration().as_secs_f32(),
+            duration: properties.duration().try_into()?,
             bitrate: properties.audio_bitrate(),
             bit_depth: Some(properties.bit_depth()),
             sample_rate: properties.sample_rate(),

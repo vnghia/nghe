@@ -305,15 +305,10 @@ impl<'a> Mock<'a> {
 
 mod duration {
     use super::*;
-    use crate::orm::id3::duration::Trait;
-    use crate::Error;
 
-    impl Trait for IndexMap<Uuid, Information<'static, 'static>> {
-        fn duration(&self) -> Result<u32, Error> {
-            self.values()
-                .map(|information| information.information.property.duration)
-                .sum::<f32>()
-                .duration()
+    impl audio::duration::Trait for IndexMap<Uuid, Information<'static, 'static>> {
+        fn duration(&self) -> audio::Duration {
+            self.values().map(|information| information.information.property.duration).sum()
         }
     }
 }

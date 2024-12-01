@@ -13,7 +13,8 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::artist;
-use super::duration::Trait as _;
+use crate::file::audio;
+use crate::file::audio::duration::Trait as _;
 use crate::orm::songs;
 use crate::Error;
 
@@ -77,9 +78,15 @@ pub type BuilderSet = builder::SetMusicBrainzId<
     >,
 >;
 
+impl audio::duration::Trait for Song {
+    fn duration(&self) -> audio::Duration {
+        self.property.duration.duration()
+    }
+}
+
 impl Song {
     pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
-        let duration = self.duration()?;
+        let duration = self.duration();
         Ok(id3::song::Song::builder()
             .id(self.id)
             .title(self.title)
@@ -89,7 +96,7 @@ impl Song {
             .size(self.file.size.cast_unsigned())
             .content_type(self.file.format.mime().into())
             .suffix(self.file.format.extension().into())
-            .duration(duration)
+            .duration(duration.into())
             .bit_rate(self.property.bitrate.try_into()?)
             .bit_depth(self.property.bit_depth.map(u8::try_from).transpose()?)
             .sampling_rate(self.property.sample_rate.try_into()?)

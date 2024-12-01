@@ -7,6 +7,7 @@ use o2o::o2o;
 use uuid::Uuid;
 
 use super::Song;
+use crate::file::audio;
 use crate::Error;
 
 #[derive(Debug, Queryable, Selectable, o2o)]
@@ -21,6 +22,12 @@ pub struct Short {
     #[diesel(select_expression = sql("any_value(albums.id) album_id"))]
     #[diesel(select_expression_type = SqlLiteral<sql_types::Uuid>)]
     pub album_id: Uuid,
+}
+
+impl audio::duration::Trait for Short {
+    fn duration(&self) -> audio::Duration {
+        self.song.duration()
+    }
 }
 
 pub mod query {

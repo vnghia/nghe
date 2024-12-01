@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use diesel::deserialize::FromSql;
 use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
@@ -8,10 +6,7 @@ use diesel::prelude::*;
 use diesel::{deserialize, sql_types};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Duration {
-    pub value: f32,
-}
+use crate::file::audio;
 
 pub type SqlType = sql_types::Record<(sql_types::Uuid, sql_types::Float)>;
 
@@ -22,15 +17,7 @@ pub struct Durations {
         filter (where songs.id is not null) song_id_durations"
     ))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Nullable<sql_types::Array<SqlType>>>)]
-    pub value: Option<Vec<Duration>>,
-}
-
-impl Add for Duration {
-    type Output = Duration;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Self::Output { value: self.value + rhs.value }
-    }
+    pub value: Option<Vec<audio::Duration>>,
 }
 
 impl Durations {
@@ -39,9 +26,15 @@ impl Durations {
     }
 }
 
-impl FromSql<SqlType, crate::orm::Type> for Duration {
+impl FromSql<SqlType, crate::orm::Type> for audio::Duration {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         let (_, value): (Uuid, f32) = FromSql::<SqlType, crate::orm::Type>::from_sql(bytes)?;
-        Ok(Self { value })
+        Ok(value.into())
+    }
+}
+
+impl audio::duration::Trait for Durations {
+    fn duration(&self) -> audio::Duration {
+        self.value.as_ref().map(Vec::duration).unwrap_or_default()
     }
 }

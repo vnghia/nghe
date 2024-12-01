@@ -167,6 +167,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                     skip_serializing_if = "Option::is_none",
                     default
                 )],
+                time::Duration => #[serde(with = "crate::time::duration::serde")],
             )]
         }
     } else {
