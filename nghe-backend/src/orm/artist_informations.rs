@@ -6,12 +6,21 @@ use uuid::Uuid;
 
 pub use crate::schema::artist_informations::{self, *};
 
-#[derive(Debug, Insertable, AsChangeset, Default)]
+#[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = artist_informations, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-pub struct Upsert<'a> {
-    pub spotify_id: Option<Cow<'a, str>>,
+pub struct Spotify<'a> {
+    #[diesel(column_name = spotify_id)]
+    pub id: Option<Cow<'a, str>>,
     pub cover_art_id: Option<Uuid>,
+}
+
+#[derive(Debug, Insertable, AsChangeset)]
+#[diesel(table_name = artist_informations, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
+pub struct Upsert<'s> {
+    #[diesel(embed)]
+    pub spotify: Spotify<'s>,
 }
 
 mod upsert {

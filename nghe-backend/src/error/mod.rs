@@ -31,6 +31,8 @@ use o2o::o2o;
 #[from_owned(strum::ParseError)]
 #[from_owned(bitcode::Error)]
 #[from_owned(rspotify::ClientError)]
+#[from_owned(reqwest::Error)]
+#[from_owned(reqwest::header::ToStrError)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),

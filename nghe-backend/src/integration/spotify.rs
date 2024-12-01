@@ -53,18 +53,19 @@ impl Client {
 
 #[cfg(all(test, spotify_env))]
 mod tests {
-    use concat_string::concat_string;
     use rstest::rstest;
 
     use super::*;
+    use crate::file::picture;
 
     #[rstest]
-    #[case("Micheal Learn To Rock", "3fMbdgg4jU18AjLCKBhRSm")]
+    #[case("Micheal Learn To Rock")]
     #[tokio::test]
-    async fn test_search_artist(#[case] name: &str, #[case] id: &str) {
+    async fn test_search_artist(#[case] name: &str) {
         let client = Client::new(config::integration::Spotify::from_env()).await.unwrap().unwrap();
         let artist = client.search_artist(name).await.unwrap().unwrap();
-        assert_eq!(artist.id.to_string(), concat_string!("spotify:artist:", id));
-        assert!(artist.image_url.is_some());
+        picture::Picture::fetch(&reqwest::Client::default(), artist.image_url.unwrap())
+            .await
+            .unwrap();
     }
 }

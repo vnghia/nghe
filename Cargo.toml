@@ -40,9 +40,9 @@ time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }
 uuid = { version = "1.11.0", features = ["serde"] }
 reqwest = { version = "0.12.9", default-features = false, features = [
-  "rustls-tls",
   "json",
   "http2",
+  "native-tls",
 ] }
 rstest = { version = "0.23.0" }
 thiserror = { version = "1.0.69" }
