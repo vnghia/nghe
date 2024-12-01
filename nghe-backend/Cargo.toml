@@ -67,6 +67,10 @@ rsmpeg = { version = "0.15.1", default-features = false, features = [
   "ffmpeg7",
   "link_system_ffmpeg",
 ] }
+rspotify = { version = "0.13.3", default-features = false, features = [
+  "client-reqwest",
+  "reqwest-native-tls",
+] }
 tokio = { version = "1.41.1", features = [
   "fs",
   "macros",

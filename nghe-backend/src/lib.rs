@@ -17,6 +17,7 @@ mod error;
 mod file;
 mod filesystem;
 mod http;
+mod integration;
 pub mod migration;
 mod orm;
 mod route;
