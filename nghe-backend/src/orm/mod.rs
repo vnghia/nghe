@@ -1,4 +1,5 @@
 pub mod albums;
+pub mod artist_informations;
 pub mod artists;
 pub mod binary;
 pub mod configs;
