@@ -17,7 +17,7 @@ pub struct Album {
     pub name: String,
     pub cover_art: Option<Uuid>,
     pub song_count: u16,
-    pub duration: u32,
+    pub duration: time::Duration,
     pub created: OffsetDateTime,
     pub year: Option<u16>,
     pub music_brainz_id: Option<Uuid>,

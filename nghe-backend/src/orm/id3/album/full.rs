@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::Album;
 use crate::database::Database;
-use crate::orm::id3::duration::Trait;
+use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::{artist, song};
 use crate::orm::songs;
 use crate::Error;
@@ -33,14 +33,14 @@ impl Full {
             .filter(songs::id.eq_any(self.songs))
             .get_results(&mut database.get().await?)
             .await?;
-        let duration = song.duration()?;
+        let duration = song.duration();
         let song: Vec<_> = song.into_iter().map(song::Song::try_into).try_collect()?;
 
         let album = self
             .album
             .try_into_builder()?
             .song_count(song.len().try_into()?)
-            .duration(duration)
+            .duration(duration.into())
             .build();
 
         Ok(id3::album::Full {

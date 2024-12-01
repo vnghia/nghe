@@ -1,21 +1,13 @@
 use nghe_proc_macro::api_derive;
-use serde_with::serde_as;
 use uuid::Uuid;
 
 use super::playlist;
 
-// TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-#[serde_as]
 #[api_derive(request = true, copy = false)]
 #[serde(untagged)]
 pub enum CreateOrUpdate {
-    Create {
-        name: String,
-    },
-    Update {
-        #[serde_as(as = "serde_with::DisplayFromStr")]
-        playlist_id: Uuid,
-    },
+    Create { name: String },
+    Update { playlist_id: Uuid },
 }
 
 #[api_derive]

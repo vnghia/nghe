@@ -1,5 +1,7 @@
 #![allow(clippy::ref_option)]
 
+pub mod duration;
+
 pub mod serde {
     use time::format_description::well_known::{iso8601, Iso8601};
 

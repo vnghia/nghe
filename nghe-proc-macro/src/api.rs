@@ -28,7 +28,9 @@ struct Derive {
     #[deluxe(default = true)]
     debug: bool,
     #[deluxe(default = true)]
-    apply: bool,
+    serde_apply: bool,
+    #[deluxe(default = false)]
+    serde_as: bool,
     #[deluxe(default = false)]
     fake: bool,
     #[deluxe(default = true)]
@@ -149,7 +151,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
     };
 
-    let apply_statement = if has_serde && args.apply {
+    let apply_statement = if has_serde && args.serde_apply {
         quote! {
             #[serde_with::apply(
                 Option => #[serde(skip_serializing_if = "Option::is_none", default)],
@@ -165,8 +167,14 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                     skip_serializing_if = "Option::is_none",
                     default
                 )],
+                time::Duration => #[serde(with = "crate::time::duration::serde")],
             )]
         }
+    } else {
+        quote! {}
+    };
+    let as_statement = if has_serde && args.serde_as {
+        quote! { #[serde_with::serde_as] }
     } else {
         quote! {}
     };
@@ -214,6 +222,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
 
     Ok(quote! {
         #apply_statement
+        #as_statement
         #[derive(#(#derives),*)]
         #( #attributes )*
         #input

@@ -1,12 +1,10 @@
 use nghe_proc_macro::api_derive;
-use serde_with::serde_as;
 use uuid::Uuid;
 
 use crate::id3;
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-#[serde_as]
-#[api_derive(copy = false)]
+#[api_derive(serde_as = true, copy = false)]
 #[serde(tag = "type")]
 #[cfg_attr(test, derive(Default))]
 pub enum Type {

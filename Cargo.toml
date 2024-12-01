@@ -14,6 +14,7 @@ pedantic = { level = "deny", priority = -1 }
 cast_possible_wrap = { level = "allow", priority = 0 }
 duplicated_attributes = { level = "allow", priority = 0 }
 missing_panics_doc = { level = "allow", priority = 0 }
+missing_errors_doc = { level = "allow", priority = 0 }
 must_use_candidate = { level = "allow", priority = 0 }
 return_self_not_must_use = { level = "allow", priority = 0 }
 struct_excessive_bools = { level = "allow", priority = 0 }
@@ -33,7 +34,7 @@ itertools = { version = "0.12.1" }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.215", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
-serde_with = { version = "3.11.0" }
+serde_with = { version = "3.11.0", features = ["time_0_3"] }
 strum = { version = "0.26.3", features = ["derive"] }
 time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
 tracing = { version = "0.1.40" }

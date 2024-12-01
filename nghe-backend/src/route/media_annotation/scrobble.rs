@@ -7,8 +7,6 @@ use crate::database::Database;
 use crate::orm::playbacks;
 use crate::Error;
 
-const MILLIS_TO_NANOS: i128 = 1_000_000;
-
 #[handler]
 pub async fn handler(
     database: &Database,
@@ -23,10 +21,6 @@ pub async fn handler(
             .zip_longest(request.times.unwrap_or_default())
             .map(|data| match data {
                 EitherOrBoth::Both(song_id, updated_at) => {
-                    let updated_at: i128 = updated_at.into();
-                    let updated_at = time::OffsetDateTime::from_unix_timestamp_nanos(
-                        updated_at * MILLIS_TO_NANOS,
-                    )?;
                     Ok(playbacks::Scrobble { user_id, song_id, updated_at })
                 }
                 EitherOrBoth::Left(song_id) => Ok(playbacks::Scrobble {
@@ -72,40 +66,29 @@ mod tests {
 
         let start_dt = datetime!(2000-01-01 0:00 UTC);
         let end_dt = datetime!(2020-01-01 0:00 UTC);
-        let times: Vec<_> = (0..n_time)
-            .map(|_| {
-                DateTimeBetween(start_dt, end_dt)
-                    .fake::<OffsetDateTime>()
-                    .replace_microsecond(0)
-                    .unwrap()
-            })
-            .collect();
+        let times = fake::vec![
+            OffsetDateTime as DateTimeBetween(start_dt, end_dt);
+            n_time
+        ];
 
         for i in 0..n_play {
-            let times_u64 = if i < n_play - 1 {
+            let times = if i < n_play - 1 {
                 if Faker.fake() {
                     Some(fake::vec![
-                        u64 as 1_000_000_000_000..2_000_000_000_000;
+                        OffsetDateTime as DateTimeBetween(start_dt, end_dt);
                         0..(n_song - (0..2).fake::<usize>())
                     ])
                 } else {
                     None
                 }
             } else {
-                Some(
-                    times
-                        .iter()
-                        .map(|time| {
-                            (time.unix_timestamp_nanos() / MILLIS_TO_NANOS).try_into().unwrap()
-                        })
-                        .collect(),
-                )
+                Some(times.clone())
             };
 
             let result = handler(
                 mock.database(),
                 user_id,
-                Request { ids: ids.clone(), times: times_u64, submission: None },
+                Request { ids: ids.clone(), times, submission: None },
             )
             .await;
             assert_eq!(result.is_ok(), i < n_play - 1 || n_song >= n_time);

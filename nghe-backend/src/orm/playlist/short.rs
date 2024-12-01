@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use nghe_api::playlists::playlist::{self, builder};
 
 use super::Playlist;
-use crate::orm::id3::duration::Trait as _;
+use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::song;
 use crate::Error;
 
@@ -22,7 +22,7 @@ impl Short {
             .playlist
             .into_builder()
             .song_count(self.durations.count().try_into()?)
-            .duration(self.durations.duration()?))
+            .duration(self.durations.duration().into()))
     }
 }
 
@@ -80,9 +80,6 @@ mod tests {
         let database_playlist =
             query::with_user_id(user_id).get_result(&mut mock.get().await).await.unwrap();
         assert_eq!(database_playlist.durations.count(), n_song);
-        assert_eq!(
-            database_playlist.durations.duration().unwrap(),
-            music_folder.database.duration().unwrap()
-        );
+        assert_eq!(database_playlist.durations.duration(), music_folder.database.duration());
     }
 }

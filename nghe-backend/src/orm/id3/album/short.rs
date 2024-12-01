@@ -3,7 +3,7 @@ use nghe_api::id3;
 use nghe_api::id3::builder::album as builder;
 
 use super::Album;
-use crate::orm::id3::duration::Trait as _;
+use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::song;
 use crate::Error;
 
@@ -23,7 +23,7 @@ impl Short {
             .album
             .try_into_builder()?
             .song_count(self.durations.count().try_into()?)
-            .duration(self.durations.duration()?))
+            .duration(self.durations.duration().into()))
     }
 }
 
@@ -97,10 +97,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(database_album.durations.count(), n_song);
-        assert_eq!(
-            database_album.durations.duration().unwrap(),
-            music_folder.database.duration().unwrap()
-        );
+        assert_eq!(database_album.durations.duration(), music_folder.database.duration());
         assert_eq!(database_album.album.genres.value.len(), n_genre);
     }
 }
