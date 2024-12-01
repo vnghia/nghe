@@ -21,3 +21,24 @@ pub struct Spotify {
 pub struct Integration {
     pub spotify: Spotify,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    impl Spotify {
+        #[cfg(not(spotify_env))]
+        pub fn from_env() -> Self {
+            Self { id: None, secret: None, token_path: None }
+        }
+
+        #[cfg(spotify_env)]
+        pub fn from_env() -> Self {
+            Self {
+                id: Some(env!("SPOTIFY_ID").to_owned()),
+                secret: Some(env!("SPOTIFY_SECRET").to_owned()),
+                token_path: None,
+            }
+        }
+    }
+}
