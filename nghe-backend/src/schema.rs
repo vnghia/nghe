@@ -30,6 +30,20 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
+    artist_informations (artist_id) {
+        artist_id -> Uuid,
+        lastfm_url -> Nullable<Text>,
+        lastfm_mbz_id -> Nullable<Uuid>,
+        lastfm_biography -> Nullable<Text>,
+        spotify_id -> Nullable<Text>,
+        cover_art_id -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     artists (id) {
         id -> Uuid,
         name -> Text,
@@ -39,11 +53,6 @@ diesel::table! {
         scanned_at -> Timestamptz,
         mbz_id -> Nullable<Uuid>,
         ts -> Tsvector,
-        lastfm_url -> Nullable<Text>,
-        lastfm_mbz_id -> Nullable<Uuid>,
-        lastfm_biography -> Nullable<Text>,
-        cover_art_id -> Nullable<Uuid>,
-        spotify_id -> Nullable<Text>,
     }
 }
 
@@ -336,7 +345,8 @@ diesel::table! {
 
 diesel::joinable!(albums -> cover_arts (cover_art_id));
 diesel::joinable!(albums -> music_folders (music_folder_id));
-diesel::joinable!(artists -> cover_arts (cover_art_id));
+diesel::joinable!(artist_informations -> artists (artist_id));
+diesel::joinable!(artist_informations -> cover_arts (cover_art_id));
 diesel::joinable!(lyrics -> songs (song_id));
 diesel::joinable!(playbacks -> songs (song_id));
 diesel::joinable!(playbacks -> users (user_id));
@@ -365,6 +375,7 @@ diesel::joinable!(user_music_folder_permissions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     albums,
+    artist_informations,
     artists,
     configs,
     cover_arts,

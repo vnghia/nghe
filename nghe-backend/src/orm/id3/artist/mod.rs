@@ -1,8 +1,10 @@
 pub mod full;
 pub mod required;
 
-use diesel::dsl::count_distinct;
+use diesel::dsl::{count_distinct, sql};
+use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
+use diesel::sql_types;
 use nghe_api::id3;
 use nghe_api::id3::builder::artist as builder;
 pub use required::Required;
@@ -18,6 +20,9 @@ pub struct Artist {
     #[diesel(embed)]
     pub required: Required,
     pub index: String,
+    #[diesel(select_expression = sql("any_value(artist_informations.cover_art_id) cover_art_id"))]
+    #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Uuid>>)]
+    pub cover_art: Option<Uuid>,
     #[diesel(select_expression = count_distinct(songs::id.nullable()))]
     pub song_count: i64,
     #[diesel(select_expression = count_distinct(albums::id.nullable()))]
@@ -26,8 +31,9 @@ pub struct Artist {
     pub music_brainz_id: Option<Uuid>,
 }
 
-pub type BuilderSet =
-    builder::SetRoles<builder::SetMusicBrainzId<builder::SetAlbumCount<builder::SetRequired>>>;
+pub type BuilderSet = builder::SetRoles<
+    builder::SetMusicBrainzId<builder::SetAlbumCount<builder::SetCoverArt<builder::SetRequired>>>,
+>;
 
 impl Artist {
     pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
@@ -41,6 +47,7 @@ impl Artist {
 
         Ok(id3::artist::Artist::builder()
             .required(self.required.into())
+            .cover_art(self.cover_art)
             .album_count(self.album_count.try_into()?)
             .music_brainz_id(self.music_brainz_id)
             .roles(roles))
@@ -60,7 +67,8 @@ pub mod query {
 
     use super::*;
     use crate::orm::{
-        songs_album_artists, songs_artists, star_artists, user_music_folder_permissions,
+        artist_informations, songs_album_artists, songs_artists, star_artists,
+        user_music_folder_permissions,
     };
 
     diesel::alias!(albums as albums_sa: AlbumsSA, songs as songs_saa: SongsSAA);
@@ -78,6 +86,7 @@ pub mod query {
         //  - use songs for joining -> use alias `songs_saa`.
         let artist: AsSelect<Artist, crate::orm::Type> = Artist::as_select();
         artists::table
+            .left_join(artist_informations::table)
             .left_join(songs_artists::table)
             .left_join(songs::table.on(songs::id.eq(songs_artists::song_id)))
             .left_join(albums_sa.on(albums_sa.field(albums::id).eq(songs::album_id)))
@@ -241,5 +250,31 @@ mod tests {
         let artist: id3::artist::Artist =
             Artist { song_count, album_count, ..Faker.fake() }.try_into().unwrap();
         assert_eq!(artist.roles, roles);
+    }
+
+    #[cfg(spotify_env)]
+    #[rstest]
+    #[tokio::test]
+    async fn test_cover_art(
+        #[future(awt)]
+        #[with(1, 1, None, true)]
+        mock: Mock,
+    ) {
+        let artist = audio::Artist::from("Micheal Learn To Rock");
+        mock.music_folder(0)
+            .await
+            .add_audio_filesystem::<&str>()
+            .artists(audio::Artists {
+                song: [artist.clone()].into(),
+                album: [artist.clone()].into(),
+                compilation: false,
+            })
+            .call()
+            .await;
+        let database_artist = query::with_user_id(mock.user_id(0).await)
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+        assert!(database_artist.cover_art.is_some());
     }
 }

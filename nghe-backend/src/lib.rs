@@ -17,6 +17,7 @@ mod error;
 mod file;
 mod filesystem;
 mod http;
+mod integration;
 pub mod migration;
 mod orm;
 mod route;
@@ -40,6 +41,7 @@ use tower_http::trace::TraceLayer;
 pub async fn build(config: config::Config) -> Router {
     let filesystem =
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
+    let informant = integration::Informant::new(config.integration).await;
 
     Router::new()
         .merge(route::music_folder::router(filesystem.clone()))
@@ -59,6 +61,7 @@ pub async fn build(config: config::Config) -> Router {
                 index: config.index,
                 cover_art: config.cover_art,
             },
+            informant,
         ))
         .merge(route::bookmarks::router())
         .merge(route::browsing::router())

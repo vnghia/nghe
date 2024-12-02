@@ -155,6 +155,27 @@ impl Picture<'static, 'static> {
     }
 }
 
+impl<'s> Picture<'s, 'static> {
+    pub async fn fetch(
+        client: &reqwest::Client,
+        source: impl Into<Cow<'s, str>>,
+    ) -> Result<Self, Error> {
+        let source = source.into();
+        let response = client.get(source.as_str()).send().await?.error_for_status()?;
+        let content_type = response
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .ok_or_else(|| Error::MediaPictureMissingFormat)?
+            .to_str()?;
+        let format = content_type
+            .split_once('/')
+            .and_then(|(ty, subtype)| if ty == "image" { subtype.parse().ok() } else { None })
+            .ok_or_else(|| Error::MediaPictureUnsupportedFormat(content_type.to_owned()))?;
+        let data = response.bytes().await?;
+        Picture::new(Some(source), format, data.to_vec())
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::io::Cursor;

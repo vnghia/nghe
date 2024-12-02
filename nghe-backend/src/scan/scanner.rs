@@ -14,6 +14,7 @@ use uuid::Uuid;
 use crate::database::Database;
 use crate::file::{self, audio, picture, File};
 use crate::filesystem::{self, entry, Entry, Filesystem, Trait};
+use crate::integration::Informant;
 use crate::orm::{albums, music_folders, songs};
 use crate::{config, Error};
 
@@ -31,6 +32,7 @@ pub struct Scanner<'db, 'fs, 'mf> {
     pub database: Cow<'db, Database>,
     pub filesystem: filesystem::Impl<'fs>,
     pub config: Config,
+    pub informant: Informant,
     pub music_folder: music_folders::MusicFolder<'mf>,
 }
 
@@ -39,12 +41,14 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         database: &'db Database,
         filesystem: &'fs Filesystem,
         config: Config,
+        informant: Informant,
         music_folder_id: Uuid,
     ) -> Result<Self, Error> {
         Self::new_orm(
             database,
             filesystem,
             config,
+            informant,
             music_folders::MusicFolder::query(database, music_folder_id).await?,
         )
     }
@@ -53,10 +57,11 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         database: &'db Database,
         filesystem: &'fs Filesystem,
         config: Config,
+        informant: Informant,
         music_folder: music_folders::MusicFolder<'mf>,
     ) -> Result<Self, Error> {
         let filesystem = filesystem.to_impl(music_folder.data.ty.into())?;
-        Ok(Self { database: Cow::Borrowed(database), filesystem, config, music_folder })
+        Ok(Self { database: Cow::Borrowed(database), filesystem, config, informant, music_folder })
     }
 
     pub fn into_owned(self) -> Scanner<'static, 'static, 'static> {
@@ -255,6 +260,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         audio::Information::cleanup(&self.database, started_at).await?;
 
         self.database.upsert_config(&self.config.index).await?;
+        self.informant.search_and_upsert_artists(&self.database, &self.config.cover_art).await?;
         Ok(())
     }
 }
