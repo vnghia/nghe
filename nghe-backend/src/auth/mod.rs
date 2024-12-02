@@ -4,7 +4,7 @@ use axum::RequestExt;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_api::auth::{Auth, AuthRequest};
-use nghe_api::common::{BinaryRequest, JsonRequest};
+use nghe_api::common::{BinaryRequest, FormRequest};
 use uuid::Uuid;
 
 use crate::database::Database;
@@ -12,13 +12,13 @@ use crate::orm::users;
 use crate::Error;
 
 #[derive(Debug)]
-pub struct GetUser<R, const NEED_AUTH: bool> {
+pub struct FormGetUser<R, const NEED_AUTH: bool> {
     pub id: Uuid,
     pub request: R,
 }
 
 #[derive(Debug)]
-pub struct PostUser<R> {
+pub struct FormPostUser<R> {
     pub id: Uuid,
     pub request: R,
 }
@@ -58,7 +58,7 @@ async fn authenticate<A: Authorize>(
 }
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-async fn json_authenticate<S, R: JsonRequest + Authorize, U: FromIdRequest<R>>(
+async fn form_authenticate<S, R: FormRequest + Authorize, U: FromIdRequest<R>>(
     state: &S,
     input: &str,
 ) -> Result<U, Error>
@@ -77,23 +77,23 @@ where
     Ok(U::from_id_request(id, request))
 }
 
-impl<R, const NEED_AUTH: bool> FromIdRequest<R> for GetUser<R, NEED_AUTH> {
+impl<R, const NEED_AUTH: bool> FromIdRequest<R> for FormGetUser<R, NEED_AUTH> {
     fn from_id_request(id: Uuid, request: R) -> Self {
         Self { id, request }
     }
 }
 
-impl<R> FromIdRequest<R> for PostUser<R> {
+impl<R> FromIdRequest<R> for FormPostUser<R> {
     fn from_id_request(id: Uuid, request: R) -> Self {
         Self { id, request }
     }
 }
 
-impl<S, R, const NEED_AUTH: bool> FromRequest<S> for GetUser<R, NEED_AUTH>
+impl<S, R, const NEED_AUTH: bool> FromRequest<S> for FormGetUser<R, NEED_AUTH>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: JsonRequest + Authorize + Send,
+    R: FormRequest + Authorize + Send,
 {
     type Rejection = Error;
 
@@ -102,7 +102,7 @@ where
         let query = request.uri().query();
 
         if NEED_AUTH {
-            json_authenticate(state, query.ok_or_else(|| Error::GetRequestMissingQueryParameters)?)
+            form_authenticate(state, query.ok_or_else(|| Error::GetRequestMissingQueryParameters)?)
                 .await
         } else {
             let query = query.unwrap_or_default();
@@ -115,17 +115,17 @@ where
     }
 }
 
-impl<S, R> FromRequest<S> for PostUser<R>
+impl<S, R> FromRequest<S> for FormPostUser<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: JsonRequest + Authorize + Send,
+    R: FormRequest + Authorize + Send,
 {
     type Rejection = Error;
 
     #[tracing::instrument(skip_all, err)]
     async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
-        json_authenticate(state, &request.extract::<String, _>().await?).await
+        form_authenticate(state, &request.extract::<String, _>().await?).await
     }
 }
 
@@ -165,7 +165,7 @@ mod tests {
     use axum::http;
     use concat_string::concat_string;
     use fake::{Fake, Faker};
-    use nghe_api::common::JsonURL as _;
+    use nghe_api::common::FormRequest as _;
     use nghe_proc_macro::api_derive;
     use rstest::rstest;
     use serde::Serialize;
@@ -230,7 +230,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_json_get_auth(
+    async fn test_form_get_auth(
         #[future(awt)]
         #[with(1, 0)]
         mock: Mock,
@@ -249,7 +249,7 @@ mod tests {
         let http_request = http::Request::builder()
             .method(http::Method::GET)
             .uri(concat_string!(
-                Request::URL,
+                Request::URL_FORM,
                 "?",
                 serde_html_form::to_string(RequestAuth { auth: user.auth(), request }).unwrap()
             ))
@@ -257,14 +257,14 @@ mod tests {
             .unwrap();
 
         let test_request =
-            GetUser::<Request, true>::from_request(http_request, mock.state()).await.unwrap();
+            FormGetUser::<Request, true>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(user.user.id, test_request.id);
         assert_eq!(request, test_request.request);
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_json_get_no_auth(
+    async fn test_form_get_no_auth(
         #[future(awt)]
         #[with(0, 0)]
         mock: Mock,
@@ -273,19 +273,23 @@ mod tests {
 
         let http_request = http::Request::builder()
             .method(http::Method::GET)
-            .uri(concat_string!(Request::URL, "?", serde_html_form::to_string(request).unwrap()))
+            .uri(concat_string!(
+                Request::URL_FORM,
+                "?",
+                serde_html_form::to_string(request).unwrap()
+            ))
             .body(Body::empty())
             .unwrap();
 
         let test_request =
-            GetUser::<Request, false>::from_request(http_request, mock.state()).await.unwrap();
+            FormGetUser::<Request, false>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(Uuid::default(), test_request.id);
         assert_eq!(request, test_request.request);
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_json_post(
+    async fn test_form_post(
         #[future(awt)]
         #[with(1, 0)]
         mock: Mock,
@@ -295,7 +299,7 @@ mod tests {
 
         let http_request = http::Request::builder()
             .method(http::Method::POST)
-            .uri(Request::URL)
+            .uri(Request::URL_FORM)
             .body(Body::from(concat_string!(
                 serde_html_form::to_string(user.auth()).unwrap(),
                 "&",
@@ -304,7 +308,7 @@ mod tests {
             .unwrap();
 
         let test_request =
-            PostUser::<Request>::from_request(http_request, mock.state()).await.unwrap();
+            FormPostUser::<Request>::from_request(http_request, mock.state()).await.unwrap();
         assert_eq!(user.user.id, test_request.id);
         assert_eq!(request, test_request.request);
     }

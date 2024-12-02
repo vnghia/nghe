@@ -8,7 +8,7 @@ use syn::{parse_quote, parse_str, Error};
 struct Endpoint {
     path: String,
     #[deluxe(default = true)]
-    json: bool,
+    form: bool,
     #[deluxe(default = true)]
     binary: bool,
     #[deluxe(default = false)]
@@ -45,7 +45,7 @@ struct Derive {
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let mut input: syn::DeriveInput = syn::parse2(item)?;
-    let Endpoint { path, json, binary, url_only, same_crate } =
+    let Endpoint { path, form, binary, url_only, same_crate } =
         deluxe::extract_attributes(&mut input)?;
 
     let ident = &input.ident;
@@ -58,24 +58,24 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
     let crate_path = if same_crate { format_ident!("crate") } else { format_ident!("nghe_api") };
 
-    let impl_json = if json {
-        let url = concat_string!("/rest/", &path);
-        let url_view = concat_string!("/rest/", &path, ".view");
+    let impl_form = if form {
+        let url_form = concat_string!("/rest/", &path);
+        let url_form_view = concat_string!("/rest/", &path, ".view");
 
         let impl_endpoint = if url_only {
             quote! {}
         } else {
             quote! {
-                impl #crate_path::common::JsonEndpoint for #ident {
+                impl #crate_path::common::FormEndpoint for #ident {
                     type Response = Response;
                 }
             }
         };
 
         quote! {
-            impl #crate_path::common::JsonURL for #ident {
-                const URL: &'static str = #url;
-                const URL_VIEW: &'static str = #url_view;
+            impl #crate_path::common::FormURL for #ident {
+                const URL_FORM: &'static str = #url_form;
+                const URL_FORM_VIEW: &'static str = #url_form_view;
             }
 
             #impl_endpoint
@@ -109,7 +109,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     };
 
     Ok(quote! {
-        #impl_json
+        #impl_form
         #impl_binary
     })
 }

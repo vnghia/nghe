@@ -30,14 +30,14 @@ pub struct SubsonicResponse<B> {
     root: RootResponse<B>,
 }
 
-pub trait JsonURL {
-    const URL: &'static str;
-    const URL_VIEW: &'static str;
+pub trait FormURL {
+    const URL_FORM: &'static str;
+    const URL_FORM_VIEW: &'static str;
 }
 
-pub trait JsonRequest = JsonURL + DeserializeOwned;
+pub trait FormRequest = FormURL + DeserializeOwned;
 
-pub trait JsonEndpoint: JsonRequest {
+pub trait FormEndpoint: FormRequest {
     type Response: Serialize;
 }
 

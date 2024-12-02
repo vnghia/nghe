@@ -12,7 +12,7 @@ struct Handler {
     ret_level: String,
     role: Option<syn::Ident>,
     #[deluxe(default = true)]
-    json: bool,
+    form: bool,
     #[deluxe(default = true)]
     binary: bool,
     #[deluxe(default = vec![])]
@@ -34,7 +34,7 @@ struct BuildRouter {
 struct ModuleConfig {
     pub ident: syn::Ident,
     #[builder(default = true)]
-    pub json: bool,
+    pub form: bool,
     #[builder(default = true)]
     pub binary: bool,
 }
@@ -76,7 +76,7 @@ impl TryFrom<syn::Expr> for ModuleConfig {
 
                 Ok(Self::builder()
                     .ident(ident)
-                    .maybe_json(extract_bool("json"))
+                    .maybe_form(extract_bool("form"))
                     .maybe_binary(extract_bool("binary"))
                     .build())
             }
@@ -87,7 +87,7 @@ impl TryFrom<syn::Expr> for ModuleConfig {
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemFn = syn::parse2(item)?;
-    let Handler { ret_level, role, json, binary, headers, need_auth } = deluxe::parse2(attr)?;
+    let Handler { ret_level, role, form, binary, headers, need_auth } = deluxe::parse2(attr)?;
 
     let ident = &input.sig.ident;
     if ident != "handler" {
@@ -189,25 +189,28 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
 
     pass_args.push(parse_quote!(user.request));
 
-    let json_handler = if json {
-        let json_get_args =
-            [common_args.as_slice(), [parse_quote!(user: GetUser<Request, #need_auth>)].as_slice()]
+    let form_handler = if form {
+        let form_get_args = [
+            common_args.as_slice(),
+            [parse_quote!(user: FormGetUser<Request, #need_auth>)].as_slice(),
+        ]
+        .concat();
+        let form_post_args =
+            [common_args.as_slice(), [parse_quote!(user: FormPostUser<Request>)].as_slice()]
                 .concat();
-        let json_post_args =
-            [common_args.as_slice(), [parse_quote!(user: PostUser<Request>)].as_slice()].concat();
 
         if is_binary_respone {
             quote! {
                 #[axum::debug_handler]
-                pub async fn json_get_handler(
-                    #( #json_get_args ),*
+                pub async fn form_get_handler(
+                    #( #form_get_args ),*
                 ) -> Result<crate::http::binary::Response, Error> {
                     #ident(#( #pass_args ),*).await
                 }
 
                 #[axum::debug_handler]
-                pub async fn json_post_handler(
-                    #( #json_post_args ),*
+                pub async fn form_post_handler(
+                    #( #form_post_args ),*
                 ) -> Result<crate::http::binary::Response, Error> {
                     #ident(#( #pass_args ),*).await
                 }
@@ -215,20 +218,20 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         } else {
             quote! {
                 #[axum::debug_handler]
-                pub async fn json_get_handler(
-                    #( #json_get_args ),*
+                pub async fn form_get_handler(
+                    #( #form_get_args ),*
                 ) -> Result<
-                        axum::Json<SubsonicResponse<<Request as JsonEndpoint>::Response>
+                        axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
                     >, Error> {
                     let response = #ident(#( #pass_args ),*).await?;
                     Ok(axum::Json(SubsonicResponse::new(response)))
                 }
 
                 #[axum::debug_handler]
-                pub async fn json_post_handler(
-                    #( #json_post_args ),*
+                pub async fn form_post_handler(
+                    #( #form_post_args ),*
                 ) -> Result<
-                        axum::Json<SubsonicResponse<<Request as JsonEndpoint>::Response>
+                        axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
                     >, Error> {
                     let response = #ident(#( #pass_args ),*).await?;
                     Ok(axum::Json(SubsonicResponse::new(response)))
@@ -275,9 +278,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         #input
 
         use axum::extract;
-        use nghe_api::common::{JsonEndpoint, SubsonicResponse};
+        use nghe_api::common::{FormEndpoint, SubsonicResponse};
 
-        use crate::auth::{Authorize, BinaryUser, GetUser, PostUser};
+        use crate::auth::{Authorize, BinaryUser, FormGetUser, FormPostUser};
 
         impl Authorize for Request {
             fn authorize(role: crate::orm::users::Role) -> Result<(), Error> {
@@ -289,7 +292,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             }
         }
 
-        #json_handler
+        #form_handler
         #binary_handler
     })
 }
@@ -303,25 +306,25 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
             let config: ModuleConfig = module.try_into()?;
             let module = config.ident;
 
-            let json_get_handler = quote! { #module::json_get_handler };
-            let json_post_handler = quote! { #module::json_post_handler };
+            let form_get_handler = quote! { #module::form_get_handler };
+            let form_post_handler = quote! { #module::form_post_handler };
             let binary_handler = quote! { #module::binary_handler };
 
             let mut routers = vec![];
 
-            if config.json {
-                let request = quote! { <#module::Request as nghe_api::common::JsonURL> };
+            if config.form {
+                let request = quote! { <#module::Request as nghe_api::common::FormURL> };
 
                 routers.push(quote! {
                     route(
-                        #request::URL,
-                        axum::routing::get(#json_get_handler).post(#json_post_handler)
+                        #request::URL_FORM,
+                        axum::routing::get(#form_get_handler).post(#form_post_handler)
                     )
                 });
                 routers.push(quote! {
                     route(
-                        #request::URL_VIEW,
-                        axum::routing::get(#json_get_handler).post(#json_post_handler)
+                        #request::URL_FORM_VIEW,
+                        axum::routing::get(#form_get_handler).post(#form_post_handler)
                     )
                 });
             }
