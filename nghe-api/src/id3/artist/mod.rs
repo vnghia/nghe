@@ -23,6 +23,7 @@ pub enum Role {
 pub struct Artist {
     #[serde(flatten)]
     pub required: Required,
+    pub cover_art: Option<Uuid>,
     pub album_count: u16,
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]
