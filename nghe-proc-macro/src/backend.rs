@@ -132,7 +132,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                                 pass_args.push(parse_quote!(#pat.map(|header| header.0)));
                             }
                         } else {
-                            if pat.ident == "config" {
+                            if pat.ident == "config" || pat.ident == "informant" {
                                 skip_debugs.push(&pat.ident);
                             }
                             common_args.push(

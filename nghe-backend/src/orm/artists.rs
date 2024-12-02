@@ -23,6 +23,15 @@ pub struct Upsert<'a> {
     pub data: Data<'a>,
 }
 
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
+pub struct Artist<'a> {
+    pub id: Uuid,
+    #[diesel(embed)]
+    pub data: Data<'a>,
+}
+
 mod upsert {
     use diesel::{DecoratableTarget, ExpressionMethods};
     use diesel_async::RunQueryDsl;

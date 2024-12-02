@@ -153,9 +153,15 @@ impl Picture<'static, 'static> {
         }
         Ok(None)
     }
+}
 
-    pub async fn fetch(client: &reqwest::Client, source: String) -> Result<Self, Error> {
-        let response = client.get(&source).send().await?.error_for_status()?;
+impl<'s> Picture<'s, 'static> {
+    pub async fn fetch(
+        client: &reqwest::Client,
+        source: impl Into<Cow<'s, str>>,
+    ) -> Result<Self, Error> {
+        let source = source.into();
+        let response = client.get(source.as_str()).send().await?.error_for_status()?;
         let content_type = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
@@ -166,7 +172,7 @@ impl Picture<'static, 'static> {
             .and_then(|(ty, subtype)| if ty == "image" { subtype.parse().ok() } else { None })
             .ok_or_else(|| Error::MediaPictureUnsupportedFormat(content_type.to_owned()))?;
         let data = response.bytes().await?;
-        Picture::new(Some(source.into()), format, data.to_vec())
+        Picture::new(Some(source), format, data.to_vec())
     }
 }
 

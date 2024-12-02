@@ -260,6 +260,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         audio::Information::cleanup(&self.database, started_at).await?;
 
         self.database.upsert_config(&self.config.index).await?;
+        self.informant.search_and_upsert_artists(&self.database, &self.config.cover_art).await?;
         Ok(())
     }
 }

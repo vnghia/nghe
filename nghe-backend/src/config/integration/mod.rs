@@ -5,10 +5,12 @@ use typed_path::utils::utf8_temp_dir;
 use typed_path::Utf8NativePathBuf;
 
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize, Educe)]
-#[educe(Default)]
+#[derive(Clone, Serialize, Deserialize, Educe)]
+#[educe(Debug, Default)]
 pub struct Spotify {
+    #[educe(Debug(ignore))]
     pub id: Option<String>,
+    #[educe(Debug(ignore))]
     pub secret: Option<String>,
     #[serde(with = "crate::filesystem::path::serde::option")]
     #[educe(Default(

@@ -9,16 +9,21 @@ pub struct Artist {
     pub image_url: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[repr(transparent)]
 pub struct Client(rspotify::ClientCredsSpotify);
 
 impl Client {
     pub async fn new(config: config::integration::Spotify) -> Option<Self> {
         if let Some(id) = config.id {
-            tracing::info!("Spotify integration enabled");
+            tracing::info!("spotify integration enabled");
             let creds = rspotify::Credentials { id, secret: config.secret };
             let config = if let Some(token_path) = config.token_path {
+                tokio::fs::create_dir_all(
+                    token_path.parent().expect("Could not get parent directory for spotify token"),
+                )
+                .await
+                .expect("Could not create directory for spotify token");
                 rspotify::Config {
                     token_cached: true,
                     cache_path: token_path.into(),
@@ -38,7 +43,7 @@ impl Client {
     pub async fn search_artist(&self, name: &str) -> Result<Option<Artist>, Error> {
         Ok(
             if let SearchResult::Artists(artists) =
-                self.0.search(name, SearchType::Artist, None, None, None, None).await?
+                self.0.search(name, SearchType::Artist, None, None, Some(1), Some(0)).await?
             {
                 artists.items.into_iter().next().map(|artist| Artist {
                     id: artist.id,

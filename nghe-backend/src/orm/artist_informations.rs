@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 pub use crate::schema::artist_informations::{self, *};
 
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Default, Insertable, AsChangeset)]
 #[diesel(table_name = artist_informations, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Spotify<'a> {
@@ -15,7 +15,7 @@ pub struct Spotify<'a> {
     pub cover_art_id: Option<Uuid>,
 }
 
-#[derive(Debug, Insertable, AsChangeset)]
+#[derive(Debug, Default, Insertable, AsChangeset)]
 #[diesel(table_name = artist_informations, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Upsert<'s> {
