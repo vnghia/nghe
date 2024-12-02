@@ -3,14 +3,14 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_quote, parse_str, Error};
 
+use crate::endpoint::Attribute;
+
 #[derive(Debug, deluxe::ExtractAttributes)]
 #[deluxe(attributes(endpoint))]
 struct Endpoint {
     path: String,
-    #[deluxe(default = true)]
-    json: bool,
-    #[deluxe(default = true)]
-    binary: bool,
+    #[deluxe(flatten)]
+    attribute: Attribute,
     #[deluxe(default = false)]
     url_only: bool,
     #[deluxe(default = true)]
@@ -45,7 +45,7 @@ struct Derive {
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let mut input: syn::DeriveInput = syn::parse2(item)?;
-    let Endpoint { path, json, binary, url_only, same_crate } =
+    let Endpoint { path, attribute, url_only, same_crate } =
         deluxe::extract_attributes(&mut input)?;
 
     let ident = &input.ident;
@@ -58,24 +58,24 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
     let crate_path = if same_crate { format_ident!("crate") } else { format_ident!("nghe_api") };
 
-    let impl_json = if json {
-        let url = concat_string!("/rest/", &path);
-        let url_view = concat_string!("/rest/", &path, ".view");
+    let impl_form = if attribute.form() {
+        let url_form = concat_string!("/rest/", &path);
+        let url_form_view = concat_string!("/rest/", &path, ".view");
 
         let impl_endpoint = if url_only {
             quote! {}
         } else {
             quote! {
-                impl #crate_path::common::JsonEndpoint for #ident {
+                impl #crate_path::common::FormEndpoint for #ident {
                     type Response = Response;
                 }
             }
         };
 
         quote! {
-            impl #crate_path::common::JsonURL for #ident {
-                const URL: &'static str = #url;
-                const URL_VIEW: &'static str = #url_view;
+            impl #crate_path::common::FormURL for #ident {
+                const URL_FORM: &'static str = #url_form;
+                const URL_FORM_VIEW: &'static str = #url_form_view;
             }
 
             #impl_endpoint
@@ -84,7 +84,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         quote! {}
     };
 
-    let impl_binary = if binary {
+    let impl_binary = if attribute.binary() {
         let url_binary = concat_string!("/rest/", &path, ".bin");
 
         let impl_endpoint = if url_only {
@@ -108,9 +108,34 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         quote! {}
     };
 
+    let impl_json = if attribute.json() {
+        let url_json = concat_string!("/rest/", &path, ".json");
+
+        let impl_endpoint = if url_only {
+            quote! {}
+        } else {
+            quote! {
+                impl #crate_path::common::JsonEndpoint for #ident {
+                    type Response = Response;
+                }
+            }
+        };
+
+        quote! {
+            impl #crate_path::common::JsonURL for #ident {
+                const URL_JSON: &'static str = #url_json;
+            }
+
+            #impl_endpoint
+        }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
-        #impl_json
+        #impl_form
         #impl_binary
+        #impl_json
     })
 }
 

@@ -5,6 +5,7 @@ use proc_macro::TokenStream;
 
 mod api;
 mod backend;
+mod endpoint;
 mod orm;
 
 trait IntoTokenStream {

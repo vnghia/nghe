@@ -7,7 +7,7 @@ use crate::orm::users;
 use crate::route::permission;
 use crate::Error;
 
-#[handler(role = admin)]
+#[handler(role = admin, internal = true)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
     let Request { username, password, email, role, allow } = request;
     let password = database.encrypt(password);
