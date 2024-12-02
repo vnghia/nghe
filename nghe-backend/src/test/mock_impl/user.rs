@@ -32,7 +32,7 @@ impl<'a> Mock<'a> {
     pub fn auth(&self) -> Auth<'static, 'static> {
         let users::Data { username, password, .. } = &self.user.data;
         let salt: String = Faker.fake();
-        let token = auth::Auth::tokenize(self.mock.database().decrypt(password).unwrap(), &salt);
+        let token = auth::Token::new(self.mock.database().decrypt(password).unwrap(), &salt);
         Auth { username: username.to_string().into(), salt: salt.into(), token }
     }
 }

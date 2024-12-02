@@ -43,24 +43,19 @@ pub trait Authorize {
     fn authorize(role: users::Role) -> Result<(), Error>;
 }
 
-async fn authenticate<A: Authorize>(
+async fn authenticate_token<A: Authorize>(
     database: &Database,
-    data: Auth<'_, '_>,
+    auth: Auth<'_, '_>,
 ) -> Result<Uuid, Error> {
     let users::Auth { id, password, role } = users::table
-        .filter(users::username.eq(data.username))
+        .filter(users::username.eq(&auth.username))
         .select(users::Auth::as_select())
         .first(&mut database.get().await?)
         .await
         .map_err(|_| Error::Unauthenticated)?;
-    let password = database.decrypt(password)?;
     A::authorize(role)?;
-
-    if Auth::check(password, data.salt.as_bytes(), &data.token) {
-        Ok(id)
-    } else {
-        Err(Error::Unauthenticated)
-    }
+    let password = database.decrypt(password)?;
+    if auth.check(password) { Ok(id) } else { Err(Error::Unauthenticated) }
 }
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
@@ -75,7 +70,7 @@ where
         .map_err(|_| Error::SerializeAuthParameters(input.to_owned()))?;
 
     let database = Database::from_ref(state);
-    let id = authenticate::<R>(&database, auth).await?;
+    let id = authenticate_token::<R>(&database, auth).await?;
 
     let request = serde_html_form::from_str::<R>(input)
         .map_err(|_| Error::SerializeRequestParameters(input.to_owned()))?;
@@ -152,7 +147,7 @@ where
                 bitcode::deserialize(&bytes).map_err(|_| Error::SerializeBinaryRequest)?;
 
             let database = Database::from_ref(state);
-            let id = authenticate::<R>(&database, auth).await?;
+            let id = authenticate_token::<R>(&database, auth).await?;
             Ok(Self { id, request })
         } else {
             Ok(Self {
@@ -171,6 +166,7 @@ mod tests {
     use axum::http;
     use concat_string::concat_string;
     use fake::{Fake, Faker};
+    use nghe_api::auth::Token;
     use nghe_api::common::FormRequest as _;
     use nghe_proc_macro::api_derive;
     use rstest::rstest;
@@ -199,39 +195,39 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_authenticate(
+    async fn test_authenticate_token(
         #[future(awt)]
         #[with(1, 0)]
         mock: Mock,
     ) {
         let user = mock.user(0).await;
-        let id = authenticate::<Request>(mock.database(), user.auth()).await.unwrap();
+        let id = authenticate_token::<Request>(mock.database(), user.auth()).await.unwrap();
         assert_eq!(id, user.id());
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_authenticate_wrong_username(
+    async fn test_authenticate_token_wrong_username(
         #[future(awt)]
         #[with(1, 0)]
         mock: Mock,
     ) {
         let auth = mock.user(0).await.auth();
         let auth = Auth { username: Faker.fake::<String>().into(), ..auth };
-        assert!(authenticate::<Request>(mock.database(), auth).await.is_err());
+        assert!(authenticate_token::<Request>(mock.database(), auth).await.is_err());
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_authenticate_wrong_password(
+    async fn test_authenticate_token_wrong_password(
         #[future(awt)]
         #[with(1, 0)]
         mock: Mock,
     ) {
         let auth = mock.user(0).await.auth();
-        let token = Auth::tokenize(Faker.fake::<String>(), auth.salt.as_bytes());
+        let token = Token::new(Faker.fake::<String>(), auth.salt.as_bytes());
         let auth = Auth { token, ..auth };
-        assert!(authenticate::<Request>(mock.database(), auth).await.is_err());
+        assert!(authenticate_token::<Request>(mock.database(), auth).await.is_err());
     }
 
     #[rstest]
