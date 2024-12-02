@@ -11,7 +11,7 @@ static EXTENSIONS: &[Extension] = &[
     Extension { name: "formPost", versions: &[1] },
 ];
 
-#[handler(need_auth = false, binary = false)]
+#[handler(need_auth = false)]
 pub async fn handler(_database: &Database, request: Request) -> Result<Response, Error> {
     Ok(Response { open_subsonic_extensions: EXTENSIONS })
 }

@@ -51,6 +51,16 @@ pub trait BinaryEndpoint: BinaryRequest {
     type Response: Serialize + DeserializeOwned;
 }
 
+pub trait JsonURL {
+    const URL_JSON: &'static str;
+}
+
+pub trait JsonRequest = JsonURL + Serialize + DeserializeOwned;
+
+pub trait JsonEndpoint: JsonRequest {
+    type Response: Serialize + DeserializeOwned;
+}
+
 impl<B> SubsonicResponse<B> {
     pub fn new(body: B) -> Self {
         Self {

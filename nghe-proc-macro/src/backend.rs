@@ -6,15 +6,15 @@ use quote::{format_ident, quote};
 use syn::spanned::Spanned;
 use syn::{parse_quote, Error};
 
+use crate::endpoint::Attribute;
+
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct Handler {
     #[deluxe(default = "trace".into())]
     ret_level: String,
     role: Option<syn::Ident>,
-    #[deluxe(default = true)]
-    form: bool,
-    #[deluxe(default = true)]
-    binary: bool,
+    #[deluxe(flatten)]
+    attribute: Attribute,
     #[deluxe(default = vec![])]
     headers: Vec<syn::Ident>,
     #[deluxe(default = true)]
@@ -30,13 +30,10 @@ struct BuildRouter {
     extensions: Vec<syn::Path>,
 }
 
-#[derive(Debug, bon::Builder)]
+#[derive(Debug)]
 struct ModuleConfig {
     pub ident: syn::Ident,
-    #[builder(default = true)]
-    pub form: bool,
-    #[builder(default = true)]
-    pub binary: bool,
+    pub attribute: Attribute,
 }
 
 impl TryFrom<syn::Expr> for ModuleConfig {
@@ -50,7 +47,7 @@ impl TryFrom<syn::Expr> for ModuleConfig {
                     .get_ident()
                     .ok_or_else(|| Error::new(span, "Only `Path` with one segment is supported"))?
                     .to_owned();
-                Ok(Self::builder().ident(ident).build())
+                Ok(Self { ident, attribute: Attribute::builder().build() })
             }
             syn::Expr::Struct(syn::ExprStruct { path, fields, .. }) => {
                 let ident = path
@@ -74,11 +71,14 @@ impl TryFrom<syn::Expr> for ModuleConfig {
                     })
                 };
 
-                Ok(Self::builder()
-                    .ident(ident)
-                    .maybe_form(extract_bool("form"))
-                    .maybe_binary(extract_bool("binary"))
-                    .build())
+                Ok(Self {
+                    ident,
+                    attribute: Attribute::builder()
+                        .maybe_internal(extract_bool("internal"))
+                        .maybe_binary(extract_bool("binary"))
+                        .maybe_json(extract_bool("json"))
+                        .build(),
+                })
             }
             _ => Err(Error::new(span, "Only `Path` and `Struct` expressions are supported")),
         }
@@ -87,7 +87,7 @@ impl TryFrom<syn::Expr> for ModuleConfig {
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemFn = syn::parse2(item)?;
-    let Handler { ret_level, role, form, binary, headers, need_auth } = deluxe::parse2(attr)?;
+    let Handler { ret_level, role, attribute, headers, need_auth } = deluxe::parse2(attr)?;
 
     let ident = &input.sig.ident;
     if ident != "handler" {
@@ -189,7 +189,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
 
     pass_args.push(parse_quote!(user.request));
 
-    let form_handler = if form {
+    let form_handler = if attribute.form() {
         let form_get_args = [
             common_args.as_slice(),
             [parse_quote!(user: FormGetUser<Request, #need_auth>)].as_slice(),
@@ -242,7 +242,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         quote! {}
     };
 
-    let binary_handler = if binary {
+    let binary_handler = if attribute.binary() {
         let binary_args = [
             common_args.as_slice(),
             [parse_quote!(user: BinaryUser<Request, #need_auth>)].as_slice(),
@@ -273,6 +273,37 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         quote! {}
     };
 
+    let json_handler = if attribute.json() {
+        let json_args = [
+            common_args.as_slice(),
+            [parse_quote!(user: JsonUser<Request, #need_auth>)].as_slice(),
+        ]
+        .concat();
+
+        if is_binary_respone {
+            quote! {
+                #[axum::debug_handler]
+                pub async fn json_handler(
+                    #( #json_args ),*
+                ) -> Result<crate::http::binary::Response, Error> {
+                    #ident(#( #pass_args ),*).await
+                }
+            }
+        } else {
+            quote! {
+                #[axum::debug_handler]
+                pub async fn json_handler(
+                    #( #json_args ),*
+                ) -> Result<Vec<u8>, Error> {
+                    let response = #ident(#( #pass_args ),*).await?;
+                    Ok(bitcode::serialize(&response)?)
+                }
+            }
+        }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         #[tracing::instrument(skip(#( #skip_debugs ),*), ret(level = #ret_level), err)]
         #input
@@ -280,7 +311,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract;
         use nghe_api::common::{FormEndpoint, SubsonicResponse};
 
-        use crate::auth::{Authorize, BinaryUser, FormGetUser, FormPostUser};
+        use crate::auth::{Authorize, BinaryUser, FormGetUser, FormPostUser, JsonUser};
 
         impl Authorize for Request {
             fn authorize(role: crate::orm::users::Role) -> Result<(), Error> {
@@ -294,6 +325,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
 
         #form_handler
         #binary_handler
+        #json_handler
     })
 }
 
@@ -303,18 +335,16 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         .modules
         .into_iter()
         .map(|module| {
-            let config: ModuleConfig = module.try_into()?;
-            let module = config.ident;
-
-            let form_get_handler = quote! { #module::form_get_handler };
-            let form_post_handler = quote! { #module::form_post_handler };
-            let binary_handler = quote! { #module::binary_handler };
+            let ModuleConfig { ident, attribute } = module.try_into()?;
+            let module = ident;
 
             let mut routers = vec![];
 
-            if config.form {
-                let request = quote! { <#module::Request as nghe_api::common::FormURL> };
+            if attribute.form() {
+                let form_get_handler = quote! { #module::form_get_handler };
+                let form_post_handler = quote! { #module::form_post_handler };
 
+                let request = quote! { <#module::Request as nghe_api::common::FormURL> };
                 routers.push(quote! {
                     route(
                         #request::URL_FORM,
@@ -329,13 +359,26 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
                 });
             }
 
-            if config.binary {
-                let request = quote! { <#module::Request as nghe_api::common::BinaryURL> };
+            if attribute.binary() {
+                let binary_handler = quote! { #module::binary_handler };
 
+                let request = quote! { <#module::Request as nghe_api::common::BinaryURL> };
                 routers.push(quote! {
                     route(
                         #request::URL_BINARY,
                         axum::routing::post(#binary_handler)
+                    )
+                });
+            }
+
+            if attribute.json() {
+                let json_handler = quote! { #module::json_handler };
+
+                let request = quote! { <#module::Request as nghe_api::common::JsonURL> };
+                routers.push(quote! {
+                    route(
+                        #request::URL_JSON,
+                        axum::routing::post(#json_handler)
                     )
                 });
             }

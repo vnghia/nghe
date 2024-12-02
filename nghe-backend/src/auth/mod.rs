@@ -29,6 +29,12 @@ pub struct BinaryUser<R, const NEED_AUTH: bool> {
     pub request: R,
 }
 
+#[derive(Debug)]
+pub struct JsonUser<R, const NEED_AUTH: bool> {
+    pub id: Uuid,
+    pub request: R,
+}
+
 trait FromIdRequest<R>: Sized {
     fn from_id_request(id: Uuid, request: R) -> Self;
 }
@@ -174,7 +180,7 @@ mod tests {
     use crate::test::{mock, Mock};
 
     #[api_derive(fake = true)]
-    #[endpoint(path = "test", same_crate = false)]
+    #[endpoint(path = "test", binary = true, json = true, same_crate = false)]
     #[derive(Clone, Copy)]
     struct Request {
         param_one: i32,
