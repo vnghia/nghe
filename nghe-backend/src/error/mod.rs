@@ -44,6 +44,8 @@ pub enum Error {
     SerializeRequestParameters(String),
     #[error("Could not serialize binary request")]
     SerializeBinaryRequest,
+    #[error("Could not find authentication header")]
+    MissingAuthenticationHeader,
     #[error(transparent)]
     ExtractRequestBody(#[from] axum::extract::rejection::BytesRejection),
     #[error("Scrobble request must have more id than time")]
@@ -141,6 +143,7 @@ impl IntoResponse for Error {
             | Error::SerializeAuthParameters(_)
             | Error::SerializeRequestParameters(_)
             | Error::SerializeBinaryRequest
+            | Error::MissingAuthenticationHeader
             | Error::InvalidRangeHeader => (StatusCode::BAD_REQUEST, self.to_string()),
             Error::ExtractRequestBody(_) => {
                 (StatusCode::BAD_REQUEST, "Could not extract request body".into())

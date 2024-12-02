@@ -17,13 +17,6 @@ pub struct Auth<'u, 't> {
     pub token: Token,
 }
 
-#[api_derive]
-pub struct AuthRequest<'u, 't, R> {
-    #[serde(borrow)]
-    pub auth: Auth<'u, 't>,
-    pub request: R,
-}
-
 impl Auth<'_, '_> {
     pub fn check(&self, password: impl AsRef<[u8]>) -> bool {
         let password = password.as_ref();

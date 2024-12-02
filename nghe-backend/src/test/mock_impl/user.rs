@@ -1,6 +1,8 @@
+use axum_extra::headers;
 use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
+use image::EncodableLayout;
 use nghe_api::auth::{self, Auth};
 use uuid::Uuid;
 
@@ -29,10 +31,22 @@ impl<'a> Mock<'a> {
         self.user.id
     }
 
-    pub fn auth(&self) -> Auth<'static, 'static> {
-        let users::Data { username, password, .. } = &self.user.data;
+    fn username(&self) -> String {
+        self.user.data.username.to_string()
+    }
+
+    fn password(&self) -> String {
+        String::from_utf8(self.mock.database().decrypt(self.user.data.password.as_bytes()).unwrap())
+            .unwrap()
+    }
+
+    pub fn auth_header(&self) -> headers::Authorization<headers::authorization::Basic> {
+        headers::Authorization::basic(&self.username(), &self.password())
+    }
+
+    pub fn auth_token(&self) -> Auth<'static, 'static> {
         let salt: String = Faker.fake();
-        let token = auth::Token::new(self.mock.database().decrypt(password).unwrap(), &salt);
-        Auth { username: username.to_string().into(), salt: salt.into(), token }
+        let token = auth::Token::new(self.password(), &salt);
+        Auth { username: self.username().into(), salt: salt.into(), token }
     }
 }
