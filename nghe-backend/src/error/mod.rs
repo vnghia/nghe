@@ -44,6 +44,8 @@ pub enum Error {
     SerializeRequestParameters(String),
     #[error("Could not serialize binary request")]
     SerializeBinaryRequest,
+    #[error("Could not serialize json request due to {0}")]
+    SerializeJsonRequest(String),
     #[error("Could not find authentication header")]
     MissingAuthenticationHeader,
     #[error(transparent)]
@@ -143,6 +145,7 @@ impl IntoResponse for Error {
             | Error::SerializeAuthParameters(_)
             | Error::SerializeRequestParameters(_)
             | Error::SerializeBinaryRequest
+            | Error::SerializeJsonRequest(_)
             | Error::MissingAuthenticationHeader
             | Error::InvalidRangeHeader => (StatusCode::BAD_REQUEST, self.to_string()),
             Error::ExtractRequestBody(_) => {

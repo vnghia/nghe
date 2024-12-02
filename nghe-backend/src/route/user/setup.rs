@@ -9,7 +9,7 @@ use crate::database::Database;
 use crate::orm::users;
 use crate::Error;
 
-#[handler(need_auth = false)]
+#[handler(need_auth = false, internal = true)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
     if users::table.count().first::<i64>(&mut database.get().await?).await? > 0 {
         Err(Error::Unauthorized("Could not access setup endpoint when there is already one user"))

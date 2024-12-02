@@ -26,12 +26,14 @@ pub struct FormPostUser<R> {
 
 #[derive(Debug)]
 pub struct BinaryUser<R, const NEED_AUTH: bool> {
+    #[allow(dead_code)]
     pub id: Uuid,
     pub request: R,
 }
 
 #[derive(Debug)]
 pub struct JsonUser<R, const NEED_AUTH: bool> {
+    #[allow(dead_code)]
     pub id: Uuid,
     pub request: R,
 }
@@ -199,7 +201,7 @@ where
         Ok(Self {
             id,
             request: serde_json::from_slice(&request.extract::<Bytes, _>().await?)
-                .map_err(|_| Error::SerializeBinaryRequest)?,
+                .map_err(|e| Error::SerializeJsonRequest(e.to_string()))?,
         })
     }
 }
