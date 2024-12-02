@@ -35,7 +35,6 @@ pub struct Config {
     pub index: config::Index,
     pub transcode: config::Transcode,
     pub cover_art: config::CoverArt,
-    #[educe(Default(expression = config::Integration::from_env()))]
     pub integration: config::Integration,
 
     pub lofty_parse: ParseOptions,
@@ -180,9 +179,20 @@ pub async fn mock(
     #[default(1)] n_user: usize,
     #[default(1)] n_music_folder: usize,
     #[default(None)] prefix: Option<&str>,
-    #[default(Config::default())] config: Config,
+    #[default(false)] enable_integration: bool,
 ) -> Mock {
-    let mock = Mock::new(prefix, config).await;
+    let mock = Mock::new(
+        prefix,
+        Config {
+            integration: if enable_integration {
+                config::Integration::from_env()
+            } else {
+                config::Integration::default()
+            },
+            ..Default::default()
+        },
+    )
+    .await;
     for _ in 0..n_user {
         mock.add_user().call().await;
     }

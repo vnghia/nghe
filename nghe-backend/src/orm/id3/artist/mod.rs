@@ -251,4 +251,30 @@ mod tests {
             Artist { song_count, album_count, ..Faker.fake() }.try_into().unwrap();
         assert_eq!(artist.roles, roles);
     }
+
+    #[cfg(spotify_env)]
+    #[rstest]
+    #[tokio::test]
+    async fn test_cover_art(
+        #[future(awt)]
+        #[with(1, 1, None, true)]
+        mock: Mock,
+    ) {
+        let artist = audio::Artist::from("Micheal Learn To Rock");
+        mock.music_folder(0)
+            .await
+            .add_audio_filesystem::<&str>()
+            .artists(audio::Artists {
+                song: [artist.clone()].into(),
+                album: [artist.clone()].into(),
+                compilation: false,
+            })
+            .call()
+            .await;
+        let database_artist = query::with_user_id(mock.user_id(0).await)
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+        assert!(database_artist.cover_art.is_some());
+    }
 }

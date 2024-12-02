@@ -25,8 +25,12 @@ pub struct Informant {
 impl Informant {
     pub async fn new(config: config::Integration) -> Self {
         let spotify = spotify::Client::new(config.spotify).await;
-        let reqwest = if spotify.is_none() { Some(reqwest::Client::new()) } else { None };
+        let reqwest = if spotify.is_some() { Some(reqwest::Client::new()) } else { None };
         Self { spotify, reqwest }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.spotify.is_some() || self.reqwest.is_some()
     }
 
     async fn upsert_artist_picture(
@@ -68,7 +72,7 @@ impl Informant {
         } else {
             artist_informations::Spotify::default()
         };
-        artist_informations::Upsert { spotify }.update(database, id).await
+        artist_informations::Data { spotify }.update(database, id).await
     }
 
     #[tracing::instrument(skip(self, database, config))]
@@ -98,14 +102,16 @@ impl Informant {
         database: &Database,
         config: &config::CoverArt,
     ) -> Result<(), Error> {
-        loop {
-            let artists =
-                query::artist_no_information().get_results(&mut database.get().await?).await?;
-            if artists.is_empty() {
-                break;
-            }
-            for artist in artists {
-                self.search_and_upsert_artist(database, config, &artist).await?;
+        if self.is_enabled() {
+            loop {
+                let artists =
+                    query::artist_no_information().get_results(&mut database.get().await?).await?;
+                if artists.is_empty() {
+                    break;
+                }
+                for artist in artists {
+                    self.search_and_upsert_artist(database, config, &artist).await?;
+                }
             }
         }
         Ok(())
@@ -128,5 +134,44 @@ mod query {
             )))
             .select(artist)
             .limit(limit)
+    }
+}
+
+#[cfg(all(test, spotify_env))]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+    use crate::file::audio;
+    use crate::test::{mock, Mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_artist(
+        #[future(awt)]
+        #[with(0, 1, None, true)]
+        mock: Mock,
+    ) {
+        let id_westlife = audio::Artist::from("Westlife").upsert_mock(&mock).await;
+        let id_mltr = audio::Artist::from("Micheal Learn To Rock").upsert_mock(&mock).await;
+
+        diesel::insert_into(artist_informations::table)
+            .values(artist_informations::artist_id.eq(id_westlife))
+            .execute(&mut mock.get().await)
+            .await
+            .unwrap();
+        mock.informant
+            .search_and_upsert_artists(mock.database(), &mock.config.cover_art)
+            .await
+            .unwrap();
+
+        let mltr_data = artist_informations::table
+            .filter(artist_informations::artist_id.eq(id_mltr))
+            .select(artist_informations::Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+        assert!(mltr_data.spotify.id.is_some());
+        assert!(mltr_data.spotify.cover_art_id.is_some());
     }
 }

@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 pub use crate::schema::artist_informations::{self, *};
 
-#[derive(Debug, Default, Insertable, AsChangeset)]
+#[derive(Debug, Default, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = artist_informations, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Spotify<'a> {
@@ -15,10 +15,10 @@ pub struct Spotify<'a> {
     pub cover_art_id: Option<Uuid>,
 }
 
-#[derive(Debug, Default, Insertable, AsChangeset)]
+#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = artist_informations, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-pub struct Upsert<'s> {
+pub struct Data<'s> {
     #[diesel(embed)]
     pub spotify: Spotify<'s>,
 }
@@ -28,11 +28,11 @@ mod upsert {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{artist_informations, Upsert};
+    use super::{artist_informations, Data};
     use crate::database::Database;
     use crate::Error;
 
-    impl crate::orm::upsert::Update for Upsert<'_> {
+    impl crate::orm::upsert::Update for Data<'_> {
         async fn update(&self, database: &Database, id: Uuid) -> Result<(), Error> {
             diesel::insert_into(artist_informations::table)
                 .values((artist_informations::artist_id.eq(id), self))
