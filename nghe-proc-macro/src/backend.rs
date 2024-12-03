@@ -24,66 +24,11 @@ struct Handler {
 
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct BuildRouter {
-    modules: Vec<syn::Expr>,
+    modules: Vec<syn::Meta>,
     #[deluxe(default = false)]
     filesystem: bool,
     #[deluxe(default = vec![])]
     extensions: Vec<syn::Path>,
-}
-
-#[derive(Debug)]
-struct ModuleConfig {
-    pub ident: syn::Ident,
-    pub attribute: Attribute,
-}
-
-impl TryFrom<syn::Expr> for ModuleConfig {
-    type Error = Error;
-
-    fn try_from(value: syn::Expr) -> Result<Self, Self::Error> {
-        let span = value.span();
-        match value {
-            syn::Expr::Path(syn::ExprPath { path, .. }) => {
-                let ident = path
-                    .get_ident()
-                    .ok_or_else(|| Error::new(span, "Only `Path` with one segment is supported"))?
-                    .to_owned();
-                Ok(Self { ident, attribute: Attribute::builder().build() })
-            }
-            syn::Expr::Struct(syn::ExprStruct { path, fields, .. }) => {
-                let ident = path
-                    .get_ident()
-                    .ok_or_else(|| {
-                        Error::new(span, "Only `Struct` path with one segment is supported")
-                    })?
-                    .to_owned();
-
-                let extract_bool = |key: &'static str| -> Option<bool> {
-                    fields.iter().find_map(|value| {
-                        if let syn::Member::Named(ref ident) = value.member
-                            && ident == key
-                            && let syn::Expr::Lit(syn::ExprLit { ref lit, .. }) = value.expr
-                            && let syn::Lit::Bool(syn::LitBool { value, .. }) = lit
-                        {
-                            Some(*value)
-                        } else {
-                            None
-                        }
-                    })
-                };
-
-                Ok(Self {
-                    ident,
-                    attribute: Attribute::builder()
-                        .maybe_internal(extract_bool("internal"))
-                        .maybe_binary(extract_bool("binary"))
-                        .maybe_json(extract_bool("json"))
-                        .build(),
-                })
-            }
-            _ => Err(Error::new(span, "Only `Path` and `Struct` expressions are supported")),
-        }
-    }
 }
 
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
@@ -345,9 +290,17 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
     let endpoints: Vec<_> = input
         .modules
         .into_iter()
-        .map(|module| {
-            let ModuleConfig { ident, attribute } = module.try_into()?;
-            let module = ident;
+        .map(|meta| {
+            let module = meta
+                .path()
+                .get_ident()
+                .ok_or_else(|| Error::new(meta.span(), "Meta path ident is missing"))?
+                .to_owned();
+            let attribute = if let syn::Meta::List(syn::MetaList { ref tokens, .. }) = meta {
+                deluxe::parse2(tokens.clone())?
+            } else {
+                Attribute::builder().build()
+            };
 
             let mut routers = vec![];
 
