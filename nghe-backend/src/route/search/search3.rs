@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_lines)]
+
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_full_text_search::configuration::TsConfigurationByName;
