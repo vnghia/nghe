@@ -128,6 +128,9 @@ pub enum Error {
     #[error("Typed path has wrong platform information")]
     FilesystemTypedPathWrongPlatform,
 
+    #[error("Response binary property has zero size")]
+    ResponseBinaryPropertyZeroSize,
+
     #[error("Prefix does not end with whitespace")]
     ConfigIndexIgnorePrefixEndWithoutSpace,
 
