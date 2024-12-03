@@ -1,8 +1,10 @@
+use std::fmt::Debug;
+
 use axum_extra::headers::{CacheControl, ETag};
 
 use crate::Error;
 
-pub trait Trait: Copy {
+pub trait Trait: Debug + Copy {
     const SEEKABLE: bool;
 
     fn mime(&self) -> &'static str;
