@@ -11,10 +11,10 @@ use crate::http::header::ToOffset;
 use crate::orm::cover_arts;
 use crate::{config, Error};
 
-#[handler(role = download, headers = [range])]
+#[handler]
 pub async fn handler(
     database: &Database,
-    range: Option<Range>,
+    #[handler(header)] range: Option<Range>,
     config: config::CoverArt,
     request: Request,
 ) -> Result<binary::Response, Error> {
