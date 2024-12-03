@@ -40,11 +40,6 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     let mut handler: syn::ItemFn = syn::parse2(item)?;
     let Handler { ret_level, role, attribute, need_auth } = deluxe::parse2(attr)?;
 
-    let source_path = proc_macro::Span::call_site().source_file().path();
-    let source_dir = source_path.parent().unwrap().file_name().unwrap().to_str().unwrap();
-    let source_stem = source_path.file_stem().unwrap().to_str().unwrap();
-    let tracing_name = concat_string!(source_dir, "::", source_stem);
-
     let ident = &handler.sig.ident;
     if ident != "handler" {
         return Err(syn::Error::new(
@@ -53,7 +48,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         ));
     }
 
-    let mut skip_debugs: Vec<&syn::Ident> = vec![];
+    let mut skip_debugs: Vec<syn::Ident> = vec![];
     let mut common_args: Vec<syn::FnArg> = vec![];
     let mut pass_args: Vec<syn::Expr> = vec![];
 
@@ -65,7 +60,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             {
                 match pat.ident.to_string().as_str() {
                     "database" | "_database" => {
-                        skip_debugs.push(&pat.ident);
+                        skip_debugs.push(pat.ident.clone());
                         common_args.push(parse_quote! {
                             extract::State(database): extract::State<crate::database::Database>
                         });
@@ -91,7 +86,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                                 }
                             } else {
                                 if pat.ident == "config" || pat.ident == "informant" {
-                                    skip_debugs.push(&pat.ident);
+                                    skip_debugs.push(pat.ident.clone());
                                 }
                                 common_args.push(
                                     parse_quote!(extract::Extension(#pat): extract::Extension<#ty>),
@@ -101,7 +96,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                         }
                         syn::Type::Reference(ty) => {
                             if pat.ident == "filesystem" || pat.ident == "config" {
-                                skip_debugs.push(&pat.ident);
+                                skip_debugs.push(pat.ident.clone());
                             }
                             let ty = ty.elem.as_ref();
                             common_args.push(
@@ -121,6 +116,47 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             }
         }
     }
+
+    let traced_handler_ident = format_ident!("traced_handler");
+    let traced_handler = {
+        let source_path = proc_macro::Span::call_site().source_file().path();
+        // TODO: Remove this after https://github.com/rust-lang/rust-analyzer/issues/15950.
+        let tracing_name = if source_path.as_os_str().is_empty() {
+            "handler".to_owned()
+        } else {
+            let source_dir = source_path.parent().unwrap().file_name().unwrap().to_str().unwrap();
+            let source_stem = source_path.file_stem().unwrap().to_str().unwrap();
+            concat_string!(source_dir, "::", source_stem)
+        };
+
+        let traced_handler_inputs = handler.sig.inputs.clone();
+        let traced_handler_args: Vec<_> = traced_handler_inputs
+            .iter()
+            .map(|arg| {
+                if let syn::FnArg::Typed(arg) = arg
+                    && let syn::Pat::Ident(pat) = arg.pat.as_ref()
+                {
+                    Ok(&pat.ident)
+                } else {
+                    Err(Error::new(arg.span(), "`handler` should only has typed function argument"))
+                }
+            })
+            .try_collect()?;
+        let traced_handler_output = &handler.sig.output;
+
+        quote! {
+            #[tracing::instrument(
+                name = #tracing_name,
+                skip(#( #skip_debugs ),*),
+                ret(level = #ret_level),
+                err
+            )]
+            #[inline(always)]
+            async fn #traced_handler_ident(#traced_handler_inputs) #traced_handler_output {
+                #ident(#( #traced_handler_args ),*).await
+            }
+        }
+    };
 
     let (authorize_fn, missing_role) = if let Some(role) = role {
         if role == "admin" {
@@ -166,14 +202,14 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 pub async fn form_get_handler(
                     #( #form_get_args ),*
                 ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                    #traced_handler_ident(#( #pass_args ),*).await
                 }
 
                 #[axum::debug_handler]
                 pub async fn form_post_handler(
                     #( #form_post_args ),*
                 ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                    #traced_handler_ident(#( #pass_args ),*).await
                 }
             }
         } else {
@@ -184,7 +220,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 ) -> Result<
                         axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
                     >, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                    let response = #traced_handler_ident(#( #pass_args ),*).await?;
                     Ok(axum::Json(SubsonicResponse::new(response)))
                 }
 
@@ -194,7 +230,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 ) -> Result<
                         axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
                     >, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                    let response = #traced_handler_ident(#( #pass_args ),*).await?;
                     Ok(axum::Json(SubsonicResponse::new(response)))
                 }
             }
@@ -216,7 +252,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 pub async fn binary_handler(
                     #( #binary_args ),*
                 ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                    #traced_handler_ident(#( #pass_args ),*).await
                 }
             }
         } else {
@@ -225,7 +261,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 pub async fn binary_handler(
                     #( #binary_args ),*
                 ) -> Result<Vec<u8>, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                    let response = #traced_handler_ident(#( #pass_args ),*).await?;
                     Ok(bitcode::serialize(&response)?)
                 }
             }
@@ -247,7 +283,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 pub async fn json_handler(
                     #( #json_args ),*
                 ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                    #traced_handler_ident(#( #pass_args ),*).await
                 }
             }
         } else {
@@ -256,7 +292,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 pub async fn json_handler(
                     #( #json_args ),*
                 ) -> Result<axum::Json<<Request as JsonEndpoint>::Response>, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                    let response = #traced_handler_ident(#( #pass_args ),*).await?;
                     Ok(axum::Json(response))
                 }
             }
@@ -266,13 +302,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     Ok(quote! {
-        #[tracing::instrument(
-            name = #tracing_name,
-            skip(#( #skip_debugs ),*),
-            ret(level = #ret_level),
-            err
-        )]
         #handler
+
+        #traced_handler
 
         use axum::extract;
         use nghe_api::common::{FormEndpoint, JsonEndpoint, SubsonicResponse};
