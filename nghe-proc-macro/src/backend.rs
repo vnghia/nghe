@@ -294,9 +294,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 #[axum::debug_handler]
                 pub async fn json_handler(
                     #( #json_args ),*
-                ) -> Result<Vec<u8>, Error> {
+                ) -> Result<axum::Json<<Request as JsonEndpoint>::Response>, Error> {
                     let response = #ident(#( #pass_args ),*).await?;
-                    Ok(bitcode::serialize(&response)?)
+                    Ok(axum::Json(response))
                 }
             }
         }
@@ -309,7 +309,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         #input
 
         use axum::extract;
-        use nghe_api::common::{FormEndpoint, SubsonicResponse};
+        use nghe_api::common::{FormEndpoint, JsonEndpoint, SubsonicResponse};
 
         use crate::auth::{Authorize, BinaryUser, FormGetUser, FormPostUser, JsonUser};
 
