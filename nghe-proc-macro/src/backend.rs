@@ -1,5 +1,6 @@
 #![allow(clippy::too_many_lines)]
 
+use concat_string::concat_string;
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -88,6 +89,11 @@ impl TryFrom<syn::Expr> for ModuleConfig {
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemFn = syn::parse2(item)?;
     let Handler { ret_level, role, attribute, headers, need_auth } = deluxe::parse2(attr)?;
+
+    let source_path = proc_macro::Span::call_site().source_file().path();
+    let source_dir = source_path.parent().unwrap().file_name().unwrap().to_str().unwrap();
+    let source_stem = source_path.file_stem().unwrap().to_str().unwrap();
+    let tracing_name = concat_string!(source_dir, "::", source_stem);
 
     let ident = &input.sig.ident;
     if ident != "handler" {
@@ -305,7 +311,12 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     Ok(quote! {
-        #[tracing::instrument(skip(#( #skip_debugs ),*), ret(level = #ret_level), err)]
+        #[tracing::instrument(
+            name = #tracing_name,
+            skip(#( #skip_debugs ),*),
+            ret(level = #ret_level),
+            err
+        )]
         #input
 
         use axum::extract;
