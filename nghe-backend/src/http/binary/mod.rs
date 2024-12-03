@@ -66,6 +66,11 @@ impl Response {
 
         let status = if let Some(size) = property.size() {
             let offset = offset.into().unwrap_or(0);
+            if size == 0 {
+                tracing::error!(property_has_zero_size=?property, offset);
+                return Err(Error::ResponseBinaryPropertyZeroSize);
+            }
+
             header.typed_insert(ContentLength(size - offset));
             header.typed_insert(
                 ContentRange::bytes(offset.., size).map_err(color_eyre::Report::from)?,

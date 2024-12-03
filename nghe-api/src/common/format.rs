@@ -1,7 +1,9 @@
+use std::fmt::Debug;
+
 use nghe_proc_macro::api_derive;
 use strum::{EnumString, IntoStaticStr};
 
-pub trait Trait: Copy {
+pub trait Trait: Debug + Copy {
     fn mime(&self) -> &'static str;
     fn extension(&self) -> &'static str;
 }
