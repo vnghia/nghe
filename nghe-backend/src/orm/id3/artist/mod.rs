@@ -260,7 +260,7 @@ mod tests {
         #[with(1, 1, None, true)]
         mock: Mock,
     ) {
-        let artist = audio::Artist::from("Micheal Learn To Rock");
+        let artist = audio::Artist::from("Micheal Learns To Rock");
         mock.music_folder(0)
             .await
             .add_audio_filesystem::<&str>()

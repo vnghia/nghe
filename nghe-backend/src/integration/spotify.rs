@@ -54,6 +54,17 @@ impl Client {
             },
         )
     }
+
+    pub async fn fetch_artist(&self, id: &str) -> Result<Artist, Error> {
+        self.0
+            .artist(ArtistId::from_id(id)?)
+            .await
+            .map(|artist| Artist {
+                id: artist.id,
+                image_url: artist.images.into_iter().next().map(|image| image.url),
+            })
+            .map_err(Error::from)
+    }
 }
 
 #[cfg(all(test, spotify_env))]
@@ -64,7 +75,7 @@ mod tests {
     use crate::file::picture;
 
     #[rstest]
-    #[case("Micheal Learn To Rock")]
+    #[case("Micheal Learns To Rock")]
     #[tokio::test]
     async fn test_search_artist(#[case] name: &str) {
         let client = Client::new(config::integration::Spotify::from_env()).await.unwrap();

@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use diesel::dsl::{exists, not};
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use nghe_api::media_annotation::update_artist_information::Request;
 use rspotify::model::Id;
 use typed_path::Utf8NativePath;
 use uuid::Uuid;
@@ -116,6 +117,32 @@ impl Informant {
         }
         Ok(())
     }
+
+    pub async fn fetch_and_upsert_artist(
+        &self,
+        database: &Database,
+        config: &config::CoverArt,
+        request: &Request,
+    ) -> Result<(), Error> {
+        if self.is_enabled() {
+            let id = request.artist_id;
+            self.upsert_artist(
+                database,
+                config,
+                id,
+                if let Some(ref client) = self.spotify
+                    && let Some(ref spotify_id) = request.spotify_id
+                {
+                    Some(client.fetch_artist(spotify_id).await?)
+                } else {
+                    None
+                }
+                .as_ref(),
+            )
+            .await?;
+        }
+        Ok(())
+    }
 }
 
 mod query {
@@ -147,13 +174,13 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_artist(
+    async fn test_search_artist(
         #[future(awt)]
         #[with(0, 1, None, true)]
         mock: Mock,
     ) {
         let id_westlife = audio::Artist::from("Westlife").upsert_mock(&mock).await;
-        let id_mltr = audio::Artist::from("Micheal Learn To Rock").upsert_mock(&mock).await;
+        let id_mltr = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
 
         diesel::insert_into(artist_informations::table)
             .values(artist_informations::artist_id.eq(id_westlife))
@@ -162,6 +189,37 @@ mod tests {
             .unwrap();
         mock.informant
             .search_and_upsert_artists(mock.database(), &mock.config.cover_art)
+            .await
+            .unwrap();
+
+        let mltr_data = artist_informations::table
+            .filter(artist_informations::artist_id.eq(id_mltr))
+            .select(artist_informations::Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+        assert!(mltr_data.spotify.id.is_some());
+        assert!(mltr_data.spotify.cover_art_id.is_some());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_fetch_artist(
+        #[future(awt)]
+        #[with(0, 1, None, true)]
+        mock: Mock,
+    ) {
+        let id_mltr = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
+
+        mock.informant
+            .fetch_and_upsert_artist(
+                mock.database(),
+                &mock.config.cover_art,
+                &Request {
+                    artist_id: id_mltr,
+                    spotify_id: Some("7zMVPOJPs5jgU8NorRxqJe".to_owned()),
+                },
+            )
             .await
             .unwrap();
 

@@ -59,14 +59,14 @@ pub async fn build(config: config::Config) -> Router {
                 scan: config.filesystem.scan,
                 parsing: config.parsing,
                 index: config.index,
-                cover_art: config.cover_art,
+                cover_art: config.cover_art.clone(),
             },
-            informant,
+            informant.clone(),
         ))
         .merge(route::bookmarks::router())
         .merge(route::browsing::router())
         .merge(route::lists::router())
-        .merge(route::media_annotation::router())
+        .merge(route::media_annotation::router(config.cover_art, informant))
         .merge(route::playlists::router())
         .merge(route::search::router())
         .merge(route::system::router())
