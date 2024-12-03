@@ -22,5 +22,5 @@ async fn main() {
     migration::run(&config.database.url).await;
 
     let listener = tokio::net::TcpListener::bind(config.server.to_socket_addr()).await.unwrap();
-    axum::serve(listener, build(config).await).await.unwrap();
+    axum::serve(listener, build(config).await).tcp_nodelay(true).await.unwrap();
 }
