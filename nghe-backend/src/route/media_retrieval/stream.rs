@@ -261,8 +261,9 @@ mod tests {
         .unwrap();
 
         let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
-        for (status, _) in responses {
+        for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
+            assert!(!body.is_empty());
         }
         assert_eq!(
             transcode_status,
