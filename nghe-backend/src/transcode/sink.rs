@@ -64,14 +64,19 @@ impl Sink {
         Ok(file)
     }
 
+    fn open_read(path: impl AsRef<Utf8NativePath>) -> Result<std::fs::File, Error> {
+        if cfg!(windows) {
+            // On Windows, the file must be open with write permissions to lock it.
+            std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())
+        } else {
+            std::fs::OpenOptions::new().read(true).open(path.as_ref())
+        }
+        .map_err(Error::from)
+    }
+
     #[instrument(err(level = "debug"))]
     pub fn lock_read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
-        let file = if cfg!(windows) {
-            // On Windows, the file must be open with write permissions to lock it.
-            std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())?
-        } else {
-            std::fs::OpenOptions::new().read(true).open(path.as_ref())?
-        };
+        let file = Self::open_read(path)?;
         FileExt::try_lock_shared(&file)?;
         Ok(file)
     }
@@ -120,6 +125,14 @@ mod test {
                 Status::WithCache if self.file.is_none() => Status::NoCache,
                 _ => status,
             }
+        }
+
+        pub fn lock_read_blocking(
+            path: impl AsRef<Utf8NativePath>,
+        ) -> Result<std::fs::File, Error> {
+            let file = Self::open_read(path)?;
+            FileExt::lock_shared(&file)?;
+            Ok(file)
         }
     }
 }

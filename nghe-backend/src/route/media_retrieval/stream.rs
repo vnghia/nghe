@@ -117,6 +117,7 @@ mod tests {
     use itertools::Itertools;
     use nghe_api::common::{filesystem, format};
     use rstest::rstest;
+    use transcode::Sink;
 
     use super::*;
     use crate::file::audio;
@@ -216,6 +217,7 @@ mod tests {
 
         let user_id = mock.user_id(0).await;
         let song_id = music_folder.song_id_filesystem(0).await;
+        let config = &mock.config.transcode;
         let format = format::Transcode::Opus;
         let bitrate = 32;
         let time_offset = 10;
@@ -223,7 +225,6 @@ mod tests {
         let transcoded = {
             let path = music_folder.absolute_path(0);
             let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
-            let config = &mock.config.transcode;
             transcode::Transcoder::spawn_collect(&input, config, format, bitrate, time_offset).await
         };
 
@@ -247,6 +248,18 @@ mod tests {
 
         // We don't test the response body here because it does not take the same input as above.
         // However, we want to make sure that the transcode status is equal to `UseCachedOutput`.
+        // We will have to wait a bit to make sure that the write lock is released.
+        let cache_path = music_folder.filesystem[0]
+            .information
+            .file
+            .replace(format)
+            .path(config.cache_dir.as_ref().unwrap(), bitrate.to_string().as_str());
+        tokio::task::spawn_blocking(move || {
+            Sink::lock_read_blocking(&cache_path).unwrap();
+        })
+        .await
+        .unwrap();
+
         let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, _) in responses {
             assert_eq!(status, StatusCode::OK);
