@@ -9,11 +9,7 @@ use crate::orm::{music_folders, permission};
 use crate::Error;
 
 #[handler]
-pub async fn handler(
-    database: &Database,
-    user_id: Uuid,
-    request: Request,
-) -> Result<Response, Error> {
+pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
     Ok(Response {
         music_folders: MusicFolders {
             music_folder: music_folders::table
@@ -48,7 +44,7 @@ mod tests {
         let music_folder_id = mock.add_music_folder().call().await;
 
         let user_id = mock.user_id(0).await;
-        let music_folders = handler(mock.database(), user_id, Request {})
+        let music_folders = handler(mock.database(), user_id)
             .await
             .unwrap()
             .music_folders

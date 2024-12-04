@@ -11,11 +11,7 @@ use crate::orm::{id3, playqueues, songs};
 use crate::Error;
 
 #[handler]
-pub async fn handler(
-    database: &Database,
-    user_id: Uuid,
-    request: Request,
-) -> Result<Response, Error> {
+pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
     Ok(
         if let Some(data) = playqueues::table
             .filter(playqueues::user_id.eq(user_id))
@@ -91,7 +87,7 @@ mod test {
         .await
         .unwrap();
 
-        let playqueue = handler(mock.database(), user_id, Request {}).await;
+        let playqueue = handler(mock.database(), user_id).await;
         assert_eq!(playqueue.is_ok(), allow);
     }
 }

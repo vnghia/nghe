@@ -9,11 +9,7 @@ use crate::orm::id3;
 use crate::Error;
 
 #[handler]
-pub async fn handler(
-    database: &Database,
-    user_id: Uuid,
-    request: Request,
-) -> Result<Response, Error> {
+pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
     Ok(Response {
         genres: Genres {
             genre: id3::genre::with_count::query::with_user_id(user_id)
@@ -66,8 +62,7 @@ mod test {
             .call()
             .await;
 
-        let genres =
-            handler(mock.database(), mock.user_id(0).await, Request {}).await.unwrap().genres.genre;
+        let genres = handler(mock.database(), mock.user_id(0).await).await.unwrap().genres.genre;
         assert_eq!(genres.len(), if allow { 3 } else { 2 });
 
         let genre = genres.into_iter().find(|with_count| with_count.value == genre).unwrap();
