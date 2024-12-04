@@ -200,7 +200,9 @@ where
 
         Ok(Self {
             id,
-            request: serde_json::from_slice(&request.extract::<Bytes, _>().await?)
+            request: axum::Json::from_request(request, &())
+                .await
+                .map(|value| value.0)
                 .map_err(|e| Error::SerializeJsonRequest(e.to_string()))?,
         })
     }

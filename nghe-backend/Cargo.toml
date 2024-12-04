@@ -20,12 +20,11 @@ reqwest = { workspace = true }
 serde_html_form = { workspace = true }
 serde_with = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 strum = { workspace = true }
 thiserror = { workspace = true }
 time = { workspace = true }
 tracing = { workspace = true }
-uuid = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 
 nghe_api = { path = "../nghe-api" }
 nghe_proc_macro = { path = "../nghe-proc-macro" }
@@ -43,7 +42,12 @@ aws-smithy-runtime = { version = "1.7.3", default-features = false, features = [
   "client",
   "connector-hyper-0-14-x",
 ] }
-axum = { version = "0.8.0-alpha.1", features = ["http2", "macros"] }
+axum = { version = "0.8.0-alpha.1", default-features = false, features = [
+  "http2",
+  "json",
+  "macros",
+  "tokio",
+] }
 axum-extra = { version = "0.10.0-alpha.1", features = ["typed-header"] }
 diesel = { version = "2.2.5", features = ["time", "uuid"] }
 # TODO: remove this when diesel is released
@@ -86,6 +90,7 @@ tower-http = { version = "0.6.2", features = [
   "compression-br",
   "compression-gzip",
   "compression-zstd",
+  "trace",
 ] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 typed-path = { git = "https://github.com/vnghia/typed-path", rev = "bd796e64b3cee53181a3fc2f15245f5bf731bd8c" }
@@ -97,6 +102,7 @@ bon = { workspace = true }
 fake = { workspace = true }
 url = { workspace = true }
 rstest = { workspace = true }
+serde_json = { workspace = true }
 
 nghe_api = { path = "../nghe-api", features = ["test"] }
 
