@@ -33,7 +33,7 @@ async fn handler_impl(
     Ok(Response { music_folder_id })
 }
 
-#[handler(role = admin)]
+#[handler(role = admin, internal = true)]
 pub async fn handler(
     database: &Database,
     filesystem: &Filesystem,

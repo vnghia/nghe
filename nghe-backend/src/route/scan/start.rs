@@ -8,7 +8,7 @@ use crate::integration::Informant;
 use crate::scan::scanner;
 use crate::Error;
 
-#[handler(role = admin)]
+#[handler(role = admin, internal = true)]
 pub async fn handler(
     database: &Database,
     filesystem: &Filesystem,

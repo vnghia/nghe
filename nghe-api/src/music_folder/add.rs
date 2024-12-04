@@ -4,10 +4,11 @@ use uuid::Uuid;
 use crate::common::filesystem;
 
 #[api_derive(fake = true)]
-#[endpoint(path = "addMusicFolder")]
+#[endpoint(path = "addMusicFolder", internal = true)]
 pub struct Request {
     pub name: String,
     pub path: String,
+    #[serde(rename = "type")]
     pub ty: filesystem::Type,
     pub allow: bool,
 }
