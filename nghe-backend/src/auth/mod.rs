@@ -216,6 +216,7 @@ mod tests {
     use axum::http;
     use concat_string::concat_string;
     use fake::{Fake, Faker};
+    use headers::ContentType;
     use nghe_api::auth::Token;
     use nghe_api::common::FormRequest as _;
     use nghe_proc_macro::api_derive;
@@ -459,6 +460,7 @@ mod tests {
             .body(Body::from(serde_json::to_string(&request).unwrap()))
             .unwrap();
         http_request.headers_mut().typed_insert(user.auth_header());
+        http_request.headers_mut().typed_insert(ContentType::json());
 
         let test_request =
             JsonUser::<Request, true>::from_request(http_request, mock.state()).await.unwrap();
@@ -475,10 +477,11 @@ mod tests {
     ) {
         let request: Request = Faker.fake();
 
-        let http_request = http::Request::builder()
+        let mut http_request = http::Request::builder()
             .method(http::Method::POST)
             .body(Body::from(serde_json::to_string(&request).unwrap()))
             .unwrap();
+        http_request.headers_mut().typed_insert(ContentType::json());
 
         let test_request =
             JsonUser::<Request, false>::from_request(http_request, mock.state()).await.unwrap();
