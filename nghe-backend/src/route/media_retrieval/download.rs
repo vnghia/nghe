@@ -18,11 +18,11 @@ pub async fn handler_impl(
     filesystem.read_to_binary(&source, offset).await
 }
 
-#[handler(role = download, headers = [range])]
+#[handler(role = download)]
 pub async fn handler(
     database: &Database,
     filesystem: &Filesystem,
-    range: Option<Range>,
+    #[handler(header)] range: Option<Range>,
     user_id: Uuid,
     request: Request,
 ) -> Result<binary::Response, Error> {

@@ -1,5 +1,6 @@
 #![allow(clippy::too_many_lines)]
 
+use concat_string::concat_string;
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -15,81 +16,31 @@ struct Handler {
     role: Option<syn::Ident>,
     #[deluxe(flatten)]
     attribute: Attribute,
-    #[deluxe(default = vec![])]
-    headers: Vec<syn::Ident>,
     #[deluxe(default = true)]
     need_auth: bool,
 }
 
+#[derive(Debug, deluxe::ExtractAttributes)]
+#[deluxe(attributes(handler))]
+struct HandlerArg {
+    #[deluxe(default = false)]
+    header: bool,
+}
+
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct BuildRouter {
-    modules: Vec<syn::Expr>,
+    modules: Vec<syn::Meta>,
     #[deluxe(default = false)]
     filesystem: bool,
     #[deluxe(default = vec![])]
     extensions: Vec<syn::Path>,
 }
 
-#[derive(Debug)]
-struct ModuleConfig {
-    pub ident: syn::Ident,
-    pub attribute: Attribute,
-}
-
-impl TryFrom<syn::Expr> for ModuleConfig {
-    type Error = Error;
-
-    fn try_from(value: syn::Expr) -> Result<Self, Self::Error> {
-        let span = value.span();
-        match value {
-            syn::Expr::Path(syn::ExprPath { path, .. }) => {
-                let ident = path
-                    .get_ident()
-                    .ok_or_else(|| Error::new(span, "Only `Path` with one segment is supported"))?
-                    .to_owned();
-                Ok(Self { ident, attribute: Attribute::builder().build() })
-            }
-            syn::Expr::Struct(syn::ExprStruct { path, fields, .. }) => {
-                let ident = path
-                    .get_ident()
-                    .ok_or_else(|| {
-                        Error::new(span, "Only `Struct` path with one segment is supported")
-                    })?
-                    .to_owned();
-
-                let extract_bool = |key: &'static str| -> Option<bool> {
-                    fields.iter().find_map(|value| {
-                        if let syn::Member::Named(ref ident) = value.member
-                            && ident == key
-                            && let syn::Expr::Lit(syn::ExprLit { ref lit, .. }) = value.expr
-                            && let syn::Lit::Bool(syn::LitBool { value, .. }) = lit
-                        {
-                            Some(*value)
-                        } else {
-                            None
-                        }
-                    })
-                };
-
-                Ok(Self {
-                    ident,
-                    attribute: Attribute::builder()
-                        .maybe_internal(extract_bool("internal"))
-                        .maybe_binary(extract_bool("binary"))
-                        .maybe_json(extract_bool("json"))
-                        .build(),
-                })
-            }
-            _ => Err(Error::new(span, "Only `Path` and `Struct` expressions are supported")),
-        }
-    }
-}
-
 pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
-    let input: syn::ItemFn = syn::parse2(item)?;
-    let Handler { ret_level, role, attribute, headers, need_auth } = deluxe::parse2(attr)?;
+    let mut handler: syn::ItemFn = syn::parse2(item)?;
+    let Handler { ret_level, role, attribute, need_auth } = deluxe::parse2(attr)?;
 
-    let ident = &input.sig.ident;
+    let ident = &handler.sig.ident;
     if ident != "handler" {
         return Err(syn::Error::new(
             ident.span(),
@@ -97,69 +48,155 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         ));
     }
 
-    let mut skip_debugs: Vec<&syn::Ident> = vec![];
+    let mut skip_debugs: Vec<syn::Ident> = vec![];
     let mut common_args: Vec<syn::FnArg> = vec![];
     let mut pass_args: Vec<syn::Expr> = vec![];
 
-    for fn_arg in &input.sig.inputs {
-        if let syn::FnArg::Typed(arg) = fn_arg
-            && let syn::Pat::Ident(pat) = arg.pat.as_ref()
-            && pat.ident != "request"
-        {
-            match pat.ident.to_string().as_str() {
-                "database" | "_database" => {
-                    skip_debugs.push(&pat.ident);
-                    common_args.push(parse_quote! {
-                        extract::State(database): extract::State<crate::database::Database>
-                    });
-                    pass_args.push(parse_quote!(&database));
-                }
-                "user_id" => {
-                    pass_args.push(parse_quote!(user.id));
-                }
-                _ => match arg.ty.as_ref() {
-                    syn::Type::Path(ty) => {
-                        if headers.contains(&pat.ident) {
-                            if let Some(segment) = ty.path.segments.last()
-                                && segment.ident == "Option"
-                                && let syn::PathArguments::AngleBracketed(angle) =
-                                    &segment.arguments
-                                && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) =
-                                    angle.args.first()
-                            {
-                                common_args
-                                    .push(parse_quote!(#pat: Option<axum_extra::TypedHeader<#ty>>));
-                                pass_args.push(parse_quote!(#pat.map(|header| header.0)));
+    let mut use_database = false;
+    let mut use_user_id = false;
+    let mut use_request = false;
+
+    for fn_arg in &mut handler.sig.inputs {
+        if let syn::FnArg::Typed(arg) = fn_arg {
+            let HandlerArg { header } = deluxe::extract_attributes(arg)?;
+            if let syn::Pat::Ident(pat) = arg.pat.as_ref() {
+                match pat.ident.to_string().as_str() {
+                    "database" => {
+                        use_database = true;
+                        skip_debugs.push(pat.ident.clone());
+                        common_args.push(parse_quote! {
+                            extract::State(database): extract::State<crate::database::Database>
+                        });
+                        pass_args.push(parse_quote!(&database));
+                    }
+                    "user_id" => {
+                        use_user_id = true;
+                        pass_args.push(parse_quote!(user.id));
+                    }
+                    "request" => {
+                        use_request = true;
+                    }
+                    _ => match arg.ty.as_ref() {
+                        syn::Type::Path(ty) => {
+                            if header {
+                                if let Some(segment) = ty.path.segments.last()
+                                    && segment.ident == "Option"
+                                    && let syn::PathArguments::AngleBracketed(angle) =
+                                        &segment.arguments
+                                    && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) =
+                                        angle.args.first()
+                                {
+                                    common_args.push(
+                                        parse_quote!(#pat: Option<axum_extra::TypedHeader<#ty>>),
+                                    );
+                                    pass_args.push(parse_quote!(#pat.map(|header| header.0)));
+                                }
+                            } else {
+                                if pat.ident == "config" || pat.ident == "informant" {
+                                    skip_debugs.push(pat.ident.clone());
+                                }
+                                common_args.push(
+                                    parse_quote!(extract::Extension(#pat): extract::Extension<#ty>),
+                                );
+                                pass_args.push(parse_quote!(#pat));
                             }
-                        } else {
-                            if pat.ident == "config" || pat.ident == "informant" {
-                                skip_debugs.push(&pat.ident);
+                        }
+                        syn::Type::Reference(ty) => {
+                            if pat.ident == "filesystem" || pat.ident == "config" {
+                                skip_debugs.push(pat.ident.clone());
                             }
+                            let ty = ty.elem.as_ref();
                             common_args.push(
                                 parse_quote!(extract::Extension(#pat): extract::Extension<#ty>),
                             );
-                            pass_args.push(parse_quote!(#pat));
+                            pass_args.push(parse_quote!(&#pat));
                         }
-                    }
-                    syn::Type::Reference(ty) => {
-                        if pat.ident == "filesystem" || pat.ident == "config" {
-                            skip_debugs.push(&pat.ident);
+                        _ => {
+                            return Err(syn::Error::new(
+                                arg.ty.span(),
+                                "Only path type and reference type are supported for handler \
+                                 function",
+                            ));
                         }
-                        let ty = ty.elem.as_ref();
-                        common_args
-                            .push(parse_quote!(extract::Extension(#pat): extract::Extension<#ty>));
-                        pass_args.push(parse_quote!(&#pat));
-                    }
-                    _ => {
-                        return Err(syn::Error::new(
-                            arg.ty.span(),
-                            "Only path type and reference type are supported for handler function",
-                        ));
-                    }
-                },
+                    },
+                }
             }
         }
     }
+
+    let (is_return_result, is_binary_response) = if let syn::ReturnType::Type(_, ty) =
+        &handler.sig.output
+        && let syn::Type::Path(ty) = ty.as_ref()
+        && let Some(segment) = ty.path.segments.last()
+        && segment.ident == "Result"
+    {
+        (
+            true,
+            if let syn::PathArguments::AngleBracketed(angle) = &segment.arguments
+                && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) = angle.args.first()
+                && let Some(segment) = ty.path.segments.first()
+                && segment.ident == "binary"
+                && let Some(segment) = ty.path.segments.last()
+                && segment.ident == "Response"
+            {
+                true
+            } else {
+                false
+            },
+        )
+    } else {
+        (false, false)
+    };
+
+    let traced_handler_ident = format_ident!("traced_handler");
+    let (traced_handler, traced_handler_await) = {
+        let source_path = proc_macro::Span::call_site().source_file().path();
+        // TODO: Remove this after https://github.com/rust-lang/rust-analyzer/issues/15950.
+        let tracing_name = if source_path.as_os_str().is_empty() {
+            "handler".to_owned()
+        } else {
+            let source_dir = source_path.parent().unwrap().file_name().unwrap().to_str().unwrap();
+            let source_stem = source_path.file_stem().unwrap().to_str().unwrap();
+            concat_string!(source_dir, "::", source_stem)
+        };
+
+        let handler_async = handler.sig.asyncness;
+        let handler_await = if handler_async.is_some() { Some(quote! {.await}) } else { None };
+
+        let handler_inputs = handler.sig.inputs.clone();
+        let handler_args: Vec<_> = handler_inputs
+            .iter()
+            .map(|arg| {
+                if let syn::FnArg::Typed(arg) = arg
+                    && let syn::Pat::Ident(pat) = arg.pat.as_ref()
+                {
+                    Ok(&pat.ident)
+                } else {
+                    Err(Error::new(arg.span(), "`handler` should only has typed function argument"))
+                }
+            })
+            .try_collect()?;
+        let handler_output = &handler.sig.output;
+
+        let mut tracing_args =
+            vec![quote! {name = #tracing_name}, quote! {skip(#( #skip_debugs ),*)}];
+        if is_return_result {
+            tracing_args.push(quote! {ret(level = #ret_level)});
+            tracing_args.push(quote! {err});
+        }
+
+        (
+            quote! {
+                #[tracing::instrument(#( #tracing_args ),*)]
+                #[inline(always)]
+                #handler_async fn #traced_handler_ident(#handler_inputs) #handler_output {
+                    #ident(#( #handler_args ),*)#handler_await
+                }
+            },
+            handler_await,
+        )
+    };
+    let traced_handler_try = if is_return_result { Some(quote! {?}) } else { None };
 
     let (authorize_fn, missing_role) = if let Some(role) = role {
         if role == "admin" {
@@ -171,48 +208,43 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         (quote! { true }, String::default())
     };
 
-    let is_binary_respone = if let syn::ReturnType::Type(_, ty) = &input.sig.output
-        && let syn::Type::Path(ty) = ty.as_ref()
-        && let Some(segment) = ty.path.segments.last()
-        && segment.ident == "Result"
-        && let syn::PathArguments::AngleBracketed(angle) = &segment.arguments
-        && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) = angle.args.first()
-        && let Some(segment) = ty.path.segments.first()
-        && segment.ident == "binary"
-        && let Some(segment) = ty.path.segments.last()
-        && segment.ident == "Response"
-    {
-        true
-    } else {
-        false
-    };
+    if !use_database {
+        common_args.push(parse_quote! {
+            extract::State(_database): extract::State<crate::database::Database>
+        });
+    }
 
-    pass_args.push(parse_quote!(user.request));
+    if use_request {
+        pass_args.push(parse_quote!(user.request));
+    }
+
+    let user_ident =
+        if use_user_id || use_request { format_ident!("user") } else { format_ident!("_user") };
 
     let form_handler = if attribute.form() {
         let form_get_args = [
             common_args.as_slice(),
-            [parse_quote!(user: FormGetUser<Request, #need_auth>)].as_slice(),
+            [parse_quote!(#user_ident: FormGetUser<Request, #need_auth>)].as_slice(),
         ]
         .concat();
         let form_post_args =
-            [common_args.as_slice(), [parse_quote!(user: FormPostUser<Request>)].as_slice()]
+            [common_args.as_slice(), [parse_quote!(#user_ident: FormPostUser<Request>)].as_slice()]
                 .concat();
 
-        if is_binary_respone {
+        if is_binary_response {
             quote! {
                 #[axum::debug_handler]
                 pub async fn form_get_handler(
                     #( #form_get_args ),*
-                ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                ) -> Result<crate::http::binary::Response, crate::Error> {
+                    #traced_handler_ident(#( #pass_args ),*)#traced_handler_await
                 }
 
                 #[axum::debug_handler]
                 pub async fn form_post_handler(
                     #( #form_post_args ),*
-                ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                ) -> Result<crate::http::binary::Response, crate::Error> {
+                    #traced_handler_ident(#( #pass_args ),*)#traced_handler_await
                 }
             }
         } else {
@@ -222,8 +254,10 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                     #( #form_get_args ),*
                 ) -> Result<
                         axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
-                    >, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                    >, crate::Error> {
+                    let response = #traced_handler_ident(#( #pass_args ),*)
+                        #traced_handler_await
+                        #traced_handler_try;
                     Ok(axum::Json(SubsonicResponse::new(response)))
                 }
 
@@ -232,8 +266,10 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                     #( #form_post_args ),*
                 ) -> Result<
                         axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
-                    >, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                    >, crate::Error> {
+                    let response = #traced_handler_ident(#( #pass_args ),*)
+                        #traced_handler_await
+                        #traced_handler_try;
                     Ok(axum::Json(SubsonicResponse::new(response)))
                 }
             }
@@ -245,17 +281,17 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     let binary_handler = if attribute.binary() {
         let binary_args = [
             common_args.as_slice(),
-            [parse_quote!(user: BinaryUser<Request, #need_auth>)].as_slice(),
+            [parse_quote!(#user_ident: BinaryUser<Request, #need_auth>)].as_slice(),
         ]
         .concat();
 
-        if is_binary_respone {
+        if is_binary_response {
             quote! {
                 #[axum::debug_handler]
                 pub async fn binary_handler(
                     #( #binary_args ),*
-                ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                ) -> Result<crate::http::binary::Response, crate::Error> {
+                    #traced_handler_ident(#( #pass_args ),*)#traced_handler_await
                 }
             }
         } else {
@@ -263,8 +299,10 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 #[axum::debug_handler]
                 pub async fn binary_handler(
                     #( #binary_args ),*
-                ) -> Result<Vec<u8>, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                ) -> Result<Vec<u8>, crate::Error> {
+                    let response = #traced_handler_ident(#( #pass_args ),*)
+                        #traced_handler_await
+                        #traced_handler_try;
                     Ok(bitcode::serialize(&response)?)
                 }
             }
@@ -276,17 +314,17 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     let json_handler = if attribute.json() {
         let json_args = [
             common_args.as_slice(),
-            [parse_quote!(user: JsonUser<Request, #need_auth>)].as_slice(),
+            [parse_quote!(#user_ident: JsonUser<Request, #need_auth>)].as_slice(),
         ]
         .concat();
 
-        if is_binary_respone {
+        if is_binary_response {
             quote! {
                 #[axum::debug_handler]
                 pub async fn json_handler(
                     #( #json_args ),*
-                ) -> Result<crate::http::binary::Response, Error> {
-                    #ident(#( #pass_args ),*).await
+                ) -> Result<crate::http::binary::Response, crate::Error> {
+                    #traced_handler_ident(#( #pass_args ),*)#traced_handler_await
                 }
             }
         } else {
@@ -294,8 +332,10 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
                 #[axum::debug_handler]
                 pub async fn json_handler(
                     #( #json_args ),*
-                ) -> Result<axum::Json<<Request as JsonEndpoint>::Response>, Error> {
-                    let response = #ident(#( #pass_args ),*).await?;
+                ) -> Result<axum::Json<<Request as JsonEndpoint>::Response>, crate::Error> {
+                    let response = #traced_handler_ident(#( #pass_args ),*)
+                        #traced_handler_await
+                        #traced_handler_try;
                     Ok(axum::Json(response))
                 }
             }
@@ -305,8 +345,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     Ok(quote! {
-        #[tracing::instrument(skip(#( #skip_debugs ),*), ret(level = #ret_level), err)]
-        #input
+        #handler
+
+        #traced_handler
 
         use axum::extract;
         use nghe_api::common::{FormEndpoint, JsonEndpoint, SubsonicResponse};
@@ -314,11 +355,11 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use crate::auth::{Authorize, BinaryUser, FormGetUser, FormPostUser, JsonUser};
 
         impl Authorize for Request {
-            fn authorize(role: crate::orm::users::Role) -> Result<(), Error> {
+            fn authorize(role: crate::orm::users::Role) -> Result<(), crate::Error> {
                 if #authorize_fn {
                     Ok(())
                 } else {
-                    Err(Error::MissingRole(#missing_role))
+                    Err(crate::Error::MissingRole(#missing_role))
                 }
             }
         }
@@ -334,9 +375,17 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
     let endpoints: Vec<_> = input
         .modules
         .into_iter()
-        .map(|module| {
-            let ModuleConfig { ident, attribute } = module.try_into()?;
-            let module = ident;
+        .map(|meta| {
+            let module = meta
+                .path()
+                .get_ident()
+                .ok_or_else(|| Error::new(meta.span(), "Meta path ident is missing"))?
+                .to_owned();
+            let attribute = if let syn::Meta::List(syn::MetaList { ref tokens, .. }) = meta {
+                deluxe::parse2(tokens.clone())?
+            } else {
+                Attribute::builder().build()
+            };
 
             let mut routers = vec![];
 

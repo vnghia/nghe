@@ -25,9 +25,9 @@ impl Mock {
 
         let result = filesystem.client().create_bucket().bucket(bucket.clone()).send().await;
         if result.is_err() {
-            if let Err(SdkError::ServiceError(err)) =
+            if let Err(SdkError::ServiceError(error)) =
                 filesystem.client().create_bucket().bucket(bucket.clone()).send().await
-                && let CreateBucketError::BucketAlreadyOwnedByYou(_) = err.into_err()
+                && let CreateBucketError::BucketAlreadyOwnedByYou(_) = error.err()
             {
             } else {
                 panic!("Could not create bucket {bucket}")

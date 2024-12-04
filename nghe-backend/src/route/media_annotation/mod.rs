@@ -7,6 +7,6 @@ use crate::config;
 use crate::integration::Informant;
 
 nghe_proc_macro::build_router! {
-    modules = [scrobble, star, unstar, update_artist_information { internal: true }],
+    modules = [scrobble, star, unstar, update_artist_information(internal = true)],
     extensions = [config::CoverArt, Informant]
 }

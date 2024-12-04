@@ -136,13 +136,13 @@ impl super::Trait for Filesystem {
         let Path { bucket, key } = Self::split(path)?;
         let result = self.client.head_object().bucket(bucket).key(key).send().await;
 
-        if let Err(err) = result {
-            if let SdkError::ServiceError(ref err) = err
-                && let HeadObjectError::NotFound(_) = err.err()
+        if let Err(error) = result {
+            if let SdkError::ServiceError(ref error) = error
+                && let HeadObjectError::NotFound(_) = error.err()
             {
                 Ok(false)
             } else {
-                Err(err.into())
+                Err(error.into())
             }
         } else {
             Ok(true)

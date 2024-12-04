@@ -30,14 +30,13 @@ mod transcode;
 #[cfg(test)]
 mod test;
 
-use axum::body::Body;
-use axum::http::Request;
 use axum::Router;
 use error::Error;
 use mimalloc::MiMalloc;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use uuid::Uuid;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -75,10 +74,9 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::search::router())
         .merge(route::system::router())
         .with_state(database::Database::new(&config.database))
-        .layer(TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
-            tracing::info_span!(
-                "request", method = %request.method(), path = %request.uri().path()
-            )
+        .layer(TraceLayer::new_for_http().make_span_with(|_: &axum::extract::Request| {
+            let id = Uuid::new_v4();
+            tracing::info_span!("request", ?id)
         }))
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new().br(true).gzip(true).zstd(true))

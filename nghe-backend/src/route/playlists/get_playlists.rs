@@ -9,11 +9,7 @@ use crate::orm::playlist;
 use crate::Error;
 
 #[handler]
-pub async fn handler(
-    database: &Database,
-    user_id: Uuid,
-    request: Request,
-) -> Result<Response, Error> {
+pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
     Ok(Response {
         playlists: Playlists {
             playlist: playlist::short::query::with_user_id(user_id)
@@ -77,7 +73,7 @@ mod tests {
 
         for i in 0..2 {
             let user_id = user_ids[i];
-            let database_playlist_ids: Vec<_> = handler(mock.database(), user_id, Request {})
+            let database_playlist_ids: Vec<_> = handler(mock.database(), user_id)
                 .await
                 .unwrap()
                 .playlists
