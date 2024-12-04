@@ -58,9 +58,9 @@ impl super::Trait for Filesystem {
                             sender.send(path, &metadata).await?;
                         }
                     }
-                    Err(err) => tracing::error!(list_folder_local_metadata_err = ?err),
+                    Err(error) => tracing::error!(list_folder_local_metadata_error = ?error),
                 },
-                Err(err) => tracing::error!(list_folder_local_walk_err = ?err),
+                Err(error) => tracing::error!(list_folder_local_walk_err = ?error),
             }
         }
 
