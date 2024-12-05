@@ -9,12 +9,10 @@ pub enum Form<'u, 's> {
     Token(token::Auth<'u, 's>),
 }
 
-pub trait Trait<'u, 's>: for<'de> Deserialize<'de> {
-    type Request;
-
-    fn new(request: Self::Request, auth: Form<'u, 's>) -> Self;
+pub trait Trait<'u, 's, R>: for<'de> Deserialize<'de> {
+    fn new(request: R, auth: Form<'u, 's>) -> Self;
     fn auth<'form>(&'form self) -> &'form Form<'u, 's>;
-    fn request(self) -> Self::Request;
+    fn request(self) -> R;
 }
 
 impl<'u, 't> From<token::Auth<'u, 't>> for Form<'u, 't> {

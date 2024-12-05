@@ -107,24 +107,24 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
         let impl_auth_form_trait = if let Some(auth_form_fields) = auth_form_fields {
             quote! {
-                fn new(request: Self::Request, auth: #crate_path::auth::Form<'u, 's>) -> Self {
-                    let Self::Request { #(#auth_form_fields),* } = request;
+                fn new(request: #ident, auth: #crate_path::auth::Form<'u, 's>) -> Self {
+                    let #ident { #(#auth_form_fields),* } = request;
                     Self { #(#auth_form_fields),*, auth }
                 }
 
-                fn request(self) -> Self::Request {
+                fn request(self) -> #ident {
                     let Self { #(#auth_form_fields),*, auth } = self;
-                    Self::Request { #(#auth_form_fields),* }
+                    #ident { #(#auth_form_fields),* }
                 }
             }
         } else {
             quote! {
-                fn new(_: Self::Request, auth: #crate_path::auth::Form<'u, 's>) -> Self {
+                fn new(_: #ident, auth: #crate_path::auth::Form<'u, 's>) -> Self {
                     Self { auth }
                 }
 
-                fn request(self) -> Self::Request {
-                    Self::Request {}
+                fn request(self) -> #ident {
+                    #ident
                 }
             }
         };
@@ -138,14 +138,16 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
                 const URL_FORM_VIEW: &'static str = #url_form_view;
             }
 
-            impl<'u, 's> #crate_path::auth::form::Trait<'u, 's> for #auth_form_ident<'u, 's> {
-                type Request = #ident;
-
+            impl<'u, 's> #crate_path::auth::form::Trait<'u, 's, #ident> for #auth_form_ident<'u, 's> {
                 fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 's> {
                     &self.auth
                 }
 
                 #impl_auth_form_trait
+            }
+
+            impl<'u, 's> #crate_path::common::FormRequest<'u, 's> for #ident {
+                type AuthForm = #auth_form_ident<'u, 's>;
             }
 
             #impl_endpoint

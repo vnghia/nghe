@@ -7,6 +7,7 @@ use serde::de::DeserializeOwned;
 use serde::{Serialize, Serializer};
 
 use super::constant;
+use crate::auth;
 
 #[api_derive(debug = false)]
 struct RootResponse<B> {
@@ -35,9 +36,11 @@ pub trait FormURL {
     const URL_FORM_VIEW: &'static str;
 }
 
-pub trait FormRequest = FormURL + DeserializeOwned;
+pub trait FormRequest<'u, 's>: FormURL + DeserializeOwned {
+    type AuthForm: auth::form::Trait<'u, 's, Self> + Send;
+}
 
-pub trait FormEndpoint: FormRequest {
+pub trait FormEndpoint: for<'u, 's> FormRequest<'u, 's> {
     type Response: Serialize;
 }
 
