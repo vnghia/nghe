@@ -20,3 +20,34 @@ where
         ))
     }
 }
+
+#[cfg(test)]
+mod test {
+    #![allow(unexpected_cfgs)]
+
+    use axum::body::Body;
+    use axum::http;
+    use fake::{Fake, Faker};
+    use nghe_proc_macro::api_derive;
+
+    use super::*;
+
+    #[api_derive(fake = true)]
+    #[endpoint(path = "test", url_only = true, internal = true, same_crate = false)]
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    struct Request {
+        param_one: i32,
+        param_two: u32,
+    }
+
+    #[tokio::test]
+    async fn test_from_request() {
+        let request: Request = Faker.fake();
+        let http_request = http::Request::builder()
+            .method(http::Method::POST)
+            .body(Body::from(bitcode::serialize(&request).unwrap()))
+            .unwrap();
+        let binary = Binary::<Request>::from_request(http_request, &()).await.unwrap();
+        assert_eq!(binary.0, request);
+    }
+}
