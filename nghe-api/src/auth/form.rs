@@ -3,8 +3,9 @@ use serde::Deserialize;
 
 use super::token;
 
-#[api_derive(copy = false)]
+#[api_derive]
 #[serde(untagged)]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum Form<'u, 's> {
     Token(token::Auth<'u, 's>),
 }
@@ -29,6 +30,7 @@ mod tests {
     use crate::auth::token::Token;
 
     #[api_derive]
+    #[derive(PartialEq)]
     pub struct Test<'u, 't> {
         value: Option<u32>,
         #[serde(flatten, borrow)]

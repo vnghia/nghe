@@ -31,14 +31,6 @@ struct Derive {
     serde_as: bool,
     #[deluxe(default = false)]
     fake: bool,
-    #[deluxe(default = true)]
-    copy: bool,
-    #[deluxe(default = true)]
-    eq: bool,
-    #[deluxe(default = true)]
-    ord: bool,
-    #[deluxe(default = true)]
-    test_only: bool,
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
@@ -277,42 +269,6 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     if args.fake {
         attributes
             .push(parse_quote!(#[cfg_attr(any(test, feature = "fake"), derive(fake::Dummy))]));
-    }
-
-    if is_enum {
-        derives.extend_from_slice(
-            &["Clone", "PartialEq", "Eq", "PartialOrd", "Ord"]
-                .into_iter()
-                .map(parse_str)
-                .try_collect::<Vec<_>>()?,
-        );
-        if args.copy {
-            derives.push(parse_str("Copy")?);
-        }
-    }
-
-    if !is_enum && args.eq {
-        if args.test_only {
-            attributes.push(
-                parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialEq, Eq))]),
-            );
-        } else {
-            derives.extend_from_slice(
-                &["PartialEq", "Eq"].into_iter().map(parse_str).try_collect::<Vec<_>>()?,
-            );
-        }
-    }
-
-    if !is_enum && args.ord {
-        if args.test_only {
-            attributes.push(
-                parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialOrd, Ord))]),
-            );
-        } else {
-            derives.extend_from_slice(
-                &["PartialOrd", "Ord"].into_iter().map(parse_str).try_collect::<Vec<_>>()?,
-            );
-        }
     }
 
     Ok(quote! {

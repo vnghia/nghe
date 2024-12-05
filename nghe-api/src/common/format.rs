@@ -9,7 +9,7 @@ pub trait Trait: Debug + Copy {
 }
 
 #[api_derive]
-#[derive(IntoStaticStr, EnumString)]
+#[derive(Clone, Copy, IntoStaticStr, EnumString)]
 #[strum(serialize_all = "lowercase")]
 #[cfg_attr(feature = "test", derive(strum::AsRefStr))]
 pub enum Transcode {

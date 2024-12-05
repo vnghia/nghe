@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 #[api_derive(serde_as = true)]
 #[endpoint(path = "scrobble")]
-#[cfg_attr(test, derive(Default))]
+#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     #[serde(rename = "id")]
     pub ids: Vec<Uuid>,

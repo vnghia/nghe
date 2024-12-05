@@ -4,9 +4,9 @@ use uuid::Uuid;
 use crate::id3;
 
 // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-#[api_derive(serde_as = true, copy = false)]
+#[api_derive(serde_as = true)]
 #[serde(tag = "type")]
-#[cfg_attr(test, derive(Default))]
+#[cfg_attr(test, derive(Default, PartialEq))]
 pub enum Type {
     #[cfg_attr(test, default)]
     Random,
@@ -27,7 +27,7 @@ pub enum Type {
 
 #[api_derive]
 #[endpoint(path = "getAlbumList2")]
-#[cfg_attr(test, derive(Default))]
+#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     #[serde(flatten, rename = "type")]
     pub ty: Type,

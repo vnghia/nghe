@@ -2,14 +2,13 @@ use std::borrow::Cow;
 
 use nghe_proc_macro::api_derive;
 
-#[api_derive(request = false, response = false, eq = false)]
+#[api_derive(request = false, response = false)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(any(test, feature = "test"), derive(Default))]
 pub struct Token([u8; 16]);
 
-#[api_derive(eq = false)]
+#[api_derive]
 #[derive(Clone)]
-#[cfg_attr(any(test, feature = "test"), derive(Default, PartialEq, Eq))]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Auth<'u, 's> {
     #[serde(rename = "u")]
     pub username: Cow<'u, str>,
@@ -65,6 +64,7 @@ mod tests {
     use super::*;
 
     #[api_derive]
+    #[cfg_attr(test, derive(PartialEq))]
     pub struct Test {
         token: Token,
     }
