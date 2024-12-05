@@ -14,6 +14,7 @@ mod auth;
 pub mod config;
 mod database;
 mod error;
+mod extract;
 mod file;
 mod filesystem;
 mod http;

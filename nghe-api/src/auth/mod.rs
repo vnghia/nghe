@@ -1,7 +1,9 @@
+mod form;
 mod token;
 
 use std::borrow::Cow;
 
+pub use form::Form;
 use nghe_proc_macro::api_derive;
 pub use token::Token;
 

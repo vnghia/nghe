@@ -1,5 +1,3 @@
-#![allow(clippy::too_many_lines)]
-
 use concat_string::concat_string;
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;

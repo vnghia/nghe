@@ -46,15 +46,19 @@ mod serde {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{from_value, json};
+    use rstest::rstest;
 
     use super::*;
 
-    #[test]
-    fn test_tokenize() {
-        assert_eq!(
-            from_value::<Token>(json!("26719a1196d2a940705a59634eb18eab")).unwrap(),
-            Token::new(b"sesame", "c19b2d")
-        );
+    #[api_derive]
+    pub struct Test {
+        token: Token,
+    }
+
+    #[rstest]
+    #[case("token=26719a1196d2a940705a59634eb18eab", Some(Token::new(b"sesame", "c19b2d")))]
+    #[case("token=26719a1196d2a940705a59634eb18eab1", None)]
+    fn test_deserialize(#[case] input: &str, #[case] result: Option<Token>) {
+        assert_eq!(serde_html_form::from_str(input).ok(), result.map(|token| Test { token }));
     }
 }

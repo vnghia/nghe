@@ -1,8 +1,8 @@
 use nghe_proc_macro::api_derive;
 
-#[api_derive(endpoint = true)]
+#[api_derive]
 #[endpoint(path = "getOpenSubsonicExtensions")]
-pub struct Request {}
+pub struct Request;
 
 #[api_derive(request = false)]
 pub struct Extension {

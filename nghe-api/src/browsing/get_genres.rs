@@ -4,7 +4,7 @@ use crate::id3;
 
 #[api_derive]
 #[endpoint(path = "getGenres")]
-pub struct Request {}
+pub struct Request;
 
 #[api_derive]
 pub struct Genres {
