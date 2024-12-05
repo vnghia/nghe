@@ -60,22 +60,32 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         let url_form = concat_string!("/rest/", &path);
         let url_form_view = concat_string!("/rest/", &path, ".view");
 
-        let mut form_struct = input.clone();
-        form_struct.attrs.clear();
-        form_struct.ident = format_ident!("FormRequest");
-        form_struct.generics.params.push(parse_quote!('auth_u));
-        form_struct.generics.params.push(parse_quote!('auth_t));
-        form_struct.fields = syn::Fields::Named(match input.fields {
+        let mut auth_form_struct = input.clone();
+        let auth_form_ident = format_ident!("AuthFormRequest");
+        let mut auth_form_fields = None;
+
+        auth_form_struct.attrs.clear();
+        auth_form_struct.ident = auth_form_ident.clone();
+        auth_form_struct.generics.params.push(parse_quote!('auth_u));
+        auth_form_struct.generics.params.push(parse_quote!('auth_s));
+        auth_form_struct.fields = syn::Fields::Named(match input.fields {
             syn::Fields::Named(mut fields) => {
+                auth_form_fields = Some(
+                    fields
+                        .named
+                        .iter()
+                        .map(|field| field.ident.as_ref().unwrap().clone())
+                        .collect::<Vec<_>>(),
+                );
                 fields.named.push(parse_quote! {
                         #[serde(flatten)]
-                        auth: #crate_path::auth::Form<'auth_u, 'auth_t>
+                        auth: #crate_path::auth::Form<'auth_u, 'auth_s>
                 });
                 fields
             }
             syn::Fields::Unit => parse_quote! {{
                 #[serde(flatten)]
-                auth: #crate_path::auth::Form<'auth_u, 'auth_t>
+                auth: #crate_path::auth::Form<'auth_u, 'auth_s>
             }},
             syn::Fields::Unnamed(_) => {
                 return Err(syn::Error::new(
@@ -95,13 +105,47 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             }
         };
 
+        let impl_auth_form_trait = if let Some(auth_form_fields) = auth_form_fields {
+            quote! {
+                fn new(request: Self::Request, auth: #crate_path::auth::Form<'u, 's>) -> Self {
+                    let Self::Request { #(#auth_form_fields),* } = request;
+                    Self { #(#auth_form_fields),*, auth }
+                }
+
+                fn request(self) -> Self::Request {
+                    let Self { #(#auth_form_fields),*, auth } = self;
+                    Self::Request { #(#auth_form_fields),* }
+                }
+            }
+        } else {
+            quote! {
+                fn new(_: Self::Request, auth: #crate_path::auth::Form<'u, 's>) -> Self {
+                    Self { auth }
+                }
+
+                fn request(self) -> Self::Request {
+                    Self::Request {}
+                }
+            }
+        };
+
         quote! {
             #[nghe_proc_macro::api_derive]
-            #form_struct
+            #auth_form_struct
 
             impl #crate_path::common::FormURL for #ident {
                 const URL_FORM: &'static str = #url_form;
                 const URL_FORM_VIEW: &'static str = #url_form_view;
+            }
+
+            impl<'u, 's> #crate_path::auth::form::Trait<'u, 's> for #auth_form_ident<'u, 's> {
+                type Request = #ident;
+
+                fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 's> {
+                    &self.auth
+                }
+
+                #impl_auth_form_trait
             }
 
             #impl_endpoint

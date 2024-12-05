@@ -34,6 +34,7 @@ use o2o::o2o;
 #[from_owned(rspotify::model::IdError)]
 #[from_owned(reqwest::Error)]
 #[from_owned(reqwest::header::ToStrError)]
+#[from_owned(axum_extra::extract::FormRejection)]
 pub enum Error {
     #[error("{0}")]
     InvalidParameter(&'static str),

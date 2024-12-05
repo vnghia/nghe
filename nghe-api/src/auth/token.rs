@@ -1,9 +1,23 @@
+use std::borrow::Cow;
+
 use nghe_proc_macro::api_derive;
 
 #[api_derive(request = false, response = false, eq = false)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "test"), derive(Default))]
 pub struct Token([u8; 16]);
+
+#[api_derive(eq = false)]
+#[derive(Clone)]
+#[cfg_attr(any(test, feature = "test"), derive(Default, PartialEq, Eq))]
+pub struct Auth<'u, 's> {
+    #[serde(rename = "u")]
+    pub username: Cow<'u, str>,
+    #[serde(rename = "s")]
+    pub salt: Cow<'s, str>,
+    #[serde(rename = "t")]
+    pub token: Token,
+}
 
 impl Token {
     pub fn new(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Self {
