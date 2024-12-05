@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::common::format;
 
 #[api_derive(request = false)]
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub enum Format {
     #[default]
     Raw,

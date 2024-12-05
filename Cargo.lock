@@ -599,6 +599,7 @@ dependencies = [
  "multer",
  "pin-project-lite",
  "serde",
+ "serde_html_form",
  "tower",
  "tower-layer",
  "tower-service",

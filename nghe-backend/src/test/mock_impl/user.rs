@@ -1,11 +1,11 @@
-use axum_extra::headers;
 use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use image::EncodableLayout;
-use nghe_api::auth::{self, Auth};
+use nghe_api::auth;
 use uuid::Uuid;
 
+use crate::http::extract::auth::header::BaiscAuthorization;
 use crate::orm::users;
 
 pub struct Mock<'a> {
@@ -40,13 +40,17 @@ impl<'a> Mock<'a> {
             .unwrap()
     }
 
-    pub fn auth_header(&self) -> headers::Authorization<headers::authorization::Basic> {
-        headers::Authorization::basic(&self.username(), &self.password())
+    pub fn auth_header(&self) -> BaiscAuthorization {
+        BaiscAuthorization::basic(&self.username(), &self.password())
     }
 
-    pub fn auth_token(&self) -> Auth<'static, 'static> {
+    pub fn auth_form(&self) -> auth::Form<'static, 'static> {
         let salt: String = Faker.fake();
         let token = auth::Token::new(self.password(), &salt);
-        Auth { username: self.username().into(), salt: salt.into(), token }
+        auth::Form::Token(auth::token::Auth {
+            username: self.username().into(),
+            salt: salt.into(),
+            token,
+        })
     }
 }

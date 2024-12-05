@@ -9,7 +9,7 @@ use strum::IntoStaticStr;
 use uuid::Uuid;
 
 #[api_derive(response = false)]
-#[derive(IntoStaticStr)]
+#[derive(PartialEq, Eq, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum Role {
     Artist,
@@ -20,6 +20,7 @@ pub enum Role {
 #[derive(Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
+#[cfg_attr(feature = "test", derive(PartialEq))]
 pub struct Artist {
     #[serde(flatten)]
     pub required: Required,

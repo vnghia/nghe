@@ -1,9 +1,22 @@
+use std::borrow::Cow;
+
 use nghe_proc_macro::api_derive;
 
-#[api_derive(request = false, response = false, eq = false)]
+#[api_derive(request = false, response = false)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(any(test, feature = "test"), derive(Default))]
 pub struct Token([u8; 16]);
+
+#[api_derive]
+#[derive(Clone)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct Auth<'u, 's> {
+    #[serde(rename = "u")]
+    pub username: Cow<'u, str>,
+    #[serde(rename = "s")]
+    pub salt: Cow<'s, str>,
+    #[serde(rename = "t")]
+    pub token: Token,
+}
 
 impl Token {
     pub fn new(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Self {
@@ -46,15 +59,20 @@ mod serde {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{from_value, json};
+    use rstest::rstest;
 
     use super::*;
 
-    #[test]
-    fn test_tokenize() {
-        assert_eq!(
-            from_value::<Token>(json!("26719a1196d2a940705a59634eb18eab")).unwrap(),
-            Token::new(b"sesame", "c19b2d")
-        );
+    #[api_derive]
+    #[cfg_attr(test, derive(PartialEq))]
+    pub struct Test {
+        token: Token,
+    }
+
+    #[rstest]
+    #[case("token=26719a1196d2a940705a59634eb18eab", Some(Token::new(b"sesame", "c19b2d")))]
+    #[case("token=26719a1196d2a940705a59634eb18eab1", None)]
+    fn test_deserialize(#[case] input: &str, #[case] result: Option<Token>) {
+        assert_eq!(serde_html_form::from_str(input).ok(), result.map(|token| Test { token }));
     }
 }

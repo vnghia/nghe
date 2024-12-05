@@ -5,7 +5,7 @@ use crate::id3;
 
 #[api_derive]
 #[endpoint(path = "getPlayQueue")]
-pub struct Request {}
+pub struct Request;
 
 #[api_derive]
 #[derive(Default)]

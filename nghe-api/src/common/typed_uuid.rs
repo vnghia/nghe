@@ -2,6 +2,7 @@ use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
 #[api_derive(fake = true)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Type {
     Artist,
     Album,
@@ -9,6 +10,7 @@ pub enum Type {
 }
 
 #[api_derive(request = false, response = false, fake = true)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct TypedUuid {
     pub ty: Type,
     pub id: Uuid,
@@ -80,6 +82,7 @@ mod tests {
     use super::*;
 
     #[api_derive]
+    #[derive(PartialEq)]
     struct Test {
         pub id: TypedUuid,
     }

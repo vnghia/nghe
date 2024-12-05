@@ -23,8 +23,6 @@ struct Derive {
     request: bool,
     #[deluxe(default = true)]
     response: bool,
-    #[deluxe(default = false)]
-    endpoint: bool,
     #[deluxe(default = true)]
     debug: bool,
     #[deluxe(default = true)]
@@ -33,18 +31,10 @@ struct Derive {
     serde_as: bool,
     #[deluxe(default = false)]
     fake: bool,
-    #[deluxe(default = true)]
-    copy: bool,
-    #[deluxe(default = true)]
-    eq: bool,
-    #[deluxe(default = true)]
-    ord: bool,
-    #[deluxe(default = true)]
-    test_only: bool,
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
-    let mut input: syn::DeriveInput = syn::parse2(item)?;
+    let mut input: syn::ItemStruct = syn::parse2(item)?;
     let Endpoint { path, attribute, url_only, same_crate } =
         deluxe::extract_attributes(&mut input)?;
 
@@ -62,6 +52,41 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         let url_form = concat_string!("/rest/", &path);
         let url_form_view = concat_string!("/rest/", &path, ".view");
 
+        let mut auth_form_struct = input.clone();
+        let auth_form_ident = format_ident!("AuthFormRequest");
+        let mut auth_form_fields = None;
+
+        auth_form_struct.attrs.clear();
+        auth_form_struct.ident = auth_form_ident.clone();
+        auth_form_struct.generics.params.push(parse_quote!('auth_u));
+        auth_form_struct.generics.params.push(parse_quote!('auth_s));
+        auth_form_struct.fields = syn::Fields::Named(match input.fields {
+            syn::Fields::Named(mut fields) => {
+                auth_form_fields = Some(
+                    fields
+                        .named
+                        .iter()
+                        .map(|field| field.ident.as_ref().unwrap().clone())
+                        .collect::<Vec<_>>(),
+                );
+                fields.named.push(parse_quote! {
+                        #[serde(flatten)]
+                        auth: #crate_path::auth::Form<'auth_u, 'auth_s>
+                });
+                fields
+            }
+            syn::Fields::Unit => parse_quote! {{
+                #[serde(flatten)]
+                auth: #crate_path::auth::Form<'auth_u, 'auth_s>
+            }},
+            syn::Fields::Unnamed(_) => {
+                return Err(syn::Error::new(
+                    ident.span(),
+                    "Struct derived with `Endpoint` should be either named or unit struct",
+                ));
+            }
+        });
+
         let impl_endpoint = if url_only {
             quote! {}
         } else {
@@ -72,10 +97,50 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             }
         };
 
+        let impl_auth_form_trait = if let Some(auth_form_fields) = auth_form_fields {
+            quote! {
+                fn new(request: #ident, auth: #crate_path::auth::Form<'u, 's>) -> Self {
+                    let #ident { #(#auth_form_fields),* } = request;
+                    Self { #(#auth_form_fields),*, auth }
+                }
+
+                fn request(self) -> #ident {
+                    let Self { #(#auth_form_fields),*, auth } = self;
+                    #ident { #(#auth_form_fields),* }
+                }
+            }
+        } else {
+            quote! {
+                fn new(_: #ident, auth: #crate_path::auth::Form<'u, 's>) -> Self {
+                    Self { auth }
+                }
+
+                fn request(self) -> #ident {
+                    #ident
+                }
+            }
+        };
+
         quote! {
+            #[nghe_proc_macro::api_derive]
+            #auth_form_struct
+
             impl #crate_path::common::FormURL for #ident {
                 const URL_FORM: &'static str = #url_form;
                 const URL_FORM_VIEW: &'static str = #url_form_view;
+            }
+
+            impl<'u, 's>
+            #crate_path::auth::form::Trait<'u, 's, #ident> for #auth_form_ident<'u, 's> {
+                fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 's> {
+                    &self.auth
+                }
+
+                #impl_auth_form_trait
+            }
+
+            impl<'u, 's> #crate_path::common::FormRequest<'u, 's> for #ident {
+                type AuthForm = #auth_form_ident<'u, 's>;
             }
 
             #impl_endpoint
@@ -145,28 +210,25 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
 
     let ident = input.ident.to_string();
     let is_request_struct = ident == "Request";
-    let is_request = args.request || ident.ends_with("Request");
-    let is_response = args.response || ident.ends_with("Response");
-    let has_serde = is_request || is_response;
+    let has_serde = args.request || args.response;
 
     let is_enum = matches!(input.data, syn::Data::Enum(_));
 
     let mut derives: Vec<syn::Expr> = vec![];
     let mut attributes: Vec<syn::Attribute> = vec![];
 
-    if is_request {
+    let endpoint_statement =
+        if is_request_struct { Some(quote! {#[derive(nghe_proc_macro::Endpoint)]}) } else { None };
+
+    if args.request {
         derives.push(parse_str("::serde::Deserialize")?);
     }
-    if is_response {
+    if args.response {
         derives.push(parse_str("::serde::Serialize")?);
     }
 
     if args.debug {
         derives.push(parse_str("Debug")?);
-    }
-
-    if args.endpoint || is_request_struct {
-        derives.push(parse_str("nghe_proc_macro::Endpoint")?);
     }
 
     if has_serde {
@@ -209,43 +271,8 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
             .push(parse_quote!(#[cfg_attr(any(test, feature = "fake"), derive(fake::Dummy))]));
     }
 
-    if is_enum {
-        derives.extend_from_slice(
-            &["Clone", "PartialEq", "Eq", "PartialOrd", "Ord"]
-                .into_iter()
-                .map(parse_str)
-                .try_collect::<Vec<_>>()?,
-        );
-        if args.copy {
-            derives.push(parse_str("Copy")?);
-        }
-    }
-
-    if !is_enum && args.eq {
-        if args.test_only {
-            attributes.push(
-                parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialEq, Eq))]),
-            );
-        } else {
-            derives.extend_from_slice(
-                &["PartialEq", "Eq"].into_iter().map(parse_str).try_collect::<Vec<_>>()?,
-            );
-        }
-    }
-
-    if !is_enum && args.ord {
-        if args.test_only {
-            attributes.push(
-                parse_quote!(#[cfg_attr(any(test, feature = "test"), derive(PartialOrd, Ord))]),
-            );
-        } else {
-            derives.extend_from_slice(
-                &["PartialOrd", "Ord"].into_iter().map(parse_str).try_collect::<Vec<_>>()?,
-            );
-        }
-    }
-
     Ok(quote! {
+        #endpoint_statement
         #apply_statement
         #as_statement
         #[derive(#(#derives),*)]
