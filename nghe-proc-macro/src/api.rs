@@ -138,7 +138,8 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
                 const URL_FORM_VIEW: &'static str = #url_form_view;
             }
 
-            impl<'u, 's> #crate_path::auth::form::Trait<'u, 's, #ident> for #auth_form_ident<'u, 's> {
+            impl<'u, 's>
+            #crate_path::auth::form::Trait<'u, 's, #ident> for #auth_form_ident<'u, 's> {
                 fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 's> {
                     &self.auth
                 }

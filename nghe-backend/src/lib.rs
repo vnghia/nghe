@@ -10,7 +10,7 @@
 #![feature(str_as_str)]
 #![feature(try_blocks)]
 
-mod auth;
+// mod auth;
 pub mod config;
 mod database;
 mod error;

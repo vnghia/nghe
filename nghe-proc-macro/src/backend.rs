@@ -196,14 +196,14 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
     let traced_handler_try = if is_return_result { Some(quote! {?}) } else { None };
 
-    let (authorize_fn, missing_role) = if let Some(role) = role {
+    let is_authorized = if let Some(role) = role {
         if role == "admin" {
-            (quote! { role.admin }, role.to_string())
+            quote! { role.admin }
         } else {
-            (quote! { role.admin || role.#role }, role.to_string())
+            quote! { role.admin || role.#role }
         }
     } else {
-        (quote! { true }, String::default())
+        quote! { true }
     };
 
     if !use_database {
@@ -212,35 +212,25 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         });
     }
 
-    if use_request {
-        pass_args.push(parse_quote!(user.request));
-    }
-
     let user_ident =
         if use_user_id || use_request { format_ident!("user") } else { format_ident!("_user") };
 
     let form_handler = if attribute.form() {
-        let form_get_args = [
-            common_args.as_slice(),
-            [parse_quote!(#user_ident: FormGetUser<Request, #need_auth>)].as_slice(),
-        ]
-        .concat();
-        let form_post_args =
-            [common_args.as_slice(), [parse_quote!(#user_ident: FormPostUser<Request>)].as_slice()]
-                .concat();
+        let mut form_args = common_args.clone();
+        let mut pass_args = pass_args.clone();
+
+        if need_auth || use_request {
+            form_args.push(parse_quote!(#user_ident: crate::http::extract::auth::Form<Request>));
+        }
+        if use_request {
+            pass_args.push(parse_quote!(user.request));
+        }
 
         if is_binary_response {
             quote! {
                 #[axum::debug_handler]
-                pub async fn form_get_handler(
-                    #( #form_get_args ),*
-                ) -> Result<crate::http::binary::Response, crate::Error> {
-                    #traced_handler_ident(#( #pass_args ),*)#traced_handler_await
-                }
-
-                #[axum::debug_handler]
-                pub async fn form_post_handler(
-                    #( #form_post_args ),*
+                pub async fn form_handler(
+                    #( #form_args ),*
                 ) -> Result<crate::http::binary::Response, crate::Error> {
                     #traced_handler_ident(#( #pass_args ),*)#traced_handler_await
                 }
@@ -248,20 +238,8 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         } else {
             quote! {
                 #[axum::debug_handler]
-                pub async fn form_get_handler(
-                    #( #form_get_args ),*
-                ) -> Result<
-                        axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
-                    >, crate::Error> {
-                    let response = #traced_handler_ident(#( #pass_args ),*)
-                        #traced_handler_await
-                        #traced_handler_try;
-                    Ok(axum::Json(SubsonicResponse::new(response)))
-                }
-
-                #[axum::debug_handler]
-                pub async fn form_post_handler(
-                    #( #form_post_args ),*
+                pub async fn form_handler(
+                    #( #form_args ),*
                 ) -> Result<
                         axum::Json<SubsonicResponse<<Request as FormEndpoint>::Response>
                     >, crate::Error> {
@@ -277,11 +255,19 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     let binary_handler = if attribute.binary() {
-        let binary_args = [
-            common_args.as_slice(),
-            [parse_quote!(#user_ident: BinaryUser<Request, #need_auth>)].as_slice(),
-        ]
-        .concat();
+        let mut binary_args = common_args.clone();
+        let mut pass_args = pass_args.clone();
+
+        if need_auth {
+            binary_args
+                .push(parse_quote!(#user_ident: crate::http::extract::auth::Header<Request>));
+        }
+        if use_request {
+            binary_args.push(parse_quote!(
+                crate::http::extract::Binary(request): crate::http::extract::Binary<Request>
+            ));
+            pass_args.push(parse_quote!(request));
+        }
 
         if is_binary_response {
             quote! {
@@ -310,11 +296,16 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
     };
 
     let json_handler = if attribute.json() {
-        let json_args = [
-            common_args.as_slice(),
-            [parse_quote!(#user_ident: JsonUser<Request, #need_auth>)].as_slice(),
-        ]
-        .concat();
+        let mut json_args = common_args.clone();
+        let mut pass_args = pass_args.clone();
+
+        if need_auth {
+            json_args.push(parse_quote!(#user_ident: crate::http::extract::auth::Header<Request>));
+        }
+        if use_request {
+            json_args.push(parse_quote!(axum::Json(request): axum::Json<Request>));
+            pass_args.push(parse_quote!(request));
+        }
 
         if is_binary_response {
             quote! {
@@ -350,15 +341,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract;
         use nghe_api::common::{FormEndpoint, JsonEndpoint, SubsonicResponse};
 
-        use crate::auth::{Authorize, BinaryUser, FormGetUser, FormPostUser, JsonUser};
-
-        impl Authorize for Request {
-            fn authorize(role: crate::orm::users::Role) -> Result<(), crate::Error> {
-                if #authorize_fn {
-                    Ok(())
-                } else {
-                    Err(crate::Error::MissingRole(#missing_role))
-                }
+        impl crate::http::extract::auth::AuthZ for Request {
+            fn is_authorized(role: crate::orm::users::Role) ->  bool {
+                #is_authorized
             }
         }
 
@@ -388,20 +373,19 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
             let mut routers = vec![];
 
             if attribute.form() {
-                let form_get_handler = quote! { #module::form_get_handler };
-                let form_post_handler = quote! { #module::form_post_handler };
+                let form_handler = quote! { #module::form_handler };
 
                 let request = quote! { <#module::Request as nghe_api::common::FormURL> };
                 routers.push(quote! {
                     route(
                         #request::URL_FORM,
-                        axum::routing::get(#form_get_handler).post(#form_post_handler)
+                        axum::routing::get(#form_handler).post(#form_handler)
                     )
                 });
                 routers.push(quote! {
                     route(
                         #request::URL_FORM_VIEW,
-                        axum::routing::get(#form_get_handler).post(#form_post_handler)
+                        axum::routing::get(#form_handler).post(#form_handler)
                     )
                 });
             }
