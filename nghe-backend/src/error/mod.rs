@@ -315,8 +315,16 @@ impl From<reqwest::Error> for Error {
 
 impl From<rspotify::ClientError> for Error {
     fn from(source: rspotify::ClientError) -> Self {
-        // TODO: Extract notfound error
         let (status_code, opensubsonic_code) = match source {
+            rspotify::ClientError::Http(ref error) => match error.as_ref() {
+                rspotify::http::HttpError::Client(error)
+                    if let Some(status) = error.status()
+                        && status == StatusCode::NOT_FOUND =>
+                {
+                    (StatusCode::NOT_FOUND, OpensubsonicCode::TheRequestedDataWasNotFound)
+                }
+                _ => (StatusCode::INTERNAL_SERVER_ERROR, OpensubsonicCode::AGenericError),
+            },
             rspotify::ClientError::Io(error) => return error.into(),
             rspotify::ClientError::InvalidToken => (
                 StatusCode::UNAUTHORIZED,
