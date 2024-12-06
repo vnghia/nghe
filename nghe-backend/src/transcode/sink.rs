@@ -1,6 +1,6 @@
 use std::ffi::CStr;
 use std::fmt::Debug;
-use std::io::Write;
+use std::io::{Seek, Write};
 
 use educe::Educe;
 use fs4::fs_std::FileExt;
@@ -12,7 +12,7 @@ use rsmpeg::ffi;
 use tracing::instrument;
 use typed_path::Utf8NativePath;
 
-use crate::{config, Error};
+use crate::{config, error, Error};
 
 #[derive(Educe)]
 #[educe(Debug)]
@@ -76,9 +76,17 @@ impl Sink {
 
     #[instrument(err(Debug, level = "debug"))]
     pub fn lock_read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
-        let file = Self::open_read(path)?;
-        FileExt::try_lock_shared(&file)?;
-        Ok(file)
+        let mut file = Self::open_read(path)?;
+        // The read lock might be acquired with an empty file since creating and locking exclusively
+        // a file are two separate operations. We need to check if the file is empty before trying
+        // to acquiring the read lock. If the file is empty, don't lock it so the write lock
+        // can be acquired by the process that has created this file.
+        if file.seek(std::io::SeekFrom::End(0))? > 0 {
+            FileExt::try_lock_shared(&file)?;
+            Ok(file)
+        } else {
+            error::Kind::EmptyFileEncountered.into()
+        }
     }
 
     fn write(&mut self, data: &[u8]) -> i32 {
