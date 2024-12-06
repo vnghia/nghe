@@ -57,7 +57,7 @@ impl Sink {
         }
     }
 
-    #[instrument(err(level = "debug"))]
+    #[instrument(err(Debug, level = "debug"))]
     pub fn lock_write(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
         let file = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
         file.try_lock_exclusive()?;
@@ -74,7 +74,7 @@ impl Sink {
         .map_err(Error::from)
     }
 
-    #[instrument(err(level = "debug"))]
+    #[instrument(err(Debug, level = "debug"))]
     pub fn lock_read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
         let file = Self::open_read(path)?;
         FileExt::try_lock_shared(&file)?;

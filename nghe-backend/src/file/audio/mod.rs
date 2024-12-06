@@ -41,6 +41,7 @@ use crate::{config, Error};
     Ord,
     EnumString,
     IntoStaticStr,
+    strum::Display,
     AsExpression,
     FromSqlRow,
 )]

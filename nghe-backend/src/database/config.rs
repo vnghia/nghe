@@ -5,7 +5,7 @@ use diesel_async::RunQueryDsl;
 
 use super::Database;
 use crate::orm::configs;
-use crate::Error;
+use crate::{error, Error};
 
 pub trait Config {
     const KEY: &'static str;
@@ -43,16 +43,14 @@ impl Database {
             .await?;
 
         if C::ENCRYPTED {
-            String::from_utf8(
-                self.decrypt(
-                    config.byte.ok_or_else(|| Error::DatabaseInvalidConfigFormat(C::KEY))?,
-                )?,
-            )
+            String::from_utf8(self.decrypt(
+                config.byte.ok_or_else(|| error::Kind::InvalidDatabaseConfigFomat(C::KEY))?,
+            )?)
             .map_err(Error::from)
         } else {
             config
                 .text
-                .ok_or_else(|| Error::DatabaseInvalidConfigFormat(C::KEY))
+                .ok_or_else(|| error::Kind::InvalidDatabaseConfigFomat(C::KEY).into())
                 .map(Cow::into_owned)
         }
     }

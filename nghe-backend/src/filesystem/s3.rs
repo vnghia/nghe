@@ -2,8 +2,6 @@ use std::time::Duration;
 
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
-use aws_sdk_s3::error::SdkError;
-use aws_sdk_s3::operation::head_object::HeadObjectError;
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
@@ -18,7 +16,7 @@ use typed_path::Utf8TypedPath;
 use super::{entry, path};
 use crate::file::{self, audio};
 use crate::http::binary;
-use crate::{config, Error};
+use crate::{config, error, Error};
 
 #[derive(Debug, Clone)]
 pub struct Filesystem {
@@ -74,17 +72,20 @@ impl Filesystem {
         path: impl Into<Utf8TypedPath<'p>>,
     ) -> Result<Path<'b, 'k>, Error> {
         let path = path.into();
-        if let Utf8TypedPath::Unix(path) = path
-            && path.is_absolute()
-            && let Some(path) = path.as_str().strip_prefix('/')
-        {
-            if let Some((bucket, key)) = path.split_once('/') {
-                Ok(Path { bucket, key })
+        if let Utf8TypedPath::Unix(path) = path {
+            if path.is_absolute()
+                && let Some(path) = path.as_str().strip_prefix('/')
+            {
+                if let Some((bucket, key)) = path.split_once('/') {
+                    Ok(Path { bucket, key })
+                } else {
+                    Ok(Path { bucket: path, key: "" })
+                }
             } else {
-                Ok(Path { bucket: path, key: "" })
+                error::Kind::InvalidAbsolutePath(path.to_typed_path_buf()).into()
             }
         } else {
-            Err(Error::FilesystemS3InvalidPath(path.to_string()))
+            error::Kind::InvalidTypedPathPlatform(path.to_path_buf()).into()
         }
     }
 
@@ -97,14 +98,7 @@ impl Filesystem {
 impl super::Trait for Filesystem {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
-        self.client
-            .list_objects_v2()
-            .bucket(bucket)
-            .prefix(key)
-            .max_keys(1)
-            .send()
-            .await
-            .map_err(color_eyre::Report::new)?;
+        self.client.list_objects_v2().bucket(bucket).prefix(key).max_keys(1).send().await?;
         Ok(())
     }
 
@@ -119,7 +113,7 @@ impl super::Trait for Filesystem {
             self.client.list_objects_v2().bucket(bucket).prefix(prefix).into_paginator().send();
         let bucket = path::S3::from_str("/").join(bucket);
 
-        while let Some(output) = steam.try_next().await.map_err(color_eyre::Report::new)? {
+        while let Some(output) = steam.try_next().await? {
             if let Some(contents) = output.contents {
                 for content in contents {
                     if let Some(key) = content.key() {
@@ -135,14 +129,12 @@ impl super::Trait for Filesystem {
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
         let Path { bucket, key } = Self::split(path)?;
         let result = self.client.head_object().bucket(bucket).key(key).send().await;
-
         if let Err(error) = result {
-            if let SdkError::ServiceError(ref error) = error
-                && let HeadObjectError::NotFound(_) = error.err()
-            {
+            let error: Error = error.into();
+            if error.status_code == axum::http::StatusCode::NOT_FOUND {
                 Ok(false)
             } else {
-                Err(error.into())
+                Err(error)
             }
         } else {
             Ok(true)
@@ -156,8 +148,7 @@ impl super::Trait for Filesystem {
             .bucket(bucket)
             .key(key)
             .send()
-            .await
-            .map_err(color_eyre::Report::new)?
+            .await?
             .body
             .collect()
             .await
@@ -207,7 +198,7 @@ impl super::Trait for Filesystem {
 
 impl entry::Metadata for Object {
     fn size(&self) -> Result<usize, Error> {
-        Ok(self.size().ok_or_else(|| Error::FilesystemS3MissingObjectSize)?.try_into()?)
+        Ok(self.size().ok_or_else(|| error::Kind::MissingFileSize)?.try_into()?)
     }
 
     fn last_modified(&self) -> Result<Option<OffsetDateTime>, Error> {
@@ -215,7 +206,6 @@ impl entry::Metadata for Object {
             .last_modified()
             .map(DateTime::as_nanos)
             .map(OffsetDateTime::from_unix_timestamp_nanos)
-            .transpose()
-            .map_err(color_eyre::Report::new)?)
+            .transpose()?)
     }
 }

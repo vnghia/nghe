@@ -4,7 +4,7 @@ use diesel_async::pooled_connection::{deadpool, AsyncDieselConnectionManager};
 use diesel_async::AsyncPgConnection;
 use libaes::Cipher;
 
-use crate::Error;
+use crate::{error, Error};
 
 type Connection = AsyncDieselConnectionManager<AsyncPgConnection>;
 type Pool = deadpool::Pool<AsyncPgConnection>;
@@ -30,7 +30,7 @@ impl Database {
     }
 
     pub async fn get(&self) -> Result<deadpool::Object<AsyncPgConnection>, Error> {
-        self.pool.get().await.map_err(|_| Error::CheckoutConnectionPool)
+        self.pool.get().await.map_err(Error::from)
     }
 
     pub fn encrypt(&self, data: impl AsRef<[u8]>) -> Vec<u8> {
@@ -55,7 +55,11 @@ impl Database {
         let iv = &data[..Self::IV_LEN];
 
         let output = Cipher::new_128(key).cbc_decrypt(iv, cipher_text);
-        if output.is_empty() { Err(Error::DecryptDatabaseValue) } else { Ok(output) }
+        if output.is_empty() {
+            error::Kind::DatabaseValueDecryptionFailed.into()
+        } else {
+            Ok(output)
+        }
     }
 }
 

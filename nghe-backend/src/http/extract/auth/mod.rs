@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::database::Database;
 use crate::orm::users;
-use crate::Error;
+use crate::{error, Error};
 
 pub trait AuthN {
     fn username(&self) -> &str;
@@ -31,11 +31,13 @@ where
         .select(users::Auth::as_select())
         .first(&mut database.get().await?)
         .await
-        .map_err(|_| Error::Unauthenticated)?;
+        .map_err(|_| error::Kind::WrongUsernameOrPassword)?;
 
-    if R::is_authorized(role) && authn.is_authenticated(database.decrypt(password)?) {
-        Ok(id)
+    if !authn.is_authenticated(database.decrypt(password)?) {
+        error::Kind::WrongUsernameOrPassword.into()
+    } else if !R::is_authorized(role) {
+        error::Kind::Forbidden.into()
     } else {
-        Err(Error::Unauthenticated)
+        Ok(id)
     }
 }

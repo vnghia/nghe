@@ -92,6 +92,7 @@ tower-http = { version = "0.6.2", features = [
   "compression-zstd",
   "trace",
 ] }
+tracing-error = { version = "0.2.1" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 typed-path = { git = "https://github.com/vnghia/typed-path", rev = "bd796e64b3cee53181a3fc2f15245f5bf731bd8c" }
 unicode-normalization = { version = "0.1.24" }

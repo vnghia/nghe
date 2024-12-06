@@ -6,7 +6,7 @@ use time::macros::format_description;
 use time::Month;
 
 use crate::orm::{albums, songs};
-use crate::Error;
+use crate::{error, Error};
 
 type FormatDescription<'a> = &'a [time::format_description::BorrowedFormatItem<'a>];
 
@@ -61,7 +61,7 @@ impl FromStr for Date {
             // Don't aggresively parse everything as year
             let result = parsed.parse_items(input, Y_FORMAT);
             if result.is_err() || result.is_ok_and(|remain| !remain.is_empty()) {
-                return Err(Error::MediaDateFormat(s.to_owned()));
+                return error::Kind::InvalidDateTagFormat(s.to_owned()).into();
             }
         }
 

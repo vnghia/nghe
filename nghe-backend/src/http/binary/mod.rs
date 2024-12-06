@@ -68,7 +68,7 @@ impl Response {
             let offset = offset.into().unwrap_or(0);
             if size == 0 {
                 tracing::error!(property_has_zero_size=?property, offset);
-                return Err(Error::ResponseBinaryPropertyZeroSize);
+                todo!("Use NonZero")
             }
 
             header.typed_insert(ContentLength(size - offset));

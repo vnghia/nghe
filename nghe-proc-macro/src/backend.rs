@@ -180,7 +180,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             vec![quote! {name = #tracing_name}, quote! {skip(#( #skip_debugs ),*)}];
         if is_return_result {
             tracing_args.push(quote! {ret(level = #ret_level)});
-            tracing_args.push(quote! {err});
+            tracing_args.push(quote! {err(Debug)});
         }
 
         (

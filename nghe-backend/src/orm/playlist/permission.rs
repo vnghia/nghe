@@ -3,7 +3,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::Error;
+use crate::{error, Error};
 
 pub async fn check_write(
     database: &Database,
@@ -20,7 +20,7 @@ pub async fn check_write(
             .get_result(&mut database.get().await?)
             .await?
     };
-    if exist { Ok(()) } else { Err(Error::NotFound) }
+    if exist { Ok(()) } else { error::Kind::NotFound.into() }
 }
 
 pub mod query {

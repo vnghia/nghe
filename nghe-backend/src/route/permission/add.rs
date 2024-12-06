@@ -46,7 +46,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
             .on_conflict_do_nothing()
             .execute(&mut database.get().await?)
             .await?;
-    } else if cfg!(test) {
+    } else {
         let new = users::table
             .inner_join(music_folders::table.on(true.into_sql::<sql_types::Bool>()))
             .select((users::id, music_folders::id));
@@ -60,10 +60,6 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
             .on_conflict_do_nothing()
             .execute(&mut database.get().await?)
             .await?;
-    } else {
-        return Err(Error::InvalidParameter(
-            "The fields `user_id` and `music_folder_id` can not be both empty",
-        ));
     }
 
     Ok(Response)

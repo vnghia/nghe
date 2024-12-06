@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::{login, AuthN, AuthZ};
 use crate::database::Database;
-use crate::Error;
+use crate::{error, Error};
 
 pub struct Form<R> {
     pub id: Uuid,
@@ -40,7 +40,10 @@ where
     type Rejection = Error;
 
     async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let form: R::AuthForm = axum_extra::extract::Form::from_request(request, &()).await?.0;
+        let form: R::AuthForm = axum_extra::extract::Form::from_request(request, &())
+            .await
+            .map_err(error::Kind::from)?
+            .0;
         let id = login::<R, _>(state, form.auth()).await?;
         Ok(Self { id, request: form.request() })
     }

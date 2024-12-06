@@ -9,7 +9,7 @@ use crate::file::{self, picture};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 use crate::orm::cover_arts;
-use crate::{config, Error};
+use crate::{config, error, Error};
 
 #[handler]
 pub async fn handler(
@@ -18,7 +18,7 @@ pub async fn handler(
     config: config::CoverArt,
     request: Request,
 ) -> Result<binary::Response, Error> {
-    let dir = &config.dir.ok_or_else(|| Error::MediaCoverArtDirIsNotEnabled)?;
+    let dir = &config.dir.ok_or_else(|| error::Kind::MissingCoverArtDirectoryConfig)?;
     let property: file::Property<picture::Format> = cover_arts::table
         .filter(cover_arts::id.eq(request.id))
         .select(cover_arts::Property::as_select())

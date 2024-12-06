@@ -5,31 +5,44 @@ use lofty::ogg::OggPictureStorage as _;
 use super::{Metadata, Property};
 use crate::file::audio::{self, Album, Artists, Genres, NameDateMbz, TrackDisc};
 use crate::file::picture::Picture;
-use crate::{config, Error};
+use crate::{config, error, Error};
 
+// TODO: Reduce duplication while getting tag
 impl<'a> Metadata<'a> for FlacFile {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
-        self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.song(config)
+        self.vorbis_comments()
+            .ok_or(error::Kind::MissingMediaTag("vorbis comments", audio::Format::Flac))?
+            .song(config)
     }
 
     fn album(&'a self, config: &'a config::Parsing) -> Result<Album<'a>, Error> {
-        self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.album(config)
+        self.vorbis_comments()
+            .ok_or(error::Kind::MissingMediaTag("vorbis comments", audio::Format::Flac))?
+            .album(config)
     }
 
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {
-        self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.artists(config)
+        self.vorbis_comments()
+            .ok_or(error::Kind::MissingMediaTag("vorbis comments", audio::Format::Flac))?
+            .artists(config)
     }
 
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error> {
-        self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.track_disc(config)
+        self.vorbis_comments()
+            .ok_or(error::Kind::MissingMediaTag("vorbis comments", audio::Format::Flac))?
+            .track_disc(config)
     }
 
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<isolang::Language>, Error> {
-        self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.languages(config)
+        self.vorbis_comments()
+            .ok_or(error::Kind::MissingMediaTag("vorbis comments", audio::Format::Flac))?
+            .languages(config)
     }
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
-        self.vorbis_comments().ok_or(Error::MediaFlacMissingVorbisComments)?.genres(config)
+        self.vorbis_comments()
+            .ok_or(error::Kind::MissingMediaTag("vorbis comments", audio::Format::Flac))?
+            .genres(config)
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {

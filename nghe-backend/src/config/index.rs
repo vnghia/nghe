@@ -4,7 +4,7 @@ use educe::Educe;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::{database, Error};
+use crate::{database, error, Error};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Educe)]
 #[educe(Default)]
@@ -24,7 +24,7 @@ impl Index {
             .iter()
             .map(|prefix| prefix.as_ref().strip_suffix(' '))
             .collect::<Option<Vec<_>>>()
-            .ok_or_else(|| Error::ConfigIndexIgnorePrefixEndWithoutSpace)?
+            .ok_or_else(|| error::Kind::InvalidIndexIgnorePrefixesFormat)?
             .iter()
             .join(" "))
     }
@@ -50,8 +50,9 @@ mod split {
     where
         S: Serializer,
     {
-        serializer
-            .serialize_str(&Index::merge(prefixes).map_err(|e| S::Error::custom(e.to_string()))?)
+        serializer.serialize_str(&Index::merge(prefixes).map_err(|_| {
+            S::Error::custom(error::Kind::InvalidIndexIgnorePrefixesFormat.to_string())
+        })?)
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>

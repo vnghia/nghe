@@ -10,7 +10,6 @@
 #![feature(str_as_str)]
 #![feature(try_blocks)]
 
-// mod auth;
 pub mod config;
 mod database;
 mod error;
@@ -36,10 +35,36 @@ use mimalloc::MiMalloc;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 use uuid::Uuid;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
+
+pub fn init_tracing() -> Result<(), Error> {
+    color_eyre::install()?;
+
+    if cfg!(test) {
+        let _ = tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "info".into()),
+            )
+            .with_test_writer()
+            .try_init();
+    } else {
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                ["nghe_backend=info".to_owned(), "tower_http=info".to_owned()].join(",").into()
+            }))
+            .with(tracing_subscriber::fmt::layer().with_target(false))
+            .with(tracing_error::ErrorLayer::default())
+            .try_init()?;
+    }
+
+    Ok(())
+}
 
 pub async fn build(config: config::Config) -> Router {
     let filesystem =

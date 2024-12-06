@@ -15,7 +15,7 @@ use crate::database::Database;
 use crate::filesystem::Trait as _;
 use crate::orm::cover_arts;
 use crate::orm::upsert::Insert;
-use crate::{config, filesystem, Error};
+use crate::{config, error, filesystem, Error};
 
 #[derive(
     Debug,
@@ -60,7 +60,7 @@ impl TryFrom<&MimeType> for Format {
         match value {
             MimeType::Png => Ok(Self::Png),
             MimeType::Jpeg => Ok(Self::Jpeg),
-            _ => Err(Self::Error::MediaPictureUnsupportedFormat(value.as_str().to_owned())),
+            _ => error::Kind::UnsupportedPictureFormat(value.as_str().to_owned()).into(),
         }
     }
 }
@@ -84,7 +84,7 @@ impl<'d> TryFrom<&'d LoftyPicture> for Picture<'static, 'd> {
     fn try_from(value: &'d LoftyPicture) -> Result<Self, Self::Error> {
         Picture::new(
             None,
-            value.mime_type().ok_or_else(|| Error::MediaPictureMissingFormat)?.try_into()?,
+            value.mime_type().ok_or_else(|| error::Kind::MissingPictureFormat)?.try_into()?,
             value.data(),
         )
     }
@@ -147,7 +147,14 @@ impl Picture<'static, 'static> {
     ) -> Result<Option<Self>, Error> {
         let path = source.to_path();
         if filesystem.exists(path).await? {
-            let format = path.extension().ok_or_else(|| Error::PathExtensionMissing)?.parse()?;
+            let format = {
+                let format = path
+                    .extension()
+                    .ok_or_else(|| error::Kind::MissingPathExtension(path.to_path_buf()))?;
+                format
+                    .parse()
+                    .map_err(|_| error::Kind::UnsupportedPictureFormat(format.to_owned()))?
+            };
             let data = filesystem.read(path).await?;
             return Ok(Some(Picture::new(Some(source.into_string().into()), format, data)?));
         }
@@ -165,12 +172,12 @@ impl<'s> Picture<'s, 'static> {
         let content_type = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
-            .ok_or_else(|| Error::MediaPictureMissingFormat)?
+            .ok_or_else(|| error::Kind::MissingPictureFormat)?
             .to_str()?;
         let format = content_type
             .split_once('/')
             .and_then(|(ty, subtype)| if ty == "image" { subtype.parse().ok() } else { None })
-            .ok_or_else(|| Error::MediaPictureUnsupportedFormat(content_type.to_owned()))?;
+            .ok_or_else(|| error::Kind::UnsupportedPictureFormat(content_type.to_owned()))?;
         let data = response.bytes().await?;
         Picture::new(Some(source), format, data.to_vec())
     }

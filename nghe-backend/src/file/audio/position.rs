@@ -1,7 +1,7 @@
 use o2o::o2o;
 
 use crate::orm::songs;
-use crate::Error;
+use crate::{error, Error};
 
 #[derive(Debug, Default, Clone, Copy, o2o)]
 #[try_map_owned(songs::position::Track, Error)]
@@ -64,12 +64,13 @@ impl TrackDisc {
         } else if let Some(track_disc) = Self::parse_vinyl_position(track_number) {
             Ok(track_disc)
         } else {
-            Err(Error::MediaPositionFormat {
+            error::Kind::InvalidPositionTagFormat {
                 track_number: track_number.map(str::to_owned),
                 track_total: track_total.map(str::to_owned),
                 disc_number: disc_number.map(str::to_owned),
                 disc_total: disc_total.map(str::to_owned),
-            })
+            }
+            .into()
         }
     }
 

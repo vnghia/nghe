@@ -6,7 +6,7 @@ use axum_extra::headers::{self, HeaderMapExt};
 
 use super::{login, AuthN, AuthZ};
 use crate::database::Database;
-use crate::Error;
+use crate::{error, Error};
 
 pub struct Header<R> {
     _request: PhantomData<R>,
@@ -36,7 +36,7 @@ where
         let header = parts
             .headers
             .typed_get::<BaiscAuthorization>()
-            .ok_or_else(|| Error::MissingAuthenticationHeader)?;
+            .ok_or_else(|| error::Kind::MissingAuthenticationHeader)?;
         login::<R, _>(state, &header).await?;
         Ok(Self { _request: PhantomData })
     }

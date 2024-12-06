@@ -1,20 +1,9 @@
 use nghe_api::constant;
-use nghe_backend::{build, config, migration};
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
+use nghe_backend::{build, config, init_tracing, migration};
 
 #[tokio::main]
 async fn main() {
-    color_eyre::install().expect("Could not install error handler");
-
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            ["nghe_backend=info".to_owned(), "tower_http=info".to_owned()].join(",").into()
-        }))
-        .with(tracing_subscriber::fmt::layer().with_target(false))
-        .try_init()
-        .expect("Could not install tracing handler");
-
+    init_tracing().unwrap();
     tracing::info!(server_version =% constant::SERVER_VERSION);
 
     let config = config::Config::default();
