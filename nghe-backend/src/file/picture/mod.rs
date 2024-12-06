@@ -253,7 +253,7 @@ mod test {
             dir: impl AsRef<Utf8NativePath>,
             upsert: cover_arts::Upsert<'s>,
         ) -> Self {
-            let property: file::Property<Format> = upsert.property.into();
+            let property: file::Property<Format> = upsert.property.try_into().unwrap();
             let path = property.path(dir, Self::FILENAME);
             let data = tokio::fs::read(path).await.unwrap();
             Self { source: upsert.source, property, data: data.into() }

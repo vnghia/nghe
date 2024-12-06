@@ -73,7 +73,7 @@ mod tests {
         let database_data = Information::query_data(&mock, id).await;
         let database_song: Song = database_data.song.try_into().unwrap();
         let database_property: audio::Property = database_data.property.try_into().unwrap();
-        let database_file: file::Property<_> = database_data.file.into();
+        let database_file: file::Property<_> = database_data.file.try_into().unwrap();
         assert_eq!(database_song, song.metadata.song);
         assert_eq!(database_property, song.property);
         assert_eq!(database_file, song.file);
@@ -89,7 +89,8 @@ mod tests {
             let update_database_song: Song = update_database_data.song.try_into().unwrap();
             let update_database_property: audio::Property =
                 update_database_data.property.try_into().unwrap();
-            let update_database_file: file::Property<_> = update_database_data.file.into();
+            let update_database_file: file::Property<_> =
+                update_database_data.file.try_into().unwrap();
             assert_eq!(update_database_song, update_song.metadata.song);
             assert_eq!(update_database_property, update_song.property);
             assert_eq!(update_database_file, update_song.file);

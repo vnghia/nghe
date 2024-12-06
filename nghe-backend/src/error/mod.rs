@@ -104,6 +104,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     MissingFileSize,
+    #[error("Empty file encountered")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    EmptyFileEncountered,
 
     // Media error
     #[error("Could not found {0} tag in format {1}")]

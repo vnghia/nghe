@@ -2,6 +2,7 @@ pub mod property;
 pub mod source;
 
 use std::convert::Infallible;
+use std::num::NonZero;
 
 use axum::body::Body;
 use axum::http::{header, HeaderMap, StatusCode};
@@ -19,7 +20,7 @@ use typed_path::Utf8NativePath;
 
 #[cfg(test)]
 use crate::test::transcode;
-use crate::{file, Error};
+use crate::{error, file, Error};
 
 struct RxStream(RecvStream<Vec<u8>>);
 
@@ -65,12 +66,8 @@ impl Response {
         header.insert(header::CONTENT_TYPE, header::HeaderValue::from_static(property.mime()));
 
         let status = if let Some(size) = property.size() {
+            let size = size.get();
             let offset = offset.into().unwrap_or(0);
-            if size == 0 {
-                tracing::error!(property_has_zero_size=?property, offset);
-                todo!("Use NonZero")
-            }
-
             header.typed_insert(ContentLength(size - offset));
             header.typed_insert(
                 ContentRange::bytes(offset.., size).map_err(color_eyre::Report::from)?,
@@ -106,7 +103,8 @@ impl Response {
         #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
     ) -> Result<Self, Error> {
         let mut file = tokio::fs::File::open(path.as_ref()).await?;
-        let size = file.seek(SeekFrom::End(0)).await?;
+        let size = NonZero::new(file.seek(SeekFrom::End(0)).await?)
+            .ok_or_else(|| error::Kind::EmptyFileEncountered)?;
         file.seek(SeekFrom::Start(offset.into().unwrap_or(0))).await?;
         Self::from_async_read(
             file,

@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::num::NonZero;
 use std::str::FromStr;
 
 use diesel::deserialize::{self, FromSql};
@@ -11,9 +12,11 @@ use o2o::o2o;
 
 use crate::file::{self, picture};
 pub use crate::schema::cover_arts::{self, *};
+use crate::{error, Error};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
-#[map_owned(file::Property<picture::Format>)]
+#[from_owned(file::Property<picture::Format>)]
+#[owned_try_into(file::Property<picture::Format>, Error)]
 #[diesel(table_name = cover_arts, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Property {
@@ -21,8 +24,10 @@ pub struct Property {
     #[into(~.cast_unsigned())]
     #[diesel(column_name = file_hash)]
     pub hash: i64,
-    #[from(~.cast_signed())]
-    #[into(~.cast_unsigned())]
+    #[from(~.get().cast_signed())]
+    #[into(NonZero::new(~.cast_unsigned()).ok_or_else(
+        || error::Kind::DatabaseCorruptionDetected
+    )?)]
     #[diesel(column_name = file_size)]
     pub size: i32,
     pub format: picture::Format,

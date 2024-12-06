@@ -1,3 +1,5 @@
+use std::num::NonZero;
+
 use diesel::deserialize::{self, FromSql};
 use diesel::pg::PgValue;
 use diesel::prelude::*;
@@ -8,7 +10,7 @@ use o2o::o2o;
 
 use super::songs;
 use crate::file::{self, audio};
-use crate::Error;
+use crate::{error, Error};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[try_map_owned(audio::Property, Error)]
@@ -29,14 +31,19 @@ pub struct Property {
 }
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
-#[map_owned(file::Property<audio::Format>)]
+#[from_owned(file::Property<audio::Format>)]
+#[owned_try_into(file::Property<audio::Format>, Error)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct File {
-    #[map(~ as _)]
+    #[from(~.cast_signed())]
+    #[into(~.cast_unsigned())]
     #[diesel(column_name = file_hash)]
     pub hash: i64,
-    #[map(~ as _)]
+    #[from(~.get().cast_signed())]
+    #[into(NonZero::new(~.cast_unsigned()).ok_or_else(
+        || error::Kind::DatabaseCorruptionDetected
+    )?)]
     #[diesel(column_name = file_size)]
     pub size: i32,
     pub format: audio::Format,

@@ -24,7 +24,7 @@ pub async fn handler(
         .select(cover_arts::Property::as_select())
         .get_result(&mut database.get().await?)
         .await?
-        .into();
+        .try_into()?;
     let offset = range.map(|range| range.to_offset(property.size.into())).transpose()?;
     binary::Response::from_path_property(
         property.path(dir, picture::Picture::FILENAME),
