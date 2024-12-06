@@ -8,7 +8,7 @@ use o2o::o2o;
 use super::{artist, name_date_mbz, position, Genres};
 use crate::file::picture::Picture;
 use crate::orm::songs;
-use crate::Error;
+use crate::{error, Error};
 
 #[derive(Debug, o2o)]
 #[try_map_owned(songs::Song<'a>, Error)]
@@ -21,7 +21,12 @@ pub struct Song<'a> {
     #[map(~.try_into()?)]
     pub track_disc: position::TrackDisc,
     #[from(~.into_iter().map(
-        |language| language.as_str().parse().map_err(Error::from)
+        |language| language
+            .as_str()
+            .parse()
+            .map_err(
+                |_| error::Kind::InvalidLanguageTagFormat(language.into_owned())
+            )
     ).try_collect()?)]
     #[into(~.iter().map(|language| language.to_639_3().into()).collect())]
     #[cfg_attr(
@@ -68,7 +73,7 @@ mod tests {
         let database_data = Information::query_data(&mock, id).await;
         let database_song: Song = database_data.song.try_into().unwrap();
         let database_property: audio::Property = database_data.property.try_into().unwrap();
-        let database_file: file::Property<_> = database_data.file.into();
+        let database_file: file::Property<_> = database_data.file.try_into().unwrap();
         assert_eq!(database_song, song.metadata.song);
         assert_eq!(database_property, song.property);
         assert_eq!(database_file, song.file);
@@ -84,7 +89,8 @@ mod tests {
             let update_database_song: Song = update_database_data.song.try_into().unwrap();
             let update_database_property: audio::Property =
                 update_database_data.property.try_into().unwrap();
-            let update_database_file: file::Property<_> = update_database_data.file.into();
+            let update_database_file: file::Property<_> =
+                update_database_data.file.try_into().unwrap();
             assert_eq!(update_database_song, update_song.metadata.song);
             assert_eq!(update_database_property, update_song.property);
             assert_eq!(update_database_file, update_song.file);

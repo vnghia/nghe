@@ -1,22 +1,26 @@
+use std::num::NonZeroU64;
 use std::ops::Bound;
 
 use axum_extra::headers::{ETag, Range};
 use concat_string::concat_string;
 
-use crate::Error;
+use crate::{error, Error};
 
 pub trait ToOffset {
-    fn to_offset(&self, size: u64) -> Result<u64, Error>;
+    fn to_offset(&self, size: NonZeroU64) -> Result<u64, Error>;
 }
 
 impl ToOffset for Range {
-    fn to_offset(&self, size: u64) -> Result<u64, Error> {
-        if let Bound::Included(offset) =
-            self.satisfiable_ranges(size).next().ok_or_else(|| Error::InvalidRangeHeader)?.0
+    fn to_offset(&self, size: NonZeroU64) -> Result<u64, Error> {
+        if let Bound::Included(offset) = self
+            .satisfiable_ranges(size.get())
+            .next()
+            .ok_or_else(|| error::Kind::InvalidRangeHeader(self.to_owned()))?
+            .0
         {
             Ok(offset)
         } else {
-            Err(Error::InvalidRangeHeader)
+            error::Kind::InvalidRangeHeader(self.to_owned()).into()
         }
     }
 }

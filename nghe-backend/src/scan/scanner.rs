@@ -16,7 +16,7 @@ use crate::file::{self, audio, picture, File};
 use crate::filesystem::{self, entry, Entry, Filesystem, Trait};
 use crate::integration::Informant;
 use crate::orm::{albums, music_folders, songs};
-use crate::{config, Error};
+use crate::{config, error, Error};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -128,7 +128,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .inner_join(albums::table)
             .filter(albums::music_folder_id.eq(self.music_folder.id))
             .filter(songs::file_hash.eq(property.hash.cast_signed()))
-            .filter(songs::file_size.eq(property.size.cast_signed()))
+            .filter(songs::file_size.eq(property.size.get().cast_signed()))
             .select((songs::id, songs::relative_path))
             .get_result(&mut self.database.get().await?)
             .await
@@ -136,7 +136,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .map_err(Error::from)
     }
 
-    #[instrument(skip(self, started_at), ret(level = "debug"), err)]
+    #[instrument(skip(self, started_at), ret(level = "debug"), err(Debug))]
     async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
         let database = &self.database;
 
@@ -158,7 +158,10 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             &self.database,
             &self.filesystem,
             &self.config.cover_art,
-            entry.path.parent().ok_or_else(|| Error::AbsoluteFilePathDoesNotHaveParentDirectory)?,
+            entry
+                .path
+                .parent()
+                .ok_or_else(|| error::Kind::MissingPathParent(entry.path.clone()))?,
         )
         .await?;
 
@@ -181,7 +184,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 // Since `song_id` is queried only by music folder and relative path and there is a
                 // constraint `songs_album_id_file_hash_file_size_key`, other cases should be
                 // unreachable.
-                return Err(Error::DatabaseScanQueryInconsistent);
+                return error::Kind::DatabaseCorruptionDetected.into();
             }
             // We have one entry that is in the same music folder, same hash and size but
             // different relative path (since song_id is none). We only need to update the relative
@@ -230,7 +233,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
     }
 
     #[instrument(
-        skip(self), fields(music_folder_data = ?self.music_folder.data, started_at), ret, err
+        skip(self), fields(music_folder_data = ?self.music_folder.data, started_at), ret, err(Debug)
     )]
     pub async fn run(&self) -> Result<(), Error> {
         let span = tracing::Span::current();

@@ -17,6 +17,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
   RUST_LOG: debug
+  COLORBT_SHOW_HIDDEN: 1
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
   AWS_ACCESS_KEY_ID: minioadmin

@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod picture;
 
+use std::num::{NonZero, NonZeroU32, NonZeroU64};
 use std::time::Duration;
 
 use axum_extra::headers::{CacheControl, ETag};
@@ -10,20 +11,20 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use crate::http::binary::property;
 use crate::http::header::ToETag;
-use crate::Error;
+use crate::{error, Error};
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct Property<F: format::Trait> {
     pub hash: u64,
-    pub size: u32,
+    pub size: NonZeroU32,
     pub format: F,
 }
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]
 pub struct PropertySize<F: format::Trait> {
-    pub size: u64,
+    pub size: NonZeroU64,
     pub format: F,
 }
 
@@ -37,7 +38,8 @@ impl<F: format::Trait> Property<F> {
     pub fn new(format: F, data: impl AsRef<[u8]>) -> Result<Self, Error> {
         let data = data.as_ref();
         let hash = xxh3_64(data);
-        let size = data.len().try_into()?;
+        let size = NonZero::new(data.len().try_into()?)
+            .ok_or_else(|| error::Kind::EmptyFileEncountered)?;
         Ok(Self { hash, size, format })
     }
 
@@ -86,7 +88,7 @@ impl<F: format::Trait> property::Trait for Property<F> {
         self.format.mime()
     }
 
-    fn size(&self) -> Option<u64> {
+    fn size(&self) -> Option<NonZeroU64> {
         Some(self.size.into())
     }
 
@@ -106,7 +108,7 @@ impl<F: format::Trait> property::Trait for PropertySize<F> {
         self.format.mime()
     }
 
-    fn size(&self) -> Option<u64> {
+    fn size(&self) -> Option<NonZeroU64> {
         Some(self.size)
     }
 

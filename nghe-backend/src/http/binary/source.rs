@@ -29,6 +29,6 @@ impl Source<file::Property<audio::Format>> {
             .path()
             .from_string(audio.music_folder.path.into_owned())
             .join(audio.relative_path);
-        Ok((filesystem, Self { path, property: audio.property.into() }))
+        Ok((filesystem, Self { path, property: audio.property.try_into()? }))
     }
 }

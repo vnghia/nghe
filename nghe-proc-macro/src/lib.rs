@@ -1,7 +1,7 @@
+#![allow(clippy::too_many_lines)]
 #![feature(iterator_try_collect)]
 #![feature(let_chains)]
 #![feature(proc_macro_span)]
-#![allow(clippy::too_many_lines)]
 
 use proc_macro::TokenStream;
 

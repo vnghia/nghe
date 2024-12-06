@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::database::Database;
 use crate::orm::playbacks;
-use crate::Error;
+use crate::{error, Error};
 
 #[handler]
 pub async fn handler(
@@ -28,7 +28,7 @@ pub async fn handler(
                     song_id,
                     updated_at: time::OffsetDateTime::now_utc(),
                 }),
-                EitherOrBoth::Right(_) => Err(Error::ScrobbleRequestMustHaveBeMoreIdThanTime),
+                EitherOrBoth::Right(_) => error::Kind::InvalidScrobbleTimeSize.into(),
             })
             .try_collect()?;
         playbacks::Scrobble::upsert(database, &values).await?;

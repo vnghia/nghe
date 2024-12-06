@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::database::Database;
 use crate::orm::upsert::Insert as _;
 use crate::orm::{artists, songs_album_artists, songs_artists};
-use crate::Error;
+use crate::{error, Error};
 
 #[derive(Debug, PartialEq, Eq, Hash, o2o)]
 #[from_owned(artists::Data<'a>)]
@@ -50,7 +50,7 @@ impl<'a> Artist<'a> {
                 None => break self.name.as_ref(),
             }
         };
-        name.nfkd().next().ok_or_else(|| Error::MediaArtistNameEmpty).map(|c| {
+        name.nfkd().next().ok_or_else(|| error::Kind::InvalidArtistNameFormat.into()).map(|c| {
             if c.is_ascii_alphabetic() {
                 c.to_ascii_uppercase()
             } else if c.is_numeric() {
@@ -94,7 +94,7 @@ impl<'a> Artists<'a> {
         let song: IndexSet<_> = song.into_iter().collect();
         let album = album.into_iter().collect();
         if song.is_empty() {
-            Err(Error::MediaSongArtistEmpty)
+            error::Kind::MissingSongArtistName.into()
         } else {
             Ok(Self { song, album, compilation })
         }

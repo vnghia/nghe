@@ -8,7 +8,7 @@ use typed_path::{TryAsRef as _, Utf8NativePath, Utf8TypedPath};
 use super::{entry, path};
 use crate::file::{self, audio};
 use crate::http::binary;
-use crate::Error;
+use crate::{error, Error};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Filesystem;
@@ -27,13 +27,14 @@ impl Filesystem {
 
 impl super::Trait for Filesystem {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
-        if Self::is_native(&path)
-            && path.is_absolute()
-            && tokio::fs::metadata(path.as_str()).await?.is_dir()
-        {
-            Ok(())
+        if !Self::is_native(&path) {
+            error::Kind::InvalidTypedPathPlatform(path.to_path_buf()).into()
+        } else if !path.is_absolute() {
+            error::Kind::InvalidAbsolutePath(path.to_path_buf()).into()
+        } else if !tokio::fs::metadata(path.as_str()).await?.is_dir() {
+            error::Kind::InvalidDirectoryPath(path.to_path_buf()).into()
         } else {
-            Err(Error::InvalidParameter("Folder path must be absolute and be a directory"))
+            Ok(())
         }
     }
 
@@ -54,7 +55,7 @@ impl super::Trait for Filesystem {
                                 .into_os_string()
                                 .into_string()
                                 .map(path::Local::from_string)
-                                .map_err(Error::FilesystemLocalNonUTF8PathEncountered)?;
+                                .map_err(error::Kind::NonUTF8PathEncountered)?;
                             sender.send(path, &metadata).await?;
                         }
                     }
@@ -81,8 +82,9 @@ impl super::Trait for Filesystem {
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
         let path = source.path.to_path();
-        let path: &Utf8NativePath =
-            path.try_as_ref().ok_or_else(|| Error::FilesystemTypedPathWrongPlatform)?;
+        let path: &Utf8NativePath = path
+            .try_as_ref()
+            .ok_or_else(|| error::Kind::InvalidTypedPathPlatform(path.to_path_buf()))?;
         binary::Response::from_path_property(
             path,
             &source.property,

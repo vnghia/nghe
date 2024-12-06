@@ -12,7 +12,7 @@ use rsmpeg::{avutil, ffi, UnsafeDerefMut};
 use tracing::instrument;
 
 use super::Sink;
-use crate::Error;
+use crate::{error, Error};
 
 struct Input {
     context: AVFormatContextInput,
@@ -46,7 +46,7 @@ impl Input {
         let context = AVFormatContextInput::open(input, None, &mut None)?;
         let (index, codec) = context
             .find_best_stream(ffi::AVMEDIA_TYPE_AUDIO)?
-            .ok_or_else(|| Error::MediaAudioTrackMissing)?;
+            .ok_or_else(|| error::Kind::MissingAudioTrack)?;
         let stream = &context.streams()[index];
 
         let mut decoder = AVCodecContext::new(&codec);
@@ -71,7 +71,7 @@ impl Output {
         }
 
         let codec = AVCodec::find_encoder(context.oformat().audio_codec)
-            .ok_or_else(|| Error::TranscodeOutputFormatNotSupported)?;
+            .ok_or_else(|| error::Kind::MissingEncoder)?;
 
         // bit to kbit
         let bitrate = bitrate * 1000;
@@ -82,7 +82,10 @@ impl Output {
         let mut encoder = AVCodecContext::new(&codec);
         encoder.set_ch_layout(decoder.ch_layout);
         encoder.set_sample_fmt(
-            codec.sample_fmts().ok_or_else(|| Error::TranscodeEncoderSampleFmtsMissing)?[0],
+            *codec
+                .sample_fmts()
+                .and_then(<[_]>::first)
+                .ok_or_else(|| error::Kind::MissingEncoderSampleFmts)?,
         );
         encoder.set_sample_rate(sample_rate);
         encoder.set_bit_rate(bitrate.into());
@@ -159,9 +162,9 @@ impl<'graph> Filter<'graph> {
         encoder: &AVCodecContext,
     ) -> Result<Self, Error> {
         let source_ref = AVFilter::get_by_name(c"abuffer")
-            .ok_or_else(|| Error::TranscodeAVFilterMissing("abuffer"))?;
+            .ok_or_else(|| error::Kind::MissingAVFilter("abuffer"))?;
         let sink_ref = AVFilter::get_by_name(c"abuffersink")
-            .ok_or_else(|| Error::TranscodeAVFilterMissing("abuffersink"))?;
+            .ok_or_else(|| error::Kind::MissingAVFilter("abuffersink"))?;
 
         let source_arg = concat_string!(
             "time_base=",
@@ -172,7 +175,7 @@ impl<'graph> Filter<'graph> {
             decoder.sample_rate.to_string(),
             ":sample_fmt=",
             avutil::get_sample_fmt_name(decoder.sample_fmt)
-                .ok_or_else(|| Error::TranscodeSampleFmtNameMissing(decoder.sample_fmt))?
+                .ok_or_else(|| error::Kind::MissingSampleFmtName(decoder.sample_fmt))?
                 .to_str()?,
             ":channel_layout=",
             decoder.ch_layout().describe()?.to_str()?
@@ -216,7 +219,7 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    #[instrument(err)]
+    #[instrument(err(Debug))]
     pub fn spawn(
         input: impl Into<String> + Debug,
         sink: Sink,
@@ -239,7 +242,7 @@ impl Transcoder {
         Ok(Self { input, output, graph })
     }
 
-    #[instrument(skip_all, ret(level = "debug"), err(level = "debug"))]
+    #[instrument(skip_all, ret(level = "debug"), err(Debug, level = "debug"))]
     pub fn transcode(&mut self) -> Result<(), Error> {
         let mut filter = Filter::new(&self.graph, &self.input.decoder, &self.output.encoder)?;
 

@@ -55,7 +55,7 @@ impl Mock<'static, 'static> {
                     picture,
                 },
                 property: upsert.data.property.try_into().unwrap(),
-                file: upsert.data.file.into(),
+                file: upsert.data.file.try_into().unwrap(),
             },
             dir_picture,
             relative_path: upsert.relative_path,

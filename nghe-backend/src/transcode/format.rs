@@ -1,3 +1,5 @@
+use std::num::NonZeroU64;
+
 use axum_extra::headers::{CacheControl, ETag};
 use nghe_api::common::format;
 
@@ -11,7 +13,7 @@ impl binary::property::Trait for format::Transcode {
         format::Trait::mime(self)
     }
 
-    fn size(&self) -> Option<u64> {
+    fn size(&self) -> Option<NonZeroU64> {
         None
     }
 

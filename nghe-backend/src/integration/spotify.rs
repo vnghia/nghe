@@ -1,7 +1,7 @@
 use rspotify::clients::BaseClient;
 use rspotify::model::{ArtistId, SearchResult, SearchType};
 
-use crate::{config, Error};
+use crate::{config, error, Error};
 
 #[derive(Debug, Clone)]
 pub struct Artist {
@@ -57,7 +57,10 @@ impl Client {
 
     pub async fn fetch_artist(&self, id: &str) -> Result<Artist, Error> {
         self.0
-            .artist(ArtistId::from_id(id)?)
+            .artist(
+                ArtistId::from_id(id)
+                    .map_err(|_| error::Kind::InvalidSpotifyIdFormat(id.to_owned()))?,
+            )
             .await
             .map(|artist| Artist {
                 id: artist.id,
