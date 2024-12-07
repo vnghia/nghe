@@ -25,7 +25,7 @@ dioxus-logger = { version = "0.5.1" }
 dioxus-sdk = { version = "0.5.0", features = ["storage"] }
 getrandom = { version = "0.2.15", features = ["js"] }
 gloo = { version = "0.11.0", features = ["net", "utils"] }
-manganis = { version = "0.2.2" }
+manganis = { version = "0.6.0" }
 readable = { version = "0.16.0", default-features = false, features = [
     "byte",
     "num",
