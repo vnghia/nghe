@@ -20,7 +20,7 @@ uuid = { workspace = true }
 nghe-types = { path = "../types" }
 
 console_error_panic_hook = { version = "0.1.7" }
-dioxus = { version = "0.5.1", features = ["web", "router"] }
+dioxus = { version = "0.6.0", features = ["web", "router"] }
 dioxus-logger = { version = "0.5.1" }
 dioxus-sdk = { version = "0.5.0", features = ["storage"] }
 getrandom = { version = "0.2.15", features = ["js"] }
