@@ -48,6 +48,7 @@ use uuid::Uuid;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+#[coverage(off)]
 pub fn init_tracing() -> Result<(), Error> {
     color_eyre::install()?;
 
@@ -72,6 +73,7 @@ pub fn init_tracing() -> Result<(), Error> {
     Ok(())
 }
 
+#[coverage(off)]
 pub async fn build(config: config::Config) -> Router {
     let filesystem =
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
