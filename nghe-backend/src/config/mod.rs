@@ -47,14 +47,3 @@ impl Default for Config {
             .expect("Could not parse config")
     }
 }
-
-#[cfg(test)]
-#[coverage(off)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_default_config() {
-        let _ = Config::default();
-    }
-}

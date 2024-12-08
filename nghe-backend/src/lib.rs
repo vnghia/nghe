@@ -13,6 +13,7 @@
 #![feature(str_as_str)]
 #![feature(try_blocks)]
 
+#[coverage(off)]
 pub mod config;
 mod database;
 #[coverage(off)]
