@@ -457,6 +457,7 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
     };
 
     Ok(quote! {
+        #[coverage(off)]
         pub fn router(#( #router_args ),*) -> axum::Router<crate::database::Database> {
             #router_body
         }
