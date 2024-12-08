@@ -42,7 +42,7 @@ pub async fn handler(
         let span = tracing::Span::current();
         let (can_acquire_lock, output) = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
-            (transcode::Sink::lock_read(&output).is_ok(), output)
+            (transcode::Lock::lock_read(&output).is_ok(), output)
         })
         .await?;
 
@@ -117,7 +117,6 @@ mod tests {
     use itertools::Itertools;
     use nghe_api::common::{filesystem, format};
     use rstest::rstest;
-    use transcode::Sink;
 
     use super::*;
     use crate::file::audio;
@@ -255,7 +254,7 @@ mod tests {
             .replace(format)
             .path(config.cache_dir.as_ref().unwrap(), bitrate.to_string().as_str());
         tokio::task::spawn_blocking(move || {
-            Sink::lock_read_blocking(&cache_path).unwrap();
+            transcode::Lock::lock_read_blocking(&cache_path).unwrap();
         })
         .await
         .unwrap();

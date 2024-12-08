@@ -109,6 +109,15 @@ pub enum Kind {
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     EmptyFileEncountered,
 
+    #[error("File is already locked")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    FileAlreadyLocked,
+    #[error("File is already exclusively locked")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    FileAlreadyExclusivelyLocked,
+
     // Media error
     #[error("Could not found {0} tag in format {1}")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
