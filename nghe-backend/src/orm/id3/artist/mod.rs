@@ -127,6 +127,7 @@ pub mod query {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use diesel_async::RunQueryDsl;
     use fake::{Fake, Faker};

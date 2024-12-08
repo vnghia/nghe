@@ -19,6 +19,7 @@ pub struct Request {
 pub struct Response;
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
     use time::macros::datetime;

@@ -111,6 +111,7 @@ pub async fn handler(
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use axum::http::StatusCode;
     use axum_extra::headers::HeaderMapExt;

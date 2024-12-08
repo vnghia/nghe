@@ -38,6 +38,7 @@ pub async fn handler(
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use diesel::{ExpressionMethods, QueryDsl};
     use diesel_async::RunQueryDsl;

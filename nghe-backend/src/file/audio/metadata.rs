@@ -49,6 +49,7 @@ pub struct Metadata<'a> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
     use rstest::rstest;

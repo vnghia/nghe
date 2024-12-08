@@ -184,6 +184,7 @@ impl<'s> Picture<'s, 'static> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use std::io::Cursor;
 

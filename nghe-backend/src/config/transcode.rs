@@ -21,6 +21,7 @@ pub struct Transcode {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use typed_path::Utf8NativePath;
 

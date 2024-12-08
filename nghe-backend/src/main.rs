@@ -1,6 +1,9 @@
+#![feature(coverage_attribute)]
+
 use nghe_api::constant;
 use nghe_backend::{build, config, init_tracing, migration};
 
+#[coverage(off)]
 #[tokio::main]
 async fn main() {
     init_tracing().unwrap();

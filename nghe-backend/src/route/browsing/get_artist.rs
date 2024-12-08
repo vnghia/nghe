@@ -25,6 +25,7 @@ pub async fn handler(
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
     use itertools::Itertools;

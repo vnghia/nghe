@@ -43,6 +43,7 @@ pub async fn handler(
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use nghe_api::common::filesystem;
     use rstest::rstest;

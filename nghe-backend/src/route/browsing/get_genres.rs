@@ -23,6 +23,7 @@ pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Err
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use fake::{Fake, Faker};
     use rstest::rstest;

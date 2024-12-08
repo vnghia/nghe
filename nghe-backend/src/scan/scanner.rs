@@ -269,6 +269,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::Fake;
     use rstest::rstest;

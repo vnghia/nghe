@@ -90,6 +90,7 @@ mod upsert {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
 

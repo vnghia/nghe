@@ -48,6 +48,7 @@ pub struct Response {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

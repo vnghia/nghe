@@ -26,6 +26,7 @@ pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Err
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

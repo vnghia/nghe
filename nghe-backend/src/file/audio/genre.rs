@@ -119,6 +119,7 @@ impl Genres<'_> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use diesel::SelectableHelper;
     use futures_lite::{stream, StreamExt};
@@ -166,6 +167,7 @@ mod test {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

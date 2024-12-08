@@ -61,6 +61,7 @@ impl FromSql<SqlType, crate::orm::Type> for Required {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
 

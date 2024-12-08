@@ -284,6 +284,7 @@ impl Transcoder {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use futures_lite::{stream, StreamExt};
     use nghe_api::common::format;
@@ -310,6 +311,7 @@ mod test {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use nghe_api::common::format;
     use rstest::rstest;

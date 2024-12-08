@@ -94,6 +94,7 @@ impl TrackDisc {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     #![allow(clippy::too_many_arguments)]
 

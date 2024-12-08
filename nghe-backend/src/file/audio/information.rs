@@ -120,6 +120,7 @@ impl Information<'_> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

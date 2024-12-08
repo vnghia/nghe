@@ -22,6 +22,7 @@ pub mod builder {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use nghe_proc_macro::api_derive;
     use rstest::rstest;

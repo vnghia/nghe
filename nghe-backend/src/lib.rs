@@ -1,6 +1,7 @@
 #![feature(adt_const_params)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(async_closure)]
+#![feature(coverage_attribute)]
 #![feature(duration_constructors)]
 #![feature(if_let_guard)]
 #![feature(integer_sign_cast)]
@@ -12,8 +13,10 @@
 #![feature(str_as_str)]
 #![feature(try_blocks)]
 
+#[coverage(off)]
 pub mod config;
 mod database;
+#[coverage(off)]
 mod error;
 mod file;
 mod filesystem;
@@ -29,6 +32,7 @@ mod time;
 mod transcode;
 
 #[cfg(test)]
+#[coverage(off)]
 mod test;
 
 use axum::Router;
@@ -44,6 +48,7 @@ use uuid::Uuid;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+#[coverage(off)]
 pub fn init_tracing() -> Result<(), Error> {
     color_eyre::install()?;
 
@@ -68,6 +73,7 @@ pub fn init_tracing() -> Result<(), Error> {
     Ok(())
 }
 
+#[coverage(off)]
 pub async fn build(config: config::Config) -> Router {
     let filesystem =
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;

@@ -187,6 +187,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
             quote! {
                 #[tracing::instrument(#( #tracing_args ),*)]
                 #[inline(always)]
+                #[coverage(off)]
                 #handler_async fn #traced_handler_ident(#handler_inputs) #handler_output {
                     #ident(#( #handler_args ),*)#handler_await
                 }
@@ -229,6 +230,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         if is_binary_response {
             quote! {
                 #[axum::debug_handler]
+                #[coverage(off)]
                 pub async fn form_handler(
                     #( #form_args ),*
                 ) -> Result<crate::http::binary::Response, crate::Error> {
@@ -238,6 +240,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         } else {
             quote! {
                 #[axum::debug_handler]
+                #[coverage(off)]
                 pub async fn form_handler(
                     #( #form_args ),*
                 ) -> Result<
@@ -272,6 +275,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         if is_binary_response {
             quote! {
                 #[axum::debug_handler]
+                #[coverage(off)]
                 pub async fn binary_handler(
                     #( #binary_args ),*
                 ) -> Result<crate::http::binary::Response, crate::Error> {
@@ -281,6 +285,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         } else {
             quote! {
                 #[axum::debug_handler]
+                #[coverage(off)]
                 pub async fn binary_handler(
                     #( #binary_args ),*
                 ) -> Result<Vec<u8>, crate::Error> {
@@ -310,6 +315,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         if is_binary_response {
             quote! {
                 #[axum::debug_handler]
+                #[coverage(off)]
                 pub async fn json_handler(
                     #( #json_args ),*
                 ) -> Result<crate::http::binary::Response, crate::Error> {
@@ -319,6 +325,7 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         } else {
             quote! {
                 #[axum::debug_handler]
+                #[coverage(off)]
                 pub async fn json_handler(
                     #( #json_args ),*
                 ) -> Result<axum::Json<<Request as JsonEndpoint>::Response>, crate::Error> {
@@ -341,7 +348,9 @@ pub fn handler(attr: TokenStream, item: TokenStream) -> Result<TokenStream, Erro
         use axum::extract;
         use nghe_api::common::{FormEndpoint, JsonEndpoint, SubsonicResponse};
 
+        #[coverage(off)]
         impl crate::http::extract::auth::AuthZ for Request {
+            #[inline(always)]
             fn is_authorized(role: crate::orm::users::Role) ->  bool {
                 #is_authorized
             }
@@ -448,6 +457,7 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
     };
 
     Ok(quote! {
+        #[coverage(off)]
         pub fn router(#( #router_args ),*) -> axum::Router<crate::database::Database> {
             #router_body
         }

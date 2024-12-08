@@ -50,6 +50,7 @@ where
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     #![allow(unexpected_cfgs)]
 
