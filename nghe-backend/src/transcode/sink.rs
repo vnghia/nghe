@@ -1,18 +1,17 @@
 use std::ffi::CStr;
 use std::fmt::Debug;
-use std::io::{Seek, Write};
+use std::io::Write;
 
 use educe::Educe;
-use fs4::fs_std::FileExt;
 use loole::{Receiver, Sender};
 use nghe_api::common::format;
 use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
 use rsmpeg::avutil::AVMem;
 use rsmpeg::ffi;
-use tracing::instrument;
 use typed_path::Utf8NativePath;
 
-use crate::{config, error, Error};
+use super::Lock;
+use crate::{config, Error};
 
 #[derive(Educe)]
 #[educe(Debug)]
@@ -39,7 +38,7 @@ impl Sink {
         let span = tracing::Span::current();
         let file = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
-            output.map(Self::lock_write).transpose().ok().flatten()
+            output.map(Lock::lock_write).transpose().ok().flatten()
         })
         .await?;
         Ok((Self { tx, buffer_size: config.buffer_size, format, file }, rx))
@@ -54,38 +53,6 @@ impl Sink {
             format::Transcode::Opus => c"output.opus",
             format::Transcode::Wav => c"output.wav",
             format::Transcode::Wma => c"output.wma",
-        }
-    }
-
-    #[instrument(err(Debug, level = "debug"))]
-    pub fn lock_write(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
-        let file = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
-        file.try_lock_exclusive()?;
-        Ok(file)
-    }
-
-    fn open_read(path: impl AsRef<Utf8NativePath>) -> Result<std::fs::File, Error> {
-        if cfg!(windows) {
-            // On Windows, the file must be open with write permissions to lock it.
-            std::fs::OpenOptions::new().read(true).write(true).open(path.as_ref())
-        } else {
-            std::fs::OpenOptions::new().read(true).open(path.as_ref())
-        }
-        .map_err(Error::from)
-    }
-
-    #[instrument(err(Debug, level = "debug"))]
-    pub fn lock_read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
-        let mut file = Self::open_read(path)?;
-        // The read lock might be acquired with an empty file since creating and locking exclusively
-        // a file are two separate operations. We need to check if the file is empty before trying
-        // to acquiring the read lock. If the file is empty, don't lock it so the write lock
-        // can be acquired by the process that has created this file.
-        if file.seek(std::io::SeekFrom::End(0))? > 0 {
-            FileExt::try_lock_shared(&file)?;
-            Ok(file)
-        } else {
-            error::Kind::EmptyFileEncountered.into()
         }
     }
 
@@ -133,14 +100,6 @@ mod test {
                 Status::WithCache if self.file.is_none() => Status::NoCache,
                 _ => status,
             }
-        }
-
-        pub fn lock_read_blocking(
-            path: impl AsRef<Utf8NativePath>,
-        ) -> Result<std::fs::File, Error> {
-            let file = Self::open_read(path)?;
-            FileExt::lock_shared(&file)?;
-            Ok(file)
         }
     }
 }

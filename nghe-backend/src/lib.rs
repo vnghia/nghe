@@ -5,6 +5,7 @@
 #![feature(if_let_guard)]
 #![feature(integer_sign_cast)]
 #![feature(iterator_try_collect)]
+#![feature(file_lock)]
 #![feature(let_chains)]
 #![feature(proc_macro_hygiene)]
 #![feature(stmt_expr_attributes)]
