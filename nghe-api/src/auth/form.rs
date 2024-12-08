@@ -23,6 +23,7 @@ impl<'u, 't> From<token::Auth<'u, 't>> for Form<'u, 't> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

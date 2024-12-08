@@ -50,6 +50,7 @@ pub struct Filesystem {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
 

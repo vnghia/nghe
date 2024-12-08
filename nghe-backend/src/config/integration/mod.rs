@@ -25,6 +25,7 @@ pub struct Integration {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
 

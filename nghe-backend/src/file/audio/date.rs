@@ -70,6 +70,7 @@ impl FromStr for Date {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use std::fmt::{Display, Formatter};
 
@@ -115,6 +116,7 @@ mod test {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

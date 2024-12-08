@@ -104,6 +104,7 @@ impl Trait for Impl<'_> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
     use futures_lite::StreamExt;

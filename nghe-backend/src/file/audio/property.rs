@@ -15,6 +15,7 @@ pub struct Property {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
     use crate::file::audio::{self};

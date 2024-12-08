@@ -42,6 +42,7 @@ pub async fn handler(
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use concat_string::concat_string;
     use rstest::rstest;

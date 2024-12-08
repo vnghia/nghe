@@ -173,6 +173,7 @@ impl IntoResponse for Response {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use http_body_util::BodyExt;
 

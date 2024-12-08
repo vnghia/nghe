@@ -45,6 +45,7 @@ impl Lock {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
 

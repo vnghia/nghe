@@ -1,6 +1,7 @@
 #![feature(adt_const_params)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(async_closure)]
+#![feature(coverage_attribute)]
 #![feature(duration_constructors)]
 #![feature(if_let_guard)]
 #![feature(integer_sign_cast)]
@@ -14,6 +15,7 @@
 
 pub mod config;
 mod database;
+#[coverage(off)]
 mod error;
 mod file;
 mod filesystem;
@@ -29,6 +31,7 @@ mod time;
 mod transcode;
 
 #[cfg(test)]
+#[coverage(off)]
 mod test;
 
 use axum::Router;

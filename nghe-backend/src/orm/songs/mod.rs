@@ -112,6 +112,7 @@ impl FromSql<Text, super::Type> for audio::Format {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
 

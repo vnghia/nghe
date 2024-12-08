@@ -43,6 +43,7 @@ where
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use axum::http;
     use axum_extra::headers::HeaderMapExt;

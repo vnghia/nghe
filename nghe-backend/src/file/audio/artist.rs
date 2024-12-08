@@ -247,6 +247,7 @@ impl<'a> Artists<'a> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use diesel::{QueryDsl, SelectableHelper};
     use itertools::Itertools;
@@ -394,6 +395,7 @@ mod test {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

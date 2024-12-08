@@ -20,6 +20,7 @@ pub struct CoverArt {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use strum::IntoEnumIterator;
     use typed_path::Utf8NativePath;

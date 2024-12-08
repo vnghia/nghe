@@ -90,6 +90,7 @@ impl From<Sink> for AVIOContextContainer {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use super::*;
     use crate::test::transcode::Status;

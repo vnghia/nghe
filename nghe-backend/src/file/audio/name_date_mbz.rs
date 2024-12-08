@@ -64,6 +64,7 @@ impl Album<'_> {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
@@ -111,6 +112,7 @@ mod test {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
     use itertools::Itertools;

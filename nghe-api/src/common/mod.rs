@@ -100,6 +100,7 @@ emit_constant_serialize!(open_subsonic, bool, true);
 emit_constant_serialize!(status_ok, str, "ok");
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use serde_json::{json, to_value};
 

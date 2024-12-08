@@ -97,6 +97,7 @@ impl File {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod test {
     use std::io::Cursor;
 
@@ -127,6 +128,7 @@ mod test {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
     use isolang::Language;

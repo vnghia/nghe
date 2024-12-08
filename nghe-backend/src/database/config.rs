@@ -57,6 +57,7 @@ impl Database {
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::{Dummy, Fake, Faker};
     use rstest::rstest;

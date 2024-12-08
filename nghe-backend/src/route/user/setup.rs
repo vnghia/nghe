@@ -31,6 +31,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
 }
 
 #[cfg(test)]
+#[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
     use rstest::rstest;
