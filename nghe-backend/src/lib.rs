@@ -15,6 +15,7 @@
 
 #[coverage(off)]
 pub mod config;
+mod constant;
 mod database;
 #[coverage(off)]
 mod error;
@@ -52,22 +53,17 @@ static GLOBAL: MiMalloc = MiMalloc;
 pub fn init_tracing() -> Result<(), Error> {
     color_eyre::install()?;
 
+    let tracing = tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+            if cfg!(test) { "debug" } else { const_format::concatc!(constant::PKG_NAME, "=info") }
+                .into()
+        }))
+        .with(tracing_error::ErrorLayer::default());
+
     if cfg!(test) {
-        let _ = tracing_subscriber::fmt()
-            .with_env_filter(
-                tracing_subscriber::EnvFilter::try_from_default_env()
-                    .unwrap_or_else(|_| "info".into()),
-            )
-            .with_test_writer()
-            .try_init();
+        tracing.with(tracing_subscriber::fmt::layer().with_test_writer()).try_init()?;
     } else {
-        tracing_subscriber::registry()
-            .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                ["nghe_backend=info".to_owned(), "tower_http=info".to_owned()].join(",").into()
-            }))
-            .with(tracing_subscriber::fmt::layer().with_target(false))
-            .with(tracing_error::ErrorLayer::default())
-            .try_init()?;
+        tracing.with(tracing_subscriber::fmt::layer().with_target(false)).try_init()?;
     }
 
     Ok(())
@@ -107,10 +103,23 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::search::router())
         .merge(route::system::router())
         .with_state(database::Database::new(&config.database))
-        .layer(TraceLayer::new_for_http().make_span_with(|_: &axum::extract::Request| {
-            let id = Uuid::new_v4();
-            tracing::info_span!("request", ?id)
-        }))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(|_: &axum::extract::Request| {
+                    let id = Uuid::new_v4();
+                    tracing::info_span!("request", ?id)
+                })
+                .on_request(|request: &axum::extract::Request, _: &tracing::Span| {
+                    tracing::info!(method = request.method().as_str(), path = request.uri().path());
+                })
+                .on_response(
+                    |response: &axum::response::Response,
+                     latency: std::time::Duration,
+                     _: &tracing::Span| {
+                        tracing::info!(status = response.status().as_u16(), took = ?latency);
+                    },
+                ),
+        )
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new().br(true).gzip(true).zstd(true))
 }

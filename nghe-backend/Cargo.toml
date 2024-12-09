@@ -116,6 +116,9 @@ tempfile = { version = "3.14.0" }
 [target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
 diesel = { version = "2.2.5", features = ["postgres"] }
 
+[build-dependencies]
+built = { version = "0.7.5" }
+
 [package.metadata.vcpkg]
 dependencies = [
   "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis,openssl]",
