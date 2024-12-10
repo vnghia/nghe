@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use axum_extra::headers::{CacheControl, ETag};
 use nghe_api::common::format;
-use typed_path::{Utf8NativePath, Utf8NativePathBuf};
+use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::http::binary::property;
@@ -47,7 +47,7 @@ impl<F: format::Trait> Property<F> {
         Property { hash: self.hash, size: self.size, format }
     }
 
-    fn path_dir(&self, base: impl AsRef<Utf8NativePath>) -> Utf8NativePathBuf {
+    fn path_dir(&self, base: impl AsRef<Utf8PlatformPath>) -> Utf8PlatformPathBuf {
         let hash = self.hash.to_le_bytes();
 
         // Avoid putting too many files in a single directory
@@ -59,9 +59,9 @@ impl<F: format::Trait> Property<F> {
 
     pub fn path(
         &self,
-        base: impl AsRef<Utf8NativePath>,
+        base: impl AsRef<Utf8PlatformPath>,
         name: impl Into<Option<&str>>,
-    ) -> Utf8NativePathBuf {
+    ) -> Utf8PlatformPathBuf {
         let path = self.path_dir(base);
         if let Some(name) = name.into() {
             path.join(name).with_extension(self.format.extension())
@@ -72,9 +72,9 @@ impl<F: format::Trait> Property<F> {
 
     pub async fn path_create_dir(
         &self,
-        base: impl AsRef<Utf8NativePath>,
+        base: impl AsRef<Utf8PlatformPath>,
         name: &str,
-    ) -> Result<Utf8NativePathBuf, Error> {
+    ) -> Result<Utf8PlatformPathBuf, Error> {
         let path = self.path_dir(base);
         tokio::fs::create_dir_all(&path).await?;
         Ok(path.join(name).with_extension(self.format.extension()))

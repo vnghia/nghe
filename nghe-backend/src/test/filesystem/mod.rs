@@ -4,7 +4,7 @@ mod s3;
 
 pub use common::{Impl, Trait};
 use nghe_api::common::filesystem;
-use typed_path::{TryAsRef as _, Utf8NativePath, Utf8NativePathBuf};
+use typed_path::{Utf8PlatformPathBuf, Utf8TypedPath};
 
 use crate::filesystem::Filesystem;
 
@@ -34,9 +34,11 @@ impl Mock {
         }
     }
 
-    pub fn prefix(&self) -> Utf8NativePathBuf {
-        let prefix = self.local.prefix();
-        let prefix: &Utf8NativePath = prefix.try_as_ref().unwrap();
-        prefix.into()
+    pub fn prefix(&self) -> Utf8PlatformPathBuf {
+        match self.local.prefix() {
+            Utf8TypedPath::Unix(path) => path.with_platform_encoding_checked(),
+            Utf8TypedPath::Windows(path) => path.with_platform_encoding_checked(),
+        }
+        .unwrap()
     }
 }

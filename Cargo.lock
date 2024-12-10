@@ -4316,7 +4316,8 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 [[package]]
 name = "typed-path"
 version = "0.10.0"
-source = "git+https://github.com/vnghia/typed-path?rev=bd796e64b3cee53181a3fc2f15245f5bf731bd8c#bd796e64b3cee53181a3fc2f15245f5bf731bd8c"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41713888c5ccfd99979fcd1afd47b71652e331b3d4a0e19d30769e80fec76cce"
 
 [[package]]
 name = "typenum"
