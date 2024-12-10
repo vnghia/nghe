@@ -2696,6 +2696,7 @@ dependencies = [
  "axum-extra",
  "bitcode",
  "bon",
+ "built",
  "color-eyre",
  "concat-string",
  "const_format",

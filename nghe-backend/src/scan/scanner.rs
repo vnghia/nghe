@@ -136,7 +136,12 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .map_err(Error::from)
     }
 
-    #[instrument(skip(self, started_at), ret(level = "debug"), err(Debug))]
+    #[instrument(
+        skip_all,
+        fields(path = %entry.path, last_modified = ?entry.last_modified),
+        ret(level = "debug"),
+        err(Debug)
+    )]
     async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
         let database = &self.database;
 
@@ -232,17 +237,16 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(())
     }
 
-    #[instrument(
-        skip(self), fields(music_folder_data = ?self.music_folder.data, started_at), ret, err(Debug)
-    )]
+    #[instrument(skip_all, err(Debug))]
     pub async fn run(&self) -> Result<(), Error> {
-        let span = tracing::Span::current();
+        tracing::info!(music_folder = ?self.music_folder);
         let started_at = crate::time::now().await;
-        span.record("started_at", tracing::field::display(&started_at));
+        tracing::info!(?started_at);
 
         let (scan_handle, permit, rx) = self.init();
         let mut join_set = tokio::task::JoinSet::new();
 
+        let span = tracing::Span::current();
         while let Ok(entry) = rx.recv_async().await {
             let permit = permit.clone().acquire_owned().await?;
             let scan = self.clone().into_owned();
@@ -264,6 +268,10 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
         self.database.upsert_config(&self.config.index).await?;
         self.informant.search_and_upsert_artists(&self.database, &self.config.cover_art).await?;
+
+        let latency: std::time::Duration =
+            (time::OffsetDateTime::now_utc() - started_at).try_into()?;
+        tracing::info!(took = ?latency);
         Ok(())
     }
 }

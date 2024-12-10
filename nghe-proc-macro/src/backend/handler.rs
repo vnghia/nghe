@@ -28,7 +28,7 @@ enum Arg {
     Database { ident: syn::Ident, use_database: bool },
     User(syn::Ident),
     Request,
-    Extension { ident: syn::Ident, ty: syn::TypePath, reference: bool, skip_debug: bool },
+    Extension { ident: syn::Ident, ty: syn::TypePath, reference: bool },
     Header { ident: syn::Ident, ty: syn::TypePath },
 }
 
@@ -94,10 +94,7 @@ impl Arg {
                     if config.header {
                         Ok(Self::Header { ident: pat.ident.clone(), ty })
                     } else {
-                        let skip_debug = pat.ident == "config"
-                            || pat.ident == "informant"
-                            || pat.ident == "filesystem";
-                        Ok(Self::Extension { ident: pat.ident.clone(), ty, reference, skip_debug })
+                        Ok(Self::Extension { ident: pat.ident.clone(), ty, reference })
                     }
                 }
             }
@@ -109,16 +106,14 @@ impl Arg {
         }
     }
 
-    fn to_skip_debug(&self) -> Option<&syn::Ident> {
+    fn to_tracing(&self) -> Option<TokenStream> {
         match self {
-            Arg::Database { ident, use_database } => {
-                if *use_database {
-                    Some(ident)
-                } else {
-                    None
-                }
+            Arg::User(ident) => {
+                let field = format_ident!("user_{ident}");
+                Some(parse_quote!(user.#ident = ?#field))
             }
-            Arg::Extension { ident, skip_debug, .. } if *skip_debug => Some(ident),
+            Arg::Header { ident, .. } => Some(parse_quote!(#ident = ?#ident)),
+            Arg::Request => Some(parse_quote!(request = ?request)),
             _ => None,
         }
     }
@@ -331,7 +326,7 @@ impl Handler {
         } else {
             let source_dir = source_path.parent().unwrap().file_name().unwrap().to_str().unwrap();
             let source_stem = source_path.file_stem().unwrap().to_str().unwrap();
-            concat_string!(source_dir, "::", source_stem)
+            concat_string!(source_dir, ":", source_stem)
         };
 
         let mut sig = self.item.sig.clone();
@@ -350,18 +345,24 @@ impl Handler {
             })
             .try_collect()?;
 
-        let skip_debugs: Punctuated<&syn::Ident, syn::Token![,]> =
-            self.args.value.iter().filter_map(Arg::to_skip_debug).collect();
         let mut tracing_args = Punctuated::<syn::Meta, syn::Token![,]>::default();
         tracing_args.push(parse_quote!(name = #tracing_name));
-        tracing_args.push(parse_quote!(skip(#skip_debugs)));
+        tracing_args.push(parse_quote!(skip_all));
         if self.is_result_binary.is_some() {
             tracing_args.push(parse_quote!(ret(level = "trace")));
             tracing_args.push(parse_quote!(err(Debug)));
         }
 
+        let traced_args: Punctuated<TokenStream, syn::Token![,]> =
+            self.args.value.iter().filter_map(Arg::to_tracing).collect();
+        let traced_expr_macro: Option<TokenStream> = if traced_args.is_empty() {
+            None
+        } else {
+            Some(quote!(tracing::debug!(#traced_args);))
+        };
+
         let handler_ident = &self.item.sig.ident;
-        let source: syn::Expr = if sig.asyncness.is_some() {
+        let handler_expr_call: syn::Expr = if sig.asyncness.is_some() {
             parse_quote!(#handler_ident(#args).await)
         } else {
             parse_quote!(#handler_ident(#args))
@@ -371,7 +372,10 @@ impl Handler {
             #[coverage(off)]
             #[inline(always)]
             #[tracing::instrument(#tracing_args)]
-            #sig { #source }
+            #sig {
+                #traced_expr_macro
+                #handler_expr_call
+            }
         })
     }
 
