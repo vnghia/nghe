@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::Display;
 use std::io::Seek;
 
 use tracing::instrument;
@@ -19,8 +19,8 @@ impl Lock {
         .map_err(Error::from)
     }
 
-    #[instrument(err(Debug, level = "debug"))]
-    pub fn lock_read(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
+    #[instrument(skip_all, fields(%path), err(Debug, level = "trace"))]
+    pub fn lock_read(path: impl AsRef<Utf8NativePath> + Display) -> Result<std::fs::File, Error> {
         let mut file = Self::open_read(path)?;
         // The read lock might be acquired with an empty file since creating and locking exclusively
         // a file are two separate operations. We need to check if the file is empty before trying
@@ -37,8 +37,8 @@ impl Lock {
         }
     }
 
-    #[instrument(err(Debug, level = "debug"))]
-    pub fn lock_write(path: impl AsRef<Utf8NativePath> + Debug) -> Result<std::fs::File, Error> {
+    #[instrument(skip_all, fields(%path), err(Debug, level = "trace"))]
+    pub fn lock_write(path: impl AsRef<Utf8NativePath> + Display) -> Result<std::fs::File, Error> {
         let file = std::fs::OpenOptions::new().write(true).create_new(true).open(path.as_ref())?;
         if file.try_lock()? { Ok(file) } else { error::Kind::FileAlreadyLocked.into() }
     }

@@ -63,7 +63,7 @@ pub fn init_tracing() -> Result<(), Error> {
     if cfg!(test) {
         tracing.with(tracing_subscriber::fmt::layer().with_test_writer()).try_init()?;
     } else {
-        tracing.with(tracing_subscriber::fmt::layer().with_target(false)).try_init()?;
+        tracing.with(tracing_subscriber::fmt::layer().with_target(false).compact()).try_init()?;
     }
 
     Ok(())
@@ -107,7 +107,7 @@ pub async fn build(config: config::Config) -> Router {
             TraceLayer::new_for_http()
                 .make_span_with(|_: &axum::extract::Request| {
                     let id = Uuid::new_v4();
-                    tracing::info_span!("request", ?id)
+                    tracing::info_span!(nghe_api::constant::SERVER_NAME, trace = %id)
                 })
                 .on_request(|request: &axum::extract::Request, _: &tracing::Span| {
                     tracing::info!(method = request.method().as_str(), path = request.uri().path());

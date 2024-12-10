@@ -54,7 +54,6 @@ impl Informant {
         )
     }
 
-    #[tracing::instrument(skip(self, database, config, id), ret(level = "trace"))]
     async fn upsert_artist(
         &self,
         database: &Database,
@@ -84,18 +83,14 @@ impl Informant {
         artist: &artists::Artist<'_>,
     ) -> Result<(), Error> {
         let id = artist.id;
-        self.upsert_artist(
-            database,
-            config,
-            id,
-            if let Some(ref client) = self.spotify {
-                client.search_artist(&artist.data.name).await?
-            } else {
-                None
-            }
-            .as_ref(),
-        )
-        .await
+        let spotify = if let Some(ref client) = self.spotify {
+            client.search_artist(&artist.data.name).await?
+        } else {
+            None
+        };
+
+        tracing::debug!(?spotify);
+        self.upsert_artist(database, config, id, spotify.as_ref()).await
     }
 
     pub async fn search_and_upsert_artists(

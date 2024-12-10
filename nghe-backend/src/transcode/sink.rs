@@ -1,5 +1,5 @@
 use std::ffi::CStr;
-use std::fmt::Debug;
+use std::fmt::Display;
 use std::io::Write;
 
 use educe::Educe;
@@ -27,7 +27,7 @@ impl Sink {
     pub async fn new(
         config: &config::Transcode,
         format: format::Transcode,
-        output: Option<impl AsRef<Utf8NativePath> + Debug + Send + 'static>,
+        output: Option<impl AsRef<Utf8NativePath> + Display + Send + 'static>,
     ) -> Result<(Self, Receiver<Vec<u8>>), Error> {
         let (tx, rx) = crate::sync::channel(config.channel_size);
         // It will fail in two cases:
