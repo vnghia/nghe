@@ -1,6 +1,7 @@
 #![allow(clippy::too_many_lines)]
 #![feature(iterator_try_collect)]
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 #![feature(proc_macro_span)]
 
 use proc_macro::TokenStream;
@@ -14,11 +15,17 @@ trait IntoTokenStream {
     fn into_token_stream(self) -> TokenStream;
 }
 
+impl IntoTokenStream for syn::Error {
+    fn into_token_stream(self) -> TokenStream {
+        self.to_compile_error().into()
+    }
+}
+
 impl IntoTokenStream for Result<proc_macro2::TokenStream, syn::Error> {
     fn into_token_stream(self) -> TokenStream {
         match self {
             Ok(r) => r.into(),
-            Err(e) => e.to_compile_error().into(),
+            Err(e) => e.into_token_stream(),
         }
     }
 }
@@ -35,7 +42,10 @@ pub fn api_derive(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn handler(attr: TokenStream, item: TokenStream) -> TokenStream {
-    backend::handler(attr.into(), item.into()).into_token_stream()
+    match backend::Handler::new(attr.into(), item.into()) {
+        Ok(handler) => handler.build().into_token_stream(),
+        Err(error) => error.into_token_stream(),
+    }
 }
 
 #[proc_macro]
