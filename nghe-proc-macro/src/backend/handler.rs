@@ -286,7 +286,6 @@ impl Handler {
 
         let handler = &self.item;
         Ok(quote! {
-            #[coverage(off)]
             #handler
 
             #traced_handler
@@ -369,9 +368,9 @@ impl Handler {
         };
 
         Ok(parse_quote! {
-            #[tracing::instrument(#tracing_args)]
-            #[inline(always)]
             #[coverage(off)]
+            #[inline(always)]
+            #[tracing::instrument(#tracing_args)]
             #sig { #source }
         })
     }
@@ -420,16 +419,16 @@ impl Handler {
 
         if self.is_result_binary.is_some_and(std::convert::identity) {
             parse_quote! {
-                #[axum::debug_handler]
                 #[coverage(off)]
+                #[axum::debug_handler]
                 pub async fn #ident(#args) -> Result<crate::http::binary::Response, crate::Error> {
                     #traced_handler(#exprs)#asyncness
                 }
             }
         } else {
             parse_quote! {
-                #[axum::debug_handler]
                 #[coverage(off)]
+                #[axum::debug_handler]
                 pub async fn #ident(#args) -> #result {
                     let response = #traced_handler(#exprs)
                         #asyncness
