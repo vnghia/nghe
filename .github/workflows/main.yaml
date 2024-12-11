@@ -361,8 +361,10 @@ jobs:
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
+            curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
+
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
-            cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+            cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -426,11 +428,14 @@ jobs:
         run: |
           cargo vcpkg --verbose build --manifest-path nghe-backend\Cargo.toml --target x86_64-pc-windows-msvc
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Build and test
         run: |
           .\minio.exe server data &
           cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+          cargo nextest run --locked --target x86_64-pc-windows-msvc --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
@@ -516,10 +521,13 @@ jobs:
         run: |
           cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Build and test
         run: |
           cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+          cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
