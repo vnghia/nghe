@@ -27,6 +27,7 @@ env:
   AWS_USE_PATH_STYLE_ENDPOINT: true
   MINIO_ROOT_USER: minioadmin
   MINIO_ROOT_PASSWORD: minioadmin
+  POSTGRES_VERSION: 17
 
 jobs:
   build-linux:
@@ -163,6 +164,9 @@ jobs:
     needs: [build-linux]
     if: ${{ vars.BUILD_DOCKER != '' }}
 
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false
+
     steps:
       - uses: actions/checkout@v4
       - name: Download build artifact for docker
@@ -231,8 +235,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - "14.0"
-          - "13.2"
+          - "14.2"
+          - "13.4"
 
     runs-on: ubuntu-latest
     env:
@@ -347,7 +351,7 @@ jobs:
           environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
           shell: "bash"
           cpu_count: 4
-          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.12/freebsd-${{ matrix.version }}-x86-64.qcow2
+          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
           run: |
             sudo chown -R $(id -u):$(id -g) /root/
             export PATH="/root/.cargo/bin/:$PATH"
@@ -358,8 +362,10 @@ jobs:
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
+            curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
+
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
-            cargo test --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+            cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -398,7 +404,7 @@ jobs:
 
       - name: Install and setup postgres
         run: |
-          curl https://get.enterprisedb.com/postgresql/postgresql-16.2-1-windows-x64-binaries.zip --output postgresql.zip
+          curl https://get.enterprisedb.com/postgresql/postgresql-${{ env.POSTGRES_VERSION }}.2-2-windows-x64-binaries.zip --output postgresql.zip
           7z x postgresql.zip
           $env:PGDATA = "$PWD\pgsql\data"
           $env:PGPASSWORD = "postgres"
@@ -423,11 +429,14 @@ jobs:
         run: |
           cargo vcpkg --verbose build --manifest-path nghe-backend\Cargo.toml --target x86_64-pc-windows-msvc
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Build and test
         run: |
           .\minio.exe server data &
           cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+          cargo nextest run --locked --target x86_64-pc-windows-msvc --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
@@ -455,7 +464,6 @@ jobs:
 
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -488,10 +496,8 @@ jobs:
 
       - name: Install and setup postgres
         run: |
-          brew uninstall --force postgresql
-          brew uninstall --force postgresql@14
-          brew install postgresql@16
-          brew link postgresql@16
+          brew install postgresql@${{ env.POSTGRES_VERSION }}
+          brew link postgresql@${{ env.POSTGRES_VERSION }}
           export PGDATA="$RUNNER_TEMP/pgdata"
           initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
           pg_ctl start
@@ -513,10 +519,13 @@ jobs:
         run: |
           cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Build and test
         run: |
           cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          cargo test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+          cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
