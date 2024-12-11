@@ -152,7 +152,7 @@ jobs:
         run: |
           ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
           if [[ ${{ matrix.platform.command }} == 'cross' ]]; then
-            cross test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace
+            cross-util run --target ${{ matrix.platform.target }} -- '/usr/bin/cargo-nextest nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace'
           else
             cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
           fi
@@ -160,14 +160,8 @@ jobs:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
           SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_SECRET || '' }}
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
-          retention-days: 1
       - name: Upload test report to Codecov
-        if: ${{ matrix.platform.command == 'cargo' }}
+        if: success() || failure()
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -175,6 +169,12 @@ jobs:
           disable_search: true
           report_type: "test_results"
           fail_ci_if_error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
 
   build-docker:
     runs-on: ubuntu-latest
@@ -383,13 +383,8 @@ jobs:
 
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
             cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
-          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
-          retention-days: 1
       - name: Upload test report to Codecov
+        if: success() || failure()
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -397,6 +392,12 @@ jobs:
           disable_search: true
           report_type: "test_results"
           fail_ci_if_error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
+          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
 
   build-windows:
     runs-on: windows-latest
@@ -466,13 +467,8 @@ jobs:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
           SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: amd64-windows
-          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe_backend.exe
-          retention-days: 1
       - name: Upload test report to Codecov
+        if: success() || failure()
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -480,6 +476,12 @@ jobs:
           disable_search: true
           report_type: "test_results"
           fail_ci_if_error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amd64-windows
+          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe_backend.exe
+          retention-days: 1
 
   build-macos:
     strategy:
@@ -563,13 +565,8 @@ jobs:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
           SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_SECRET || '' }}
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
-          retention-days: 1
       - name: Upload test report to Codecov
+        if: success() || failure()
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -577,6 +574,12 @@ jobs:
           disable_search: true
           report_type: "test_results"
           fail_ci_if_error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
 
   upload-release:
     runs-on: ubuntu-latest
