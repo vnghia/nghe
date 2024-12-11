@@ -151,11 +151,7 @@ jobs:
       - name: Build and test
         run: |
           ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          if [[ ${{ matrix.platform.command }} == 'cross' ]]; then
-            cross test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace
-          else
-            cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
-          fi
+          ${{ matrix.platform.command }} == 'cross' && format('cross-util run --target {0} --', matrix.platform.target) || '' }} cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
