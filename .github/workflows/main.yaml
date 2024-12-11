@@ -27,6 +27,7 @@ env:
   AWS_USE_PATH_STYLE_ENDPOINT: true
   MINIO_ROOT_USER: minioadmin
   MINIO_ROOT_PASSWORD: minioadmin
+  POSTGRES_VERSION: 17
 
 jobs:
   build-linux:
@@ -50,7 +51,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        image: postgres:${{ env.POSTGRES_VERSION }}
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_HOST_AUTH_METHOD: md5
@@ -243,7 +244,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        image: postgres:${{ env.POSTGRES_VERSION }}
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_HOST_AUTH_METHOD: md5
@@ -403,7 +404,7 @@ jobs:
 
       - name: Install and setup postgres
         run: |
-          curl https://get.enterprisedb.com/postgresql/postgresql-16.2-1-windows-x64-binaries.zip --output postgresql.zip
+          curl https://get.enterprisedb.com/postgresql/postgresql-${{ env.POSTGRES_VERSION }}.2-2-windows-x64-binaries.zip --output postgresql.zip
           7z x postgresql.zip
           $env:PGDATA = "$PWD\pgsql\data"
           $env:PGPASSWORD = "postgres"
@@ -463,7 +464,6 @@ jobs:
 
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
-      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -496,10 +496,8 @@ jobs:
 
       - name: Install and setup postgres
         run: |
-          brew uninstall --force postgresql
-          brew uninstall --force postgresql@14
-          brew install postgresql@16
-          brew link postgresql@16
+          brew install postgresql@${{ env.POSTGRES_VERSION }}
+          brew link postgresql@${{ env.POSTGRES_VERSION }}
           export PGDATA="$RUNNER_TEMP/pgdata"
           initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
           pg_ctl start
