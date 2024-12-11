@@ -18,8 +18,7 @@ pub struct Server {
             .unwrap()
             .join("frontend")
             .join("dist")
-            .with_platform_encoding_checked()
-            .unwrap()
+            .with_platform_encoding()
     ))]
     pub frontend_dir: Utf8PlatformPathBuf,
 }

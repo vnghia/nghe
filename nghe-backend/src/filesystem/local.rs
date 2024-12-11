@@ -82,10 +82,9 @@ impl super::Trait for Filesystem {
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
         let path = match source.path.to_path() {
-            Utf8TypedPath::Unix(path) => path.with_platform_encoding_checked(),
-            Utf8TypedPath::Windows(path) => path.with_platform_encoding_checked(),
-        }
-        .map_err(|_| error::Kind::InvalidTypedPathPlatform(source.path.clone()))?;
+            Utf8TypedPath::Unix(path) => path.with_platform_encoding(),
+            Utf8TypedPath::Windows(path) => path.with_platform_encoding(),
+        };
 
         binary::Response::from_path_property(
             path,

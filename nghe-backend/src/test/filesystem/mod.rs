@@ -36,9 +36,8 @@ impl Mock {
 
     pub fn prefix(&self) -> Utf8PlatformPathBuf {
         match self.local.prefix() {
-            Utf8TypedPath::Unix(path) => path.with_platform_encoding_checked(),
-            Utf8TypedPath::Windows(path) => path.with_platform_encoding_checked(),
+            Utf8TypedPath::Unix(path) => path.with_platform_encoding(),
+            Utf8TypedPath::Windows(path) => path.with_platform_encoding(),
         }
-        .unwrap()
     }
 }

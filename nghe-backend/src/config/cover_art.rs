@@ -17,8 +17,7 @@ pub struct CoverArt {
                 .join("nghe")
                 .join("cache")
                 .join("cover_art")
-                .with_platform_encoding_checked()
-                .unwrap()
+                .with_platform_encoding()
         )
     ))]
     pub dir: Option<Utf8PlatformPathBuf>,
