@@ -106,5 +106,5 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: target/nextest/ci/junit.xml
           disable_search: true
-          report_type: "testing"
+          report_type: "test_results"
           fail_ci_if_error: true
