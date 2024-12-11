@@ -167,7 +167,6 @@ jobs:
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
       - name: Upload test report to Codecov
-        if: ${{ matrix.platform.command == 'cargo' }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
