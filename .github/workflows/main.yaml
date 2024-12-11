@@ -144,10 +144,18 @@ jobs:
           rev: 19be83481fd3e50ea103d800d72e0f8eddb1c90c
           locked: false
 
+      - name: Install cargo-nextest
+        if: ${{ matrix.platform.command == 'cargo' }}
+        uses: taiki-e/install-action@nextest
+
       - name: Build and test
         run: |
           ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          ${{ matrix.platform.command }} test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+          if [[ ${{ matrix.platform.command }} == 'cross' ]]; then
+            cross test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace
+          else
+            cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
+          fi
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
@@ -158,6 +166,15 @@ jobs:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
+      - name: Upload test report to Codecov
+        if: ${{ matrix.platform.command == 'cargo' }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
 
   build-docker:
     runs-on: ubuntu-latest
@@ -201,7 +218,7 @@ jobs:
           context: .
           file: ci/docker/Dockerfile
           build-args: |
-            BASE_IMAGE=debian:12.5-slim
+            BASE_IMAGE=debian:12.8-slim
             TARGET_ENV=gnu
           platforms: linux/amd64,linux/arm64
           push: true
@@ -224,7 +241,7 @@ jobs:
           context: .
           file: ci/docker/Dockerfile
           build-args: |
-            BASE_IMAGE=alpine:3.19.1
+            BASE_IMAGE=alpine:3.21.0
             TARGET_ENV=musl
           platforms: linux/amd64,linux/arm64
           push: true
@@ -372,6 +389,14 @@ jobs:
           name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
           path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
+      - name: Upload test report to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
 
   build-windows:
     runs-on: windows-latest
@@ -445,8 +470,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: amd64-windows
-          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe.exe
+          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe_backend.exe
           retention-days: 1
+      - name: Upload test report to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target\nextest\ci\junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
 
   build-macos:
     strategy:
@@ -536,6 +569,14 @@ jobs:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
+      - name: Upload test report to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
 
   upload-release:
     runs-on: ubuntu-latest
