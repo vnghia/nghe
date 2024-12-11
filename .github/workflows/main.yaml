@@ -234,8 +234,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - "14.0"
-          - "13.2"
+          - "14.2"
+          - "13.4"
 
     runs-on: ubuntu-latest
     env:
@@ -350,7 +350,7 @@ jobs:
           environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
           shell: "bash"
           cpu_count: 4
-          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.12/freebsd-${{ matrix.version }}-x86-64.qcow2
+          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
           run: |
             sudo chown -R $(id -u):$(id -g) /root/
             export PATH="/root/.cargo/bin/:$PATH"
