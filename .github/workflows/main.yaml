@@ -163,6 +163,9 @@ jobs:
     needs: [build-linux]
     if: ${{ vars.BUILD_DOCKER != '' }}
 
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false
+
     steps:
       - uses: actions/checkout@v4
       - name: Download build artifact for docker
