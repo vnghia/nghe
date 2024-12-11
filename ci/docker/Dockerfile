@@ -1,6 +1,6 @@
 ARG BASE_IMAGE
 
-FROM --platform=${BUILDPLATFORM} alpine as artifact
+FROM --platform=${BUILDPLATFORM} alpine AS artifact
 COPY artifact/ /artifact/
 ARG TARGET_ENV
 ARG TARGETARCH
