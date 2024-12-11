@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::ffi::{CStr, CString};
-use std::fmt::Display;
+use std::fmt::Debug;
 
 use concat_string::concat_string;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
@@ -219,14 +219,13 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    #[instrument(skip_all, err(Debug))]
+    #[instrument(err(Debug))]
     pub fn spawn(
-        input: impl Into<String> + Display,
+        input: impl Into<String> + Debug,
         sink: Sink,
         bitrate: u32,
         offset: u32,
     ) -> Result<tokio::task::JoinHandle<Result<(), Error>>, Error> {
-        tracing::debug!(%input, ?sink, %bitrate, %offset);
         let mut transcoder = Self::new(&CString::new(input.into())?, sink, bitrate, offset)?;
 
         let span = tracing::Span::current();
@@ -289,20 +288,20 @@ impl Transcoder {
 mod test {
     use futures_lite::{stream, StreamExt};
     use nghe_api::common::format;
-    use typed_path::Utf8NativePathBuf;
+    use typed_path::Utf8PlatformPathBuf;
 
     use super::*;
     use crate::config;
 
     impl Transcoder {
         pub async fn spawn_collect(
-            input: impl Into<String> + Display,
+            input: impl Into<String> + Debug,
             config: &config::Transcode,
             format: format::Transcode,
             bitrate: u32,
             offset: u32,
         ) -> Vec<u8> {
-            let (sink, rx) = Sink::new(config, format, None::<Utf8NativePathBuf>).await.unwrap();
+            let (sink, rx) = Sink::new(config, format, None::<Utf8PlatformPathBuf>).await.unwrap();
             let handle = Transcoder::spawn(input, sink, bitrate, offset).unwrap();
             let data = rx.into_stream().map(stream::iter).flatten().collect().await;
             handle.await.unwrap().unwrap();
@@ -316,7 +315,7 @@ mod test {
 mod tests {
     use nghe_api::common::format;
     use rstest::rstest;
-    use typed_path::Utf8NativePath;
+    use typed_path::Utf8PlatformPath;
 
     use super::*;
     use crate::config;
@@ -336,7 +335,7 @@ mod tests {
         let data = Transcoder::spawn_collect(input, &config, format, bitrate, offset).await;
 
         tokio::fs::write(
-            Utf8NativePath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
+            Utf8PlatformPath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
                 .with_extension(format.as_ref()),
             &data,

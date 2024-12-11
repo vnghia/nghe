@@ -237,16 +237,16 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(())
     }
 
-    #[instrument(skip_all, err(Debug))]
+    #[instrument(skip_all, fields(started_at), err(Debug))]
     pub async fn run(&self) -> Result<(), Error> {
-        tracing::info!(music_folder = ?self.music_folder);
+        let span = tracing::Span::current();
         let started_at = crate::time::now().await;
-        tracing::info!(?started_at);
+        span.record("started_at", tracing::field::display(&started_at));
+        tracing::info!(music_folder = ?self.music_folder);
 
         let (scan_handle, permit, rx) = self.init();
         let mut join_set = tokio::task::JoinSet::new();
 
-        let span = tracing::Span::current();
         while let Ok(entry) = rx.recv_async().await {
             let permit = permit.clone().acquire_owned().await?;
             let scan = self.clone().into_owned();

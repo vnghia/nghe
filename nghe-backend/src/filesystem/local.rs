@@ -3,7 +3,7 @@ use std::fs::Metadata;
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
 use time::OffsetDateTime;
-use typed_path::{TryAsRef as _, Utf8NativePath, Utf8TypedPath};
+use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
 use crate::file::{self, audio};
@@ -81,10 +81,12 @@ impl super::Trait for Filesystem {
         source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
-        let path = source.path.to_path();
-        let path: &Utf8NativePath = path
-            .try_as_ref()
-            .ok_or_else(|| error::Kind::InvalidTypedPathPlatform(path.to_path_buf()))?;
+        let path = match source.path.to_path() {
+            Utf8TypedPath::Unix(path) => path.with_platform_encoding_checked(),
+            Utf8TypedPath::Windows(path) => path.with_platform_encoding_checked(),
+        }
+        .map_err(|_| error::Kind::InvalidTypedPathPlatform(source.path.clone()))?;
+
         binary::Response::from_path_property(
             path,
             &source.property,

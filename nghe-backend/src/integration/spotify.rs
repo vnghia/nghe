@@ -40,6 +40,7 @@ impl Client {
         }
     }
 
+    #[tracing::instrument(skip_all, name = "spotify:search_artist", ret(level = "debug"))]
     pub async fn search_artist(&self, name: &str) -> Result<Option<Artist>, Error> {
         Ok(
             if let SearchResult::Artists(artists) =

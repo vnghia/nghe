@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
 use o2o::o2o;
-use typed_path::Utf8NativePath;
+use typed_path::Utf8PlatformPath;
 use uuid::Uuid;
 
 use super::{Album, Artists, Genres};
@@ -51,7 +51,7 @@ impl Information<'_> {
     pub async fn upsert_cover_art(
         &self,
         database: &Database,
-        dir: Option<&impl AsRef<Utf8NativePath>>,
+        dir: Option<&impl AsRef<Utf8PlatformPath>>,
     ) -> Result<Option<Uuid>, Error> {
         Ok(
             if let Some(ref picture) = self.metadata.picture

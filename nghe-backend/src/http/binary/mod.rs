@@ -16,7 +16,7 @@ use nghe_api::common::format;
 pub use source::Source;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use tokio_util::io::ReaderStream;
-use typed_path::Utf8NativePath;
+use typed_path::Utf8PlatformPath;
 
 #[cfg(test)]
 use crate::test::transcode;
@@ -97,7 +97,7 @@ impl Response {
     }
 
     pub async fn from_path(
-        path: impl AsRef<Utf8NativePath>,
+        path: impl AsRef<Utf8PlatformPath>,
         format: impl format::Trait,
         offset: impl Into<Option<u64>> + Copy,
         #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
@@ -116,7 +116,7 @@ impl Response {
     }
 
     pub async fn from_path_property(
-        path: impl AsRef<Utf8NativePath>,
+        path: impl AsRef<Utf8PlatformPath>,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>> + Copy,
         #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,

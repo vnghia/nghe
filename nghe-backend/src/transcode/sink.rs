@@ -8,7 +8,7 @@ use nghe_api::common::format;
 use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
 use rsmpeg::avutil::AVMem;
 use rsmpeg::ffi;
-use typed_path::Utf8NativePath;
+use typed_path::Utf8PlatformPath;
 
 use super::Lock;
 use crate::{config, Error};
@@ -27,7 +27,7 @@ impl Sink {
     pub async fn new(
         config: &config::Transcode,
         format: format::Transcode,
-        output: Option<impl AsRef<Utf8NativePath> + Display + Send + 'static>,
+        output: Option<impl AsRef<Utf8PlatformPath> + Display + Send + 'static>,
     ) -> Result<(Self, Receiver<Vec<u8>>), Error> {
         let (tx, rx) = crate::sync::channel(config.channel_size);
         // It will fail in two cases:

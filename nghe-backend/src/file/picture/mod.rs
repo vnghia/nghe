@@ -7,7 +7,7 @@ use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
 use o2o::o2o;
 use strum::{EnumString, IntoStaticStr};
-use typed_path::{Utf8NativePath, Utf8TypedPath, Utf8TypedPathBuf};
+use typed_path::{Utf8PlatformPath, Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 
 use super::Property;
@@ -104,7 +104,7 @@ impl<'s, 'd> Picture<'s, 'd> {
         Ok(Self { source, property, data })
     }
 
-    pub async fn dump(&self, dir: impl AsRef<Utf8NativePath>) -> Result<(), Error> {
+    pub async fn dump(&self, dir: impl AsRef<Utf8PlatformPath>) -> Result<(), Error> {
         let path = self.property.path_create_dir(dir, Self::FILENAME).await?;
         tokio::fs::write(path, &self.data).await?;
         Ok(())
@@ -113,7 +113,7 @@ impl<'s, 'd> Picture<'s, 'd> {
     pub async fn upsert(
         &self,
         database: &Database,
-        dir: impl AsRef<Utf8NativePath>,
+        dir: impl AsRef<Utf8PlatformPath>,
     ) -> Result<Uuid, Error> {
         // TODO: Checking for its existence before dump.
         self.dump(dir).await?;
@@ -251,7 +251,7 @@ mod test {
 
     impl<'s> Picture<'s, '_> {
         async fn load_cache(
-            dir: impl AsRef<Utf8NativePath>,
+            dir: impl AsRef<Utf8PlatformPath>,
             upsert: cover_arts::Upsert<'s>,
         ) -> Self {
             let property: file::Property<Format> = upsert.property.try_into().unwrap();

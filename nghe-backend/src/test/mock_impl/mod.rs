@@ -12,7 +12,7 @@ pub use information::Mock as Information;
 use lofty::config::{ParseOptions, WriteOptions};
 use nghe_api::common;
 use rstest::fixture;
-use typed_path::Utf8NativePath;
+use typed_path::Utf8PlatformPath;
 use uuid::Uuid;
 
 use super::filesystem::Trait;
@@ -50,7 +50,7 @@ pub struct Mock {
 }
 
 impl Config {
-    fn with_prefix(self, prefix: impl AsRef<Utf8NativePath> + Copy) -> Self {
+    fn with_prefix(self, prefix: impl AsRef<Utf8PlatformPath> + Copy) -> Self {
         Self {
             transcode: self.transcode.with_prefix(prefix),
             cover_art: self.cover_art.with_prefix(prefix),

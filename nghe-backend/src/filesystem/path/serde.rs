@@ -1,18 +1,18 @@
 use ::serde::{Deserialize, Deserializer, Serializer};
-use typed_path::Utf8NativePathBuf;
+use typed_path::Utf8PlatformPathBuf;
 
-pub fn serialize<S>(path: &Utf8NativePathBuf, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize<S>(path: &Utf8PlatformPathBuf, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
     serializer.serialize_str(path.as_str())
 }
 
-pub fn deserialize<'de, D>(deserializer: D) -> Result<Utf8NativePathBuf, D::Error>
+pub fn deserialize<'de, D>(deserializer: D) -> Result<Utf8PlatformPathBuf, D::Error>
 where
     D: Deserializer<'de>,
 {
-    <String>::deserialize(deserializer).map(Utf8NativePathBuf::from)
+    <String>::deserialize(deserializer).map(Utf8PlatformPathBuf::from)
 }
 
 pub mod option {
@@ -20,7 +20,10 @@ pub mod option {
 
     use super::*;
 
-    pub fn serialize<S>(path: &Option<Utf8NativePathBuf>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(
+        path: &Option<Utf8PlatformPathBuf>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -31,12 +34,12 @@ pub mod option {
         }
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Utf8NativePathBuf>, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Utf8PlatformPathBuf>, D::Error>
     where
         D: Deserializer<'de>,
     {
         <String>::deserialize(deserializer).map(|path| {
-            let path = Utf8NativePathBuf::from(path);
+            let path = Utf8PlatformPathBuf::from(path);
             if path.is_absolute() { Some(path) } else { None }
         })
     }

@@ -5,7 +5,7 @@ use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_api::media_annotation::update_artist_information::Request;
 use rspotify::model::Id;
-use typed_path::Utf8NativePath;
+use typed_path::Utf8PlatformPath;
 use uuid::Uuid;
 
 use super::spotify;
@@ -37,7 +37,7 @@ impl Informant {
     async fn upsert_artist_picture(
         &self,
         database: &Database,
-        dir: Option<&impl AsRef<Utf8NativePath>>,
+        dir: Option<&impl AsRef<Utf8PlatformPath>>,
         source: Option<impl Into<Cow<'_, str>>>,
     ) -> Result<Option<Uuid>, Error> {
         Ok(
@@ -89,7 +89,6 @@ impl Informant {
             None
         };
 
-        tracing::debug!(?spotify);
         self.upsert_artist(database, config, id, spotify.as_ref()).await
     }
 
