@@ -154,7 +154,7 @@ jobs:
           if [[ ${{ matrix.platform.command }} == 'cross' ]]; then
             cross test --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --workspace
           else
-            cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
+            cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
           fi
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
