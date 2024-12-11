@@ -3,7 +3,7 @@ use std::fs::Metadata;
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
 use time::OffsetDateTime;
-use typed_path::Utf8TypedPath;
+use typed_path::{Utf8PlatformPathBuf, Utf8TypedPath};
 
 use super::{entry, path};
 use crate::file::{self, audio};
@@ -15,19 +15,38 @@ pub struct Filesystem;
 
 impl Filesystem {
     #[cfg(windows)]
-    fn is_native(path: &Utf8TypedPath<'_>) -> bool {
+    fn is_native(path: Utf8TypedPath<'_>) -> bool {
         path.is_windows()
     }
 
     #[cfg(unix)]
-    fn is_native(path: &Utf8TypedPath<'_>) -> bool {
+    fn is_native(path: Utf8TypedPath<'_>) -> bool {
         path.is_unix()
+    }
+
+    pub fn to_platform(path: Utf8TypedPath<'_>) -> Result<Utf8PlatformPathBuf, Error> {
+        match path {
+            Utf8TypedPath::Unix(unix_path) => {
+                if cfg!(unix) {
+                    Ok(unix_path.with_platform_encoding())
+                } else {
+                    error::Kind::InvalidTypedPathPlatform(path.to_path_buf()).into()
+                }
+            }
+            Utf8TypedPath::Windows(windows_path) => {
+                if cfg!(windows) {
+                    Ok(windows_path.with_platform_encoding())
+                } else {
+                    error::Kind::InvalidTypedPathPlatform(path.to_path_buf()).into()
+                }
+            }
+        }
     }
 }
 
 impl super::Trait for Filesystem {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
-        if !Self::is_native(&path) {
+        if !Self::is_native(path) {
             error::Kind::InvalidTypedPathPlatform(path.to_path_buf()).into()
         } else if !path.is_absolute() {
             error::Kind::InvalidAbsolutePath(path.to_path_buf()).into()
@@ -81,12 +100,7 @@ impl super::Trait for Filesystem {
         source: &binary::Source<file::Property<audio::Format>>,
         offset: Option<u64>,
     ) -> Result<binary::Response, Error> {
-        let path = match source.path.to_path() {
-            Utf8TypedPath::Unix(path) => path.with_platform_encoding_checked(),
-            Utf8TypedPath::Windows(path) => path.with_platform_encoding_checked(),
-        }
-        .map_err(|_| error::Kind::InvalidTypedPathPlatform(source.path.clone()))?;
-
+        let path = Self::to_platform(source.path.to_path())?;
         binary::Response::from_path_property(
             path,
             &source.property,

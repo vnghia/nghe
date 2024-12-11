@@ -21,8 +21,7 @@ pub struct Transcode {
                 .join("nghe")
                 .join("cache")
                 .join("transcode")
-                .with_platform_encoding_checked()
-                .unwrap()
+                .with_platform_encoding()
         )
     ))]
     pub cache_dir: Option<Utf8PlatformPathBuf>,

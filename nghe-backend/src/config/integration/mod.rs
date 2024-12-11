@@ -20,8 +20,7 @@ pub struct Spotify {
                 .join("nghe")
                 .join("spotify")
                 .join("token.json")
-                .with_platform_encoding_checked()
-                .unwrap()
+                .with_platform_encoding()
         )
     ))]
     pub token_path: Option<Utf8PlatformPathBuf>,
