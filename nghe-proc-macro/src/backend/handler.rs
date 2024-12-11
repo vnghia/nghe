@@ -106,14 +106,16 @@ impl Arg {
         }
     }
 
-    fn to_tracing(&self) -> Option<TokenStream> {
+    fn to_skip_debug(&self) -> Option<&syn::Ident> {
         match self {
-            Arg::User(ident) => {
-                let field = format_ident!("user_{ident}");
-                Some(parse_quote!(user.#ident = ?#field))
+            Arg::Database { ident, use_database } => {
+                if *use_database {
+                    Some(ident)
+                } else {
+                    None
+                }
             }
-            Arg::Header { ident, .. } => Some(parse_quote!(#ident = ?#ident)),
-            Arg::Request => Some(parse_quote!(request = ?request)),
+            Arg::Extension { ident, .. } => Some(ident),
             _ => None,
         }
     }
@@ -345,24 +347,18 @@ impl Handler {
             })
             .try_collect()?;
 
+        let skip_debugs: Punctuated<&syn::Ident, syn::Token![,]> =
+            self.args.value.iter().filter_map(Arg::to_skip_debug).collect();
         let mut tracing_args = Punctuated::<syn::Meta, syn::Token![,]>::default();
         tracing_args.push(parse_quote!(name = #tracing_name));
-        tracing_args.push(parse_quote!(skip_all));
+        tracing_args.push(parse_quote!(skip(#skip_debugs)));
         if self.is_result_binary.is_some() {
             tracing_args.push(parse_quote!(ret(level = "trace")));
             tracing_args.push(parse_quote!(err(Debug)));
         }
 
-        let traced_args: Punctuated<TokenStream, syn::Token![,]> =
-            self.args.value.iter().filter_map(Arg::to_tracing).collect();
-        let traced_expr_macro: Option<TokenStream> = if traced_args.is_empty() {
-            None
-        } else {
-            Some(quote!(tracing::debug!(#traced_args);))
-        };
-
         let handler_ident = &self.item.sig.ident;
-        let handler_expr_call: syn::Expr = if sig.asyncness.is_some() {
+        let source: syn::Expr = if sig.asyncness.is_some() {
             parse_quote!(#handler_ident(#args).await)
         } else {
             parse_quote!(#handler_ident(#args))
@@ -372,10 +368,7 @@ impl Handler {
             #[coverage(off)]
             #[inline(always)]
             #[tracing::instrument(#tracing_args)]
-            #sig {
-                #traced_expr_macro
-                #handler_expr_call
-            }
+            #sig { #source }
         })
     }
 

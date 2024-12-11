@@ -89,7 +89,6 @@ impl Informant {
             None
         };
 
-        tracing::debug!(?spotify);
         self.upsert_artist(database, config, id, spotify.as_ref()).await
     }
 

@@ -63,7 +63,7 @@ pub fn init_tracing() -> Result<(), Error> {
     if cfg!(test) {
         tracing.with(tracing_subscriber::fmt::layer().with_test_writer()).try_init()?;
     } else {
-        tracing.with(tracing_subscriber::fmt::layer().with_target(false).compact()).try_init()?;
+        tracing.with(tracing_subscriber::fmt::layer().with_target(false)).try_init()?;
     }
 
     Ok(())

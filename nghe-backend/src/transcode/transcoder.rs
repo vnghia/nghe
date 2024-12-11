@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::ffi::{CStr, CString};
-use std::fmt::Display;
+use std::fmt::Debug;
 
 use concat_string::concat_string;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
@@ -219,14 +219,13 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    #[instrument(skip_all, err(Debug))]
+    #[instrument(err(Debug))]
     pub fn spawn(
-        input: impl Into<String> + Display,
+        input: impl Into<String> + Debug,
         sink: Sink,
         bitrate: u32,
         offset: u32,
     ) -> Result<tokio::task::JoinHandle<Result<(), Error>>, Error> {
-        tracing::debug!(%input, ?sink, %bitrate, %offset);
         let mut transcoder = Self::new(&CString::new(input.into())?, sink, bitrate, offset)?;
 
         let span = tracing::Span::current();
@@ -296,7 +295,7 @@ mod test {
 
     impl Transcoder {
         pub async fn spawn_collect(
-            input: impl Into<String> + Display,
+            input: impl Into<String> + Debug,
             config: &config::Transcode,
             format: format::Transcode,
             bitrate: u32,
