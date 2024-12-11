@@ -97,4 +97,14 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: codecov.json
+          disable_search: true
+          report_type: "coverage"
+          fail_ci_if_error: true
+      - name: Upload test report to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "testing"
           fail_ci_if_error: true
