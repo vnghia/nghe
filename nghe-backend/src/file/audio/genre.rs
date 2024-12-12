@@ -56,7 +56,7 @@ impl Genres<'_> {
             .values::<Vec<genres::Data<'_>>>(self.into())
             .on_conflict(genres::value)
             .do_update()
-            .set(genres::upserted_at.eq(time::OffsetDateTime::now_utc()))
+            .set(genres::upserted_at.eq(crate::time::now().await))
             .returning(genres::id)
             .get_results(&mut database.get().await?)
             .await
@@ -78,7 +78,7 @@ impl Genres<'_> {
             )
             .on_conflict((songs_genres::song_id, songs_genres::genre_id))
             .do_update()
-            .set(songs_genres::upserted_at.eq(time::OffsetDateTime::now_utc()))
+            .set(songs_genres::upserted_at.eq(crate::time::now().await))
             .execute(&mut database.get().await?)
             .await?;
         Ok(())

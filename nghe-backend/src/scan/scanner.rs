@@ -112,7 +112,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                     .select(song_path.field(songs::id))
                     .single_value()),
             )
-            .set(songs::scanned_at.eq(time::OffsetDateTime::now_utc()))
+            .set(songs::scanned_at.eq(crate::time::now().await))
             .returning((songs::id, songs::updated_at))
             .get_result(&mut self.database.get().await?)
             .await
@@ -181,7 +181,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                     // its updated at and return the function.
                     diesel::update(songs::table)
                         .filter(songs::id.eq(song_id))
-                        .set(songs::updated_at.eq(time::OffsetDateTime::now_utc()))
+                        .set(songs::updated_at.eq(crate::time::now().await))
                         .execute(&mut database.get().await?)
                         .await?;
                     return Ok(());
@@ -198,7 +198,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 .filter(songs::id.eq(database_song_id))
                 .set((
                     songs::relative_path.eq(relative_path),
-                    songs::scanned_at.eq(time::OffsetDateTime::now_utc()),
+                    songs::scanned_at.eq(crate::time::now().await),
                 ))
                 .returning(songs::album_id)
                 .get_result(&mut database.get().await?)
