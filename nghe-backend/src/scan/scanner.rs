@@ -5,6 +5,7 @@ use diesel::{ExpressionMethods, NullableExpressionMethods, OptionalExtension, Qu
 use diesel_async::RunQueryDsl;
 use lofty::config::ParseOptions;
 use loole::Receiver;
+use nghe_api::scan;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
 use tracing::{instrument, Instrument};
@@ -34,6 +35,7 @@ pub struct Scanner<'db, 'fs, 'mf> {
     pub config: Config,
     pub informant: Informant,
     pub music_folder: music_folders::MusicFolder<'mf>,
+    pub full: scan::start::Full,
 }
 
 impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
@@ -42,14 +44,15 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         filesystem: &'fs Filesystem,
         config: Config,
         informant: Informant,
-        music_folder_id: Uuid,
+        request: scan::start::Request,
     ) -> Result<Self, Error> {
         Self::new_orm(
             database,
             filesystem,
             config,
             informant,
-            music_folders::MusicFolder::query(database, music_folder_id).await?,
+            music_folders::MusicFolder::query(database, request.music_folder_id).await?,
+            request.full,
         )
     }
 
@@ -59,9 +62,17 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         config: Config,
         informant: Informant,
         music_folder: music_folders::MusicFolder<'mf>,
+        full: scan::start::Full,
     ) -> Result<Self, Error> {
         let filesystem = filesystem.to_impl(music_folder.data.ty.into())?;
-        Ok(Self { database: Cow::Borrowed(database), filesystem, config, informant, music_folder })
+        Ok(Self {
+            database: Cow::Borrowed(database),
+            filesystem,
+            config,
+            informant,
+            music_folder,
+            full,
+        })
     }
 
     pub fn into_owned(self) -> Scanner<'static, 'static, 'static> {
@@ -142,16 +153,22 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         ret(level = "debug"),
         err(Debug)
     )]
-    async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<(), Error> {
+    async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<Uuid, Error> {
         let database = &self.database;
 
         // Query the database to see if we have any song within this music folder that has the same
         // relative path. If yes, update its scanned at to the current time.
+        //
+        // Apart from saving some cpu cycles purpose, doing this also helps us avoiding
+        // inserting/updating two duplicated songs at the same time, which can cause
+        // `DatabaseCorruption` error when one process has updated the `database_relative_path` to
+        // another path (renaming duplication or upserting operation) while one process is working
+        // on that path.
         let song_id = if let Some((song_id, updated_at)) = self.set_scanned_at(entry).await? {
             if entry.last_modified.is_some_and(|last_modified| last_modified < updated_at) {
                 // If its filesystem's last modified is sooner than its database's updated at, it
                 // means that we have the latest data, we can return the function.
-                return Ok(());
+                return Ok(song_id);
             }
             Some(song_id)
         } else {
@@ -172,53 +189,68 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
         let relative_path = self.relative_path(entry)?;
         let relative_path = relative_path.as_str();
-        if let Some((database_song_id, database_relative_path)) =
+        let song_id = if let Some((database_song_id, database_relative_path)) =
             self.query_hash_size(&file.property).await?
         {
             if let Some(song_id) = song_id {
                 if song_id == database_song_id && relative_path == database_relative_path {
-                    // Everything is the same but the song's last modified for some reason, update
-                    // its updated at and return the function.
-                    diesel::update(songs::table)
-                        .filter(songs::id.eq(song_id))
-                        .set(songs::updated_at.eq(crate::time::now().await))
-                        .execute(&mut database.get().await?)
-                        .await?;
-                    return Ok(());
+                    if self.full.file {
+                        // If file full scan is enabled, we return the song id so it can be
+                        // re-scanned later.
+                        Some(database_song_id)
+                    } else {
+                        // Everything is the same but the song's last modified for some reason,
+                        // update its updated at and return the function.
+                        diesel::update(songs::table)
+                            .filter(songs::id.eq(song_id))
+                            .set(songs::updated_at.eq(crate::time::now().await))
+                            .execute(&mut database.get().await?)
+                            .await?;
+                        return Ok(database_song_id);
+                    }
+                } else {
+                    // Since `song_id` is queried only by music folder and relative path and there
+                    // is a constraint `songs_album_id_file_hash_file_size_key`,
+                    // other cases should be unreachable.
+                    return error::Kind::DatabaseCorruptionDetected.into();
                 }
-                // Since `song_id` is queried only by music folder and relative path and there is a
-                // constraint `songs_album_id_file_hash_file_size_key`, other cases should be
-                // unreachable.
-                return error::Kind::DatabaseCorruptionDetected.into();
-            }
-            // We have one entry that is in the same music folder, same hash and size but
-            // different relative path (since song_id is none). We only need to update the relative
-            // path, set scanned at and return the function.
-            let album_id: Uuid = diesel::update(songs::table)
-                .filter(songs::id.eq(database_song_id))
-                .set((
-                    songs::relative_path.eq(relative_path),
-                    songs::scanned_at.eq(crate::time::now().await),
-                ))
-                .returning(songs::album_id)
-                .get_result(&mut database.get().await?)
-                .await?;
-            // We also need to set album cover_art_id since it might be added or removed after the
-            // previous scan.
-            diesel::update(albums::table)
-                .filter(albums::id.eq(album_id))
-                .set(albums::cover_art_id.eq(dir_picture_id))
-                .execute(&mut database.get().await?)
-                .await?;
+            } else if self.full.file {
+                // If file full scan is enabled, we return the song id so it can be
+                // re-scanned later. Here song_id is None.
+                Some(database_song_id)
+            } else {
+                // We have one entry that is in the same music folder, same hash and size but
+                // different relative path (since song_id is None). We only need to update the
+                // relative path, set scanned at and return the function.
+                let album_id: Uuid = diesel::update(songs::table)
+                    .filter(songs::id.eq(database_song_id))
+                    .set((
+                        songs::relative_path.eq(relative_path),
+                        songs::scanned_at.eq(crate::time::now().await),
+                    ))
+                    .returning(songs::album_id)
+                    .get_result(&mut database.get().await?)
+                    .await?;
+                // We also need to set album cover_art_id since it might be added or removed after
+                // the previous scan.
+                diesel::update(albums::table)
+                    .filter(albums::id.eq(album_id))
+                    .set(albums::cover_art_id.eq(dir_picture_id))
+                    .execute(&mut database.get().await?)
+                    .await?;
 
-            tracing::warn!(
-                old = ?database_relative_path, new = ?relative_path, "renamed duplication"
-            );
-            return Ok(());
-        }
+                tracing::warn!(
+                    old = ?database_relative_path, new = ?relative_path, "renamed duplication"
+                );
+                return Ok(database_song_id);
+            }
+        } else {
+            song_id
+        };
 
         let audio = file.audio(self.config.lofty)?;
         let information = audio.extract(&self.config.parsing)?;
+        tracing::trace!(?information);
 
         let song_id = information
             .upsert(
@@ -234,7 +266,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .await?;
         audio::Information::cleanup_one(database, started_at, song_id).await?;
 
-        Ok(())
+        Ok(song_id)
     }
 
     #[instrument(skip_all, fields(started_at), err(Debug))]
@@ -280,6 +312,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 #[coverage(off)]
 mod tests {
     use fake::Fake;
+    use nghe_api::scan;
     use rstest::rstest;
 
     use crate::test::{mock, Mock};
@@ -302,7 +335,7 @@ mod tests {
 
         let mut join_set = tokio::task::JoinSet::new();
         for _ in 0..5 {
-            let scanner = music_folder.scan().into_owned();
+            let scanner = music_folder.scan(scan::start::Full::default()).into_owned();
             join_set.spawn(async move { scanner.run().await.unwrap() });
         }
         join_set.join_all().await;

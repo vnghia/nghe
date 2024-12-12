@@ -17,9 +17,7 @@ pub async fn handler(
     request: Request,
 ) -> Result<Response, Error> {
     let scanner =
-        scanner::Scanner::new(database, filesystem, config, informant, request.music_folder_id)
-            .await?
-            .into_owned();
+        scanner::Scanner::new(database, filesystem, config, informant, request).await?.into_owned();
 
     let span = tracing::Span::current();
     tokio::task::spawn(async move { scanner.run().await }.instrument(span));
