@@ -57,7 +57,7 @@ mod upsert {
                     .values(self)
                     .on_conflict((albums::music_folder_id, albums::mbz_id))
                     .do_update()
-                    .set((self, albums::scanned_at.eq(time::OffsetDateTime::now_utc())))
+                    .set((self, albums::scanned_at.eq(crate::time::now().await)))
                     .returning(albums::id)
                     .get_result(&mut database.get().await?)
                     .await
@@ -79,7 +79,7 @@ mod upsert {
                     ))
                     .filter_target(albums::mbz_id.is_null())
                     .do_update()
-                    .set(albums::scanned_at.eq(time::OffsetDateTime::now_utc()))
+                    .set(albums::scanned_at.eq(crate::time::now().await))
                     .returning(albums::id)
                     .get_result(&mut database.get().await?)
                     .await

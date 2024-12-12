@@ -48,7 +48,7 @@ mod upsert {
                     .values(self)
                     .on_conflict(artists::mbz_id)
                     .do_update()
-                    .set((self, artists::scanned_at.eq(time::OffsetDateTime::now_utc())))
+                    .set((self, artists::scanned_at.eq(crate::time::now().await)))
                     .returning(artists::id)
                     .get_result(&mut database.get().await?)
                     .await
@@ -58,7 +58,7 @@ mod upsert {
                     .on_conflict(artists::name)
                     .filter_target(artists::mbz_id.is_null())
                     .do_update()
-                    .set((self, artists::scanned_at.eq(time::OffsetDateTime::now_utc())))
+                    .set((self, artists::scanned_at.eq(crate::time::now().await)))
                     .returning(artists::id)
                     .get_result(&mut database.get().await?)
                     .await

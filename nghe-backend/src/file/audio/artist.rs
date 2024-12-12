@@ -137,7 +137,7 @@ impl<'a> Artists<'a> {
             )
             .on_conflict((songs_artists::song_id, songs_artists::artist_id))
             .do_update()
-            .set(songs_artists::upserted_at.eq(time::OffsetDateTime::now_utc()))
+            .set(songs_artists::upserted_at.eq(crate::time::now().await))
             .execute(&mut database.get().await?)
             .await?;
         Ok(())
@@ -165,7 +165,7 @@ impl<'a> Artists<'a> {
             .do_update()
             .set((
                 songs_album_artists::compilation.eq(compilation),
-                songs_album_artists::upserted_at.eq(time::OffsetDateTime::now_utc()),
+                songs_album_artists::upserted_at.eq(crate::time::now().await),
             ))
             .execute(&mut database.get().await?)
             .await?;

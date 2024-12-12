@@ -16,7 +16,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
-  RUST_LOG: debug
+  RUST_LOG: nghe_backend=trace
   COLORBT_SHOW_HIDDEN: 1
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
