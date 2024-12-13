@@ -396,10 +396,14 @@ mod tests {
 
             let database_audio = database_audio.shift_remove_index(0).unwrap().1;
             let filesystem_audio = music_folder.filesystem.shift_remove_index(0).unwrap().1;
-            assert_eq!(
-                database_audio.with_dir_picture(None),
-                filesystem_audio.with_dir_picture(None)
-            );
+            if same_album {
+                assert_eq!(
+                    database_audio.with_dir_picture(None),
+                    filesystem_audio.with_dir_picture(None)
+                );
+            } else {
+                assert_eq!(database_audio, filesystem_audio);
+            }
         }
 
         #[rstest]
