@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use diesel::{ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use lofty::config::ParseOptions;
 use loole::Receiver;
@@ -108,27 +108,33 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
     async fn set_scanned_at(
         &self,
         entry: &Entry,
-    ) -> Result<Option<(Uuid, time::OffsetDateTime)>, Error> {
-        let song_path = diesel::alias!(songs as song_path);
-        diesel::update(songs::table)
+        started_at: time::OffsetDateTime,
+    ) -> Result<Option<songs::Time>, Error> {
+        let song_time = songs::table
+            .inner_join(albums::table)
+            .filter(albums::music_folder_id.eq(self.music_folder.id))
             .filter(
-                songs::id.nullable().eq(song_path
-                    .inner_join(albums::table)
-                    .filter(albums::music_folder_id.eq(self.music_folder.id))
-                    .filter(
-                        song_path
-                            .field(songs::relative_path)
-                            .eq(entry.relative_path(&self.music_folder.data.path)?.as_str()),
-                    )
-                    .select(song_path.field(songs::id))
-                    .single_value()),
+                songs::relative_path
+                    .eq(entry.relative_path(&self.music_folder.data.path)?.as_str()),
             )
-            .set(songs::scanned_at.eq(crate::time::now().await))
-            .returning((songs::id, songs::updated_at))
+            .select(songs::Time::as_select())
             .get_result(&mut self.database.get().await?)
             .await
-            .optional()
-            .map_err(Error::from)
+            .optional()?;
+
+        // Only update `scanned_at` if it is sooner than `started_at`.
+        // Else, it means that the current path is being scanned by another process or it is already
+        // scanned.
+        if let Some(song_time) = song_time
+            && song_time.scanned_at < started_at
+        {
+            diesel::update(songs::table)
+                .filter(songs::id.eq(song_time.id))
+                .set(songs::scanned_at.eq(crate::time::now().await))
+                .execute(&mut self.database.get().await?)
+                .await?;
+        }
+        Ok(song_time)
     }
 
     async fn query_hash_size(
@@ -164,10 +170,25 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         // `DatabaseCorruption` error when one process has updated the `database_relative_path` to
         // another path (renaming duplication or upserting operation) while one process is working
         // on that path.
-        let song_id = if let Some((song_id, updated_at)) = self.set_scanned_at(entry).await? {
-            if entry.last_modified.is_some_and(|last_modified| last_modified < updated_at) {
-                // If its filesystem's last modified is sooner than its database's updated at, it
-                // means that we have the latest data, we can return the function.
+        let song_id = if let Some(song_time) = self.set_scanned_at(entry, started_at).await? {
+            let song_id = song_time.id;
+            if started_at < song_time.scanned_at
+                || (!self.full.file
+                    && entry
+                        .last_modified
+                        .is_some_and(|last_modified| last_modified < song_time.updated_at))
+            {
+                // If `started_at` is sooner than its database's `scanned_at` or its filesystem's
+                // last modified is sooner than its database's `updated_at`, it means that we have
+                // the latest data or this file is being scanned by another process, we can return
+                // the function.
+                //
+                // Since the old `scanned_at` is returned, there is a case when the file is scanned
+                // in the previous scan but not in the current scan, thus `scanned_at` is sooner
+                // than `started_at`. We want to skip this file as well (unless in full mode) hence
+                // we have to check for its `last_modified` along with `scanned_at`.
+                //
+                // This also avoids `DatabaseCorruption` error mentioned above.
                 return Ok(song_id);
             }
             Some(song_id)
@@ -311,10 +332,11 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
-    use fake::Fake;
+    use fake::{Fake, Faker};
     use nghe_api::scan;
     use rstest::rstest;
 
+    use crate::file::audio;
     use crate::test::{mock, Mock};
 
     #[rstest]
@@ -327,9 +349,9 @@ mod tests {
         assert_eq!(database_audio, music_folder.filesystem);
     }
 
-    // TODO: Make multiple scans work
-    #[allow(dead_code)]
-    async fn test_multiple_scan(mock: Mock) {
+    #[rstest]
+    #[tokio::test]
+    async fn test_multiple_scan(#[future(awt)] mock: Mock) {
         let mut music_folder = mock.music_folder(0).await;
         music_folder.add_audio_filesystem::<&str>().n_song(20).scan(false).call().await;
 
@@ -349,14 +371,24 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        async fn test_overwrite(#[future(awt)] mock: Mock) {
+        async fn test_overwrite(
+            #[future(awt)] mock: Mock,
+            #[values(true, false)] same_album: bool,
+        ) {
+            // Test a constraint with `album_id` and `relative_path`.
             let mut music_folder = mock.music_folder(0).await;
+            let album: audio::Album = Faker.fake();
 
-            music_folder.add_audio_filesystem().path("test").call().await;
+            music_folder.add_audio_filesystem().album(album.clone()).path("test").call().await;
             let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
 
-            music_folder.add_audio_filesystem().path("test").call().await;
+            music_folder
+                .add_audio_filesystem()
+                .maybe_album(if same_album { Some(album) } else { None })
+                .path("test")
+                .call()
+                .await;
             let database_audio = music_folder.query_filesystem().await;
             assert_eq!(database_audio, music_folder.filesystem);
         }

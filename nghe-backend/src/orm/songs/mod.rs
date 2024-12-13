@@ -10,6 +10,7 @@ use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types;
 use diesel::sql_types::Text;
 use diesel_derives::AsChangeset;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::file::audio;
@@ -65,8 +66,16 @@ pub struct Upsert<'a> {
     pub data: Data<'a>,
 }
 
+#[derive(Debug, Clone, Copy, Queryable, Selectable)]
+#[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
+pub struct Time {
+    pub id: Uuid,
+    pub scanned_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
+}
+
 mod upsert {
-    use diesel::ExpressionMethods;
+    use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
@@ -76,12 +85,26 @@ mod upsert {
 
     impl crate::orm::upsert::Insert for Upsert<'_> {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
-            diesel::insert_into(songs::table)
+            // Set `scanned_at` so it can still return something when there is a conflict.
+            let song_id = diesel::insert_into(songs::table)
                 .values(self)
+                .on_conflict_do_nothing()
                 .returning(songs::id)
                 .get_result(&mut database.get().await?)
                 .await
-                .map_err(Error::from)
+                .optional()?;
+            Ok(if let Some(song_id) = song_id {
+                song_id
+            } else {
+                // If there is a conflict, it means that we are doing multiple scans at the same
+                // time. We will just return the `song_id` inserted by another process.
+                songs::table
+                    .filter(songs::album_id.eq(self.foreign.album_id))
+                    .filter(songs::relative_path.eq(self.relative_path.as_str()))
+                    .select(songs::id)
+                    .get_result(&mut database.get().await?)
+                    .await?
+            })
         }
     }
 
