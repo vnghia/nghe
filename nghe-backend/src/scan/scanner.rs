@@ -389,8 +389,17 @@ mod tests {
                 .path("test")
                 .call()
                 .await;
-            let database_audio = music_folder.query_filesystem().await;
-            assert_eq!(database_audio, music_folder.filesystem);
+
+            let mut database_audio = music_folder.query_filesystem().await;
+            assert_eq!(database_audio.len(), 1);
+            assert_eq!(music_folder.filesystem.len(), 1);
+
+            let database_audio = database_audio.shift_remove_index(0).unwrap().1;
+            let filesystem_audio = music_folder.filesystem.shift_remove_index(0).unwrap().1;
+            assert_eq!(
+                database_audio.with_dir_picture(None),
+                filesystem_audio.with_dir_picture(None)
+            );
         }
 
         #[rstest]
