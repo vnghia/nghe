@@ -107,7 +107,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         )
     }
 
-    #[instrument(skip_all, ret(level = "trace"))]
+    #[cfg_attr(not(coverage_nightly), instrument(skip_all, ret(level = "trace")))]
     async fn set_scanned_at(
         &self,
         entry: &Entry,
@@ -140,7 +140,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(song_time)
     }
 
-    #[instrument(skip_all, ret(level = "trace"))]
+    #[cfg_attr(not(coverage_nightly), instrument(skip_all, ret(level = "trace")))]
     async fn query_hash_size(
         &self,
         property: &file::Property<audio::Format>,
@@ -172,11 +172,14 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(())
     }
 
-    #[instrument(
-        skip_all,
-        fields(path = %entry.path, last_modified = ?entry.last_modified),
-        ret(level = "debug"),
-        err(Debug)
+    #[cfg_attr(
+        not(coverage_nightly),
+        instrument(
+            skip_all,
+            fields(path = %entry.path, last_modified = ?entry.last_modified),
+            ret(level = "debug"),
+            err(Debug)
+        )
     )]
     async fn one(&self, entry: &Entry, started_at: time::OffsetDateTime) -> Result<Uuid, Error> {
         let database = &self.database;
@@ -331,7 +334,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(song_id)
     }
 
-    #[instrument(skip_all, fields(started_at), err(Debug))]
+    #[cfg_attr(not(coverage_nightly), instrument(skip_all, fields(started_at), err(Debug)))]
     pub async fn run(&self) -> Result<(), Error> {
         let span = tracing::Span::current();
         let started_at = crate::time::now().await;

@@ -75,7 +75,7 @@ impl Informant {
         artist_informations::Data { spotify }.update(database, id).await
     }
 
-    #[tracing::instrument(skip(self, database, config))]
+    #[cfg_attr(not(coverage_nightly), tracing::instrument(skip(self, database, config)))]
     async fn search_and_upsert_artist(
         &self,
         database: &Database,

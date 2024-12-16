@@ -177,8 +177,7 @@ impl Handler {
         Ok(Self { item, config, args, is_result_binary })
     }
 
-    pub fn build(&self) -> Result<TokenStream, Error> {
-        let traced_handler = self.traced_handler()?;
+    pub fn build(&self) -> TokenStream {
         let authz = self.authz();
 
         let user_ident = if self.args.use_user || self.args.use_request {
@@ -201,7 +200,7 @@ impl Handler {
 
             Some(self.handler(
                 "form",
-                &traced_handler.sig.ident,
+                self.ident(),
                 additional_args,
                 additional_exprs,
                 &parse_quote! {
@@ -239,7 +238,7 @@ impl Handler {
 
             Some(self.handler(
                 "binary",
-                &traced_handler.sig.ident,
+                self.ident(),
                 additional_args,
                 additional_exprs,
                 &parse_quote!(Result<Vec<u8>, crate::Error>),
@@ -264,7 +263,7 @@ impl Handler {
 
             Some(self.handler(
                 "json",
-                &traced_handler.sig.ident,
+                self.ident(),
                 additional_args,
                 additional_exprs,
                 &parse_quote! {
@@ -282,17 +281,21 @@ impl Handler {
         };
 
         let handler = &self.item;
-        Ok(quote! {
+        let tracing_attribute = self.tracing_attribute();
+        quote! {
+            #tracing_attribute
             #handler
-
-            #traced_handler
 
             #authz
 
             #form_handler
             #binary_handler
             #json_handler
-        })
+        }
+    }
+
+    fn ident(&self) -> &syn::Ident {
+        &self.item.sig.ident
     }
 
     fn is_result_binary(output: &syn::ReturnType) -> Option<bool> {
@@ -320,7 +323,7 @@ impl Handler {
         }
     }
 
-    fn traced_handler(&self) -> Result<syn::ItemFn, Error> {
+    fn tracing_attribute(&self) -> syn::Attribute {
         let source_path = proc_macro::Span::call_site().source_file().path();
         // TODO: Remove this after https://github.com/rust-lang/rust-analyzer/issues/15950.
         let tracing_name = if source_path.as_os_str().is_empty() {
@@ -330,22 +333,6 @@ impl Handler {
             let source_stem = source_path.file_stem().unwrap().to_str().unwrap();
             concat_string!(source_dir, ":", source_stem)
         };
-
-        let mut sig = self.item.sig.clone();
-        sig.ident = format_ident!("traced_handler");
-        let args: Punctuated<&syn::Ident, syn::Token![,]> = sig
-            .inputs
-            .iter()
-            .map(|arg| {
-                if let syn::FnArg::Typed(arg) = arg
-                    && let syn::Pat::Ident(pat) = arg.pat.as_ref()
-                {
-                    Ok(&pat.ident)
-                } else {
-                    Err(Error::new(arg.span(), "`handler` should only has typed function argument"))
-                }
-            })
-            .try_collect()?;
 
         let skip_debugs: Punctuated<&syn::Ident, syn::Token![,]> =
             self.args.value.iter().filter_map(Arg::to_skip_debug).collect();
@@ -357,19 +344,7 @@ impl Handler {
             tracing_args.push(parse_quote!(err(Debug)));
         }
 
-        let handler_ident = &self.item.sig.ident;
-        let source: syn::Expr = if sig.asyncness.is_some() {
-            parse_quote!(#handler_ident(#args).await)
-        } else {
-            parse_quote!(#handler_ident(#args))
-        };
-
-        Ok(parse_quote! {
-            #[coverage(off)]
-            #[inline(always)]
-            #[tracing::instrument(#tracing_args)]
-            #sig { #source }
-        })
+        parse_quote!(#[cfg_attr(not(coverage_nightly), tracing::instrument(#tracing_args))])
     }
 
     fn authz(&self) -> syn::ItemImpl {
@@ -397,7 +372,7 @@ impl Handler {
     fn handler(
         &self,
         prefix: &'static str,
-        traced_handler: &syn::Ident,
+        handler_ident: &syn::Ident,
         additional_args: Vec<syn::FnArg>,
         additional_exprs: Vec<syn::Expr>,
         result: &syn::Type,
@@ -419,7 +394,7 @@ impl Handler {
                 #[coverage(off)]
                 #[axum::debug_handler]
                 pub async fn #ident(#args) -> Result<crate::http::binary::Response, crate::Error> {
-                    #traced_handler(#exprs)#asyncness
+                    #handler_ident(#exprs)#asyncness
                 }
             }
         } else {
@@ -427,7 +402,7 @@ impl Handler {
                 #[coverage(off)]
                 #[axum::debug_handler]
                 pub async fn #ident(#args) -> #result {
-                    let response = #traced_handler(#exprs)
+                    let response = #handler_ident(#exprs)
                         #asyncness
                         #tryness;
                     Ok(#response)

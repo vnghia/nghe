@@ -219,7 +219,7 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    #[instrument(err(Debug))]
+    #[cfg_attr(not(coverage_nightly), instrument(err(Debug)))]
     pub fn spawn(
         input: impl Into<String> + Debug,
         sink: Sink,
@@ -242,7 +242,10 @@ impl Transcoder {
         Ok(Self { input, output, graph })
     }
 
-    #[instrument(skip_all, ret(level = "debug"), err(Debug, level = "debug"))]
+    #[cfg_attr(
+        not(coverage_nightly),
+        instrument(skip_all, ret(level = "debug"), err(Debug, level = "debug"))
+    )]
     pub fn transcode(&mut self) -> Result<(), Error> {
         let mut filter = Filter::new(&self.graph, &self.input.decoder, &self.output.encoder)?;
 

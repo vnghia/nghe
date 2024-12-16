@@ -7,7 +7,10 @@ version = "0.9.10"
 edition = "2021"
 
 [workspace.lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(rust_analyzer)"] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+  "cfg(coverage_nightly)",
+  "cfg(rust_analyzer)",
+] }
 
 [workspace.lints.clippy]
 pedantic = { level = "deny", priority = -1 }
