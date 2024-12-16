@@ -494,13 +494,11 @@ mod tests {
         }
 
         #[rstest]
-        #[case(scan::start::Full::default())]
-        #[case(scan::start::Full { file: true })]
         #[tokio::test]
         async fn test_duplicate(
             #[future(awt)] mock: Mock,
             #[values(true, false)] same_dir: bool,
-            #[case] full: scan::start::Full,
+            #[values(true, false)] full: bool,
         ) {
             let mut music_folder = mock.music_folder(0).await;
             music_folder.add_audio_filesystem::<&str>().depth(0).call().await;
@@ -511,7 +509,7 @@ mod tests {
                 .metadata(audio.information.metadata.clone())
                 .format(audio.information.file.format)
                 .depth(if same_dir { 0 } else { (1..3).fake() })
-                .full(full)
+                .full(scan::start::Full { file: full })
                 .call()
                 .await;
 
@@ -537,7 +535,7 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        async fn test_move(#[future(awt)] mock: Mock) {
+        async fn test_move(#[future(awt)] mock: Mock, #[values(true, false)] full: bool) {
             let mut music_folder = mock.music_folder(0).await;
             music_folder.add_audio_filesystem::<&str>().call().await;
             let audio = music_folder.filesystem[0].clone();
@@ -547,6 +545,7 @@ mod tests {
                 .add_audio_filesystem::<&str>()
                 .metadata(audio.information.metadata.clone())
                 .format(audio.information.file.format)
+                .full(scan::start::Full { file: full })
                 .call()
                 .await;
 
