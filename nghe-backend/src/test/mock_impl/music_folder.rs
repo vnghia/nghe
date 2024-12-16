@@ -1,5 +1,7 @@
 #![allow(clippy::struct_field_names)]
 
+use std::borrow::Cow;
+
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
@@ -12,6 +14,7 @@ use uuid::Uuid;
 
 use super::Information;
 use crate::database::Database;
+use crate::file;
 use crate::file::{audio, picture, File};
 use crate::filesystem::Trait as _;
 use crate::orm::{albums, music_folders, songs};
@@ -104,7 +107,10 @@ impl<'a> Mock<'a> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         picture: Option<Option<picture::Picture<'static, 'static>>>,
+        file_property: Option<file::Property<audio::Format>>,
         dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
+        relative_path: Option<Cow<'static, str>>,
+        song_id: Option<Uuid>,
         #[builder(default = 1)] n_song: usize,
     ) -> &mut Self {
         let builder = Information::builder()
@@ -114,11 +120,13 @@ impl<'a> Mock<'a> {
             .maybe_artists(artists)
             .maybe_genres(genres)
             .maybe_picture(picture)
-            .maybe_dir_picture(dir_picture);
+            .maybe_file_property(file_property)
+            .maybe_dir_picture(dir_picture)
+            .maybe_relative_path(relative_path);
 
         for _ in 0..n_song {
             let information = builder.clone().build();
-            let song_id = information.upsert(self, None).await;
+            let song_id = information.upsert(self, song_id).await;
             self.database.insert(song_id, information);
         }
 

@@ -392,6 +392,36 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
+    async fn test_full_scan(#[future(awt)] mock: Mock, #[values(true, false)] full: bool) {
+        let mut music_folder = mock.music_folder(0).await;
+        music_folder.add_audio_filesystem::<&str>().call().await;
+
+        let song_id = music_folder.song_id_filesystem(0).await;
+        let filesystem_audio = music_folder.filesystem[0].clone();
+        music_folder
+            .add_audio()
+            .album(filesystem_audio.information.metadata.album)
+            .file_property(filesystem_audio.information.file)
+            .relative_path(filesystem_audio.relative_path)
+            .song_id(song_id)
+            .call()
+            .await;
+        music_folder.scan(scan::start::Full { file: full }).run().await.unwrap();
+
+        let database_audio = music_folder.query_filesystem().await;
+        if full {
+            assert_eq!(database_audio, music_folder.filesystem);
+        } else {
+            // Could not compare information that uses more than one table.
+            assert_eq!(
+                database_audio[0].information.metadata.song,
+                music_folder.database[0].information.metadata.song
+            );
+        }
+    }
+
+    #[rstest]
+    #[tokio::test]
     async fn test_multiple_scan(#[future(awt)] mock: Mock) {
         let mut music_folder = mock.music_folder(0).await;
         music_folder.add_audio_filesystem::<&str>().n_song(20).scan(false).call().await;
