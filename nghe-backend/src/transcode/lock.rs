@@ -19,7 +19,10 @@ impl Lock {
         .map_err(Error::from)
     }
 
-    #[instrument(skip_all, fields(%path), err(Debug, level = "trace"))]
+    #[cfg_attr(
+        not(coverage_nightly),
+        instrument(skip_all, fields(%path), err(Debug, level = "trace"))
+    )]
     pub fn lock_read(path: impl AsRef<Utf8PlatformPath> + Display) -> Result<std::fs::File, Error> {
         let mut file = Self::open_read(path)?;
         // The read lock might be acquired with an empty file since creating and locking exclusively
@@ -37,7 +40,10 @@ impl Lock {
         }
     }
 
-    #[instrument(skip_all, fields(%path), err(Debug, level = "trace"))]
+    #[cfg_attr(
+        not(coverage_nightly),
+        instrument(skip_all, fields(%path), err(Debug, level = "trace"))
+    )]
     pub fn lock_write(
         path: impl AsRef<Utf8PlatformPath> + Display,
     ) -> Result<std::fs::File, Error> {

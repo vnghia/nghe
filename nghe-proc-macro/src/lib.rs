@@ -43,7 +43,7 @@ pub fn api_derive(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn handler(attr: TokenStream, item: TokenStream) -> TokenStream {
     match backend::Handler::new(attr.into(), item.into()) {
-        Ok(handler) => handler.build().into_token_stream(),
+        Ok(handler) => handler.build().into(),
         Err(error) => error.into_token_stream(),
     }
 }
