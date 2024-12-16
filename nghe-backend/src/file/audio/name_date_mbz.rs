@@ -85,6 +85,12 @@ mod test {
         }
     }
 
+    impl albums::Upsert<'_> {
+        pub async fn upsert_mock(&self, mock: &Mock) -> Uuid {
+            self.insert(mock.database()).await.unwrap()
+        }
+    }
+
     impl Album<'static> {
         pub async fn query_upsert(mock: &Mock, id: Uuid) -> albums::Upsert<'static> {
             albums::table
@@ -119,26 +125,47 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::file::audio;
+    use crate::file::{audio, picture};
     use crate::test::{mock, Mock};
 
     #[rstest]
     #[tokio::test]
     async fn test_album_upsert_roundtrip(
         #[future(awt)] mock: Mock,
+        #[values(true, false)] cover_art: bool,
         #[values(true, false)] mbz_id: bool,
         #[values(true, false)] update_album: bool,
+        #[values(true, false)] update_cover_art: bool,
     ) {
+        let music_folder_id = mock.music_folder_id(0).await;
+        let cover_art_id = if cover_art {
+            Some(Faker.fake::<picture::Picture>().upsert_mock(&mock).await)
+        } else {
+            None
+        };
+
         let mbz_id = if mbz_id { Some(Faker.fake()) } else { None };
-        let album = Album { mbz_id, ..Faker.fake() };
-        let id = album.upsert_mock(&mock, 0).await;
-        let database_album = Album::query(&mock, id).await;
+        let album = albums::Upsert {
+            foreign: albums::Foreign { music_folder_id, cover_art_id },
+            data: Album { mbz_id, ..Faker.fake() }.try_into().unwrap(),
+        };
+        let id = album.upsert_mock(&mock).await;
+        let database_album = Album::query_upsert(&mock, id).await;
         assert_eq!(database_album, album);
 
         if update_album {
-            let update_album = Album { mbz_id, ..Faker.fake() };
-            let update_id = update_album.upsert_mock(&mock, 0).await;
-            let database_update_album = Album::query(&mock, id).await;
+            let update_cover_art_id = if update_cover_art {
+                Some(Faker.fake::<picture::Picture>().upsert_mock(&mock).await)
+            } else {
+                None
+            };
+
+            let update_album = albums::Upsert {
+                foreign: albums::Foreign { music_folder_id, cover_art_id: update_cover_art_id },
+                data: Album { mbz_id, ..Faker.fake() }.try_into().unwrap(),
+            };
+            let update_id = update_album.upsert_mock(&mock).await;
+            let database_update_album = Album::query_upsert(&mock, id).await;
             if mbz_id.is_some() {
                 assert_eq!(id, update_id);
                 assert_eq!(database_update_album, update_album);
