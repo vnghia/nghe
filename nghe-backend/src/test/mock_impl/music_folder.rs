@@ -1,16 +1,20 @@
 #![allow(clippy::struct_field_names)]
 
+use std::borrow::Cow;
+
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
 use futures_lite::{stream, StreamExt};
 use indexmap::IndexMap;
 use itertools::Itertools;
+use nghe_api::scan;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 
 use super::Information;
 use crate::database::Database;
+use crate::file;
 use crate::file::{audio, picture, File};
 use crate::filesystem::Trait as _;
 use crate::orm::{albums, music_folders, songs};
@@ -103,7 +107,10 @@ impl<'a> Mock<'a> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         picture: Option<Option<picture::Picture<'static, 'static>>>,
+        file_property: Option<file::Property<audio::Format>>,
         dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
+        relative_path: Option<Cow<'static, str>>,
+        song_id: Option<Uuid>,
         #[builder(default = 1)] n_song: usize,
     ) -> &mut Self {
         let builder = Information::builder()
@@ -113,11 +120,13 @@ impl<'a> Mock<'a> {
             .maybe_artists(artists)
             .maybe_genres(genres)
             .maybe_picture(picture)
-            .maybe_dir_picture(dir_picture);
+            .maybe_file_property(file_property)
+            .maybe_dir_picture(dir_picture)
+            .maybe_relative_path(relative_path);
 
         for _ in 0..n_song {
             let information = builder.clone().build();
-            let song_id = information.upsert(self, None).await;
+            let song_id = information.upsert(self, song_id).await;
             self.database.insert(song_id, information);
         }
 
@@ -139,6 +148,7 @@ impl<'a> Mock<'a> {
         dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
+        #[builder(default)] full: scan::start::Full,
         #[builder(default = true)] recompute_dir_picture: bool,
     ) -> &mut Self {
         let builder = Information::builder()
@@ -171,7 +181,7 @@ impl<'a> Mock<'a> {
         }
 
         if scan {
-            self.scan().run().await.unwrap();
+            self.scan(full).run().await.unwrap();
         }
 
         if recompute_dir_picture {
@@ -222,6 +232,7 @@ impl<'a> Mock<'a> {
         path: Option<impl AsRef<str>>,
         #[builder(default = 0)] index: usize,
         #[builder(default = true)] scan: bool,
+        #[builder(default)] full: scan::start::Full,
     ) -> &mut Self {
         if let Some(path) = path {
             let absolute_path = self.absolutize(path);
@@ -234,7 +245,7 @@ impl<'a> Mock<'a> {
         }
 
         if scan {
-            self.scan().run().await.unwrap();
+            self.scan(full).run().await.unwrap();
         }
 
         self
@@ -248,7 +259,7 @@ impl<'a> Mock<'a> {
             .unwrap()
     }
 
-    pub fn scan(&self) -> scanner::Scanner<'_, '_, '_> {
+    pub fn scan(&self, full: scan::start::Full) -> scanner::Scanner<'_, '_, '_> {
         scanner::Scanner::new_orm(
             self.mock.database(),
             self.mock.filesystem(),
@@ -261,6 +272,7 @@ impl<'a> Mock<'a> {
                     ty: self.music_folder.data.ty,
                 },
             },
+            full,
         )
         .unwrap()
     }

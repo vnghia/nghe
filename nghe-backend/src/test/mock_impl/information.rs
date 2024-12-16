@@ -75,6 +75,7 @@ impl Mock<'static, 'static> {
         genres: Option<audio::Genres<'static>>,
         picture: Option<Option<picture::Picture<'static, 'static>>>,
         format: Option<audio::Format>,
+        file_property: Option<file::Property<audio::Format>>,
         property: Option<audio::Property>,
         dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
         relative_path: Option<Cow<'static, str>>,
@@ -86,8 +87,10 @@ impl Mock<'static, 'static> {
             genres: genres.unwrap_or_else(|| Faker.fake()),
             picture: picture.unwrap_or_else(|| Faker.fake()),
         });
-        let file =
-            file::Property { format: format.unwrap_or_else(|| Faker.fake()), ..Faker.fake() };
+        let file = file_property.unwrap_or_else(|| file::Property {
+            format: format.unwrap_or_else(|| Faker.fake()),
+            ..Faker.fake()
+        });
         let property = property.unwrap_or_else(|| audio::Property::default(file.format));
 
         let dir_picture = dir_picture.unwrap_or_else(|| Faker.fake());

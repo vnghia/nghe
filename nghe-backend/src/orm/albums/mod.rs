@@ -11,7 +11,7 @@ pub mod date;
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-#[cfg_attr(test, derive(Default))]
+#[cfg_attr(test, derive(Default, PartialEq, Eq))]
 pub struct Foreign {
     pub music_folder_id: Uuid,
     pub cover_art_id: Option<Uuid>,
@@ -20,6 +20,7 @@ pub struct Foreign {
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Data<'a> {
     pub name: Cow<'a, str>,
     #[diesel(embed)]
@@ -34,6 +35,7 @@ pub struct Data<'a> {
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Upsert<'a> {
     #[diesel(embed)]
     pub foreign: Foreign,
@@ -79,7 +81,10 @@ mod upsert {
                     ))
                     .filter_target(albums::mbz_id.is_null())
                     .do_update()
-                    .set(albums::scanned_at.eq(crate::time::now().await))
+                    .set((
+                        albums::cover_art_id.eq(self.foreign.cover_art_id),
+                        albums::scanned_at.eq(crate::time::now().await),
+                    ))
                     .returning(albums::id)
                     .get_result(&mut database.get().await?)
                     .await

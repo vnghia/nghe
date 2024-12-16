@@ -10,6 +10,7 @@ use crate::Error;
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 #[owned_try_into(id3::date::Date, Error)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Date {
     #[try_into(~.map(i16::try_into).transpose()?)]
     pub year: Option<i16>,
@@ -23,6 +24,7 @@ pub struct Date {
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 #[owned_try_into(id3::date::Date, Error)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Release {
     #[try_into(~.map(i16::try_into).transpose()?)]
     #[diesel(column_name = release_year)]
@@ -39,6 +41,7 @@ pub struct Release {
 #[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 #[owned_try_into(id3::date::Date, Error)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct OriginalRelease {
     #[try_into(~.map(i16::try_into).transpose()?)]
     #[diesel(column_name = original_release_year)]
