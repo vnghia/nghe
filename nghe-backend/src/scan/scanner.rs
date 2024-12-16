@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
+use diesel::{
+    ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use lofty::config::ParseOptions;
 use loole::Receiver;
@@ -105,11 +107,12 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         )
     }
 
+    #[instrument(skip_all, ret(level = "trace"))]
     async fn set_scanned_at(
         &self,
         entry: &Entry,
         started_at: time::OffsetDateTime,
-    ) -> Result<Option<songs::Time>, Error> {
+    ) -> Result<Option<songs::IdTime>, Error> {
         let song_time = songs::table
             .inner_join(albums::table)
             .filter(albums::music_folder_id.eq(self.music_folder.id))
@@ -117,7 +120,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 songs::relative_path
                     .eq(entry.relative_path(&self.music_folder.data.path)?.as_str()),
             )
-            .select(songs::Time::as_select())
+            .select(songs::IdTime::as_select())
             .get_result(&mut self.database.get().await?)
             .await
             .optional()?;
@@ -126,7 +129,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         // Else, it means that the current path is being scanned by another process or it is already
         // scanned.
         if let Some(song_time) = song_time
-            && song_time.scanned_at < started_at
+            && song_time.time.scanned_at < started_at
         {
             diesel::update(songs::table)
                 .filter(songs::id.eq(song_time.id))
@@ -137,20 +140,36 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(song_time)
     }
 
+    #[instrument(skip_all, ret(level = "trace"))]
     async fn query_hash_size(
         &self,
         property: &file::Property<audio::Format>,
-    ) -> Result<Option<(Uuid, String)>, Error> {
+    ) -> Result<Option<songs::IdPath>, Error> {
         songs::table
             .inner_join(albums::table)
             .filter(albums::music_folder_id.eq(self.music_folder.id))
             .filter(songs::file_hash.eq(property.hash.cast_signed()))
             .filter(songs::file_size.eq(property.size.get().cast_signed()))
-            .select((songs::id, songs::relative_path))
+            .select(songs::IdPath::as_select())
             .get_result(&mut self.database.get().await?)
             .await
             .optional()
             .map_err(Error::from)
+    }
+
+    async fn update_dir_picture(
+        &self,
+        song_id: Uuid,
+        dir_picture_id: Option<Uuid>,
+    ) -> Result<(), Error> {
+        diesel::update(albums::table)
+            .filter(albums::id.nullable().eq(
+                songs::table.filter(songs::id.eq(song_id)).select(songs::album_id).single_value(),
+            ))
+            .set(albums::cover_art_id.eq(dir_picture_id))
+            .execute(&mut self.database.get().await?)
+            .await?;
+        Ok(())
     }
 
     #[instrument(
@@ -165,18 +184,14 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         // Query the database to see if we have any song within this music folder that has the same
         // relative path. If yes, update its scanned at to the current time.
         //
-        // Apart from saving some cpu cycles purpose, doing this also helps us avoiding
-        // inserting/updating two duplicated songs at the same time, which can cause
-        // `DatabaseCorruption` error when one process has updated the `database_relative_path` to
-        // another path (renaming duplication or upserting operation) while one process is working
-        // on that path.
+        // Doing this helps us avoiding working on the same file at the same time (which is mostly
+        // the case for multiple scans).
         let song_id = if let Some(song_time) = self.set_scanned_at(entry, started_at).await? {
-            let song_id = song_time.id;
-            if started_at < song_time.scanned_at
+            if started_at < song_time.time.scanned_at
                 || (!self.full.file
                     && entry
                         .last_modified
-                        .is_some_and(|last_modified| last_modified < song_time.updated_at))
+                        .is_some_and(|last_modified| last_modified < song_time.time.updated_at))
             {
                 // If `started_at` is sooner than its database's `scanned_at` or its filesystem's
                 // last modified is sooner than its database's `updated_at`, it means that we have
@@ -187,11 +202,9 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 // in the previous scan but not in the current scan, thus `scanned_at` is sooner
                 // than `started_at`. We want to skip this file as well (unless in full mode) hence
                 // we have to check for its `last_modified` along with `scanned_at`.
-                //
-                // This also avoids `DatabaseCorruption` error mentioned above.
-                return Ok(song_id);
+                return Ok(song_time.id);
             }
-            Some(song_id)
+            Some(song_time.id)
         } else {
             None
         };
@@ -207,18 +220,46 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 .ok_or_else(|| error::Kind::MissingPathParent(entry.path.clone()))?,
         )
         .await?;
+        tracing::trace!(?dir_picture_id);
 
         let relative_path = self.relative_path(entry)?;
         let relative_path = relative_path.as_str();
-        let song_id = if let Some((database_song_id, database_relative_path)) =
-            self.query_hash_size(&file.property).await?
-        {
-            if let Some(song_id) = song_id {
-                if song_id == database_song_id && relative_path == database_relative_path {
+        let song_id = if let Some(song_path) = self.query_hash_size(&file.property).await? {
+            if started_at < song_path.time.updated_at {
+                // We will check if `song_path.updated_at` is later than `started_at`, since this
+                // file has the same hash and size with that entry in the database, we can terminate
+                // this function regardless of full mode as another file with the same data is
+                // processed in the current scan.
+                //
+                // `song_id` can be None if there are more than two duplicated files in the same
+                // music folder.
+
+                // We also need to set album cover_art_id since it might be added or removed after
+                // the previous scan.
+                self.update_dir_picture(song_path.id, dir_picture_id).await?;
+                tracing::debug!("already scanned");
+                return Ok(song_path.id);
+            } else if let Some(song_id) = song_id {
+                // `DatabaseCorruption` can happen if all the below conditions hold:
+                //  - There is a file on the filesystem that has the same hash and size as those of
+                //    one entry in the database (`hash_size` constraint) but not the same relative
+                //    (P_fs and P_db) path. Could be the result of a duplication or renaming
+                //    operation.
+                //  - The file with P_fs is scanned first and update the relative path in the
+                //    database to P_fs (thread 1).
+                //  - The file with P_db is scanned before the relative path is updated to P_fs
+                //    therefore it still returns an entry (thread 2).
+                //  - However, `query_hash_size` operation of thread 2 takes place after the update
+                //    of relative path by thread 1, thus causing the `DatabaseCorruption` error as
+                //    `relative_path != song_path.relative_path`.
+                //
+                // We prevent this error by checking the `song_path.updated_at` as above so we can
+                // skip checking `song_path.relative_path` after being updated.
+                if song_id == song_path.id && relative_path == song_path.relative_path {
                     if self.full.file {
                         // If file full scan is enabled, we return the song id so it can be
                         // re-scanned later.
-                        Some(database_song_id)
+                        Some(song_path.id)
                     } else {
                         // Everything is the same but the song's last modified for some reason,
                         // update its updated at and return the function.
@@ -227,7 +268,12 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                             .set(songs::updated_at.eq(crate::time::now().await))
                             .execute(&mut database.get().await?)
                             .await?;
-                        return Ok(database_song_id);
+
+                        // We also need to set album cover_art_id since it might be added or removed
+                        // after the previous scan.
+                        self.update_dir_picture(song_path.id, dir_picture_id).await?;
+                        tracing::debug!("stale last_modified");
+                        return Ok(song_path.id);
                     }
                 } else {
                     // Since `song_id` is queried only by music folder and relative path and there
@@ -237,33 +283,28 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 }
             } else if self.full.file {
                 // If file full scan is enabled, we return the song id so it can be
-                // re-scanned later. Here song_id is None.
-                Some(database_song_id)
+                // re-scanned later. Here `song_id` is None.
+                Some(song_path.id)
             } else {
                 // We have one entry that is in the same music folder, same hash and size but
                 // different relative path (since song_id is None). We only need to update the
                 // relative path, set scanned at and return the function.
-                let album_id: Uuid = diesel::update(songs::table)
-                    .filter(songs::id.eq(database_song_id))
+                diesel::update(songs::table)
+                    .filter(songs::id.eq(song_path.id))
                     .set((
                         songs::relative_path.eq(relative_path),
                         songs::scanned_at.eq(crate::time::now().await),
                     ))
-                    .returning(songs::album_id)
-                    .get_result(&mut database.get().await?)
-                    .await?;
-                // We also need to set album cover_art_id since it might be added or removed after
-                // the previous scan.
-                diesel::update(albums::table)
-                    .filter(albums::id.eq(album_id))
-                    .set(albums::cover_art_id.eq(dir_picture_id))
                     .execute(&mut database.get().await?)
                     .await?;
 
+                // We also need to set album cover_art_id since it might be added or removed after
+                // the previous scan.
+                self.update_dir_picture(song_path.id, dir_picture_id).await?;
                 tracing::warn!(
-                    old = ?database_relative_path, new = ?relative_path, "renamed duplication"
+                    old = %song_path.relative_path, new = %relative_path, "renamed duplication"
                 );
-                return Ok(database_song_id);
+                return Ok(song_path.id);
             }
         } else {
             song_id
@@ -423,8 +464,14 @@ mod tests {
         }
 
         #[rstest]
+        #[case(scan::start::Full::default())]
+        #[case(scan::start::Full { file: true })]
         #[tokio::test]
-        async fn test_duplicate(#[future(awt)] mock: Mock, #[values(true, false)] same_dir: bool) {
+        async fn test_duplicate(
+            #[future(awt)] mock: Mock,
+            #[values(true, false)] same_dir: bool,
+            #[case] full: scan::start::Full,
+        ) {
             let mut music_folder = mock.music_folder(0).await;
             music_folder.add_audio_filesystem::<&str>().depth(0).call().await;
             let audio = music_folder.filesystem[0].clone();
@@ -434,6 +481,7 @@ mod tests {
                 .metadata(audio.information.metadata.clone())
                 .format(audio.information.file.format)
                 .depth(if same_dir { 0 } else { (1..3).fake() })
+                .full(full)
                 .call()
                 .await;
 

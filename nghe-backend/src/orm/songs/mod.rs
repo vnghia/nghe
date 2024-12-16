@@ -69,9 +69,25 @@ pub struct Upsert<'a> {
 #[derive(Debug, Clone, Copy, Queryable, Selectable)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 pub struct Time {
-    pub id: Uuid,
     pub scanned_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Copy, Queryable, Selectable)]
+#[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
+pub struct IdTime {
+    pub id: Uuid,
+    #[diesel(embed)]
+    pub time: Time,
+}
+
+#[derive(Debug, Clone, Queryable, Selectable)]
+#[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
+pub struct IdPath {
+    pub id: Uuid,
+    #[diesel(embed)]
+    pub time: Time,
+    pub relative_path: String,
 }
 
 mod upsert {

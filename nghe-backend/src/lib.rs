@@ -59,11 +59,12 @@ pub fn init_tracing() -> Result<(), Error> {
                 .into()
         }))
         .with(tracing_error::ErrorLayer::default());
+    let tracing_layer = tracing_subscriber::fmt::layer().with_target(false);
 
     if cfg!(test) {
-        tracing.with(tracing_subscriber::fmt::layer().with_test_writer()).try_init()?;
+        tracing.with(tracing_layer.with_test_writer()).try_init()?;
     } else {
-        tracing.with(tracing_subscriber::fmt::layer().with_target(false)).try_init()?;
+        tracing.with(tracing_layer).try_init()?;
     }
 
     Ok(())

@@ -79,7 +79,10 @@ mod upsert {
                     ))
                     .filter_target(albums::mbz_id.is_null())
                     .do_update()
-                    .set(albums::scanned_at.eq(crate::time::now().await))
+                    .set((
+                        albums::cover_art_id.eq(self.foreign.cover_art_id),
+                        albums::scanned_at.eq(crate::time::now().await),
+                    ))
                     .returning(albums::id)
                     .get_result(&mut database.get().await?)
                     .await
