@@ -6,6 +6,7 @@ pub use full::Full;
 use nghe_proc_macro::api_derive;
 pub use required::Required;
 use strum::IntoStaticStr;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[api_derive(response = false)]
@@ -26,6 +27,7 @@ pub struct Artist {
     pub required: Required,
     pub cover_art: Option<Uuid>,
     pub album_count: u16,
+    pub starred: Option<OffsetDateTime>,
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]
     pub roles: Vec<Role>,

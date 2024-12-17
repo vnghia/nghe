@@ -13,10 +13,10 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::artist;
+use crate::Error;
 use crate::file::audio;
 use crate::file::audio::duration::Trait as _;
 use crate::orm::songs;
-use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
@@ -44,24 +44,29 @@ pub struct Song {
     pub artists: artist::required::Artists,
     #[diesel(column_name = mbz_id)]
     pub music_brainz_id: Option<Uuid>,
+    #[diesel(select_expression = sql("any_value(star_songs.created_at) starred"))]
+    #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Timestamptz>>)]
+    pub starred: Option<OffsetDateTime>,
 }
 
-pub type BuilderSet = builder::SetMusicBrainzId<
-    builder::SetArtists<
-        builder::SetCreated<
-            builder::SetDiscNumber<
-                builder::SetChannelCount<
-                    builder::SetSamplingRate<
-                        builder::SetBitDepth<
-                            builder::SetBitRate<
-                                builder::SetDuration<
-                                    builder::SetSuffix<
-                                        builder::SetContentType<
-                                            builder::SetSize<
-                                                builder::SetCoverArt<
-                                                    builder::SetYear<
-                                                        builder::SetTrack<
-                                                            builder::SetTitle<builder::SetId>,
+pub type BuilderSet = builder::SetStarred<
+    builder::SetMusicBrainzId<
+        builder::SetArtists<
+            builder::SetCreated<
+                builder::SetDiscNumber<
+                    builder::SetChannelCount<
+                        builder::SetSamplingRate<
+                            builder::SetBitDepth<
+                                builder::SetBitRate<
+                                    builder::SetDuration<
+                                        builder::SetSuffix<
+                                            builder::SetContentType<
+                                                builder::SetSize<
+                                                    builder::SetCoverArt<
+                                                        builder::SetYear<
+                                                            builder::SetTrack<
+                                                                builder::SetTitle<builder::SetId>,
+                                                            >,
                                                         >,
                                                     >,
                                                 >,
@@ -104,7 +109,8 @@ impl Song {
             .disc_number(self.disc.number.map(u16::try_from).transpose()?)
             .created(self.created)
             .artists(self.artists.into())
-            .music_brainz_id(self.music_brainz_id))
+            .music_brainz_id(self.music_brainz_id)
+            .starred(self.starred))
     }
 }
 
@@ -117,18 +123,21 @@ impl TryFrom<Song> for id3::song::Song {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
 
     use super::*;
     use crate::orm::{albums, songs_artists, star_songs};
 
     #[auto_type]
-    pub fn unchecked_no_group_by() -> _ {
+    pub fn with_user_id_unchecked_no_group_by(user_id: Uuid) -> _ {
         songs::table
             .inner_join(songs_artists::table)
             .inner_join(albums::table)
             .inner_join(artist::required::query::song())
-            .left_join(star_songs::table)
+            .left_join(
+                star_songs::table
+                    .on(star_songs::song_id.eq(songs::id).and(star_songs::user_id.eq(user_id))),
+            )
             .order_by((
                 songs::disc_number.asc().nulls_first(),
                 songs::track_number.asc().nulls_first(),
@@ -137,9 +146,11 @@ pub mod query {
     }
 
     #[auto_type]
-    pub fn unchecked() -> _ {
+    pub fn with_user_id_unchecked(user_id: Uuid) -> _ {
+        let with_user_id_unchecked_no_group_by: with_user_id_unchecked_no_group_by =
+            with_user_id_unchecked_no_group_by(user_id);
         let song: AsSelect<Song, crate::orm::Type> = Song::as_select();
-        unchecked_no_group_by().group_by(songs::id).select(song)
+        with_user_id_unchecked_no_group_by.group_by(songs::id).select(song)
     }
 }
 
@@ -153,7 +164,7 @@ mod test {
     use super::*;
     use crate::file::picture;
     use crate::orm::songs;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -163,7 +174,7 @@ mod test {
         music_folder.add_audio_artist(["1".into(), "2".into()], [Faker.fake()], false, 1).await;
         let song_id = music_folder.song_id(0);
 
-        let database_song = query::unchecked()
+        let database_song = query::with_user_id_unchecked(mock.user_id(0).await)
             .filter(songs::id.eq(song_id))
             .get_result(&mut mock.get().await)
             .await
@@ -210,7 +221,10 @@ mod test {
             .call()
             .await;
 
-        let songs = query::unchecked().get_results(&mut mock.get().await).await.unwrap();
+        let songs = query::with_user_id_unchecked(mock.user_id(0).await)
+            .get_results(&mut mock.get().await)
+            .await
+            .unwrap();
         for song in songs {
             if has_picture {
                 assert_eq!(song.cover_art, picture_id);

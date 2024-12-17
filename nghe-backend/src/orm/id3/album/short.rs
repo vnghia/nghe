@@ -3,9 +3,9 @@ use nghe_api::id3;
 use nghe_api::id3::builder::album as builder;
 
 use super::Album;
+use crate::Error;
 use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::song;
-use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 pub struct Short {
@@ -36,7 +36,7 @@ impl TryFrom<Short> for id3::album::Album {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
     use uuid::Uuid;
 
     use super::*;
@@ -44,15 +44,18 @@ pub mod query {
     use crate::orm::{albums, permission};
 
     #[auto_type]
-    pub fn unchecked() -> _ {
+    pub fn with_user_id_unchecked(user_id: Uuid) -> _ {
+        let with_user_id_unchecked: album::query::with_user_id_unchecked =
+            album::query::with_user_id_unchecked(user_id);
         let short: AsSelect<Short, crate::orm::Type> = Short::as_select();
-        album::query::unchecked().select(short)
+        with_user_id_unchecked.select(short)
     }
 
     #[auto_type]
     pub fn with_user_id(user_id: Uuid) -> _ {
+        let with_user_id_unchecked: with_user_id_unchecked = with_user_id_unchecked(user_id);
         let permission: permission::with_album = permission::with_album(user_id);
-        unchecked().filter(permission)
+        with_user_id_unchecked.filter(permission)
     }
 
     #[auto_type]
@@ -72,7 +75,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::orm::albums;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -91,7 +94,7 @@ mod tests {
             .call()
             .await;
 
-        let database_album = query::unchecked()
+        let database_album = query::with_user_id_unchecked(mock.user_id(0).await)
             .filter(albums::id.eq(album_id))
             .get_result(&mut mock.get().await)
             .await
