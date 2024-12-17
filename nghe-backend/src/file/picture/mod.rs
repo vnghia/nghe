@@ -107,7 +107,11 @@ impl<'s, 'd> Picture<'s, 'd> {
 
     pub async fn dump(&self, dir: impl AsRef<Utf8PlatformPath>) -> Result<(), Error> {
         let path = self.property.path_create_dir(dir, Self::FILENAME).await?;
-        tokio::fs::write(path, &self.data).await?;
+        // Path already contains information about hash, size and format so we don't need to worry
+        // about stale data.
+        if !tokio::fs::try_exists(&path).await? {
+            tokio::fs::write(path, &self.data).await?;
+        }
         Ok(())
     }
 
@@ -116,7 +120,6 @@ impl<'s, 'd> Picture<'s, 'd> {
         database: &Database,
         dir: impl AsRef<Utf8PlatformPath>,
     ) -> Result<Uuid, Error> {
-        // TODO: Checking for its existence before dump.
         self.dump(dir).await?;
         let upsert: cover_arts::Upsert = self.into();
         upsert.insert(database).await
