@@ -10,8 +10,8 @@ use nghe_api::id3::builder::artist as builder;
 pub use required::Required;
 use uuid::Uuid;
 
-use crate::orm::{albums, artists, songs};
 use crate::Error;
+use crate::orm::{albums, artists, songs};
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
@@ -63,7 +63,7 @@ impl TryFrom<Artist> for id3::artist::Artist {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, exists, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type, exists};
 
     use super::*;
     use crate::orm::{
@@ -135,7 +135,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
