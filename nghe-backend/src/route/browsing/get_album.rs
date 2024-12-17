@@ -4,9 +4,9 @@ pub use nghe_api::browsing::get_album::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{albums, id3};
-use crate::Error;
 
 #[handler]
 pub async fn handler(
@@ -19,7 +19,7 @@ pub async fn handler(
             .filter(albums::id.eq(request.id))
             .get_result(&mut database.get().await?)
             .await?
-            .try_into(database)
+            .try_into(database, user_id)
             .await?,
     })
 }
@@ -33,7 +33,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::file::audio::duration::Trait as _;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

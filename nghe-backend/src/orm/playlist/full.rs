@@ -7,11 +7,11 @@ use nghe_api::playlists::playlist;
 use uuid::Uuid;
 
 use super::Playlist;
+use crate::Error;
 use crate::database::Database;
 use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::song;
 use crate::orm::{playlists_songs, songs};
-use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 pub struct Full {
@@ -25,8 +25,12 @@ pub struct Full {
 }
 
 impl Full {
-    pub async fn try_into(self, database: &Database) -> Result<playlist::Full, Error> {
-        let entry = song::short::query::unchecked()
+    pub async fn try_into(
+        self,
+        database: &Database,
+        user_id: Uuid,
+    ) -> Result<playlist::Full, Error> {
+        let entry = song::short::query::with_user_id_unchecked(user_id)
             .inner_join(playlists_songs::table)
             .filter(songs::id.eq_any(self.entries))
             .filter(playlists_songs::playlist_id.eq(self.playlist.id))
@@ -48,7 +52,7 @@ impl Full {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
 
     use super::*;
     use crate::orm::playlist;
@@ -71,7 +75,7 @@ mod tests {
 
     use super::*;
     use crate::route::playlists::create_playlist;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -80,14 +84,10 @@ mod tests {
         music_folder.add_audio().n_song(n_song).call().await;
 
         let user_id = mock.user_id(0).await;
-        create_playlist::handler(
-            mock.database(),
-            user_id,
-            create_playlist::Request {
-                create_or_update: Faker.fake::<String>().into(),
-                song_ids: Some(music_folder.database.keys().copied().collect()),
-            },
-        )
+        create_playlist::handler(mock.database(), user_id, create_playlist::Request {
+            create_or_update: Faker.fake::<String>().into(),
+            song_ids: Some(music_folder.database.keys().copied().collect()),
+        })
         .await
         .unwrap();
 

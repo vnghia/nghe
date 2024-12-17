@@ -7,8 +7,8 @@ use o2o::o2o;
 use uuid::Uuid;
 
 use super::Song;
-use crate::file::audio;
 use crate::Error;
+use crate::file::audio;
 
 #[derive(Debug, Queryable, Selectable, o2o)]
 #[owned_try_into(id3::song::Short, Error)]
@@ -31,22 +31,25 @@ impl audio::duration::Trait for Short {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
 
     use super::*;
     use crate::orm::id3::song;
     use crate::orm::{albums, permission, songs};
 
     #[auto_type]
-    pub fn unchecked() -> _ {
+    pub fn with_user_id_unchecked(user_id: Uuid) -> _ {
+        let with_user_id_unchecked_no_group_by: song::query::with_user_id_unchecked_no_group_by =
+            song::query::with_user_id_unchecked_no_group_by(user_id);
         let full: AsSelect<Short, crate::orm::Type> = Short::as_select();
-        song::query::unchecked_no_group_by().group_by(songs::id).select(full)
+        with_user_id_unchecked_no_group_by.group_by(songs::id).select(full)
     }
 
     #[auto_type]
     pub fn with_user_id(user_id: Uuid) -> _ {
+        let with_user_id_unchecked: with_user_id_unchecked = with_user_id_unchecked(user_id);
         let permission: permission::with_album = permission::with_album(user_id);
-        unchecked().filter(permission)
+        with_user_id_unchecked.filter(permission)
     }
 
     #[auto_type]

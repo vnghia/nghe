@@ -4,9 +4,9 @@ pub use nghe_api::playlists::get_playlist::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{playlist, playlists};
-use crate::Error;
 
 #[handler]
 pub async fn handler(
@@ -20,7 +20,7 @@ pub async fn handler(
             .filter(playlists::id.eq(playlist_id))
             .get_result(&mut database.get().await?)
             .await?
-            .try_into(database)
+            .try_into(database, user_id)
             .await?,
     })
 }
@@ -29,12 +29,12 @@ pub async fn handler(
 #[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
-    use futures_lite::{stream, StreamExt as _};
+    use futures_lite::{StreamExt as _, stream};
     use rstest::rstest;
 
     use super::*;
     use crate::route::playlists::create_playlist;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -95,14 +95,10 @@ mod tests {
                 let user_id = mock.user_id(i).await;
                 (
                     user_id,
-                    create_playlist::handler(
-                        mock.database(),
-                        user_id,
-                        create_playlist::Request {
-                            create_or_update: Faker.fake::<String>().into(),
-                            song_ids: Some(song_ids.clone()),
-                        },
-                    )
+                    create_playlist::handler(mock.database(), user_id, create_playlist::Request {
+                        create_or_update: Faker.fake::<String>().into(),
+                        song_ids: Some(song_ids.clone()),
+                    })
                     .await
                     .unwrap()
                     .playlist

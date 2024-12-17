@@ -1,4 +1,4 @@
-mod get_album;
+pub mod get_album;
 mod get_album_info2;
 pub mod get_artist;
 mod get_artist_info2;

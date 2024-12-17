@@ -28,8 +28,12 @@ pub struct Full {
 }
 
 impl Full {
-    pub async fn try_into(self, database: &Database) -> Result<id3::album::Full, Error> {
-        let song = song::query::unchecked()
+    pub async fn try_into(
+        self,
+        database: &Database,
+        user_id: Uuid,
+    ) -> Result<id3::album::Full, Error> {
+        let song = song::query::with_user_id_unchecked(user_id)
             .filter(songs::id.eq_any(self.songs))
             .get_results(&mut database.get().await?)
             .await?;

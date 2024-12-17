@@ -34,4 +34,5 @@ pub struct Song {
     pub created: OffsetDateTime,
     pub artists: Vec<artist::Required>,
     pub music_brainz_id: Option<Uuid>,
+    pub starred: Option<OffsetDateTime>,
 }
