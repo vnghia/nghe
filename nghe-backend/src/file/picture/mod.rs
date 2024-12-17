@@ -125,6 +125,19 @@ impl<'s, 'd> Picture<'s, 'd> {
         upsert.insert(database).await
     }
 
+    pub async fn query_source(
+        database: &Database,
+        path: impl AsRef<str>,
+    ) -> Result<Option<Uuid>, Error> {
+        cover_arts::table
+            .filter(cover_arts::source.eq(path.as_ref()))
+            .select(cover_arts::id)
+            .get_result(&mut database.get().await?)
+            .await
+            .optional()
+            .map_err(Error::from)
+    }
+
     pub async fn scan(
         database: &Database,
         filesystem: &filesystem::Impl<'_>,
@@ -135,14 +148,7 @@ impl<'s, 'd> Picture<'s, 'd> {
         if let Some(ref art_dir) = config.dir {
             for name in &config.names {
                 let path = dir.join(name);
-                if !full
-                    && let Some(picture_id) = cover_arts::table
-                        .filter(cover_arts::source.eq(path.as_str()))
-                        .select(cover_arts::id)
-                        .get_result(&mut database.get().await?)
-                        .await
-                        .optional()?
-                {
+                if !full && let Some(picture_id) = Self::query_source(database, &path).await? {
                     return Ok(Some(picture_id));
                 } else if let Some(picture) = Picture::load(filesystem, path).await? {
                     return Ok(Some(picture.upsert(database, art_dir).await?));
