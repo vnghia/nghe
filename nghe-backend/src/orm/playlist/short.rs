@@ -44,8 +44,8 @@ pub mod query {
     #[auto_type]
     pub fn with_user_id(user_id: Uuid) -> _ {
         let with_user_id: playlist::query::with_user_id = playlist::query::with_user_id(user_id);
-        let full: AsSelect<Short, crate::orm::Type> = Short::as_select();
-        with_user_id.order_by(playlists::created_at.desc()).select(full)
+        let short: AsSelect<Short, crate::orm::Type> = Short::as_select();
+        with_user_id.order_by(playlists::created_at.desc()).select(short)
     }
 }
 
