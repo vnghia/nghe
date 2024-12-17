@@ -2,11 +2,11 @@ pub use nghe_api::scan::start::{Request, Response};
 use nghe_proc_macro::handler;
 use tracing::Instrument;
 
+use crate::Error;
 use crate::database::Database;
 use crate::filesystem::Filesystem;
 use crate::integration::Informant;
 use crate::scan::scanner;
-use crate::Error;
 
 #[handler(role = admin, internal = true)]
 pub async fn handler(

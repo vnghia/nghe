@@ -12,7 +12,7 @@ use o2o::o2o;
 
 use crate::file::{self, picture};
 pub use crate::schema::cover_arts::{self, *};
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[from_owned(file::Property<picture::Format>)]
@@ -47,9 +47,9 @@ mod upsert {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{cover_arts, Upsert};
-    use crate::database::Database;
+    use super::{Upsert, cover_arts};
     use crate::Error;
+    use crate::database::Database;
 
     impl crate::orm::upsert::Insert for Upsert<'_> {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {

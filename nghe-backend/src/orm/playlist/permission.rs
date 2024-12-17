@@ -3,7 +3,7 @@ use diesel_async::RunQueryDsl;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub async fn check_write(
     database: &Database,

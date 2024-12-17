@@ -1,7 +1,7 @@
 use diesel::Connection;
-use diesel_async::async_connection_wrapper::AsyncConnectionWrapper;
 use diesel_async::AsyncPgConnection;
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use diesel_async::async_connection_wrapper::AsyncConnectionWrapper;
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 

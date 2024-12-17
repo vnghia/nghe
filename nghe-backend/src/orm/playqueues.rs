@@ -6,8 +6,8 @@ use diesel_derives::AsChangeset;
 use o2o::o2o;
 use uuid::Uuid;
 
-pub use crate::schema::playqueues::{self, *};
 use crate::Error;
+pub use crate::schema::playqueues::{self, *};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = playqueues, check_for_backend(crate::orm::Type))]
@@ -27,9 +27,9 @@ mod upsert {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{playqueues, Data};
-    use crate::database::Database;
+    use super::{Data, playqueues};
     use crate::Error;
+    use crate::database::Database;
 
     impl crate::orm::upsert::Update for Data {
         async fn update(&self, database: &Database, id: Uuid) -> Result<(), Error> {

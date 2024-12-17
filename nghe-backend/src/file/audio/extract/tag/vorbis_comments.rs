@@ -7,9 +7,9 @@ use itertools::Itertools;
 use lofty::ogg::{OggPictureStorage, VorbisComments};
 use uuid::Uuid;
 
-use crate::file::audio::{extract, Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
+use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
 use crate::file::picture::Picture;
-use crate::{config, error, Error};
+use crate::{Error, config, error};
 
 impl Date {
     fn extract_vorbis_comments(tag: &VorbisComments, key: Option<&str>) -> Result<Self, Error> {

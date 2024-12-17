@@ -2,7 +2,7 @@ use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::file::{self, audio};
 use crate::http::binary;
-use crate::{filesystem, Error};
+use crate::{Error, filesystem};
 
 #[derive(Debug)]
 pub enum Impl<'fs> {

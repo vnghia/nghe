@@ -28,6 +28,6 @@ pub struct Full {
 }
 
 pub mod builder {
-    pub use super::playlist_builder::*;
     pub use super::PlaylistBuilder as Builder;
+    pub use super::playlist_builder::*;
 }

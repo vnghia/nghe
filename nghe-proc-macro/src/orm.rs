@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::fold::Fold;
-use syn::{parse_quote, Error};
+use syn::{Error, parse_quote};
 
 #[derive(Debug, deluxe::ParseMetaItem)]
 struct CheckMusicFolder {

@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::database::Database;
 use crate::orm::users;
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub trait AuthN {
     fn username(&self) -> &str;

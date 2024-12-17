@@ -3,8 +3,8 @@ use std::num::NonZeroU64;
 use axum_extra::headers::{CacheControl, ETag};
 use nghe_api::common::format;
 
-use crate::http::binary;
 use crate::Error;
+use crate::http::binary;
 
 impl binary::property::Trait for format::Transcode {
     const SEEKABLE: bool = false;

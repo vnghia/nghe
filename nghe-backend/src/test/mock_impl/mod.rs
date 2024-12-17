@@ -4,8 +4,8 @@ mod information;
 mod music_folder;
 mod user;
 
-use diesel_async::pooled_connection::deadpool;
 use diesel_async::AsyncPgConnection;
+use diesel_async::pooled_connection::deadpool;
 use educe::Educe;
 use fake::{Fake, Faker};
 pub use information::Mock as Information;
@@ -104,10 +104,11 @@ impl Mock {
         role: users::Role,
         #[builder(default = true)] allow: bool,
     ) -> &Self {
-        route::user::create::handler(
-            self.database(),
-            route::user::create::Request { role: role.into(), allow, ..Faker.fake() },
-        )
+        route::user::create::handler(self.database(), route::user::create::Request {
+            role: role.into(),
+            allow,
+            ..Faker.fake()
+        })
         .await
         .unwrap();
         self
@@ -181,17 +182,14 @@ pub async fn mock(
     #[default(None)] prefix: Option<&str>,
     #[default(false)] enable_integration: bool,
 ) -> Mock {
-    let mock = Mock::new(
-        prefix,
-        Config {
-            integration: if enable_integration {
-                config::Integration::from_env()
-            } else {
-                config::Integration::default()
-            },
-            ..Default::default()
+    let mock = Mock::new(prefix, Config {
+        integration: if enable_integration {
+            config::Integration::from_env()
+        } else {
+            config::Integration::default()
         },
-    )
+        ..Default::default()
+    })
     .await;
     for _ in 0..n_user {
         mock.add_user().call().await;

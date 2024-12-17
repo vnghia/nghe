@@ -11,7 +11,7 @@ pub use common::{Impl, Trait};
 pub use entry::Entry;
 use nghe_api::common::filesystem;
 
-use crate::{config, Error};
+use crate::{Error, config};
 
 #[derive(Clone)]
 pub struct Filesystem {

@@ -3,7 +3,7 @@ use nghe_proc_macro::handler;
 
 use crate::database::Database;
 use crate::integration::Informant;
-use crate::{config, Error};
+use crate::{Error, config};
 
 #[handler(role = admin, internal = true)]
 pub async fn handler(

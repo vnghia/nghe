@@ -1,7 +1,7 @@
 use rspotify::clients::BaseClient;
 use rspotify::model::{ArtistId, SearchResult, SearchType};
 
-use crate::{config, error, Error};
+use crate::{Error, config, error};
 
 #[derive(Debug, Clone)]
 pub struct Artist {

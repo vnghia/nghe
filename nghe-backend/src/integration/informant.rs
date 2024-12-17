@@ -13,7 +13,7 @@ use crate::database::Database;
 use crate::file::picture;
 use crate::orm::upsert::Update;
 use crate::orm::{artist_informations, artists};
-use crate::{config, Error};
+use crate::{Error, config};
 
 const MAX_ITEM_PER_QUERY: i64 = 100;
 
@@ -140,7 +140,7 @@ impl Informant {
 }
 
 mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
 
     use super::*;
 
@@ -164,7 +164,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -206,14 +206,10 @@ mod tests {
         let id_mltr = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
 
         mock.informant
-            .fetch_and_upsert_artist(
-                mock.database(),
-                &mock.config.cover_art,
-                &Request {
-                    artist_id: id_mltr,
-                    spotify_id: Some("7zMVPOJPs5jgU8NorRxqJe".to_owned()),
-                },
-            )
+            .fetch_and_upsert_artist(mock.database(), &mock.config.cover_art, &Request {
+                artist_id: id_mltr,
+                spotify_id: Some("7zMVPOJPs5jgU8NorRxqJe".to_owned()),
+            })
             .await
             .unwrap();
 

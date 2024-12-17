@@ -4,9 +4,9 @@ pub use nghe_api::browsing::get_song::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{id3, songs};
-use crate::Error;
 
 #[handler]
 pub async fn handler(
@@ -32,7 +32,7 @@ mod test {
 
     use super::*;
     use crate::file::audio;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

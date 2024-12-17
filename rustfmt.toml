@@ -5,7 +5,7 @@ use_try_shorthand = true
 use_small_heuristics = "Max"
 
 unstable_features = true
-version = "Two"
+style_edition = "2024"
 
 comment_width = 100
 condense_wildcard_suffixes = true

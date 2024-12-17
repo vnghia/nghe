@@ -17,9 +17,9 @@ mod upsert {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{playlists_users, Upsert};
-    use crate::database::Database;
+    use super::{Upsert, playlists_users};
     use crate::Error;
+    use crate::database::Database;
 
     impl Upsert {
         pub async fn insert_owner(

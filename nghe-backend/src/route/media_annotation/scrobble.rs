@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::database::Database;
 use crate::orm::playbacks;
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[handler]
 pub async fn handler(
@@ -45,11 +45,11 @@ mod tests {
     use fake::faker::time::en::*;
     use fake::{Fake, Faker};
     use rstest::rstest;
-    use time::macros::datetime;
     use time::OffsetDateTime;
+    use time::macros::datetime;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -86,11 +86,11 @@ mod tests {
                 Some(times.clone())
             };
 
-            let result = handler(
-                mock.database(),
-                user_id,
-                Request { ids: ids.clone(), times, submission: None },
-            )
+            let result = handler(mock.database(), user_id, Request {
+                ids: ids.clone(),
+                times,
+                submission: None,
+            })
             .await;
             assert_eq!(result.is_ok(), i < n_play - 1 || n_song >= n_time);
         }

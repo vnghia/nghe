@@ -15,13 +15,13 @@ pub struct Scrobble {
 }
 
 mod upsert {
-    use diesel::upsert::excluded;
     use diesel::ExpressionMethods;
+    use diesel::upsert::excluded;
     use diesel_async::RunQueryDsl;
 
-    use super::{playbacks, Scrobble};
-    use crate::database::Database;
+    use super::{Scrobble, playbacks};
     use crate::Error;
+    use crate::database::Database;
 
     impl Scrobble {
         pub async fn upsert(database: &Database, values: &[Self]) -> Result<(), Error> {

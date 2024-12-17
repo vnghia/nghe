@@ -2,11 +2,11 @@ use std::num::NonZeroU8;
 use std::str::FromStr;
 
 use o2o::o2o;
-use time::macros::format_description;
 use time::Month;
+use time::macros::format_description;
 
 use crate::orm::{albums, songs};
-use crate::{error, Error};
+use crate::{Error, error};
 
 type FormatDescription<'a> = &'a [time::format_description::BorrowedFormatItem<'a>];
 

@@ -28,7 +28,7 @@ impl From<format::Transcode> for Format {
 }
 
 mod serde {
-    use ::serde::{de, Deserialize, Deserializer};
+    use ::serde::{Deserialize, Deserializer, de};
 
     use super::*;
 

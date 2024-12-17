@@ -4,7 +4,7 @@ use std::io::Seek;
 use tracing::instrument;
 use typed_path::Utf8PlatformPath;
 
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub struct Lock;
 

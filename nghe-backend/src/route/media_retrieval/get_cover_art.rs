@@ -9,7 +9,7 @@ use crate::file::{self, picture};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 use crate::orm::cover_arts;
-use crate::{config, error, Error};
+use crate::{Error, config, error};
 
 #[handler]
 pub async fn handler(

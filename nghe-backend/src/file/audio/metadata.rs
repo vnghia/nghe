@@ -5,10 +5,10 @@ use isolang::Language;
 use itertools::Itertools;
 use o2o::o2o;
 
-use super::{artist, name_date_mbz, position, Genres};
+use super::{Genres, artist, name_date_mbz, position};
 use crate::file::picture::Picture;
 use crate::orm::songs;
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[derive(Debug, o2o)]
 #[try_map_owned(songs::Song<'a>, Error)]
@@ -56,7 +56,7 @@ mod tests {
 
     use super::*;
     use crate::file::{self, audio};
-    use crate::test::{mock, Information, Mock};
+    use crate::test::{Information, Mock, mock};
 
     #[rstest]
     #[tokio::test]

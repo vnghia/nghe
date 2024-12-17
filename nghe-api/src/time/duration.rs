@@ -1,5 +1,5 @@
 pub mod serde {
-    use ::serde::{de, ser, Deserialize, Deserializer, Serializer};
+    use ::serde::{Deserialize, Deserializer, Serializer, de, ser};
     use num_traits::ToPrimitive;
     use time::Duration;
 

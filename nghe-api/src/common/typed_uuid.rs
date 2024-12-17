@@ -20,7 +20,7 @@ mod serde {
     use core::str;
     use std::str::FromStr;
 
-    use ::serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
+    use ::serde::{Deserialize, Deserializer, Serialize, Serializer, de, ser};
     use serde_with::DeserializeAs;
 
     use super::*;

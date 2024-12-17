@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::database::Database;
 use crate::orm::id3;
-use crate::{config, Error};
+use crate::{Error, config};
 
 #[handler]
 pub async fn handler(
@@ -48,7 +48,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -98,13 +98,9 @@ mod tests {
         let user_id = mock.user_id(0).await;
         let with_user_id =
             handler(mock.database(), user_id, Request { music_folder_ids: None }).await.unwrap();
-        let with_music_folder = handler(
-            mock.database(),
-            user_id,
-            Request {
-                music_folder_ids: Some(vec![music_folder_deny.id(), music_folder_allow.id()]),
-            },
-        )
+        let with_music_folder = handler(mock.database(), user_id, Request {
+            music_folder_ids: Some(vec![music_folder_deny.id(), music_folder_allow.id()]),
+        })
         .await
         .unwrap();
         assert_eq!(with_user_id, with_music_folder);

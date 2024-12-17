@@ -4,7 +4,7 @@ use educe::Educe;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
-use crate::{database, error, Error};
+use crate::{Error, database, error};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Educe)]
 #[educe(Default)]

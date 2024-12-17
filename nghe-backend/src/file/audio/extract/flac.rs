@@ -5,7 +5,7 @@ use lofty::ogg::OggPictureStorage as _;
 use super::{Metadata, Property};
 use crate::file::audio::{self, Album, Artists, Genres, NameDateMbz, TrackDisc};
 use crate::file::picture::Picture;
-use crate::{config, error, Error};
+use crate::{Error, config, error};
 
 // TODO: Reduce duplication while getting tag
 impl<'a> Metadata<'a> for FlacFile {

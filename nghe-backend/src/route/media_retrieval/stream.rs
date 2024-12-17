@@ -10,7 +10,7 @@ use crate::http::binary;
 use crate::http::header::ToOffset;
 #[cfg(test)]
 use crate::test::transcode::Status as TranscodeStatus;
-use crate::{config, transcode, Error};
+use crate::{Error, config, transcode};
 
 #[handler(role = stream)]
 pub async fn handler(
@@ -122,7 +122,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::test::transcode::{Header as TranscodeHeader, Status as TranscodeStatus};
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     async fn spawn_stream(
         mock: &Mock,
@@ -209,10 +209,10 @@ mod tests {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(transcoded, body);
         }
-        assert_eq!(
-            transcode_status,
-            &[TranscodeStatus::ServeCachedOutput, TranscodeStatus::ServeCachedOutput]
-        );
+        assert_eq!(transcode_status, &[
+            TranscodeStatus::ServeCachedOutput,
+            TranscodeStatus::ServeCachedOutput
+        ]);
     }
 
     #[rstest]
@@ -277,9 +277,9 @@ mod tests {
             assert_eq!(status, StatusCode::OK);
             assert!(!body.is_empty());
         }
-        assert_eq!(
-            transcode_status,
-            &[TranscodeStatus::UseCachedOutput, TranscodeStatus::UseCachedOutput]
-        );
+        assert_eq!(transcode_status, &[
+            TranscodeStatus::UseCachedOutput,
+            TranscodeStatus::UseCachedOutput
+        ]);
     }
 }

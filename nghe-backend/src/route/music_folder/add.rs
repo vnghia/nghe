@@ -23,10 +23,10 @@ async fn handler_impl(
         .await?;
 
     if request.allow {
-        permission::add::handler(
-            database,
-            permission::add::Request { user_id: None, music_folder_id: Some(music_folder_id) },
-        )
+        permission::add::handler(database, permission::add::Request {
+            user_id: None,
+            music_folder_id: Some(music_folder_id),
+        })
         .await?;
     }
 
@@ -48,7 +48,7 @@ mod tests {
     use nghe_api::common::filesystem;
     use rstest::rstest;
 
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

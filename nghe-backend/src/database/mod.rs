@@ -1,10 +1,10 @@
 mod config;
 
-use diesel_async::pooled_connection::{deadpool, AsyncDieselConnectionManager};
 use diesel_async::AsyncPgConnection;
+use diesel_async::pooled_connection::{AsyncDieselConnectionManager, deadpool};
 use libaes::Cipher;
 
-use crate::{error, Error};
+use crate::{Error, error};
 
 type Connection = AsyncDieselConnectionManager<AsyncPgConnection>;
 type Pool = deadpool::Pool<AsyncPgConnection>;

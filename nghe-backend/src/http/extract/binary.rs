@@ -2,7 +2,7 @@ use axum::body::Bytes;
 use axum::extract::{FromRequest, Request};
 use nghe_api::common::BinaryRequest;
 
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub struct Binary<R>(pub R);
 

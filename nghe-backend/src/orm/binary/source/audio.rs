@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use diesel::dsl::{auto_type, AsSelect};
-use diesel::prelude::*;
 use diesel::SelectableHelper;
+use diesel::dsl::{AsSelect, auto_type};
+use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::orm::{albums, music_folders, permission, songs};

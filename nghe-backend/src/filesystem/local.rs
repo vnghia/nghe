@@ -8,7 +8,7 @@ use typed_path::{Utf8PlatformPathBuf, Utf8TypedPath};
 use super::{entry, path};
 use crate::file::{self, audio};
 use crate::http::binary;
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Filesystem;

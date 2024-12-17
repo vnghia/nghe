@@ -4,9 +4,9 @@ pub use nghe_api::browsing::get_music_folders::{MusicFolder, MusicFolders, Reque
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{music_folders, permission};
-use crate::Error;
 
 #[handler]
 pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
@@ -31,7 +31,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

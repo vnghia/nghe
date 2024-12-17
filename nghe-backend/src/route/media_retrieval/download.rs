@@ -3,12 +3,12 @@ pub use nghe_api::media_retrieval::download::Request;
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::file::{self, audio};
 use crate::filesystem::{self, Filesystem, Trait};
 use crate::http::binary;
 use crate::http::header::ToOffset;
-use crate::Error;
 
 pub async fn handler_impl(
     filesystem: filesystem::Impl<'_>,
@@ -47,7 +47,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::http::header::ToETag;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[case(None)]

@@ -1,11 +1,11 @@
-use diesel::{sql_types, IntoSql, JoinOnDsl, QueryDsl};
+use diesel::{IntoSql, JoinOnDsl, QueryDsl, sql_types};
 use diesel_async::RunQueryDsl;
 pub use nghe_api::permission::add::{Request, Response};
 use nghe_proc_macro::handler;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{music_folders, user_music_folder_permissions, users};
-use crate::Error;
 
 #[handler(role = admin, internal = true)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
@@ -72,7 +72,7 @@ mod tests {
 
     use super::*;
     use crate::test::route::permission::{count, reset};
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[case(true, true, 1)]

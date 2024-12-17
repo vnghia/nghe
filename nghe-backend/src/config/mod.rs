@@ -9,8 +9,8 @@ mod transcode;
 
 pub use cover_art::CoverArt;
 pub use database::Database;
-use figment::providers::{Env, Serialized};
 use figment::Figment;
+use figment::providers::{Env, Serialized};
 use filesystem::Filesystem;
 pub use index::Index;
 pub use integration::Integration;

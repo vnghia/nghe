@@ -5,9 +5,9 @@ pub use nghe_api::browsing::get_album_info2::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{albums, permission};
-use crate::Error;
 
 #[handler]
 pub async fn handler(

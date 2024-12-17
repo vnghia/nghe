@@ -89,9 +89,9 @@ mod query {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{music_folders, MusicFolder};
-    use crate::database::Database;
+    use super::{MusicFolder, music_folders};
     use crate::Error;
+    use crate::database::Database;
 
     impl MusicFolder<'static> {
         pub async fn query(database: &Database, id: Uuid) -> Result<Self, Error> {

@@ -2,10 +2,10 @@ use diesel_async::RunQueryDsl;
 pub use nghe_api::user::create::{Request, Response};
 use nghe_proc_macro::handler;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::users;
 use crate::route::permission;
-use crate::Error;
 
 #[handler(role = admin, internal = true)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
@@ -24,10 +24,10 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         .await?;
 
     if allow {
-        permission::add::handler(
-            database,
-            permission::add::Request { user_id: Some(user_id), music_folder_id: None },
-        )
+        permission::add::handler(database, permission::add::Request {
+            user_id: Some(user_id),
+            music_folder_id: None,
+        })
         .await?;
     }
     Ok(Response { user_id })
@@ -40,7 +40,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

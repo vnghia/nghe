@@ -1,5 +1,5 @@
 use educe::Educe;
-use serde::{de, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, de};
 use serde_with::serde_as;
 
 use crate::database::Key;
