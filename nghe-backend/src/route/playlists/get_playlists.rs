@@ -4,9 +4,9 @@ pub use nghe_api::playlists::get_playlists::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::playlist;
-use crate::Error;
 
 #[handler]
 pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
@@ -26,12 +26,12 @@ pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Err
 #[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
-    use futures_lite::{stream, StreamExt as _};
+    use futures_lite::{StreamExt as _, stream};
     use rstest::rstest;
 
     use super::*;
     use crate::route::playlists::create_playlist;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

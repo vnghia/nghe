@@ -4,9 +4,9 @@ pub use nghe_api::media_annotation::unstar::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{star_albums, star_artists, star_songs};
-use crate::Error;
 
 #[handler]
 pub async fn handler(

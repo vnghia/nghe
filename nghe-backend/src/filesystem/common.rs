@@ -5,9 +5,9 @@ use o2o::o2o;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
+use crate::Error;
 use crate::file::{self, audio};
 use crate::http::binary;
-use crate::Error;
 
 #[derive(Clone, o2o)]
 #[ref_into(filesystem::Type)]
@@ -114,9 +114,9 @@ mod tests {
 
     use super::Trait as _;
     use crate::file::audio;
-    use crate::filesystem::{entry, Entry};
+    use crate::filesystem::{Entry, entry};
     use crate::test::filesystem::Trait as _;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[case(filesystem::Type::Local, "usr/bin", false)]

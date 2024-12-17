@@ -16,9 +16,9 @@ mod upsert {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{star_songs, Upsert};
-    use crate::database::Database;
+    use super::{Upsert, star_songs};
     use crate::Error;
+    use crate::database::Database;
 
     impl Upsert {
         pub async fn upserts(

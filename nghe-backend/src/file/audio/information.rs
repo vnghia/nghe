@@ -11,7 +11,7 @@ use crate::database::Database;
 use crate::orm::upsert::Upsert as _;
 use crate::orm::{albums, songs};
 use crate::scan::scanner;
-use crate::{file, Error};
+use crate::{Error, file};
 
 #[derive(Debug, o2o)]
 #[ref_try_into(songs::Data<'a>, Error)]
@@ -124,7 +124,7 @@ impl Information<'_> {
 mod tests {
     use rstest::rstest;
 
-    use crate::test::{mock, Information, Mock};
+    use crate::test::{Information, Mock, mock};
 
     #[rstest]
     #[tokio::test]

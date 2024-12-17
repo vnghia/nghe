@@ -1,8 +1,8 @@
 use time::OffsetDateTime;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::file::audio;
 use crate::Error;
+use crate::file::audio;
 
 pub trait Metadata {
     fn size(&self) -> Result<usize, Error>;

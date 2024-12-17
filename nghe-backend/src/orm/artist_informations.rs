@@ -28,9 +28,9 @@ mod upsert {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{artist_informations, Data};
-    use crate::database::Database;
+    use super::{Data, artist_informations};
     use crate::Error;
+    use crate::database::Database;
 
     impl crate::orm::upsert::Update for Data<'_> {
         async fn update(&self, database: &Database, id: Uuid) -> Result<(), Error> {

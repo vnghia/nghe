@@ -3,7 +3,7 @@
 pub mod duration;
 
 pub mod serde {
-    use time::format_description::well_known::{iso8601, Iso8601};
+    use time::format_description::well_known::{Iso8601, iso8601};
 
     const ISO8601_CONFIG: iso8601::EncodedConfig =
         iso8601::Config::DEFAULT.set_year_is_six_digits(false).encode();

@@ -1,13 +1,13 @@
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-pub use nghe_api::user::setup::{Request, Response};
 use nghe_api::user::Role;
+pub use nghe_api::user::setup::{Request, Response};
 use nghe_proc_macro::handler;
 
 use super::create;
 use crate::database::Database;
 use crate::orm::users;
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[handler(need_auth = false, internal = true)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
@@ -15,16 +15,13 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         error::Kind::Forbidden.into()
     } else {
         let Request { username, password, email } = request;
-        create::handler(
-            database,
-            create::Request {
-                username,
-                password,
-                email,
-                role: Role { admin: true, stream: true, download: true, share: true },
-                allow: false,
-            },
-        )
+        create::handler(database, create::Request {
+            username,
+            password,
+            email,
+            role: Role { admin: true, stream: true, download: true, share: true },
+            allow: false,
+        })
         .await?;
         Ok(Response)
     }
@@ -37,7 +34,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

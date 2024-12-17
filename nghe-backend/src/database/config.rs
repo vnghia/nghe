@@ -5,7 +5,7 @@ use diesel_async::RunQueryDsl;
 
 use super::Database;
 use crate::orm::configs;
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub trait Config {
     const KEY: &'static str;
@@ -63,7 +63,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[derive(Dummy)]
     struct NonEncryptedConfig(String);

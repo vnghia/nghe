@@ -4,9 +4,9 @@ use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum_extra::headers::{self, HeaderMapExt};
 
-use super::{login, AuthN, AuthZ};
+use super::{AuthN, AuthZ, login};
 use crate::database::Database;
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub struct Header<R> {
     _request: PhantomData<R>,
@@ -47,12 +47,12 @@ where
 mod tests {
     use axum::http;
     use axum_extra::headers::HeaderMapExt;
-    use fake::faker::internet::en::{Password, Username};
     use fake::Fake;
+    use fake::faker::internet::en::{Password, Username};
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     fn test_is_authenticated(#[values(true, false)] ok: bool) {

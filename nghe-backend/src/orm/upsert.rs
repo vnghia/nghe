@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
-use crate::database::Database;
 use crate::Error;
+use crate::database::Database;
 
 pub trait Insert {
     async fn insert(&self, database: &Database) -> Result<Uuid, Error>;

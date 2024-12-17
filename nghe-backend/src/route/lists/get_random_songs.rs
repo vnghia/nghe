@@ -5,9 +5,9 @@ pub use nghe_api::lists::get_random_songs::{Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{albums, function, genres, id3, songs};
-use crate::Error;
 
 #[handler]
 pub async fn handler(

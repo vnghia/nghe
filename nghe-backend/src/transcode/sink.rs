@@ -11,7 +11,7 @@ use rsmpeg::ffi;
 use typed_path::Utf8PlatformPath;
 
 use super::Lock;
-use crate::{config, Error};
+use crate::{Error, config};
 
 #[derive(Educe)]
 #[educe(Debug)]

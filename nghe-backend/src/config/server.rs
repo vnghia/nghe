@@ -2,8 +2,8 @@ use std::net::{IpAddr, SocketAddr};
 
 use educe::Educe;
 use serde::{Deserialize, Serialize};
-use typed_path::utils::utf8_current_dir;
 use typed_path::Utf8PlatformPathBuf;
+use typed_path::utils::utf8_current_dir;
 
 #[derive(Debug, Serialize, Deserialize, Educe)]
 #[educe(Default)]

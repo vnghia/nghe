@@ -2,10 +2,10 @@ pub use nghe_api::bookmarks::save_playqueue::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::playqueues;
 use crate::orm::upsert::Update;
-use crate::Error;
 
 #[handler]
 pub async fn handler(

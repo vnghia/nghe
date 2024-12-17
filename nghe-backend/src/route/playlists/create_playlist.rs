@@ -6,10 +6,10 @@ use nghe_proc_macro::handler;
 use uuid::Uuid;
 
 use super::get_playlist;
+use crate::Error;
 use crate::database::Database;
 use crate::orm::upsert::Insert;
 use crate::orm::{playlist, playlists, playlists_songs, playlists_users};
-use crate::Error;
 
 #[handler]
 pub async fn handler(
@@ -39,11 +39,9 @@ pub async fn handler(
     }
 
     Ok(Response {
-        playlist: get_playlist::handler(
-            database,
-            user_id,
-            get_playlist::Request { id: playlist_id },
-        )
+        playlist: get_playlist::handler(database, user_id, get_playlist::Request {
+            id: playlist_id,
+        })
         .await?
         .playlist,
     })

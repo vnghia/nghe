@@ -5,9 +5,9 @@ pub use nghe_api::browsing::get_artist_info2::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{artists, id3};
-use crate::Error;
 
 #[handler]
 pub async fn handler(

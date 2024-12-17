@@ -4,10 +4,10 @@ use nghe_api::constant;
 use tempfile::{Builder, TempDir};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
+use crate::Error;
 use crate::file::{self, audio};
 use crate::filesystem::{self, local};
 use crate::http::binary;
-use crate::Error;
 
 #[derive(Debug)]
 pub struct Mock {

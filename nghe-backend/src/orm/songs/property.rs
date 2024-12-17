@@ -10,7 +10,7 @@ use o2o::o2o;
 
 use super::songs;
 use crate::file::{self, audio};
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[try_map_owned(audio::Property, Error)]

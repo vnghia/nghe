@@ -5,7 +5,7 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 #[cfg(test)]
 use fake::{Dummy, Fake, Faker};
-use futures_lite::{stream, StreamExt};
+use futures_lite::{StreamExt, stream};
 use indexmap::IndexSet;
 use o2o::o2o;
 use unicode_normalization::UnicodeNormalization;
@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::database::Database;
 use crate::orm::upsert::Insert as _;
 use crate::orm::{artists, songs_album_artists, songs_artists};
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[derive(Debug, PartialEq, Eq, Hash, o2o)]
 #[from_owned(artists::Data<'a>)]
@@ -401,7 +401,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[case("The One", &["The ", "A "], 'O')]

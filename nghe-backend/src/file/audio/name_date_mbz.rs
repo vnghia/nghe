@@ -9,10 +9,10 @@ use o2o::o2o;
 use uuid::Uuid;
 
 use super::date::Date;
+use crate::Error;
 use crate::database::Database;
 use crate::orm::upsert::Insert as _;
 use crate::orm::{albums, songs};
-use crate::Error;
 
 #[derive(Debug, o2o)]
 #[try_map_owned(songs::name_date_mbz::NameDateMbz<'a>, Error)]
@@ -68,7 +68,7 @@ impl Album<'_> {
 mod test {
     use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
-    use futures_lite::{stream, StreamExt};
+    use futures_lite::{StreamExt, stream};
 
     use super::*;
     use crate::test::Mock;
@@ -126,7 +126,7 @@ mod tests {
 
     use super::*;
     use crate::file::{audio, picture};
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

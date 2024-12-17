@@ -1,7 +1,7 @@
 use o2o::o2o;
 
 use crate::orm::songs;
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[derive(Debug, Default, Clone, Copy, o2o)]
 #[try_map_owned(songs::position::Track, Error)]

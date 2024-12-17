@@ -1,9 +1,9 @@
 use educe::Educe;
 use serde::{Deserialize, Serialize};
 use serde_with::formats::SpaceSeparator;
-use serde_with::{serde_as, StringWithSeparator};
-use typed_path::utils::utf8_temp_dir;
+use serde_with::{StringWithSeparator, serde_as};
 use typed_path::Utf8PlatformPathBuf;
+use typed_path::utils::utf8_temp_dir;
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Educe)]

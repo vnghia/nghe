@@ -11,7 +11,7 @@ use xxhash_rust::xxh3::xxh3_64;
 
 use crate::http::binary::property;
 use crate::http::header::ToETag;
-use crate::{error, Error};
+use crate::{Error, error};
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq, Eq, fake::Dummy))]

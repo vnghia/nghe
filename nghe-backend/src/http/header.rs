@@ -4,7 +4,7 @@ use std::ops::Bound;
 use axum_extra::headers::{ETag, Range};
 use concat_string::concat_string;
 
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub trait ToOffset {
     fn to_offset(&self, size: NonZeroU64) -> Result<u64, Error>;

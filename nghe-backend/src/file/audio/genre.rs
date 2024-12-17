@@ -8,9 +8,9 @@ use fake::{Dummy, Fake, Faker};
 use o2o::o2o;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{genres, songs_genres};
-use crate::Error;
 
 #[derive(Debug, o2o)]
 #[from_owned(genres::Data<'a>)]
@@ -122,7 +122,7 @@ impl Genres<'_> {
 #[coverage(off)]
 mod test {
     use diesel::SelectableHelper;
-    use futures_lite::{stream, StreamExt};
+    use futures_lite::{StreamExt, stream};
 
     use super::*;
     use crate::orm::songs;
@@ -172,7 +172,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     mod cleanup {
         use super::*;

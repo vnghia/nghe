@@ -1,14 +1,14 @@
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use futures_lite::{stream, StreamExt as _};
+use futures_lite::{StreamExt as _, stream};
 use nghe_api::bookmarks::get_playqueue::Playqueue;
 pub use nghe_api::bookmarks::get_playqueue::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{id3, playqueues, songs};
-use crate::Error;
 
 #[handler]
 pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
@@ -52,7 +52,7 @@ mod test {
 
     use super::*;
     use crate::route::bookmarks::save_playqueue;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -80,11 +80,11 @@ mod test {
 
         let user_id = mock.user_id(0).await;
 
-        save_playqueue::handler(
-            mock.database(),
-            user_id,
-            save_playqueue::Request { ids: song_ids, position: None, current: None },
-        )
+        save_playqueue::handler(mock.database(), user_id, save_playqueue::Request {
+            ids: song_ids,
+            position: None,
+            current: None,
+        })
         .await
         .unwrap();
 

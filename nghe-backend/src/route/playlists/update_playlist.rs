@@ -4,10 +4,10 @@ pub use nghe_api::playlists::update_playlist::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::upsert::Update;
 use crate::orm::{albums, playlist, playlists, playlists_songs, songs};
-use crate::Error;
 
 #[handler]
 pub async fn handler(
@@ -61,7 +61,7 @@ mod tests {
 
     use super::*;
     use crate::route::playlists::{create_playlist, get_playlist};
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[case(0, false, &[], &[])]
@@ -101,29 +101,22 @@ mod tests {
             .collect();
 
         let user_id = mock.user_id(0).await;
-        let playlist_id = create_playlist::handler(
-            mock.database(),
-            user_id,
-            create_playlist::Request {
+        let playlist_id =
+            create_playlist::handler(mock.database(), user_id, create_playlist::Request {
                 create_or_update: Faker.fake::<String>().into(),
                 song_ids: Some(song_ids.clone()),
-            },
-        )
-        .await
-        .unwrap()
-        .playlist
-        .playlist
-        .id;
+            })
+            .await
+            .unwrap()
+            .playlist
+            .playlist
+            .id;
 
-        handler(
-            mock.database(),
-            user_id,
-            Request {
-                playlist_id,
-                remove_indexes: Some(remove_indexes.into()),
-                ..Default::default()
-            },
-        )
+        handler(mock.database(), user_id, Request {
+            playlist_id,
+            remove_indexes: Some(remove_indexes.into()),
+            ..Default::default()
+        })
         .await
         .unwrap();
 
@@ -132,18 +125,17 @@ mod tests {
             .filter_map(|index| song_ids.get::<usize>((*index).into()))
             .copied()
             .collect();
-        let database_song_ids: Vec<_> = get_playlist::handler(
-            mock.database(),
-            user_id,
-            get_playlist::Request { id: playlist_id },
-        )
-        .await
-        .unwrap()
-        .playlist
-        .entry
-        .into_iter()
-        .map(|entry| entry.song.id)
-        .collect();
+        let database_song_ids: Vec<_> =
+            get_playlist::handler(mock.database(), user_id, get_playlist::Request {
+                id: playlist_id,
+            })
+            .await
+            .unwrap()
+            .playlist
+            .entry
+            .into_iter()
+            .map(|entry| entry.song.id)
+            .collect();
         assert_eq!(database_song_ids, song_ids);
     }
 }

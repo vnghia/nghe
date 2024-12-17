@@ -27,9 +27,9 @@ mod upsert {
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
 
-    use super::{playlists, Upsert};
-    use crate::database::Database;
+    use super::{Upsert, playlists};
     use crate::Error;
+    use crate::database::Database;
 
     impl crate::orm::upsert::Insert for Upsert<'_> {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {

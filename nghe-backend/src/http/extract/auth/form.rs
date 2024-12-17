@@ -4,9 +4,9 @@ use nghe_api::auth::form::Trait;
 use nghe_api::common::FormRequest;
 use uuid::Uuid;
 
-use super::{login, AuthN, AuthZ};
+use super::{AuthN, AuthZ, login};
 use crate::database::Database;
-use crate::{error, Error};
+use crate::{Error, error};
 
 pub struct Form<R> {
     pub id: Uuid,
@@ -64,7 +64,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     fn test_is_authenticated(#[values(true, false)] ok: bool) {

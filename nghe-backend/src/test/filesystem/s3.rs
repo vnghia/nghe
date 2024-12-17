@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
+use aws_sdk_s3::Client;
 use aws_sdk_s3::error::SdkError;
 use aws_sdk_s3::operation::create_bucket::CreateBucketError;
-use aws_sdk_s3::Client;
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
+use crate::Error;
 use crate::file::{self, audio};
 use crate::filesystem::{self, path, s3};
 use crate::http::binary;
-use crate::Error;
 
 #[derive(Debug)]
 pub struct Mock {

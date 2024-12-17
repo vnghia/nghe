@@ -2,9 +2,9 @@ use diesel::prelude::*;
 use nghe_api::playlists::playlist::{self, builder};
 
 use super::Playlist;
+use crate::Error;
 use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::song;
-use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 pub struct Short {
@@ -35,7 +35,7 @@ impl TryFrom<Short> for playlist::Playlist {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
     use uuid::Uuid;
 
     use super::*;
@@ -58,7 +58,7 @@ mod tests {
 
     use super::*;
     use crate::route::playlists::create_playlist;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -67,14 +67,10 @@ mod tests {
         music_folder.add_audio().n_song(n_song).call().await;
 
         let user_id = mock.user_id(0).await;
-        create_playlist::handler(
-            mock.database(),
-            user_id,
-            create_playlist::Request {
-                create_or_update: Faker.fake::<String>().into(),
-                song_ids: Some(music_folder.database.keys().copied().collect()),
-            },
-        )
+        create_playlist::handler(mock.database(), user_id, create_playlist::Request {
+            create_or_update: Faker.fake::<String>().into(),
+            song_ids: Some(music_folder.database.keys().copied().collect()),
+        })
         .await
         .unwrap();
 

@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
+use aws_sdk_s3::Client;
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
-use aws_sdk_s3::Client;
 use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
 use concat_string::concat_string;
 use hyper::client::HttpConnector;
@@ -16,7 +16,7 @@ use typed_path::Utf8TypedPath;
 use super::{entry, path};
 use crate::file::{self, audio};
 use crate::http::binary;
-use crate::{config, error, Error};
+use crate::{Error, config, error};
 
 #[derive(Debug, Clone)]
 pub struct Filesystem {

@@ -46,7 +46,7 @@ impl Playlist {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
 
     use super::*;
     use crate::orm::{albums, permission, playlists, playlists_songs, playlists_users, songs};
@@ -85,7 +85,7 @@ mod tests {
 
     use super::*;
     use crate::route::playlists::create_playlist;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -94,14 +94,10 @@ mod tests {
         music_folder.add_audio().n_song(n_song).call().await;
 
         let user_id = mock.user_id(0).await;
-        create_playlist::handler(
-            mock.database(),
-            user_id,
-            create_playlist::Request {
-                create_or_update: Faker.fake::<String>().into(),
-                song_ids: Some(music_folder.database.keys().copied().collect()),
-            },
-        )
+        create_playlist::handler(mock.database(), user_id, create_playlist::Request {
+            create_or_update: Faker.fake::<String>().into(),
+            song_ids: Some(music_folder.database.keys().copied().collect()),
+        })
         .await
         .unwrap();
 

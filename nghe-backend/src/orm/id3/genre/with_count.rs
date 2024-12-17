@@ -3,8 +3,8 @@ use diesel::prelude::*;
 use nghe_api::id3;
 use o2o::o2o;
 
-use crate::orm::{albums, genres, songs};
 use crate::Error;
+use crate::orm::{albums, genres, songs};
 
 #[derive(Debug, Queryable, Selectable, o2o)]
 #[owned_try_into(id3::genre::WithCount, Error)]
@@ -20,7 +20,7 @@ pub struct WithCount {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
     use uuid::Uuid;
 
     use super::*;

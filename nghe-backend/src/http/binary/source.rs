@@ -3,11 +3,11 @@ use typed_path::Utf8TypedPathBuf;
 use uuid::Uuid;
 
 use super::property;
+use crate::Error;
 use crate::database::Database;
 use crate::file::{self, audio};
 use crate::filesystem::{self, Filesystem};
 use crate::orm::binary;
-use crate::Error;
 
 pub struct Source<P: property::Trait> {
     pub path: Utf8TypedPathBuf,

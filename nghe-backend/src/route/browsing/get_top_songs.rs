@@ -6,9 +6,9 @@ pub use nghe_api::browsing::get_top_songs::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{artists, id3, playbacks, songs};
-use crate::Error;
 
 #[handler]
 pub async fn handler(

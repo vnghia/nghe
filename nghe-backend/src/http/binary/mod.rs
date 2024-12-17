@@ -5,7 +5,7 @@ use std::convert::Infallible;
 use std::num::NonZero;
 
 use axum::body::Body;
-use axum::http::{header, HeaderMap, StatusCode};
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use axum_extra::headers::{
     AcceptRanges, ContentLength, ContentRange, HeaderMapExt, TransferEncoding,
@@ -20,7 +20,7 @@ use typed_path::Utf8PlatformPath;
 
 #[cfg(test)]
 use crate::test::transcode;
-use crate::{error, file, Error};
+use crate::{Error, error, file};
 
 struct RxStream(RecvStream<Vec<u8>>);
 

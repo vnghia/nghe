@@ -4,9 +4,9 @@ pub use nghe_api::playlists::delete_playlist::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{playlist, playlists};
-use crate::Error;
 
 #[handler]
 pub async fn handler(

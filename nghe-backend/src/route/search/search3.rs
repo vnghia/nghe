@@ -4,16 +4,16 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use diesel_full_text_search::configuration::TsConfigurationByName;
 use diesel_full_text_search::{
-    ts_rank_cd, websearch_to_tsquery_with_search_config, TsVectorExtensions,
+    TsVectorExtensions, ts_rank_cd, websearch_to_tsquery_with_search_config,
 };
 use nghe_api::search::search3::SearchResult3;
 pub use nghe_api::search::search3::{Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::{albums, artists, id3, songs};
-use crate::Error;
 
 const USIMPLE_TS_CONFIGURATION: TsConfigurationByName = TsConfigurationByName("usimple");
 

@@ -31,7 +31,7 @@ impl Token {
 }
 
 mod serde {
-    use ::serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+    use ::serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
     use super::*;
 

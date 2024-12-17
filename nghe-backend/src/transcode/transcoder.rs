@@ -8,11 +8,11 @@ use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOu
 use rsmpeg::avformat::{AVFormatContextInput, AVFormatContextOutput};
 use rsmpeg::avutil::AVFrame;
 use rsmpeg::error::RsmpegError;
-use rsmpeg::{avutil, ffi, UnsafeDerefMut};
+use rsmpeg::{UnsafeDerefMut, avutil, ffi};
 use tracing::instrument;
 
 use super::Sink;
-use crate::{error, Error};
+use crate::{Error, error};
 
 struct Input {
     context: AVFormatContextInput,
@@ -289,7 +289,7 @@ impl Transcoder {
 #[cfg(test)]
 #[coverage(off)]
 mod test {
-    use futures_lite::{stream, StreamExt};
+    use futures_lite::{StreamExt, stream};
     use nghe_api::common::format;
     use typed_path::Utf8PlatformPathBuf;
 
