@@ -1,1 +1,1 @@
-mod vorbis_comments;
+pub mod vorbis_comments;
