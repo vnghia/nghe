@@ -8,6 +8,7 @@ use diesel::sql_types;
 use nghe_api::id3;
 use nghe_api::id3::builder::artist as builder;
 pub use required::Required;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::Error;
@@ -27,12 +28,17 @@ pub struct Artist {
     pub song_count: i64,
     #[diesel(select_expression = count_distinct(albums::id.nullable()))]
     pub album_count: i64,
+    #[diesel(select_expression = sql("any_value(star_artists.created_at) starred"))]
+    #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Timestamptz>>)]
+    pub starred: Option<OffsetDateTime>,
     #[diesel(column_name = mbz_id)]
     pub music_brainz_id: Option<Uuid>,
 }
 
 pub type BuilderSet = builder::SetRoles<
-    builder::SetMusicBrainzId<builder::SetAlbumCount<builder::SetCoverArt<builder::SetRequired>>>,
+    builder::SetMusicBrainzId<
+        builder::SetStarred<builder::SetAlbumCount<builder::SetCoverArt<builder::SetRequired>>>,
+    >,
 >;
 
 impl Artist {
@@ -49,6 +55,7 @@ impl Artist {
             .required(self.required.into())
             .cover_art(self.cover_art)
             .album_count(self.album_count.try_into()?)
+            .starred(self.starred)
             .music_brainz_id(self.music_brainz_id)
             .roles(roles))
     }
@@ -74,7 +81,7 @@ pub mod query {
     diesel::alias!(albums as albums_sa: AlbumsSA, songs as songs_saa: SongsSAA);
 
     #[auto_type]
-    fn unchecked() -> _ {
+    fn with_user_id_unchecked(user_id: Uuid) -> _ {
         // We will do two joins:
         //
         //  - songs_artists -> songs -> albums.
@@ -93,7 +100,11 @@ pub mod query {
             .left_join(songs_album_artists::table)
             .left_join(songs_saa.on(songs_saa.field(songs::id).eq(songs_album_artists::song_id)))
             .left_join(albums::table.on(albums::id.eq(songs_saa.field(songs::album_id))))
-            .left_join(star_artists::table)
+            .left_join(
+                star_artists::table.on(star_artists::artist_id
+                    .eq(artists::id)
+                    .and(star_artists::user_id.eq(user_id))),
+            )
             .group_by(artists::id)
             .select(artist)
     }
@@ -101,7 +112,8 @@ pub mod query {
     #[auto_type]
     pub fn with_user_id(user_id: Uuid) -> _ {
         // Permission should be checked against `albums_sa` and `albums`.
-        unchecked().filter(exists(
+        let with_user_id_unchecked: with_user_id_unchecked = with_user_id_unchecked(user_id);
+        with_user_id_unchecked.filter(exists(
             user_music_folder_permissions::table
                 .filter(user_music_folder_permissions::user_id.eq(user_id))
                 .filter(

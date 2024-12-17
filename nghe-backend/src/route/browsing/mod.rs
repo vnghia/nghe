@@ -2,7 +2,7 @@ mod get_album;
 mod get_album_info2;
 mod get_artist;
 mod get_artist_info2;
-mod get_artists;
+pub mod get_artists;
 mod get_genres;
 mod get_music_folders;
 mod get_song;

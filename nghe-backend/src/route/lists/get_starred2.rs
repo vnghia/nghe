@@ -20,7 +20,7 @@ pub async fn handler(
     #[check_music_folder]
     {
         let artist = id3::artist::query::with_user_id(user_id)
-            .filter(star_artists::user_id.eq(user_id))
+            .filter(star_artists::user_id.is_not_null())
             .get_results(&mut database.get().await?)
             .await?;
         let album = id3::album::short::query::with_user_id(user_id)
@@ -50,6 +50,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
+    use crate::route::browsing::get_artists;
     use crate::route::media_annotation::star;
     use crate::test::{Mock, mock};
 
@@ -60,6 +61,7 @@ mod tests {
         #[with(2, 1)]
         mock: Mock,
     ) {
+        let database = mock.database();
         let mut music_folder = mock.music_folder(0).await;
         let user_id_star = mock.user_id(0).await;
         let user_id = mock.user_id(1).await;
@@ -77,21 +79,44 @@ mod tests {
 
         {
             let starred =
-                handler(mock.database(), user_id_star, Request::default()).await.unwrap().starred2;
+                handler(database, user_id_star, Request::default()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.album.is_empty());
             assert_eq!(
                 starred.artist.into_iter().map(|artist| artist.required.id).collect::<Vec<_>>(),
                 vec![artist_id]
             );
+
+            let artists: Vec<_> =
+                get_artists::handler(database, user_id_star, get_artists::Request::default())
+                    .await
+                    .unwrap()
+                    .artists
+                    .index
+                    .into_iter()
+                    .flat_map(|index| index.artist)
+                    .map(|artist| artist.starred.is_some())
+                    .collect();
+            assert_eq!(artists, vec![true]);
         }
 
         {
-            let starred =
-                handler(mock.database(), user_id, Request::default()).await.unwrap().starred2;
+            let starred = handler(database, user_id, Request::default()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.album.is_empty());
             assert!(starred.artist.is_empty());
+
+            let artists: Vec<_> =
+                get_artists::handler(database, user_id, get_artists::Request::default())
+                    .await
+                    .unwrap()
+                    .artists
+                    .index
+                    .into_iter()
+                    .flat_map(|index| index.artist)
+                    .map(|artist| artist.starred.is_some())
+                    .collect();
+            assert_eq!(artists, vec![false]);
         }
     }
 }

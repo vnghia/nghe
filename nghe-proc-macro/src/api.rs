@@ -1,7 +1,7 @@
 use concat_string::concat_string;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_quote, parse_str, Error};
+use syn::{Error, parse_quote, parse_str};
 
 use crate::endpoint::Attribute;
 
@@ -249,11 +249,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                     default
                 )],
                 OffsetDateTime => #[serde(with = "crate::time::serde")],
-                Option<OffsetDateTime> => #[serde(
-                    with = "crate::time::serde::option",
-                    skip_serializing_if = "Option::is_none",
-                    default
-                )],
+                Option<OffsetDateTime> => #[serde(with = "crate::time::serde::option")],
                 time::Duration => #[serde(with = "crate::time::duration::serde")],
             )]
         }
