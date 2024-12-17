@@ -10,16 +10,16 @@ use loole::Receiver;
 use nghe_api::scan;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
-use tracing::{instrument, Instrument};
+use tracing::{Instrument, instrument};
 use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::file::{self, audio, picture, File};
-use crate::filesystem::{self, entry, Entry, Filesystem, Trait};
+use crate::file::{self, File, audio, picture};
+use crate::filesystem::{self, Entry, Filesystem, Trait, entry};
 use crate::integration::Informant;
 use crate::orm::{albums, music_folders, songs};
-use crate::{config, error, Error};
+use crate::{Error, config, error};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -217,6 +217,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             &self.database,
             &self.filesystem,
             &self.config.cover_art,
+            self.full.dir_picture,
             entry
                 .path
                 .parent()
@@ -381,7 +382,7 @@ mod tests {
     use rstest::rstest;
 
     use crate::file::audio;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
@@ -409,7 +410,11 @@ mod tests {
             .song_id(song_id)
             .call()
             .await;
-        music_folder.scan(scan::start::Full { file: full }).run().await.unwrap();
+        music_folder
+            .scan(scan::start::Full { file: full, ..Default::default() })
+            .run()
+            .await
+            .unwrap();
 
         let database_audio = music_folder.query_filesystem().await;
         if full {
@@ -512,7 +517,7 @@ mod tests {
                 .metadata(audio.information.metadata.clone())
                 .format(audio.information.file.format)
                 .depth(if same_dir { 0 } else { (1..3).fake() })
-                .full(scan::start::Full { file: full })
+                .full(scan::start::Full { file: full, ..Default::default() })
                 .call()
                 .await;
 
@@ -548,7 +553,7 @@ mod tests {
                 .add_audio_filesystem::<&str>()
                 .metadata(audio.information.metadata.clone())
                 .format(audio.information.file.format)
-                .full(scan::start::Full { file: full })
+                .full(scan::start::Full { file: full, ..Default::default() })
                 .call()
                 .await;
 
