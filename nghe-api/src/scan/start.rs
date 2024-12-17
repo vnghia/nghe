@@ -6,6 +6,8 @@ use uuid::Uuid;
 pub struct Full {
     #[serde(default)]
     pub file: bool,
+    #[serde(default)]
+    pub dir_picture: bool,
 }
 
 #[api_derive]

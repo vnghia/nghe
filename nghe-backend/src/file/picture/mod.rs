@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use diesel::sql_types::Text;
-use diesel::{AsExpression, FromSqlRow};
+use diesel::{AsExpression, ExpressionMethods, FromSqlRow, OptionalExtension, QueryDsl};
+use diesel_async::RunQueryDsl;
 use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
@@ -15,7 +16,7 @@ use crate::database::Database;
 use crate::filesystem::Trait as _;
 use crate::orm::cover_arts;
 use crate::orm::upsert::Insert;
-use crate::{config, error, filesystem, Error};
+use crate::{Error, config, error, filesystem};
 
 #[derive(
     Debug,
@@ -106,7 +107,11 @@ impl<'s, 'd> Picture<'s, 'd> {
 
     pub async fn dump(&self, dir: impl AsRef<Utf8PlatformPath>) -> Result<(), Error> {
         let path = self.property.path_create_dir(dir, Self::FILENAME).await?;
-        tokio::fs::write(path, &self.data).await?;
+        // Path already contains information about hash, size and format so we don't need to worry
+        // about stale data.
+        if !tokio::fs::try_exists(&path).await? {
+            tokio::fs::write(path, &self.data).await?;
+        }
         Ok(())
     }
 
@@ -115,23 +120,37 @@ impl<'s, 'd> Picture<'s, 'd> {
         database: &Database,
         dir: impl AsRef<Utf8PlatformPath>,
     ) -> Result<Uuid, Error> {
-        // TODO: Checking for its existence before dump.
         self.dump(dir).await?;
         let upsert: cover_arts::Upsert = self.into();
         upsert.insert(database).await
+    }
+
+    pub async fn query_source(
+        database: &Database,
+        path: impl AsRef<str>,
+    ) -> Result<Option<Uuid>, Error> {
+        cover_arts::table
+            .filter(cover_arts::source.eq(path.as_ref()))
+            .select(cover_arts::id)
+            .get_result(&mut database.get().await?)
+            .await
+            .optional()
+            .map_err(Error::from)
     }
 
     pub async fn scan(
         database: &Database,
         filesystem: &filesystem::Impl<'_>,
         config: &config::CoverArt,
+        full: bool,
         dir: Utf8TypedPath<'_>,
     ) -> Result<Option<Uuid>, Error> {
         if let Some(ref art_dir) = config.dir {
-            // TODO: Checking source before upserting.
             for name in &config.names {
                 let path = dir.join(name);
-                if let Some(picture) = Picture::load(filesystem, path).await? {
+                if !full && let Some(picture_id) = Self::query_source(database, &path).await? {
+                    return Ok(Some(picture_id));
+                } else if let Some(picture) = Picture::load(filesystem, path).await? {
                     return Ok(Some(picture.upsert(database, art_dir).await?));
                 }
             }
@@ -199,8 +218,8 @@ mod test {
     use crate::file;
     use crate::orm::albums;
     use crate::schema::songs;
-    use crate::test::filesystem::Trait as _;
-    use crate::test::{filesystem, Mock};
+    use crate::test::filesystem::Trait;
+    use crate::test::{Mock, filesystem};
 
     impl Format {
         pub fn name(self) -> String {
@@ -218,13 +237,10 @@ mod test {
                 (100..=200).fake_with_rng(rng),
                 |_, _| Rgb::from(Faker.fake_with_rng::<[u8; 3], _>(rng)),
             )
-            .write_to(
-                &mut cursor,
-                match format {
-                    Format::Png => ImageFormat::Png,
-                    Format::Jpeg => ImageFormat::Jpeg,
-                },
-            )
+            .write_to(&mut cursor, match format {
+                Format::Png => ImageFormat::Png,
+                Format::Jpeg => ImageFormat::Jpeg,
+            })
             .unwrap();
             cursor.set_position(0);
 
@@ -246,6 +262,12 @@ mod test {
     impl Picture<'_, '_> {
         pub async fn upsert_mock(&self, mock: &Mock) -> Uuid {
             self.upsert(mock.database(), mock.config.cover_art.dir.as_ref().unwrap()).await.unwrap()
+        }
+
+        pub async fn dump_filesystem(&self, filesystem: &filesystem::Impl<'_>) {
+            filesystem
+                .write(filesystem.path().from_str(self.source.as_ref().unwrap()), &self.data)
+                .await;
         }
     }
 
@@ -319,5 +341,58 @@ mod test {
             }
             None
         }
+
+        pub async fn fake_filesystem(filesystem: &filesystem::Impl<'_>, format: Format) -> Self {
+            let path = filesystem.prefix().join(format.name());
+            let picture = Picture {
+                source: Some(path.to_string().into()),
+                property: Property { format, ..Faker.fake() },
+                data: fake::vec![u8; 100..200].into(),
+            };
+            filesystem.write(path.to_path(), &picture.data).await;
+            picture
+        }
+    }
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::test::filesystem::Trait;
+    use crate::test::{Mock, mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_scan_full(
+        #[future(awt)]
+        #[with(0, 1)]
+        mock: Mock,
+        #[values(true, false)] full: bool,
+    ) {
+        let music_folder = mock.music_folder(0).await;
+        let filesystem = music_folder.to_impl();
+        let format: Format = Faker.fake();
+
+        let picture = Picture::fake_filesystem(&filesystem, format).await;
+        let picture_id = picture.upsert_mock(&mock).await;
+        Picture::fake_filesystem(&filesystem, format).await;
+
+        let scanned_picture_id = Picture::scan(
+            mock.database(),
+            &filesystem.main(),
+            &mock.config.cover_art,
+            full,
+            filesystem.prefix(),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        // Full mode will take a newly created picture from the filesystem so we will have a
+        // different id than the current one.
+        assert_eq!(scanned_picture_id != picture_id, full);
     }
 }
