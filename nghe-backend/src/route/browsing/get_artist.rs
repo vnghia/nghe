@@ -19,7 +19,7 @@ pub async fn handler(
             .filter(artists::id.eq(request.id))
             .get_result(&mut database.get().await?)
             .await?
-            .try_into(database)
+            .try_into(database, user_id)
             .await?,
     })
 }

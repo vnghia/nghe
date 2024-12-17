@@ -7,11 +7,11 @@ use nghe_api::id3;
 use uuid::Uuid;
 
 use super::Album;
+use crate::Error;
 use crate::database::Database;
 use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::{artist, song};
 use crate::orm::songs;
-use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 pub struct Full {
@@ -53,16 +53,18 @@ impl Full {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
 
     use super::*;
     use crate::orm::id3::album;
     use crate::orm::{albums, permission, songs, songs_album_artists};
 
     #[auto_type]
-    pub fn unchecked() -> _ {
+    fn with_user_id_unchecked(user_id: Uuid) -> _ {
+        let with_user_id_unchecked_no_group_by: album::query::with_user_id_unchecked_no_group_by =
+            album::query::with_user_id_unchecked_no_group_by(user_id);
         let full: AsSelect<Full, crate::orm::Type> = Full::as_select();
-        album::query::unchecked_no_group_by()
+        with_user_id_unchecked_no_group_by
             .inner_join(songs_album_artists::table.on(songs_album_artists::song_id.eq(songs::id)))
             .inner_join(artist::required::query::album())
             .group_by(albums::id)
@@ -71,8 +73,9 @@ pub mod query {
 
     #[auto_type]
     pub fn with_user_id(user_id: Uuid) -> _ {
+        let with_user_id_unchecked: with_user_id_unchecked = with_user_id_unchecked(user_id);
         let permission: permission::with_album = permission::with_album(user_id);
-        unchecked().filter(permission)
+        with_user_id_unchecked.filter(permission)
     }
 }
 
@@ -87,7 +90,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::orm::albums;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

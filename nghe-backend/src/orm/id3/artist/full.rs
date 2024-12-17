@@ -8,9 +8,9 @@ use uuid::Uuid;
 
 use super::super::album;
 use super::Artist;
+use crate::Error;
 use crate::database::Database;
 use crate::orm::albums;
-use crate::Error;
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = artists, check_for_backend(crate::orm::Type))]
@@ -25,10 +25,14 @@ pub struct Full {
 }
 
 impl Full {
-    pub async fn try_into(self, database: &Database) -> Result<id3::artist::Full, Error> {
+    pub async fn try_into(
+        self,
+        database: &Database,
+        user_id: Uuid,
+    ) -> Result<id3::artist::Full, Error> {
         Ok(id3::artist::Full {
             artist: self.artist.try_into()?,
-            album: album::short::query::unchecked()
+            album: album::short::query::with_user_id_unchecked(user_id)
                 .filter(albums::id.eq_any(self.albums))
                 .get_results(&mut database.get().await?)
                 .await?
@@ -40,7 +44,7 @@ impl Full {
 }
 
 pub mod query {
-    use diesel::dsl::{auto_type, AsSelect};
+    use diesel::dsl::{AsSelect, auto_type};
     use uuid::Uuid;
 
     use super::*;
@@ -64,7 +68,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::schema::artists;
-    use crate::test::{mock, Mock};
+    use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]

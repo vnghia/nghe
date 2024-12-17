@@ -29,4 +29,5 @@ pub struct Album {
     pub original_release_date: date::Date,
     #[builder(default)]
     pub release_date: date::Date,
+    pub starred: Option<OffsetDateTime>,
 }
