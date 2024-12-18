@@ -1,4 +1,3 @@
-use std::num::NonZeroU8;
 use std::str::FromStr;
 
 use indexmap::IndexSet;
@@ -40,11 +39,7 @@ impl Date {
                     if let Some(Frame::Timestamp(TimestampFrame { timestamp, .. })) =
                         tag.get(frame_id)
                     {
-                        Self {
-                            year: Some(timestamp.year.into()),
-                            month: timestamp.month.map(time::Month::try_from).transpose()?,
-                            day: timestamp.day.map(NonZeroU8::try_from).transpose()?,
-                        }
+                        timestamp.try_into()?
                     } else {
                         Self::default()
                     },

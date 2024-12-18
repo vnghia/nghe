@@ -69,6 +69,18 @@ impl FromStr for Date {
     }
 }
 
+impl TryFrom<&lofty::tag::items::Timestamp> for Date {
+    type Error = Error;
+
+    fn try_from(value: &lofty::tag::items::Timestamp) -> Result<Self, Self::Error> {
+        Ok(Self {
+            year: Some(value.year.into()),
+            month: value.month.map(Month::try_from).transpose()?,
+            day: value.day.map(NonZeroU8::try_from).transpose()?,
+        })
+    }
+}
+
 #[cfg(test)]
 #[coverage(off)]
 mod test {
@@ -111,6 +123,21 @@ mod test {
             };
 
             Self { year, month, day }
+        }
+    }
+
+    impl From<Date> for Option<lofty::tag::items::Timestamp> {
+        fn from(value: Date) -> Self {
+            if let Some(year) = value.year {
+                Some(lofty::tag::items::Timestamp {
+                    year: year.try_into().unwrap(),
+                    month: value.month.map(u8::try_from).transpose().unwrap(),
+                    day: value.day.map(NonZeroU8::get),
+                    ..Default::default()
+                })
+            } else {
+                None
+            }
         }
     }
 }
