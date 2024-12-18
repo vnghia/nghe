@@ -60,42 +60,34 @@ impl Position {
     }
 }
 
-pub trait Has {
-    fn tag(&mut self) -> &mut VorbisComments;
-}
-
-default impl<H: Has> dump::Metadata for H {
+impl dump::Metadata for VorbisComments {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self {
-        let tag = self.tag();
-        song.dump_vorbis_comments(tag, &config.vorbis_comments.song);
+        song.dump_vorbis_comments(self, &config.vorbis_comments.song);
         self
     }
 
     fn dump_album(&mut self, config: &config::Parsing, album: Album<'_>) -> &mut Self {
-        let tag = self.tag();
-        album.dump_vorbis_comments(tag, &config.vorbis_comments.album);
+        album.dump_vorbis_comments(self, &config.vorbis_comments.album);
         self
     }
 
     fn dump_artists(&mut self, config: &config::Parsing, artists: Artists<'_>) -> &mut Self {
-        let tag = self.tag();
-        Artist::dump_vorbis_comments(artists.song, tag, &config.vorbis_comments.artists.song);
-        Artist::dump_vorbis_comments(artists.album, tag, &config.vorbis_comments.artists.album);
+        Artist::dump_vorbis_comments(artists.song, self, &config.vorbis_comments.artists.song);
+        Artist::dump_vorbis_comments(artists.album, self, &config.vorbis_comments.artists.album);
         if artists.compilation {
-            tag.push(config.vorbis_comments.compilation.clone(), "1".to_string());
+            self.push(config.vorbis_comments.compilation.clone(), "1".to_string());
         }
         self
     }
 
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self {
-        let tag = self.tag();
         track_disc.track.dump_vorbis_comments(
-            tag,
+            self,
             &config.vorbis_comments.track_disc.track_number,
             &config.vorbis_comments.track_disc.track_total,
         );
         track_disc.disc.dump_vorbis_comments(
-            tag,
+            self,
             &config.vorbis_comments.track_disc.disc_number,
             &config.vorbis_comments.track_disc.disc_total,
         );
@@ -103,25 +95,22 @@ default impl<H: Has> dump::Metadata for H {
     }
 
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self {
-        let tag = self.tag();
         for language in languages {
-            tag.push(config.vorbis_comments.languages.clone(), language.to_string());
+            self.push(config.vorbis_comments.languages.clone(), language.to_string());
         }
         self
     }
 
     fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self {
-        let tag = self.tag();
         for genre in genres.value {
-            tag.push(config.vorbis_comments.genres.clone(), genre.value.into_owned());
+            self.push(config.vorbis_comments.genres.clone(), genre.value.into_owned());
         }
         self
     }
 
     fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self {
-        let tag = self.tag();
         if let Some(picture) = picture {
-            tag.insert_picture(picture.into(), None).unwrap();
+            self.insert_picture(picture.into(), None).unwrap();
         }
         self
     }

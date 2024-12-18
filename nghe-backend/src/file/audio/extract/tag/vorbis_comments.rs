@@ -55,32 +55,24 @@ impl<'a> Artist<'a> {
     }
 }
 
-pub trait Has<'a> {
-    fn tag(&'a self) -> Result<&'a VorbisComments, Error>;
-}
-
-default impl<'a, H: Has<'a>> extract::Metadata<'a> for H {
+impl<'a> extract::Metadata<'a> for VorbisComments {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
-        let tag = self.tag()?;
-        NameDateMbz::extract_vorbis_comments(tag, &config.vorbis_comments.song)
+        NameDateMbz::extract_vorbis_comments(self, &config.vorbis_comments.song)
     }
 
     fn album(&'a self, config: &'a config::Parsing) -> Result<Album<'a>, Error> {
-        let tag = self.tag()?;
-        Album::extract_vorbis_comments(tag, &config.vorbis_comments.album)
+        Album::extract_vorbis_comments(self, &config.vorbis_comments.album)
     }
 
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {
-        let tag = self.tag()?;
         Artists::new(
-            Artist::extract_vorbis_comments(tag, &config.vorbis_comments.artists.song)?,
-            Artist::extract_vorbis_comments(tag, &config.vorbis_comments.artists.album)?,
-            tag.get(&config.vorbis_comments.compilation).is_some_and(|s| !s.is_empty()),
+            Artist::extract_vorbis_comments(self, &config.vorbis_comments.artists.song)?,
+            Artist::extract_vorbis_comments(self, &config.vorbis_comments.artists.album)?,
+            self.get(&config.vorbis_comments.compilation).is_some_and(|s| !s.is_empty()),
         )
     }
 
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error> {
-        let tag = self.tag()?;
         let config::parsing::vorbis_comments::TrackDisc {
             track_number,
             track_total,
@@ -88,16 +80,15 @@ default impl<'a, H: Has<'a>> extract::Metadata<'a> for H {
             disc_total,
         } = &config.vorbis_comments.track_disc;
         TrackDisc::parse(
-            tag.get(track_number),
-            tag.get(track_total),
-            tag.get(disc_number),
-            tag.get(disc_total),
+            self.get(track_number),
+            self.get(track_total),
+            self.get(disc_number),
+            self.get(disc_total),
         )
     }
 
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<isolang::Language>, Error> {
-        let tag = self.tag()?;
-        Ok(tag
+        Ok(self
             .get_all(&config.vorbis_comments.languages)
             .map(|language| {
                 Language::from_str(language)
@@ -107,12 +98,10 @@ default impl<'a, H: Has<'a>> extract::Metadata<'a> for H {
     }
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
-        let tag = self.tag()?;
-        Ok(tag.get_all(&config.vorbis_comments.genres).collect())
+        Ok(self.get_all(&config.vorbis_comments.genres).collect())
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
-        let tag = self.tag()?;
-        tag.pictures().iter().next().map(|(picture, _)| picture.try_into()).transpose()
+        self.pictures().iter().next().map(|(picture, _)| picture.try_into()).transpose()
     }
 }

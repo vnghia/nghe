@@ -119,10 +119,10 @@ pub enum Kind {
     FileAlreadyExclusivelyLocked,
 
     // Media error
-    #[error("Could not found vorbis comments in format {0}")]
+    #[error("Could not found {0} tag in format {1}")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    MissingVorbisComments(audio::Format),
+    MissingMediaTag(&'static str, audio::Format),
 
     #[error("Missing media name")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]

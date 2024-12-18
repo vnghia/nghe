@@ -1,4 +1,3 @@
-#![allow(incomplete_features)]
 #![feature(adt_const_params)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(async_closure)]
@@ -9,7 +8,6 @@
 #![feature(iterator_try_collect)]
 #![feature(file_lock)]
 #![feature(let_chains)]
-#![feature(specialization)]
 #![feature(proc_macro_hygiene)]
 #![feature(stmt_expr_attributes)]
 #![feature(str_as_str)]
