@@ -87,10 +87,6 @@ impl<'a> Artist<'a> {
     }
 }
 
-pub trait Has<'a> {
-    fn tag(&'a self) -> Result<&'a Id3v2Tag, Error>;
-}
-
 impl<'a> extract::Metadata<'a> for Id3v2Tag {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         NameDateMbz::extract_id3v2(self, &config.id3v2.song)

@@ -1,2 +1,2 @@
-pub mod id3v2;
-pub mod vorbis_comments;
+mod id3v2;
+mod vorbis_comments;

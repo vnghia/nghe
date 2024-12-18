@@ -1,5 +1,4 @@
-mod flac;
-mod mpeg;
+mod file;
 mod tag;
 
 use isolang::Language;

@@ -75,10 +75,6 @@ impl<'a> Picture<'static, 'a> {
     }
 }
 
-pub trait Has<'a> {
-    fn tag(&'a self) -> Result<&'a VorbisComments, Error>;
-}
-
 impl<'a> extract::Metadata<'a> for VorbisComments {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         NameDateMbz::extract_vorbis_comments(self, &config.vorbis_comments.song)
