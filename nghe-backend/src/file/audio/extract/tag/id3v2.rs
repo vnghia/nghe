@@ -146,8 +146,8 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
         let mut iter = self.into_iter();
         iter.find_map(|frame| {
             if let Frame::Picture(AttachedPictureFrame { picture, .. }) = frame
-                && (cfg!(test)
-                    && picture
+                && (!cfg!(test)
+                    || picture
                         .description()
                         .is_some_and(|description| description == Picture::TEST_DESCRIPTION))
             {
