@@ -53,6 +53,8 @@ pub struct Id3v2 {
     pub genres: frame::Id,
     #[educe(Default(expression = "TXXX:compilation".parse().unwrap()))]
     pub compilation: frame::Id,
+    #[educe(Default(expression = '/'))]
+    pub separator: char,
 }
 
 impl Common {

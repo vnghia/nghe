@@ -124,6 +124,10 @@ pub enum Kind {
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     MissingVorbisComments(audio::Format),
 
+    #[error("Missing media name")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    MissingMediaName,
     #[error("Missing song artist name")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
@@ -161,6 +165,15 @@ pub enum Kind {
         disc_number: Option<String>,
         disc_total: Option<String>,
     },
+
+    #[error("Invalid id3v2 frame id config format")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    InvalidId3v2FrameIdConfigFormat,
+    #[error("Invalid id3v2 frame id config type")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    InvalidId3v2FrameIdConfigType,
 
     // Picture error
     #[error("Missing picture format")]
@@ -210,11 +223,6 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     InvalidIndexIgnorePrefixesFormat,
-
-    #[error("Invalid id3v2 frame id string format")]
-    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
-    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    InvalidId3v2FrameIdStringFormat,
 
     #[error("The requested data was not found")]
     #[into(StatusCode| StatusCode::NOT_FOUND)]

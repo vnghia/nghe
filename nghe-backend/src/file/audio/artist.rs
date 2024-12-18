@@ -1,4 +1,5 @@
 use std::borrow::{Borrow, Cow};
+use std::str::FromStr;
 
 use diesel::dsl::{exists, not};
 use diesel::{ExpressionMethods, QueryDsl};
@@ -7,6 +8,7 @@ use diesel_async::RunQueryDsl;
 use fake::{Dummy, Fake, Faker};
 use futures_lite::{StreamExt, stream};
 use indexmap::IndexSet;
+use itertools::Itertools;
 use o2o::o2o;
 use unicode_normalization::UnicodeNormalization;
 use uuid::Uuid;
@@ -38,6 +40,27 @@ pub struct Artists<'a> {
 }
 
 impl<'a> Artist<'a> {
+    pub fn try_collect(
+        names: impl Iterator<Item = &'a str>,
+        mbz_ids: impl Iterator<Item = &'a str>,
+    ) -> Result<IndexSet<Self>, Error> {
+        names
+            .zip_longest(mbz_ids)
+            .map(|iter| match iter {
+                itertools::EitherOrBoth::Both(name, mbz_id) => Ok(Self {
+                    name: name.into(),
+                    mbz_id: {
+                        let mbz_id = Uuid::from_str(mbz_id)
+                            .map_err(|_| error::Kind::InvalidMbzIdTagFormat(mbz_id.to_owned()))?;
+                        if mbz_id.is_nil() { None } else { Some(mbz_id) }
+                    },
+                }),
+                itertools::EitherOrBoth::Left(name) => Ok(Self { name: name.into(), mbz_id: None }),
+                itertools::EitherOrBoth::Right(_) => error::Kind::InvalidMbzIdSize.into(),
+            })
+            .try_collect()
+    }
+
     pub fn index(&self, prefixes: &[impl AsRef<str>]) -> Result<char, Error> {
         let mut iter = prefixes.iter();
         let name = loop {

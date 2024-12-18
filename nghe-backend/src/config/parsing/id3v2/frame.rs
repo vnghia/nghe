@@ -18,6 +18,8 @@ pub enum Id {
 }
 
 impl Id {
+    pub const ID3V24_SEPARATOR: char = '\0';
+
     fn as_str(&self) -> &str {
         match self {
             Id::UserText(description) => description,
@@ -31,17 +33,17 @@ impl FromStr for Id {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (variant, id) =
-            s.split_once(':').ok_or_else(|| error::Kind::InvalidId3v2FrameIdStringFormat)?;
+            s.split_once(':').ok_or_else(|| error::Kind::InvalidId3v2FrameIdConfigFormat)?;
         let variant: IdDiscriminants =
-            variant.parse().map_err(|_| error::Kind::InvalidId3v2FrameIdStringFormat)?;
+            variant.parse().map_err(|_| error::Kind::InvalidId3v2FrameIdConfigFormat)?;
         let id = id.to_owned();
         Ok(match variant {
             IdDiscriminants::Text => Self::Text(
-                FrameId::new(id).map_err(|_| error::Kind::InvalidId3v2FrameIdStringFormat)?,
+                FrameId::new(id).map_err(|_| error::Kind::InvalidId3v2FrameIdConfigFormat)?,
             ),
             IdDiscriminants::UserText => Self::UserText(id),
             IdDiscriminants::Time => Self::Time(
-                FrameId::new(id).map_err(|_| error::Kind::InvalidId3v2FrameIdStringFormat)?,
+                FrameId::new(id).map_err(|_| error::Kind::InvalidId3v2FrameIdConfigFormat)?,
             ),
         })
     }

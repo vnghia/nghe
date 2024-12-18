@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use color_eyre::eyre::OptionExt;
 use indexmap::IndexSet;
 use isolang::Language;
 use itertools::Itertools;
@@ -14,7 +13,7 @@ use crate::{Error, config, error};
 impl Date {
     fn extract_vorbis_comments(tag: &VorbisComments, key: Option<&str>) -> Result<Self, Error> {
         if let Some(key) = key {
-            tag.get(key).map(Date::from_str).transpose().map(Option::unwrap_or_default)
+            tag.get(key).map(Self::from_str).transpose().map(Option::unwrap_or_default)
         } else {
             Ok(Self::default())
         }
@@ -27,7 +26,7 @@ impl<'a> NameDateMbz<'a> {
         config: &'a config::parsing::vorbis_comments::Common,
     ) -> Result<Self, Error> {
         Ok(Self {
-            name: tag.get(&config.name).ok_or_eyre("Could not extract name")?.into(),
+            name: tag.get(&config.name).ok_or_else(|| error::Kind::MissingMediaName)?.into(),
             date: Date::extract_vorbis_comments(tag, config.date.as_deref())?,
             release_date: Date::extract_vorbis_comments(tag, config.release_date.as_deref())?,
             original_release_date: Date::extract_vorbis_comments(
@@ -52,22 +51,7 @@ impl<'a> Artist<'a> {
     ) -> Result<IndexSet<Self>, Error> {
         let names = tag.get_all(&config.name);
         let mbz_ids = tag.get_all(&config.mbz_id);
-        let artists = names
-            .zip_longest(mbz_ids)
-            .map(|iter| match iter {
-                itertools::EitherOrBoth::Both(name, mbz_id) => Ok(Self {
-                    name: name.into(),
-                    mbz_id: {
-                        let mbz_id = Uuid::from_str(mbz_id)
-                            .map_err(|_| error::Kind::InvalidMbzIdTagFormat(mbz_id.to_owned()))?;
-                        if mbz_id.is_nil() { None } else { Some(mbz_id) }
-                    },
-                }),
-                itertools::EitherOrBoth::Left(name) => Ok(Self { name: name.into(), mbz_id: None }),
-                itertools::EitherOrBoth::Right(_) => Err(error::Kind::InvalidMbzIdSize),
-            })
-            .try_collect()?;
-        Ok(artists)
+        Self::try_collect(names, mbz_ids)
     }
 }
 
