@@ -31,7 +31,7 @@ impl Position {
         if let Some(number) = number_str {
             // Prioritize parsing from number_str if there is a slash inside
             if let Some((number, total)) = number.split_once('/') {
-                let number = Some(number.parse().ok()?);
+                let number = if number.is_empty() { None } else { Some(number.parse().ok()?) };
                 let total = if total.is_empty() {
                     total_str.map(str::parse).transpose().ok()?
                 } else {
@@ -105,6 +105,7 @@ mod tests {
     #[rstest]
     #[case(None, None, None, None)]
     #[case(Some("10"), None, Some(10), None)]
+    #[case(Some("/10"), None, None, Some(10))]
     #[case(None, Some("20"), None, Some(20))]
     #[case(Some("10"), Some("20"), Some(10), Some(20))]
     #[case(Some("10/20"), None, Some(10), Some(20))]
@@ -123,7 +124,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case(Some("/"), None)]
     #[case(Some("-10/20"), None)]
     #[case(Some("-10"), Some("-20"))]
     #[case(None, Some("A"))]

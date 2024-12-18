@@ -104,9 +104,9 @@ mod test {
         pub fn test() -> Self {
             Self {
                 song: Common {
-                    date: Some("TIME:TRCS".parse().unwrap()),
-                    release_date: Some("TIME:TSRL".parse().unwrap()),
-                    original_release_date: Some("TIME:TSOR".parse().unwrap()),
+                    date: Some("TXXX:TRCS".parse().unwrap()),
+                    release_date: Some("TXXX:TSRL".parse().unwrap()),
+                    original_release_date: Some("TXXX:TSOR".parse().unwrap()),
                     ..Common::default_song()
                 },
                 ..Self::default()

@@ -157,7 +157,7 @@ mod tests {
     use crate::test::{Mock, assets, mock};
 
     #[rstest]
-    fn test_media(#[values(Format::Flac)] format: Format) {
+    fn test_media(#[values(Format::Flac, Format::Mpeg)] format: Format) {
         let file = File::new(format, std::fs::read(assets::path(format).as_str()).unwrap())
             .unwrap()
             .audio(ParseOptions::default())
@@ -219,7 +219,7 @@ mod tests {
         #[with(0, 0)]
         mock: Mock,
         #[values(filesystem::Type::Local, filesystem::Type::S3)] ty: filesystem::Type,
-        #[values(Format::Flac)] format: Format,
+        #[values(Format::Flac, Format::Mpeg)] format: Format,
     ) {
         mock.add_music_folder().ty(ty).call().await;
         let mut music_folder = mock.music_folder(0).await;

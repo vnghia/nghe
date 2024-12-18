@@ -32,9 +32,9 @@ mod test {
                 },
                 audio::Format::Mpeg => Self {
                     duration: Duration::default(),
-                    bitrate: 585,
+                    bitrate: 206,
                     bit_depth: None,
-                    sample_rate: 32000,
+                    sample_rate: 44100,
                     channel_count: 2,
                 },
             }

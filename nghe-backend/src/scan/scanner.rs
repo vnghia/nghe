@@ -466,6 +466,7 @@ mod tests {
                 .add_audio_filesystem()
                 .maybe_album(if same_album { Some(album) } else { None })
                 .path("test")
+                .format(database_audio[0].information.file.format)
                 .call()
                 .await;
 

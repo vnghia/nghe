@@ -22,11 +22,13 @@ fn get_texts<'a>(
     tag: &'a Id3v2Tag,
     frame_id: &'a frame::Id,
     separator: char,
-) -> Result<impl Iterator<Item = &'a str>, Error> {
+) -> Result<Option<impl Iterator<Item = &'a str>>, Error> {
     get_text(tag, frame_id).map(|text| {
-        text.unwrap_or_default().split(match tag.original_version() {
-            Id3v2Version::V4 => frame::Id::ID3V24_SEPARATOR,
-            _ => separator,
+        text.map(|text| {
+            text.split(match tag.original_version() {
+                Id3v2Version::V4 => frame::Id::ID3V24_SEPARATOR,
+                _ => separator,
+            })
         })
     })
 }
@@ -83,7 +85,12 @@ impl<'a> Artist<'a> {
     ) -> Result<IndexSet<Self>, Error> {
         let names = get_texts(tag, &config.name, separator)?;
         let mbz_ids = get_texts(tag, &config.mbz_id, separator)?;
-        Self::try_collect(names, mbz_ids)
+        match (names, mbz_ids) {
+            (None, None) => Ok(IndexSet::default()),
+            (None, Some(_)) => error::Kind::InvalidMbzIdSize.into(),
+            (Some(names), None) => Self::try_collect(names, vec![].into_iter()),
+            (Some(names), Some(mbz_ids)) => Self::try_collect(names, mbz_ids),
+        }
     }
 }
 
@@ -117,15 +124,22 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
 
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<isolang::Language>, Error> {
         Ok(get_texts(self, &config.id3v2.languages, config.id3v2.separator)?
-            .map(|language| {
-                Language::from_str(language)
-                    .map_err(|_| error::Kind::InvalidLanguageTagFormat(language.to_owned()))
+            .map(|languages| {
+                languages
+                    .map(|language| {
+                        Language::from_str(language)
+                            .map_err(|_| error::Kind::InvalidLanguageTagFormat(language.to_owned()))
+                    })
+                    .try_collect()
             })
-            .try_collect()?)
+            .transpose()?
+            .unwrap_or_default())
     }
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
-        Ok(get_texts(self, &config.id3v2.genres, config.id3v2.separator)?.collect())
+        Ok(get_texts(self, &config.id3v2.genres, config.id3v2.separator)?
+            .map(std::iter::Iterator::collect)
+            .unwrap_or_default())
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {

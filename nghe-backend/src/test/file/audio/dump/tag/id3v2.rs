@@ -28,11 +28,10 @@ fn write_texts(
     frame_id: frame::Id,
     texts: impl Iterator<Item = impl ToString>,
 ) {
-    write_text(
-        tag,
-        frame_id,
-        texts.map(|text| text.to_string()).join(&frame::Id::ID3V24_SEPARATOR.to_string()),
-    );
+    let text = texts.map(|text| text.to_string()).join(&frame::Id::ID3V24_SEPARATOR.to_string());
+    if !text.is_empty() {
+        write_text(tag, frame_id, text);
+    }
 }
 
 impl Date {
@@ -142,7 +141,7 @@ impl dump::Metadata for Id3v2Tag {
 
     fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self {
         if let Some(picture) = picture {
-            self.insert_picture(picture.into()).unwrap();
+            self.insert_picture(picture.into());
         }
         self
     }
