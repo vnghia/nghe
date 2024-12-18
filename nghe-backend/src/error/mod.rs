@@ -211,6 +211,11 @@ pub enum Kind {
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     InvalidIndexIgnorePrefixesFormat,
 
+    #[error("Invalid id3v2 frame id string format")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    InvalidId3v2FrameIdStringFormat,
+
     #[error("The requested data was not found")]
     #[into(StatusCode| StatusCode::NOT_FOUND)]
     #[into(OpensubsonicCode| OpensubsonicCode::TheRequestedDataWasNotFound)]

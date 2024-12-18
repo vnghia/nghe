@@ -1,12 +1,14 @@
+use std::str::FromStr;
+
 use lofty::id3::v2::FrameId;
 use strum::{EnumDiscriminants, EnumString, IntoStaticStr};
+
+use crate::{Error, error};
 
 #[derive(Debug, Clone, EnumDiscriminants)]
 #[strum_discriminants(derive(EnumString, IntoStaticStr))]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Id {
-    #[strum_discriminants(strum(serialize = "COMM"))]
-    Comment(String),
     #[strum_discriminants(strum(serialize = "TEXT"))]
     Text(FrameId<'static>),
     #[strum_discriminants(strum(serialize = "TXXX"))]
@@ -18,9 +20,30 @@ pub enum Id {
 impl Id {
     fn as_str(&self) -> &str {
         match self {
-            Id::Comment(description) | Id::UserText(description) => description,
+            Id::UserText(description) => description,
             Id::Text(frame_id) | Id::Time(frame_id) => frame_id.as_str(),
         }
+    }
+}
+
+impl FromStr for Id {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (variant, id) =
+            s.split_once(':').ok_or_else(|| error::Kind::InvalidId3v2FrameIdStringFormat)?;
+        let variant: IdDiscriminants =
+            variant.parse().map_err(|_| error::Kind::InvalidId3v2FrameIdStringFormat)?;
+        let id = id.to_owned();
+        Ok(match variant {
+            IdDiscriminants::Text => Self::Text(
+                FrameId::new(id).map_err(|_| error::Kind::InvalidId3v2FrameIdStringFormat)?,
+            ),
+            IdDiscriminants::UserText => Self::UserText(id),
+            IdDiscriminants::Time => Self::Time(
+                FrameId::new(id).map_err(|_| error::Kind::InvalidId3v2FrameIdStringFormat)?,
+            ),
+        })
     }
 }
 
@@ -46,18 +69,9 @@ mod serde {
         where
             D: Deserializer<'de>,
         {
-            let combine = <String>::deserialize(deserializer)?;
-            let (variant, id) = combine
-                .split_once(':')
-                .ok_or_else(|| de::Error::custom("FrameId must contain a `:`"))?;
-            let variant: IdDiscriminants = variant.parse().map_err(de::Error::custom)?;
-            let id = id.to_owned();
-            Ok(match variant {
-                IdDiscriminants::Comment => Self::Comment(id),
-                IdDiscriminants::Text => Self::Text(FrameId::new(id).map_err(de::Error::custom)?),
-                IdDiscriminants::UserText => Self::UserText(id),
-                IdDiscriminants::Time => Self::Time(FrameId::new(id).map_err(de::Error::custom)?),
-            })
+            <String>::deserialize(deserializer)?
+                .parse()
+                .map_err(|error: Error| de::Error::custom(error.source))
         }
     }
 }
@@ -77,7 +91,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case("COMM:Test description", Some(Id::Comment("Test description".to_owned())))]
     #[case("TEXT:IDID", Some(Id::Text(FrameId::Valid("IDID".to_owned().into()))))]
     #[case("TXXX:Test description", Some(Id::UserText("Test description".to_owned())))]
     #[case("TIME:IDID", Some(Id::Time(FrameId::Valid("IDID".to_owned().into()))))]
@@ -90,7 +103,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case(Id::Comment("Test description".to_owned()), "COMM:Test description")]
     #[case(Id::Text(FrameId::Valid("IDID".to_owned().into())), "TEXT:IDID")]
     #[case(Id::UserText("Test description".to_owned()), "TXXX:Test description")]
     #[case(Id::Time(FrameId::Valid("IDID".to_owned().into())), "TIME:IDID")]
