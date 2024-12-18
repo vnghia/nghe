@@ -22,6 +22,7 @@ pub use information::Information;
 use lofty::config::ParseOptions;
 use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
+use lofty::mpeg::MpegFile;
 pub use metadata::{Metadata, Song};
 pub use name_date_mbz::{Album, NameDateMbz};
 use nghe_api::common::format;
@@ -50,16 +51,20 @@ use crate::{Error, config};
 #[cfg_attr(test, derive(fake::Dummy, strum::AsRefStr))]
 pub enum Format {
     Flac,
+    #[strum(serialize = "mp3")]
+    Mpeg,
 }
 
 pub enum File {
     Flac { audio: FlacFile, file: super::File<Format> },
+    Mpeg { audio: MpegFile, file: super::File<Format> },
 }
 
 impl format::Trait for Format {
     fn mime(&self) -> &'static str {
         match self {
             Self::Flac => "audio/flac",
+            Self::Mpeg => "audio/mpeg",
         }
     }
 
@@ -76,6 +81,10 @@ impl super::File<Format> {
                 audio: FlacFile::read_from(&mut reader, parse_options)?,
                 file: self,
             }),
+            Format::Mpeg => Ok(File::Mpeg {
+                audio: MpegFile::read_from(&mut reader, parse_options)?,
+                file: self,
+            }),
         }
     }
 }
@@ -83,7 +92,7 @@ impl super::File<Format> {
 impl File {
     pub fn file(&self) -> &super::File<Format> {
         match self {
-            Self::Flac { file, .. } => file,
+            Self::Flac { file, .. } | Self::Mpeg { file, .. } => file,
         }
     }
 
@@ -102,6 +111,7 @@ mod test {
     use std::io::Cursor;
 
     use lofty::config::WriteOptions;
+    use lofty::id3::v2::Id3v2Tag;
     use lofty::ogg::VorbisComments;
 
     use super::*;
@@ -110,8 +120,10 @@ mod test {
         pub fn clear(&mut self) -> &mut Self {
             match self {
                 File::Flac { audio, .. } => {
-                    audio.remove_id3v2();
                     audio.set_vorbis_comments(VorbisComments::default());
+                }
+                File::Mpeg { audio, .. } => {
+                    audio.set_id3v2(Id3v2Tag::default());
                 }
             }
             self
@@ -120,6 +132,9 @@ mod test {
         pub fn save_to(&self, cursor: &mut Cursor<Vec<u8>>, write_options: WriteOptions) {
             match self {
                 File::Flac { audio, .. } => {
+                    audio.save_to(cursor, write_options).unwrap();
+                }
+                File::Mpeg { audio, .. } => {
                     audio.save_to(cursor, write_options).unwrap();
                 }
             }

@@ -123,6 +123,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     MissingVorbisComments(audio::Format),
+    #[error("Could not found id3v2 tag in format {0}")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    MissingId3V2Tag(audio::Format),
 
     #[error("Missing media name")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]

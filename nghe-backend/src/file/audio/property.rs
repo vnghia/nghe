@@ -30,6 +30,13 @@ mod test {
                     sample_rate: 32000,
                     channel_count: 2,
                 },
+                audio::Format::Mpeg => Self {
+                    duration: Duration::default(),
+                    bitrate: 585,
+                    bit_depth: Some(24),
+                    sample_rate: 32000,
+                    channel_count: 2,
+                },
             }
         }
     }
