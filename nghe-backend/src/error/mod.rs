@@ -119,11 +119,19 @@ pub enum Kind {
     FileAlreadyExclusivelyLocked,
 
     // Media error
-    #[error("Could not found {0} tag in format {1}")]
+    #[error("Could not found vorbis comments in format {0}")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    MissingMediaTag(&'static str, audio::Format),
+    MissingVorbisComments(audio::Format),
+    #[error("Could not found id3v2 tag in format {0}")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    MissingId3V2Tag(audio::Format),
 
+    #[error("Missing media name")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    MissingMediaName,
     #[error("Missing song artist name")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
@@ -161,6 +169,15 @@ pub enum Kind {
         disc_number: Option<String>,
         disc_total: Option<String>,
     },
+
+    #[error("Invalid id3v2 frame id config format")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    InvalidId3v2FrameIdConfigFormat,
+    #[error("Invalid id3v2 frame id config type")]
+    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    InvalidId3v2FrameIdConfigType,
 
     // Picture error
     #[error("Missing picture format")]

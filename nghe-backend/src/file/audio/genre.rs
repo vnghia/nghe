@@ -22,7 +22,7 @@ pub struct Genre<'a> {
     pub value: Cow<'a, str>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[cfg_attr(test, derive(PartialEq, Eq, Dummy, Clone))]
 pub struct Genres<'a> {
     #[cfg_attr(test, dummy(expr = "fake::vec![Genre<'static>; 0..=2]"))]
