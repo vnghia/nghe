@@ -96,36 +96,36 @@ pub trait Has<'a> {
     fn tag(&'a self) -> Result<&'a Id3v2Tag, Error>;
 }
 
-default impl<'a, H: Has<'a>> extract::Metadata<'a> for H {
+impl<'a> extract::Metadata<'a> for Id3v2Tag {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
-        let tag = self.tag()?;
-        NameDateMbz::extract_id3v2(tag, &config.id3v2.song)
+        NameDateMbz::extract_id3v2(self, &config.id3v2.song)
     }
 
     fn album(&'a self, config: &'a config::Parsing) -> Result<Album<'a>, Error> {
-        let tag = self.tag()?;
-        Album::extract_id3v2(tag, &config.id3v2.album)
+        Album::extract_id3v2(self, &config.id3v2.album)
     }
 
     fn artists(&'a self, config: &'a config::Parsing) -> Result<Artists<'a>, Error> {
-        let tag = self.tag()?;
         Artists::new(
-            Artist::extract_id3v2(tag, &config.id3v2.artists.song, config.id3v2.separator)?,
-            Artist::extract_id3v2(tag, &config.id3v2.artists.album, config.id3v2.separator)?,
-            get_text(tag, &config.id3v2.compilation)?.is_some_and(|s| !s.is_empty()),
+            Artist::extract_id3v2(self, &config.id3v2.artists.song, config.id3v2.separator)?,
+            Artist::extract_id3v2(self, &config.id3v2.artists.album, config.id3v2.separator)?,
+            get_text(self, &config.id3v2.compilation)?.is_some_and(|s| !s.is_empty()),
         )
     }
 
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error> {
-        let tag = self.tag()?;
         let config::parsing::id3v2::TrackDisc { track_position, disc_position } =
             &config.id3v2.track_disc;
-        TrackDisc::parse(get_text(tag, track_position)?, None, get_text(tag, disc_position)?, None)
+        TrackDisc::parse(
+            get_text(self, track_position)?,
+            None,
+            get_text(self, disc_position)?,
+            None,
+        )
     }
 
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<isolang::Language>, Error> {
-        let tag = self.tag()?;
-        Ok(get_texts(tag, &config.id3v2.languages, config.id3v2.separator)?
+        Ok(get_texts(self, &config.id3v2.languages, config.id3v2.separator)?
             .map(|language| {
                 Language::from_str(language)
                     .map_err(|_| error::Kind::InvalidLanguageTagFormat(language.to_owned()))
@@ -134,13 +134,11 @@ default impl<'a, H: Has<'a>> extract::Metadata<'a> for H {
     }
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
-        let tag = self.tag()?;
-        Ok(get_texts(tag, &config.id3v2.genres, config.id3v2.separator)?.collect())
+        Ok(get_texts(self, &config.id3v2.genres, config.id3v2.separator)?.collect())
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
-        let tag = self.tag()?;
-        let mut iter = tag.into_iter();
+        let mut iter = self.into_iter();
         iter.find_map(|frame| {
             if let Frame::Picture(AttachedPictureFrame { picture, .. }) = frame
                 && (cfg!(test)

@@ -55,6 +55,30 @@ impl<'a> Artist<'a> {
     }
 }
 
+impl<'a> Picture<'static, 'a> {
+    pub fn extrat_ogg_picture_storage(
+        tag: &'a impl OggPictureStorage,
+    ) -> Result<Option<Self>, Error> {
+        let mut iter = tag.pictures().iter();
+        iter.find_map(|(picture, _)| {
+            if !cfg!(test)
+                || picture
+                    .description()
+                    .is_some_and(|description| description == Picture::TEST_DESCRIPTION)
+            {
+                Some(picture.try_into())
+            } else {
+                None
+            }
+        })
+        .transpose()
+    }
+}
+
+pub trait Has<'a> {
+    fn tag(&'a self) -> Result<&'a VorbisComments, Error>;
+}
+
 impl<'a> extract::Metadata<'a> for VorbisComments {
     fn song(&'a self, config: &'a config::Parsing) -> Result<NameDateMbz<'a>, Error> {
         NameDateMbz::extract_vorbis_comments(self, &config.vorbis_comments.song)
@@ -102,6 +126,6 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
-        self.pictures().iter().next().map(|(picture, _)| picture.try_into()).transpose()
+        Picture::extrat_ogg_picture_storage(self)
     }
 }
