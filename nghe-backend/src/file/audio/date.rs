@@ -128,16 +128,12 @@ mod test {
 
     impl From<Date> for Option<lofty::tag::items::Timestamp> {
         fn from(value: Date) -> Self {
-            if let Some(year) = value.year {
-                Some(lofty::tag::items::Timestamp {
-                    year: year.try_into().unwrap(),
-                    month: value.month.map(u8::try_from).transpose().unwrap(),
-                    day: value.day.map(NonZeroU8::get),
-                    ..Default::default()
-                })
-            } else {
-                None
-            }
+            value.year.map(|year| lofty::tag::items::Timestamp {
+                year: year.try_into().unwrap(),
+                month: value.month.map(u8::try_from).transpose().unwrap(),
+                day: value.day.map(NonZeroU8::get),
+                ..Default::default()
+            })
         }
     }
 }

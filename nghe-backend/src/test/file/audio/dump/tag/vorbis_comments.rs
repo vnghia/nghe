@@ -60,10 +60,6 @@ impl Position {
     }
 }
 
-pub trait Has {
-    fn tag(&mut self) -> &mut VorbisComments;
-}
-
 impl dump::Metadata for VorbisComments {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self {
         song.dump_vorbis_comments(self, &config.vorbis_comments.song);

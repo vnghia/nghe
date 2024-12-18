@@ -18,7 +18,7 @@ pub struct Property {
 #[coverage(off)]
 mod test {
     use super::*;
-    use crate::file::audio::{self};
+    use crate::file::audio;
 
     impl Property {
         pub fn default(ty: audio::Format) -> Self {
@@ -33,7 +33,7 @@ mod test {
                 audio::Format::Mpeg => Self {
                     duration: Duration::default(),
                     bitrate: 585,
-                    bit_depth: Some(24),
+                    bit_depth: None,
                     sample_rate: 32000,
                     channel_count: 2,
                 },

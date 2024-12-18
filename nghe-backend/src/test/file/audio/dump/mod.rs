@@ -39,6 +39,9 @@ impl Metadata for File {
             File::Flac { audio, .. } => {
                 audio.dump_song(config, song);
             }
+            File::Mpeg { audio, .. } => {
+                audio.dump_song(config, song);
+            }
         }
         self
     }
@@ -46,6 +49,9 @@ impl Metadata for File {
     fn dump_album(&mut self, config: &config::Parsing, album: Album<'_>) -> &mut Self {
         match self {
             File::Flac { audio, .. } => {
+                audio.dump_album(config, album);
+            }
+            File::Mpeg { audio, .. } => {
                 audio.dump_album(config, album);
             }
         }
@@ -57,6 +63,9 @@ impl Metadata for File {
             File::Flac { audio, .. } => {
                 audio.dump_artists(config, artists);
             }
+            File::Mpeg { audio, .. } => {
+                audio.dump_artists(config, artists);
+            }
         }
         self
     }
@@ -64,6 +73,9 @@ impl Metadata for File {
     fn dump_track_disc(&mut self, config: &config::Parsing, track_disc: TrackDisc) -> &mut Self {
         match self {
             File::Flac { audio, .. } => {
+                audio.dump_track_disc(config, track_disc);
+            }
+            File::Mpeg { audio, .. } => {
                 audio.dump_track_disc(config, track_disc);
             }
         }
@@ -75,6 +87,9 @@ impl Metadata for File {
             File::Flac { audio, .. } => {
                 audio.dump_languages(config, languages);
             }
+            File::Mpeg { audio, .. } => {
+                audio.dump_languages(config, languages);
+            }
         }
         self
     }
@@ -84,6 +99,9 @@ impl Metadata for File {
             File::Flac { audio, .. } => {
                 audio.dump_genres(config, genres);
             }
+            File::Mpeg { audio, .. } => {
+                audio.dump_genres(config, genres);
+            }
         }
         self
     }
@@ -91,6 +109,9 @@ impl Metadata for File {
     fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self {
         match self {
             File::Flac { audio, .. } => {
+                audio.dump_picture(picture);
+            }
+            File::Mpeg { audio, .. } => {
                 audio.dump_picture(picture);
             }
         }
