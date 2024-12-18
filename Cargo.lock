@@ -520,9 +520,9 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.8.0-alpha.1"
+version = "0.8.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4132c8995c63b222c56f38b80748c23323d7012d1f783b0f42e92782c2676690"
+checksum = "47b212eb691030da38f1eff381777e431eb6f0760a0d02ffcb1702f1da9894e2"
 dependencies = [
  "axum-core",
  "axum-macros",
@@ -553,9 +553,9 @@ dependencies = [
 
 [[package]]
 name = "axum-core"
-version = "0.5.0-alpha.1"
+version = "0.5.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3405ae79f3aab93ae35fe2944aff9bf0f5aac918c0229f3528043c5a454d17d"
+checksum = "30256e79153b08607dcf9e0a72bd31564bc9228b9f145d1e1a29e3d01ad1fd16"
 dependencies = [
  "bytes",
  "futures-util",
@@ -573,21 +573,19 @@ dependencies = [
 
 [[package]]
 name = "axum-extra"
-version = "0.10.0-alpha.1"
+version = "0.10.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fda8d71bb4e0d59ca7203822c50c4f0961aa5ed42c758d62cb413f0ba0aa9877"
+checksum = "1de1412ce392df7dfb764e56cb5bcf52169dbdce7f3f1c26026195bab2bc0328"
 dependencies = [
  "axum",
  "axum-core",
  "bytes",
- "fastrand",
  "futures-util",
  "headers",
  "http 1.1.0",
  "http-body 1.0.1",
  "http-body-util",
  "mime",
- "multer",
  "pin-project-lite",
  "serde",
  "serde_html_form",
@@ -598,9 +596,9 @@ dependencies = [
 
 [[package]]
 name = "axum-macros"
-version = "0.5.0-alpha.1"
+version = "0.5.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9203d3637bf999b7611f52addb61581111a3ea32e3818df0cbbde3e95d0f22bb"
+checksum = "9311732b2682f6da16381d0fca1db7d91fa6823aabcf4cde41c040dae696e8ee"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1375,15 +1373,6 @@ dependencies = [
  "sec1",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "encoding_rs"
-version = "0.8.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
-dependencies = [
- "cfg-if",
 ]
 
 [[package]]
@@ -2507,9 +2496,9 @@ dependencies = [
 
 [[package]]
 name = "matchit"
-version = "0.8.0"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56e8fcd7bd6025a951597d6ba2f8e48a121af7e262f2b52a006a09c8d61f9304"
+checksum = "47e1ffaa40ddd1f3ed91f717a33c8c0ee23fff369e3aa8772b9605cc1d22f4c3"
 
 [[package]]
 name = "maybe-async"
@@ -2615,23 +2604,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "multer"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83e87776546dc87511aa5ee218730c92b666d7264ab6ed41f9d215af9cd5224b"
-dependencies = [
- "bytes",
- "encoding_rs",
- "futures-util",
- "http 1.1.0",
- "httparse",
- "memchr",
- "mime",
- "spin",
- "version_check",
 ]
 
 [[package]]
