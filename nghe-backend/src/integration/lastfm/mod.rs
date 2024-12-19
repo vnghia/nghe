@@ -1,3 +1,4 @@
+mod method;
 mod model;
 
 use concat_string::concat_string;
