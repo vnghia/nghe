@@ -10,26 +10,26 @@ use crate::integration::lastfm::model::artist;
     Option => #[serde(skip_serializing_if = "Option::is_none")]
 )]
 #[derive(Debug, Serialize)]
-pub struct Request<'a> {
-    pub artist: Cow<'a, str>,
-    pub limit: Option<u32>,
-    pub page: Option<u64>,
+struct Request<'a> {
+    artist: Cow<'a, str>,
+    limit: Option<u32>,
+    page: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ArtistMatches {
-    pub artist: Vec<artist::Short>,
+struct ArtistMatches {
+    artist: Vec<artist::Short>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Results {
+struct Results {
     #[serde(rename = "artistmatches")]
-    pub artist_matches: ArtistMatches,
+    artist_matches: ArtistMatches,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Response {
-    pub results: Results,
+struct Response {
+    results: Results,
 }
 
 impl lastfm::Request for Request<'_> {
@@ -38,7 +38,9 @@ impl lastfm::Request for Request<'_> {
 }
 
 impl lastfm::Client {
-    pub async fn artist_search(&self, artist: &str) -> Result<Response, Error> {
-        self.send(&Request { artist: artist.into(), limit: Some(1), page: None }).await
+    pub async fn artist_search(&self, artist: &str) -> Result<Option<artist::Short>, Error> {
+        self.send(&Request { artist: artist.into(), limit: Some(1), page: None })
+            .await
+            .map(|response| response.results.artist_matches.artist.into_iter().next())
     }
 }
