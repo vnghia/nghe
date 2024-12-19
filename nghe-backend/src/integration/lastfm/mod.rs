@@ -22,7 +22,10 @@ impl Client {
     const LASTFM_ROOT_URL: &'static str = "https://ws.audioscrobbler.com/2.0/?";
 
     pub fn new(http: reqwest::Client, config: config::integration::Lastfm) -> Option<Self> {
-        config.key.map(|key| Self { http, key })
+        config.key.map(|key| {
+            tracing::info!("lastfm integration enabled");
+            Self { http, key }
+        })
     }
 
     fn build_url<R: Request>(&self, request: &R) -> Result<String, Error> {

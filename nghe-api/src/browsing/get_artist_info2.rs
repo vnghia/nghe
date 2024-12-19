@@ -8,6 +8,7 @@ pub struct Request {
 }
 
 #[api_derive]
+#[derive(Default)]
 pub struct ArtistInfo2 {
     pub music_brainz_id: Option<Uuid>,
     #[serde(rename = "lastFmUrl")]
