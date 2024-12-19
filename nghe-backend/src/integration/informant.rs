@@ -160,6 +160,7 @@ mod query {
 }
 
 #[cfg(all(test, spotify_env))]
+#[coverage(off)]
 mod tests {
     use rstest::rstest;
 

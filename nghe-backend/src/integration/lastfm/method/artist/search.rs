@@ -44,3 +44,32 @@ impl lastfm::Client {
             .map(|response| response.results.artist_matches.artist.into_iter().next())
     }
 }
+
+#[cfg(all(test, lastfm_env))]
+#[coverage(off)]
+mod tests {
+    use rstest::rstest;
+    use uuid::{Uuid, uuid};
+
+    use super::*;
+    use crate::config;
+
+    #[rstest]
+    #[case(
+        "Cher",
+        Some(uuid!("bfcc6d75-a6a5-4bc6-8282-47aec8531818")),
+        "https://www.last.fm/music/Cher",
+    )]
+    #[tokio::test]
+    async fn test_search_artist(#[case] name: &str, #[case] mbid: Option<Uuid>, #[case] url: &str) {
+        let client = lastfm::Client::new(
+            reqwest::Client::default(),
+            config::integration::Lastfm::from_env(),
+        )
+        .unwrap();
+        let artist = client.search_artist(name).await.unwrap().unwrap();
+        assert_eq!(artist.name, name);
+        assert_eq!(artist.mbid, mbid);
+        assert_eq!(artist.url, url);
+    }
+}

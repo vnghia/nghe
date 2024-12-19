@@ -13,7 +13,6 @@ pub struct Short {
 #[serde_as]
 #[derive(Debug, Deserialize)]
 pub struct Bio {
-    #[serde_as(as = "serde_with::NoneAsEmptyString")]
     pub summary: Option<String>,
 }
 
