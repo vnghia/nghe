@@ -200,6 +200,12 @@ pub enum Kind {
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
     InvalidSpotifyIdFormat(String),
 
+    // LastFM Error
+    #[error("Could not build LastFM request URL")]
+    #[into(StatusCode| StatusCode::BAD_REQUEST)]
+    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
+    BuildLastFMRequestURLFailed,
+
     // Transcode error
     #[error("No audio track found in media")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
