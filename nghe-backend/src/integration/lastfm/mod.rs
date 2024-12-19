@@ -1,3 +1,5 @@
+mod model;
+
 use concat_string::concat_string;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
