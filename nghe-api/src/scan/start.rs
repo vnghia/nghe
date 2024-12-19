@@ -8,6 +8,8 @@ pub struct Full {
     pub file: bool,
     #[serde(default)]
     pub dir_picture: bool,
+    #[serde(default)]
+    pub information: bool,
 }
 
 #[api_derive]

@@ -40,6 +40,14 @@ impl lastfm::Client {
         .map(|response| response.artist)
     }
 
+    #[cfg_attr(
+        not(coverage_nightly),
+        tracing::instrument(
+            skip_all,
+            name = "lastfm:search_and_fetch_artist",
+            ret(level = "debug")
+        )
+    )]
     pub async fn search_and_fetch_artist(
         &self,
         artist: impl AsRef<str>,

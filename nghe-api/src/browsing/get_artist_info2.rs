@@ -8,9 +8,12 @@ pub struct Request {
 }
 
 #[api_derive]
+#[derive(Default)]
 pub struct ArtistInfo2 {
-    // TODO: add biography and lastfm url field
     pub music_brainz_id: Option<Uuid>,
+    #[serde(rename = "lastFmUrl")]
+    pub lastfm_url: Option<String>,
+    pub biography: Option<String>,
 }
 
 #[api_derive]
