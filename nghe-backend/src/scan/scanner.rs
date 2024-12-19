@@ -365,7 +365,13 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         audio::Information::cleanup(&self.database, started_at).await?;
 
         self.database.upsert_config(&self.config.index).await?;
-        self.informant.search_and_upsert_artists(&self.database, &self.config.cover_art).await?;
+        self.informant
+            .search_and_upsert_artists(
+                &self.database,
+                &self.config.cover_art,
+                self.full.information,
+            )
+            .await?;
 
         let latency: std::time::Duration =
             (time::OffsetDateTime::now_utc() - started_at).try_into()?;

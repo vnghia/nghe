@@ -110,14 +110,23 @@ impl Informant {
         &self,
         database: &Database,
         config: &config::CoverArt,
+        full: bool,
     ) -> Result<(), Error> {
         if self.is_enabled() {
+            let mut offset = 0;
             loop {
-                let artists =
-                    query::artist_no_information().get_results(&mut database.get().await?).await?;
+                let artists = if full {
+                    query::artists_full(offset).get_results(&mut database.get().await?).await?
+                } else {
+                    query::artists_no_information().get_results(&mut database.get().await?).await?
+                };
+
                 if artists.is_empty() {
                     break;
                 }
+                let artist_len: i64 = artists.len().try_into()?;
+                offset += artist_len;
+
                 for artist in artists {
                     self.search_and_upsert_artist(database, config, &artist).await?;
                 }
@@ -167,7 +176,15 @@ mod query {
     use super::*;
 
     #[auto_type]
-    pub fn artist_no_information<'a>() -> _ {
+    pub fn artists_full<'a>(offset: i64) -> _ {
+        let limit: i64 = MAX_ITEM_PER_QUERY;
+        let artist: AsSelect<artists::Artist<'a>, crate::orm::Type> =
+            artists::Artist::<'a>::as_select();
+        artists::table.select(artist).limit(limit).offset(offset).order_by(artists::id)
+    }
+
+    #[auto_type]
+    pub fn artists_no_information<'a>() -> _ {
         let limit: i64 = MAX_ITEM_PER_QUERY;
         let artist: AsSelect<artists::Artist<'a>, crate::orm::Type> =
             artists::Artist::<'a>::as_select();
@@ -195,6 +212,7 @@ mod tests {
         #[future(awt)]
         #[with(0, 1, None, true)]
         mock: Mock,
+        #[values(true, false)] full: bool,
     ) {
         let id_westlife = audio::Artist::from("Westlife").upsert_mock(&mock).await;
         let id_mltr = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
@@ -205,9 +223,21 @@ mod tests {
             .await
             .unwrap();
         mock.informant
-            .search_and_upsert_artists(mock.database(), &mock.config.cover_art)
+            .search_and_upsert_artists(mock.database(), &mock.config.cover_art, full)
             .await
             .unwrap();
+
+        let westlife_data = artist_informations::table
+            .filter(artist_informations::artist_id.eq(id_westlife))
+            .select(artist_informations::Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+        assert_eq!(westlife_data.spotify.id.is_some(), full);
+        assert_eq!(westlife_data.spotify.cover_art_id.is_some(), full);
+        assert_eq!(westlife_data.lastfm.url.is_some(), full);
+        assert_eq!(westlife_data.lastfm.mbz_id.is_some(), full);
+        assert_eq!(westlife_data.lastfm.biography.is_some(), full);
 
         let mltr_data = artist_informations::table
             .filter(artist_informations::artist_id.eq(id_mltr))
