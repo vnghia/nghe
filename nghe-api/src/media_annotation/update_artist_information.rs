@@ -6,6 +6,7 @@ use uuid::Uuid;
 pub struct Request {
     pub artist_id: Uuid,
     pub spotify_id: Option<String>,
+    pub lastfm_name: Option<String>,
 }
 
 #[api_derive]
