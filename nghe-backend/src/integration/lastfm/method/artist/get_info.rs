@@ -12,7 +12,7 @@ use crate::integration::lastfm::model::artist;
 )]
 #[derive(Debug, Serialize)]
 struct Request<'a> {
-    artist: Option<Cow<'a, str>>,
+    artist: Option<&'a str>,
     mbid: Option<Uuid>,
 }
 
@@ -29,15 +29,30 @@ impl lastfm::Request for Request<'_> {
 impl lastfm::Client {
     pub async fn fetch_artist(
         &self,
-        artist: &str,
+        artist: impl AsRef<str>,
         mbid: Option<Uuid>,
     ) -> Result<artist::Full, Error> {
         self.send(&Request {
-            artist: if mbid.is_none() { Some(artist.into()) } else { None },
+            artist: if mbid.is_none() { Some(artist.as_ref()) } else { None },
             mbid,
         })
         .await
         .map(|response| response.artist)
+    }
+
+    pub async fn search_and_fetch_artist(
+        &self,
+        artist: impl AsRef<str>,
+        mbid: Option<Uuid>,
+    ) -> Result<Option<artist::Full>, Error> {
+        let (artist, mbid): (Cow<'_, str>, Option<_>) = if let Some(mbid) = mbid {
+            (artist.as_ref().into(), Some(mbid))
+        } else if let Some(artist) = self.search_artist(artist).await? {
+            (artist.name.into(), artist.mbid)
+        } else {
+            return Ok(None);
+        };
+        self.fetch_artist(artist, mbid).await.map(Some)
     }
 }
 

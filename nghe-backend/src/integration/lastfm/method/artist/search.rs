@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use serde::{Deserialize, Serialize};
 
 use crate::Error;
@@ -11,7 +9,7 @@ use crate::integration::lastfm::model::artist;
 )]
 #[derive(Debug, Serialize)]
 struct Request<'a> {
-    artist: Cow<'a, str>,
+    artist: &'a str,
     limit: Option<u32>,
     page: Option<u64>,
 }
@@ -38,8 +36,11 @@ impl lastfm::Request for Request<'_> {
 }
 
 impl lastfm::Client {
-    pub async fn search_artist(&self, artist: &str) -> Result<Option<artist::Short>, Error> {
-        self.send(&Request { artist: artist.into(), limit: Some(1), page: None })
+    pub async fn search_artist(
+        &self,
+        artist: impl AsRef<str>,
+    ) -> Result<Option<artist::Short>, Error> {
+        self.send(&Request { artist: artist.as_ref(), limit: Some(1), page: None })
             .await
             .map(|response| response.results.artist_matches.artist.into_iter().next())
     }

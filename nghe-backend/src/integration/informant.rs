@@ -61,6 +61,7 @@ impl Informant {
         config: &config::CoverArt,
         id: Uuid,
         spotify: Option<&spotify::Artist>,
+        lastfm: Option<&lastfm::model::artist::Full>,
     ) -> Result<(), Error> {
         let spotify = if let Some(spotify) = spotify {
             let picture_id = self
@@ -73,7 +74,14 @@ impl Informant {
         } else {
             artist_informations::Spotify::default()
         };
-        artist_informations::Data { spotify }.update(database, id).await
+        let lastfm = lastfm
+            .map(|lastfm| artist_informations::Lastfm {
+                url: Some(lastfm.short.url.as_str().into()),
+                mbz_id: lastfm.short.mbid,
+                biography: lastfm.bio.summary.as_deref().map(Cow::Borrowed),
+            })
+            .unwrap_or_default();
+        artist_informations::Data { spotify, lastfm }.update(database, id).await
     }
 
     #[cfg_attr(not(coverage_nightly), tracing::instrument(skip(self, database, config)))]
@@ -89,8 +97,13 @@ impl Informant {
         } else {
             None
         };
+        let lastfm = if let Some(ref client) = self.lastfm {
+            client.search_and_fetch_artist(&artist.data.name, artist.data.mbz_id).await?
+        } else {
+            None
+        };
 
-        self.upsert_artist(database, config, id, spotify.as_ref()).await
+        self.upsert_artist(database, config, id, spotify.as_ref(), lastfm.as_ref()).await
     }
 
     pub async fn search_and_upsert_artists(
@@ -133,6 +146,14 @@ impl Informant {
                     None
                 }
                 .as_ref(),
+                if let Some(ref client) = self.lastfm
+                    && let Some(ref lastfm_name) = request.lastfm_name
+                {
+                    client.search_and_fetch_artist(lastfm_name, None).await?
+                } else {
+                    None
+                }
+                .as_ref(),
             )
             .await?;
         }
@@ -159,7 +180,7 @@ mod query {
     }
 }
 
-#[cfg(all(test, spotify_env))]
+#[cfg(all(test, spotify_env, lastfm_env))]
 #[coverage(off)]
 mod tests {
     use rstest::rstest;
@@ -196,6 +217,9 @@ mod tests {
             .unwrap();
         assert!(mltr_data.spotify.id.is_some());
         assert!(mltr_data.spotify.cover_art_id.is_some());
+        assert!(mltr_data.lastfm.url.is_some());
+        assert!(mltr_data.lastfm.mbz_id.is_some());
+        assert!(mltr_data.lastfm.biography.is_some());
     }
 
     #[rstest]
@@ -211,6 +235,7 @@ mod tests {
             .fetch_and_upsert_artist(mock.database(), &mock.config.cover_art, &Request {
                 artist_id: id_mltr,
                 spotify_id: Some("7zMVPOJPs5jgU8NorRxqJe".to_owned()),
+                lastfm_name: Some("Michael Learns to Rock".to_owned()),
             })
             .await
             .unwrap();
@@ -223,5 +248,8 @@ mod tests {
             .unwrap();
         assert!(mltr_data.spotify.id.is_some());
         assert!(mltr_data.spotify.cover_art_id.is_some());
+        assert!(mltr_data.lastfm.url.is_some());
+        assert!(mltr_data.lastfm.mbz_id.is_some());
+        assert!(mltr_data.lastfm.biography.is_some());
     }
 }
