@@ -8,7 +8,7 @@ use rspotify::model::Id;
 use typed_path::Utf8PlatformPath;
 use uuid::Uuid;
 
-use super::spotify;
+use super::{lastfm, spotify};
 use crate::database::Database;
 use crate::file::picture;
 use crate::orm::upsert::Update;
@@ -19,19 +19,21 @@ const MAX_ITEM_PER_QUERY: i64 = 100;
 
 #[derive(Clone)]
 pub struct Informant {
+    reqwest: reqwest::Client,
     spotify: Option<spotify::Client>,
-    reqwest: Option<reqwest::Client>,
+    lastfm: Option<lastfm::Client>,
 }
 
 impl Informant {
     pub async fn new(config: config::Integration) -> Self {
+        let reqwest = reqwest::Client::new();
         let spotify = spotify::Client::new(config.spotify).await;
-        let reqwest = if spotify.is_some() { Some(reqwest::Client::new()) } else { None };
-        Self { spotify, reqwest }
+        let lastfm = lastfm::Client::new(reqwest.clone(), config.lastfm);
+        Self { reqwest, spotify, lastfm }
     }
 
     pub fn is_enabled(&self) -> bool {
-        self.spotify.is_some() || self.reqwest.is_some()
+        self.spotify.is_some() || self.lastfm.is_some()
     }
 
     async fn upsert_artist_picture(
@@ -41,12 +43,11 @@ impl Informant {
         source: Option<impl Into<Cow<'_, str>>>,
     ) -> Result<Option<Uuid>, Error> {
         Ok(
-            if let Some(ref client) = self.reqwest
-                && let Some(dir) = dir
+            if let Some(dir) = dir
                 && let Some(source) = source
             {
                 // TODO: Checking source before upserting.
-                let picture = picture::Picture::fetch(client, source).await?;
+                let picture = picture::Picture::fetch(&self.reqwest, source).await?;
                 Some(picture.upsert(database, dir).await?)
             } else {
                 None

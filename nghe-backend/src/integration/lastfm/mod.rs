@@ -5,7 +5,7 @@ use concat_string::concat_string;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use crate::{Error, error};
+use crate::{Error, config, error};
 
 #[derive(Clone)]
 pub struct Client {
@@ -20,6 +20,10 @@ trait Request: Serialize {
 
 impl Client {
     const LASTFM_ROOT_URL: &'static str = "https://ws.audioscrobbler.com/2.0/?";
+
+    pub fn new(http: reqwest::Client, config: config::integration::Lastfm) -> Option<Self> {
+        config.key.map(|key| Self { http, key })
+    }
 
     fn build_url<R: Request>(&self, request: &R) -> Result<String, Error> {
         serde_html_form::to_string(request)

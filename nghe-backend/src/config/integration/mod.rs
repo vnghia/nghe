@@ -26,9 +26,17 @@ pub struct Spotify {
     pub token_path: Option<Utf8PlatformPathBuf>,
 }
 
+#[derive(Clone, Default, Serialize, Deserialize, Educe)]
+#[educe(Debug)]
+pub struct Lastfm {
+    #[educe(Debug(ignore))]
+    pub key: Option<String>,
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Integration {
     pub spotify: Spotify,
+    pub lastfm: Lastfm,
 }
 
 #[cfg(test)]
@@ -52,9 +60,21 @@ mod test {
         }
     }
 
+    impl Lastfm {
+        #[cfg(not(lastfm_env))]
+        pub fn from_env() -> Self {
+            Self { key: None }
+        }
+
+        #[cfg(lastfm_env)]
+        pub fn from_env() -> Self {
+            Self { key: Some(env!("LASTFM_KEY").to_owned()) }
+        }
+    }
+
     impl Integration {
         pub fn from_env() -> Self {
-            Self { spotify: Spotify::from_env() }
+            Self { spotify: Spotify::from_env(), lastfm: Lastfm::from_env() }
         }
     }
 }

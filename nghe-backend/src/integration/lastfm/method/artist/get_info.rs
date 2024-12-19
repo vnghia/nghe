@@ -27,7 +27,7 @@ impl lastfm::Request for Request<'_> {
 }
 
 impl lastfm::Client {
-    pub async fn artist_get_info(
+    pub async fn fetch_artist(
         &self,
         artist: &str,
         mbid: Option<Uuid>,

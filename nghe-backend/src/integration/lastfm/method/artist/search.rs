@@ -38,7 +38,7 @@ impl lastfm::Request for Request<'_> {
 }
 
 impl lastfm::Client {
-    pub async fn artist_search(&self, artist: &str) -> Result<Option<artist::Short>, Error> {
+    pub async fn search_artist(&self, artist: &str) -> Result<Option<artist::Short>, Error> {
         self.send(&Request { artist: artist.into(), limit: Some(1), page: None })
             .await
             .map(|response| response.results.artist_matches.artist.into_iter().next())
