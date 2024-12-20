@@ -150,19 +150,16 @@ impl<'a> Artists<'a> {
         song_id: Uuid,
         artist_ids: &[Uuid],
     ) -> Result<(), Error> {
-        diesel::insert_into(songs_artists::table)
-            .values::<Vec<_>>(
-                artist_ids
-                    .iter()
-                    .copied()
-                    .map(|artist_id| songs_artists::Data { song_id, artist_id })
-                    .collect(),
-            )
-            .on_conflict((songs_artists::song_id, songs_artists::artist_id))
-            .do_update()
-            .set(songs_artists::upserted_at.eq(crate::time::now().await))
-            .execute(&mut database.get().await?)
-            .await?;
+        for artist_id in artist_ids.iter().copied() {
+            // Upserting one by one to maintain the upsertion order.
+            diesel::insert_into(songs_artists::table)
+                .values(songs_artists::Data { song_id, artist_id })
+                .on_conflict((songs_artists::song_id, songs_artists::artist_id))
+                .do_update()
+                .set(songs_artists::upserted_at.eq(crate::time::now().await))
+                .execute(&mut database.get().await?)
+                .await?;
+        }
         Ok(())
     }
 
@@ -172,26 +169,19 @@ impl<'a> Artists<'a> {
         album_artist_ids: &[Uuid],
         compilation: bool,
     ) -> Result<(), Error> {
-        diesel::insert_into(songs_album_artists::table)
-            .values::<Vec<_>>(
-                album_artist_ids
-                    .iter()
-                    .copied()
-                    .map(|album_artist_id| songs_album_artists::Data {
-                        song_id,
-                        album_artist_id,
-                        compilation,
-                    })
-                    .collect(),
-            )
-            .on_conflict((songs_album_artists::song_id, songs_album_artists::album_artist_id))
-            .do_update()
-            .set((
-                songs_album_artists::compilation.eq(compilation),
-                songs_album_artists::upserted_at.eq(crate::time::now().await),
-            ))
-            .execute(&mut database.get().await?)
-            .await?;
+        for album_artist_id in album_artist_ids.iter().copied() {
+            // Upserting one by one to maintain the upsertion order.
+            diesel::insert_into(songs_album_artists::table)
+                .values(songs_album_artists::Data { song_id, album_artist_id, compilation })
+                .on_conflict((songs_album_artists::song_id, songs_album_artists::album_artist_id))
+                .do_update()
+                .set((
+                    songs_album_artists::compilation.eq(compilation),
+                    songs_album_artists::upserted_at.eq(crate::time::now().await),
+                ))
+                .execute(&mut database.get().await?)
+                .await?;
+        }
         Ok(())
     }
 
