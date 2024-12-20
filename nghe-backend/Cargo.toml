@@ -43,6 +43,7 @@ aws-smithy-runtime = { version = "1.7.3", default-features = false, features = [
   "connector-hyper-0-14-x",
 ] }
 axum = { version = "0.8.0-rc.1", default-features = false, features = [
+  "http1",
   "http2",
   "json",
   "macros",
