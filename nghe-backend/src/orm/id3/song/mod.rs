@@ -122,6 +122,12 @@ impl TryFrom<Song> for id3::song::Song {
     }
 }
 
+impl Song {
+    pub fn try_into_short(self, album: String, album_id: Uuid) -> Result<id3::song::Short, Error> {
+        Ok(id3::song::Short { song: self.try_into_builder()?.build(), album, album_id })
+    }
+}
+
 pub mod query {
     use diesel::dsl::{AsSelect, auto_type};
 
