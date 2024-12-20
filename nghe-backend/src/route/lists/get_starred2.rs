@@ -233,7 +233,7 @@ mod tests {
                     .album
                     .song
                     .into_iter()
-                    .map(|song| song.starred.is_some())
+                    .map(|song| song.song.starred.is_some())
                     .collect();
             assert_eq!(songs, vec![true]);
         }
@@ -251,7 +251,7 @@ mod tests {
                     .album
                     .song
                     .into_iter()
-                    .map(|song| song.starred.is_some())
+                    .map(|song| song.song.starred.is_some())
                     .collect();
             assert_eq!(songs, vec![false]);
         }

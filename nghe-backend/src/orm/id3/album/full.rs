@@ -38,7 +38,10 @@ impl Full {
             .get_results(&mut database.get().await?)
             .await?;
         let duration = song.duration();
-        let song: Vec<_> = song.into_iter().map(song::Song::try_into).try_collect()?;
+        let song: Vec<_> = song
+            .into_iter()
+            .map(|song| song.try_into_short(self.album.name.clone(), self.album.id))
+            .try_collect()?;
 
         let album = self
             .album

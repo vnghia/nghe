@@ -84,7 +84,7 @@ mod tests {
         assert_eq!(album.song.len(), n_song);
         for (i, song) in album.song.into_iter().enumerate() {
             let track: u16 = (i + 1).try_into().unwrap();
-            assert_eq!(song.track.unwrap(), track);
+            assert_eq!(song.song.track.unwrap(), track);
         }
     }
 }

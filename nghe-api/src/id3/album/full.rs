@@ -9,5 +9,5 @@ pub struct Full {
     pub album: Album,
     pub artists: Vec<artist::Required>,
     pub is_compilation: bool,
-    pub song: Vec<song::Song>,
+    pub song: Vec<song::Short>,
 }
