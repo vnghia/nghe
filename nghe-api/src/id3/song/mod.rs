@@ -32,6 +32,8 @@ pub struct Song {
     pub channel_count: u8,
     pub disc_number: Option<u16>,
     pub created: OffsetDateTime,
+    pub artist: String,
+    pub artist_id: Uuid,
     pub artists: Vec<artist::Required>,
     pub music_brainz_id: Option<Uuid>,
     pub starred: Option<OffsetDateTime>,

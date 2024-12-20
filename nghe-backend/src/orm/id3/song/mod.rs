@@ -1,3 +1,4 @@
+pub mod artists;
 pub mod durations;
 pub mod full;
 pub mod short;
@@ -12,11 +13,10 @@ use nghe_api::id3::builder::song as builder;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::artist;
-use crate::Error;
 use crate::file::audio;
 use crate::file::audio::duration::Trait as _;
 use crate::orm::songs;
+use crate::{Error, error};
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
@@ -41,7 +41,7 @@ pub struct Song {
     #[diesel(column_name = created_at)]
     pub created: OffsetDateTime,
     #[diesel(embed)]
-    pub artists: artist::required::Artists,
+    pub artists: artists::Artists,
     #[diesel(column_name = mbz_id)]
     pub music_brainz_id: Option<Uuid>,
     #[diesel(select_expression = sql("any_value(star_songs.created_at) starred"))]
@@ -52,20 +52,26 @@ pub struct Song {
 pub type BuilderSet = builder::SetStarred<
     builder::SetMusicBrainzId<
         builder::SetArtists<
-            builder::SetCreated<
-                builder::SetDiscNumber<
-                    builder::SetChannelCount<
-                        builder::SetSamplingRate<
-                            builder::SetBitDepth<
-                                builder::SetBitRate<
-                                    builder::SetDuration<
-                                        builder::SetSuffix<
-                                            builder::SetContentType<
-                                                builder::SetSize<
-                                                    builder::SetCoverArt<
-                                                        builder::SetYear<
-                                                            builder::SetTrack<
-                                                                builder::SetTitle<builder::SetId>,
+            builder::SetArtistId<
+                builder::SetArtist<
+                    builder::SetCreated<
+                        builder::SetDiscNumber<
+                            builder::SetChannelCount<
+                                builder::SetSamplingRate<
+                                    builder::SetBitDepth<
+                                        builder::SetBitRate<
+                                            builder::SetDuration<
+                                                builder::SetSuffix<
+                                                    builder::SetContentType<
+                                                        builder::SetSize<
+                                                            builder::SetCoverArt<
+                                                                builder::SetYear<
+                                                                    builder::SetTrack<
+                                                                        builder::SetTitle<
+                                                                            builder::SetId,
+                                                                        >,
+                                                                    >,
+                                                                >,
                                                             >,
                                                         >,
                                                     >,
@@ -92,6 +98,8 @@ impl audio::duration::Trait for Song {
 impl Song {
     pub fn try_into_builder(self) -> Result<builder::Builder<BuilderSet>, Error> {
         let duration = self.duration();
+        let main_artist =
+            self.artists.value.first().ok_or_else(|| error::Kind::DatabaseCorruptionDetected)?;
         Ok(id3::song::Song::builder()
             .id(self.id)
             .title(self.title)
@@ -108,6 +116,8 @@ impl Song {
             .channel_count(self.property.channel_count.try_into()?)
             .disc_number(self.disc.number.map(u16::try_from).transpose()?)
             .created(self.created)
+            .artist(main_artist.name.clone())
+            .artist_id(main_artist.id)
             .artists(self.artists.into())
             .music_brainz_id(self.music_brainz_id)
             .starred(self.starred))
@@ -132,6 +142,7 @@ pub mod query {
     use diesel::dsl::{AsSelect, auto_type};
 
     use super::*;
+    use crate::orm::id3::artist;
     use crate::orm::{albums, songs_artists, star_songs};
 
     #[auto_type]
@@ -176,8 +187,15 @@ mod test {
     #[tokio::test]
     async fn test_query(#[future(awt)] mock: Mock) {
         let mut music_folder = mock.music_folder(0).await;
-
-        music_folder.add_audio_artist(["1".into(), "2".into()], [Faker.fake()], false, 1).await;
+        let artist_names = fake::vec![String; 2..4];
+        music_folder
+            .add_audio_artist(
+                artist_names.clone().into_iter().map(std::convert::Into::into),
+                [Faker.fake()],
+                false,
+                1,
+            )
+            .await;
         let song_id = music_folder.song_id(0);
 
         let database_song = query::with_user_id_unchecked(mock.user_id(0).await)
@@ -187,7 +205,7 @@ mod test {
             .unwrap();
 
         let artists: Vec<String> = database_song.artists.into();
-        assert_eq!(artists, &["1", "2"]);
+        assert_eq!(artists, artist_names);
     }
 
     #[rstest]
