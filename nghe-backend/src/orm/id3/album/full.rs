@@ -6,19 +6,17 @@ use diesel_async::RunQueryDsl;
 use nghe_api::id3;
 use uuid::Uuid;
 
-use super::Album;
-use crate::Error;
+use super::{Album, artists};
 use crate::database::Database;
 use crate::file::audio::duration::Trait as _;
-use crate::orm::id3::{artist, song};
+use crate::orm::id3::song;
 use crate::orm::songs;
+use crate::{Error, error};
 
 #[derive(Debug, Queryable, Selectable)]
 pub struct Full {
     #[diesel(embed)]
     pub album: Album,
-    #[diesel(embed)]
-    pub artists: artist::required::Artists,
     #[diesel(select_expression = sql("bool_or(songs_album_artists.compilation) is_compilation"))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Bool>)]
     pub is_compilation: bool,
@@ -49,10 +47,15 @@ impl Full {
             .song_count(song.len().try_into()?)
             .duration(duration.into())
             .build();
+        let artists = artists::Artists::query(database, album.id).await?;
+        let main_artist =
+            <[_]>::first(&artists).ok_or_else(|| error::Kind::DatabaseCorruptionDetected)?;
 
         Ok(id3::album::Full {
             album,
-            artists: self.artists.into(),
+            artist: main_artist.name.clone(),
+            artist_id: main_artist.id,
+            artists,
             is_compilation: self.is_compilation,
             song,
         })
@@ -73,7 +76,6 @@ pub mod query {
         let full: AsSelect<Full, crate::orm::Type> = Full::as_select();
         with_user_id_unchecked_no_group_by
             .inner_join(songs_album_artists::table.on(songs_album_artists::song_id.eq(songs::id)))
-            .inner_join(artist::required::query::album())
             .group_by(albums::id)
             .select(full)
     }

@@ -70,11 +70,7 @@ mod tests {
             .album;
 
         let artists: Vec<_> = album.artists.into_iter().map(|artist| artist.name).collect();
-        let expected_artists: Vec<_> = if compilation {
-            (0..=n_song).map(|i| i.to_string()).collect()
-        } else {
-            (0..n_song).map(|i| (i + 1).to_string()).collect()
-        };
+        let expected_artists: Vec<_> = (0..n_song).map(|i| (i + 1).to_string()).collect();
         assert_eq!(artists, expected_artists);
         assert_eq!(album.is_compilation, compilation);
 

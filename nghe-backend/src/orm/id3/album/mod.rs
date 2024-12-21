@@ -1,3 +1,4 @@
+pub mod artists;
 pub mod full;
 pub mod short;
 
