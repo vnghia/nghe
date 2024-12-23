@@ -39,7 +39,7 @@ default impl<'a, T: Tag<'a>> Metadata<'a> for T {
         self.tag()?.genres(config)
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
         self.tag()?.picture()
     }
 }
@@ -53,7 +53,7 @@ impl<'a> Tag<'a> for FlacFile {
 }
 
 impl<'a> Metadata<'a> for FlacFile {
-    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
         Picture::extrat_ogg_picture_storage(self)
     }
 }

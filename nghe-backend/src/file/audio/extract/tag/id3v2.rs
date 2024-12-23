@@ -142,7 +142,7 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
             .unwrap_or_default())
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
         let mut iter = self.into_iter();
         iter.find_map(|frame| {
             if let Frame::Picture(AttachedPictureFrame { picture, .. }) = frame

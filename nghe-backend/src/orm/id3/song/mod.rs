@@ -219,7 +219,7 @@ mod test {
 
         let (picture, picture_id) = if has_picture {
             let picture: picture::Picture = Faker.fake();
-            let picture_id = picture.upsert_mock(&mock).await;
+            let picture_id = picture.upsert_mock(&mock, None::<&str>).await;
             (Some(picture), Some(picture_id))
         } else {
             (None, None)
@@ -227,9 +227,12 @@ mod test {
 
         let (dir_picture, dir_picture_id) = if has_dir_picture {
             let dir_picture: picture::Picture = Faker.fake();
-            let source = music_folder.path().join(dir_picture.property.format.name()).to_string();
-            let dir_picture = dir_picture.with_source(Some(source));
-            let dir_picture_id = dir_picture.upsert_mock(&mock).await;
+            let dir_picture_id = dir_picture
+                .upsert_mock(
+                    &mock,
+                    Some(music_folder.path().join(dir_picture.property.format.name()).to_string()),
+                )
+                .await;
             (Some(dir_picture), Some(dir_picture_id))
         } else {
             (None, None)

@@ -24,8 +24,8 @@ use crate::test::filesystem::{self, Trait as _};
 pub struct Mock<'a> {
     mock: &'a super::Mock,
     music_folder: music_folders::MusicFolder<'static>,
-    pub filesystem: IndexMap<Utf8TypedPathBuf, Information<'static, 'static>>,
-    pub database: IndexMap<Uuid, Information<'static, 'static>>,
+    pub filesystem: IndexMap<Utf8TypedPathBuf, Information<'static, 'static, 'static>>,
+    pub database: IndexMap<Uuid, Information<'static, 'static, 'static>>,
     pub config: scanner::Config,
 }
 
@@ -106,9 +106,9 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static, 'static>>>,
+        picture: Option<Option<picture::Picture<'static>>>,
         file_property: Option<file::Property<audio::Format>>,
-        dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
+        dir_picture: Option<Option<picture::Picture<'static>>>,
         relative_path: Option<Cow<'static, str>>,
         song_id: Option<Uuid>,
         #[builder(default = 1)] n_song: usize,
@@ -144,8 +144,8 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static, 'static>>>,
-        dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
+        picture: Option<Option<picture::Picture<'static>>>,
+        dir_picture: Option<Option<picture::Picture<'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
         #[builder(default)] full: scan::start::Full,
@@ -300,7 +300,7 @@ impl<'a> Mock<'a> {
 
     pub async fn query_filesystem(
         &self,
-    ) -> IndexMap<Utf8TypedPathBuf, Information<'static, 'static>> {
+    ) -> IndexMap<Utf8TypedPathBuf, Information<'static, 'static, 'static>> {
         let song_ids: Vec<_> = stream::iter(0..self.filesystem.len())
             .then(async |index| self.optional_song_id_filesystem(index).await)
             .filter_map(std::convert::identity)
@@ -319,7 +319,7 @@ impl<'a> Mock<'a> {
 mod duration {
     use super::*;
 
-    impl audio::duration::Trait for IndexMap<Uuid, Information<'static, 'static>> {
+    impl audio::duration::Trait for IndexMap<Uuid, Information<'static, 'static, 'static>> {
         fn duration(&self) -> audio::Duration {
             self.values().map(|information| information.information.property.duration).sum()
         }

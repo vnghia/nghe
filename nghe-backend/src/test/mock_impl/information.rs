@@ -14,14 +14,14 @@ use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::Trait as _;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mock<'info, 'path> {
+pub struct Mock<'info, 'picture, 'path> {
     pub information: audio::Information<'info>,
-    pub dir_picture: Option<picture::Picture<'static, 'static>>,
+    pub dir_picture: Option<picture::Picture<'picture>>,
     pub relative_path: Cow<'path, str>,
 }
 
 #[bon::bon]
-impl Mock<'static, 'static> {
+impl Mock<'static, 'static, 'static> {
     pub async fn query_upsert(mock: &super::Mock, id: Uuid) -> songs::Upsert<'static> {
         songs::table
             .filter(songs::id.eq(id))
@@ -73,11 +73,11 @@ impl Mock<'static, 'static> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static, 'static>>>,
+        picture: Option<Option<picture::Picture<'static>>>,
         format: Option<audio::Format>,
         file_property: Option<file::Property<audio::Format>>,
         property: Option<audio::Property>,
-        dir_picture: Option<Option<picture::Picture<'static, 'static>>>,
+        dir_picture: Option<Option<picture::Picture<'static>>>,
         relative_path: Option<Cow<'static, str>>,
     ) -> Self {
         let metadata = metadata.unwrap_or_else(|| audio::Metadata {
@@ -105,7 +105,7 @@ impl Mock<'static, 'static> {
     }
 }
 
-impl Mock<'_, '_> {
+impl Mock<'_, '_, '_> {
     pub async fn upsert(
         &self,
         music_folder: &music_folder::Mock<'_>,
@@ -115,7 +115,7 @@ impl Mock<'_, '_> {
         let dir_picture_id = if let Some(ref dir) = music_folder.config.cover_art.dir
             && let Some(ref picture) = self.dir_picture
         {
-            Some(picture.upsert(database, dir).await.unwrap())
+            Some(picture.upsert(database, dir, None::<&str>).await.unwrap())
         } else {
             None
         };
@@ -176,7 +176,7 @@ impl Mock<'_, '_> {
         } else if let Some(picture) = self.dir_picture {
             let path = parent.join(picture.property.format.name());
             filesystem.write(path.to_path(), &picture.data).await;
-            Some(picture::Picture { source: Some(path.into_string().into()), ..picture })
+            Some(picture)
         } else {
             None
         };
@@ -191,12 +191,12 @@ impl Mock<'_, '_> {
         }
     }
 
-    pub fn with_dir_picture(self, dir_picture: Option<picture::Picture<'static, 'static>>) -> Self {
+    pub fn with_dir_picture(self, dir_picture: Option<picture::Picture<'static>>) -> Self {
         Self { dir_picture, ..self }
     }
 }
 
-impl<'path> Mock<'_, 'path> {
+impl<'path> Mock<'_, '_, 'path> {
     pub fn with_relative_path(self, relative_path: Cow<'path, str>) -> Self {
         Self { relative_path, ..self }
     }

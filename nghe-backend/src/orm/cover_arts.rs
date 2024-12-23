@@ -33,9 +33,10 @@ pub struct Property {
     pub format: picture::Format,
 }
 
-#[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
+#[derive(Debug, Insertable, AsChangeset)]
 #[diesel(table_name = cover_arts, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
+#[cfg_attr(test, derive(Queryable, Selectable))]
 pub struct Upsert<'s> {
     pub source: Option<Cow<'s, str>>,
     #[diesel(embed)]
