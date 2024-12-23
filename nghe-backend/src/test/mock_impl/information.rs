@@ -14,14 +14,14 @@ use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::Trait as _;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mock<'info, 'path> {
+pub struct Mock<'info, 'picture, 'path> {
     pub information: audio::Information<'info>,
-    pub dir_picture: Option<picture::Picture<'static>>,
+    pub dir_picture: Option<picture::Picture<'picture>>,
     pub relative_path: Cow<'path, str>,
 }
 
 #[bon::bon]
-impl Mock<'static, 'static> {
+impl Mock<'static, 'static, 'static> {
     pub async fn query_upsert(mock: &super::Mock, id: Uuid) -> songs::Upsert<'static> {
         songs::table
             .filter(songs::id.eq(id))
@@ -105,7 +105,7 @@ impl Mock<'static, 'static> {
     }
 }
 
-impl Mock<'_, '_> {
+impl Mock<'_, '_, '_> {
     pub async fn upsert(
         &self,
         music_folder: &music_folder::Mock<'_>,
@@ -196,7 +196,7 @@ impl Mock<'_, '_> {
     }
 }
 
-impl<'path> Mock<'_, 'path> {
+impl<'path> Mock<'_, '_, 'path> {
     pub fn with_relative_path(self, relative_path: Cow<'path, str>) -> Self {
         Self { relative_path, ..self }
     }
