@@ -9,12 +9,14 @@ use super::audio;
 use crate::{Error, error};
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq, Clone))]
 pub enum Lines<'a> {
     Unsync(Vec<Cow<'a, str>>),
     Sync(Vec<(audio::Duration, Cow<'a, str>)>),
 }
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq, Clone))]
 pub struct Lyrics<'a> {
     pub description: Option<Cow<'a, str>>,
     pub language: Language,
@@ -91,5 +93,38 @@ impl<'a> Lyrics<'a> {
                 })
                 .try_collect()?,
         })
+    }
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod test {
+    use fake::{Dummy, Fake, Faker};
+    use itertools::Itertools;
+
+    use super::*;
+
+    impl FromIterator<String> for Lines<'_> {
+        fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
+            Self::Unsync(iter.into_iter().map(Cow::Owned).collect())
+        }
+    }
+
+    impl Dummy<Faker> for Lyrics<'_> {
+        fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
+            if config.fake_with_rng(rng) {
+                Self {
+                    description: config.fake_with_rng::<Option<String>, _>(rng).map(Cow::Owned),
+                    language: Language::from_usize((0..=7915).fake()).unwrap(),
+                    lines: fake::vec![(u32, String); 1..=5].into_iter().sorted().collect(),
+                }
+            } else {
+                Self {
+                    description: None,
+                    language: Language::Und,
+                    lines: fake::vec![String; 1..=5].into_iter().collect(),
+                }
+            }
+        }
     }
 }
