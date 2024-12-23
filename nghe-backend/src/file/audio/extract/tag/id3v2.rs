@@ -126,10 +126,7 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
         Ok(get_texts(self, &config.id3v2.languages, config.id3v2.separator)?
             .map(|languages| {
                 languages
-                    .map(|language| {
-                        Language::from_str(language)
-                            .map_err(|_| error::Kind::InvalidLanguageTagFormat(language.to_owned()))
-                    })
+                    .map(|language| Language::from_str(language).map_err(error::Kind::from))
                     .try_collect()
             })
             .transpose()?

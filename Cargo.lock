@@ -54,6 +54,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45862d1c77f2228b9e10bc609d5bc203d86ebc9b87ad8d5d5167a6c9abf739d9"
 
 [[package]]
+name = "alrc"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16ced0c26d68ce42dccdf12adf9c8fb12053a71f982d71c2bc4b0a767e0eb0fb"
+dependencies = [
+ "lazy_static",
+ "nom",
+ "regex",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2651,6 +2662,7 @@ dependencies = [
 name = "nghe_backend"
 version = "0.9.10"
 dependencies = [
+ "alrc",
  "async-walkdir",
  "aws-config",
  "aws-sdk-s3",

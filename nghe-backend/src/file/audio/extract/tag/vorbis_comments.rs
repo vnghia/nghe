@@ -110,10 +110,7 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<isolang::Language>, Error> {
         Ok(self
             .get_all(&config.vorbis_comments.languages)
-            .map(|language| {
-                Language::from_str(language)
-                    .map_err(|_| error::Kind::InvalidLanguageTagFormat(language.to_owned()))
-            })
+            .map(|language| Language::from_str(language).map_err(error::Kind::from))
             .try_collect()?)
     }
 

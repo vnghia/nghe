@@ -29,6 +29,7 @@ uuid = { workspace = true, features = ["v4"] }
 nghe_api = { path = "../nghe-api" }
 nghe_proc_macro = { path = "../nghe-proc-macro" }
 
+alrc = { version = "0.1.0" }
 async-walkdir = { version = "2.0.0" }
 aws-config = { version = "1.5.10", default-features = false, features = [
   "rt-tokio",

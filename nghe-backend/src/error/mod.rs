@@ -153,10 +153,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     InvalidMbzIdTagFormat(String),
-    #[error("Invalid language tag format with value {0}")]
+    #[error(transparent)]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    InvalidLanguageTagFormat(String),
+    InvalidLanguageTagFormat(#[from] isolang::ParseLanguageError),
     #[error(
         "Could not parse position from track number {track_number:?}, track total \
          {track_total:?}, disc number {disc_number:?} and disc total {disc_total:?}"
@@ -193,6 +193,12 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::NOT_FOUND)]
     #[into(OpensubsonicCode| OpensubsonicCode::TheRequestedDataWasNotFound)]
     MissingCoverArtDirectoryConfig,
+
+    // Lyrics error
+    #[error("Could not parse lyrics from {0}")]
+    #[into(StatusCode| StatusCode::NOT_FOUND)]
+    #[into(OpensubsonicCode| OpensubsonicCode::TheRequestedDataWasNotFound)]
+    InvalidLyricsLrcFormat(String),
 
     // Rspotify error
     #[error("Invalid spotify id format with value {0}")]
