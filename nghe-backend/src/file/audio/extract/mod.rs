@@ -14,7 +14,7 @@ pub trait Metadata<'a> {
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error>;
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error>;
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error>;
-    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error>;
+    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error>;
 
     fn metadata(&'a self, config: &'a config::Parsing) -> Result<super::Metadata<'a>, Error> {
         Ok(super::Metadata {
@@ -78,7 +78,7 @@ impl<'a> Metadata<'a> for File {
         }
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
         match self {
             File::Flac { audio, .. } => audio.picture(),
             File::Mpeg { audio, .. } => audio.picture(),

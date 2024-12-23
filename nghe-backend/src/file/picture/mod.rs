@@ -6,9 +6,8 @@ use diesel_async::RunQueryDsl;
 use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
-use o2o::o2o;
 use strum::{EnumString, IntoStaticStr};
-use typed_path::{Utf8PlatformPath, Utf8TypedPath, Utf8TypedPathBuf};
+use typed_path::{Utf8PlatformPath, Utf8TypedPath};
 use uuid::Uuid;
 
 use super::Property;
@@ -33,23 +32,18 @@ use crate::{Error, config, error, filesystem};
 )]
 #[diesel(sql_type = Text)]
 #[strum(serialize_all = "lowercase")]
-#[cfg_attr(test, derive(fake::Dummy, o2o, strum::EnumIter))]
+#[cfg_attr(test, derive(fake::Dummy, o2o::o2o, strum::EnumIter))]
 #[cfg_attr(test, owned_into(MimeType))]
 pub enum Format {
     Png,
     Jpeg,
 }
 
-#[derive(o2o, Educe)]
+#[derive(Educe)]
 #[educe(Debug)]
-#[ref_into(cover_arts::Upsert<'s>)]
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
-pub struct Picture<'s, 'd> {
-    #[into(~.as_ref().map(|value| value.as_str().into()))]
-    pub source: Option<Cow<'s, str>>,
-    #[into(~.into())]
+pub struct Picture<'d> {
     pub property: Property<Format>,
-    #[ghost]
     #[educe(Debug(ignore))]
     pub data: Cow<'d, [u8]>,
 }
@@ -79,30 +73,25 @@ impl format::Trait for Format {
     }
 }
 
-impl<'d> TryFrom<&'d LoftyPicture> for Picture<'static, 'd> {
+impl<'d> TryFrom<&'d LoftyPicture> for Picture<'d> {
     type Error = Error;
 
     fn try_from(value: &'d LoftyPicture) -> Result<Self, Self::Error> {
         Picture::new(
-            None,
             value.mime_type().ok_or_else(|| error::Kind::MissingPictureFormat)?.try_into()?,
             value.data(),
         )
     }
 }
 
-impl<'s, 'd> Picture<'s, 'd> {
+impl<'d> Picture<'d> {
     pub const FILENAME: &'static str = "cover_art";
     pub const TEST_DESCRIPTION: &'static str = "nghe-picture-test-description";
 
-    fn new(
-        source: Option<Cow<'s, str>>,
-        format: Format,
-        data: impl Into<Cow<'d, [u8]>>,
-    ) -> Result<Self, Error> {
+    fn new(format: Format, data: impl Into<Cow<'d, [u8]>>) -> Result<Self, Error> {
         let data = data.into();
         let property = Property::new(format, &data)?;
-        Ok(Self { source, property, data })
+        Ok(Self { property, data })
     }
 
     pub async fn dump(&self, dir: impl AsRef<Utf8PlatformPath>) -> Result<(), Error> {
@@ -119,18 +108,22 @@ impl<'s, 'd> Picture<'s, 'd> {
         &self,
         database: &Database,
         dir: impl AsRef<Utf8PlatformPath>,
+        source: Option<impl AsRef<str>>,
     ) -> Result<Uuid, Error> {
         self.dump(dir).await?;
-        let upsert: cover_arts::Upsert = self.into();
+        let upsert = cover_arts::Upsert {
+            source: source.as_ref().map(AsRef::as_ref).map(Cow::Borrowed),
+            property: self.property.into(),
+        };
         upsert.insert(database).await
     }
 
     pub async fn query_source(
         database: &Database,
-        path: impl AsRef<str>,
+        source: impl AsRef<str>,
     ) -> Result<Option<Uuid>, Error> {
         cover_arts::table
-            .filter(cover_arts::source.eq(path.as_ref()))
+            .filter(cover_arts::source.eq(source.as_ref()))
             .select(cover_arts::id)
             .get_result(&mut database.get().await?)
             .await
@@ -148,10 +141,11 @@ impl<'s, 'd> Picture<'s, 'd> {
         if let Some(ref art_dir) = config.dir {
             for name in &config.names {
                 let path = dir.join(name);
-                if !full && let Some(picture_id) = Self::query_source(database, &path).await? {
+                let path = path.to_path();
+                if !full && let Some(picture_id) = Self::query_source(database, path).await? {
                     return Ok(Some(picture_id));
                 } else if let Some(picture) = Picture::load(filesystem, path).await? {
-                    return Ok(Some(picture.upsert(database, art_dir).await?));
+                    return Ok(Some(picture.upsert(database, art_dir, Some(path)).await?));
                 }
             }
         }
@@ -159,12 +153,11 @@ impl<'s, 'd> Picture<'s, 'd> {
     }
 }
 
-impl Picture<'static, 'static> {
+impl Picture<'static> {
     pub async fn load(
         filesystem: &filesystem::Impl<'_>,
-        source: Utf8TypedPathBuf,
+        path: Utf8TypedPath<'_>,
     ) -> Result<Option<Self>, Error> {
-        let path = source.to_path();
         if filesystem.exists(path).await? {
             let format = {
                 let format = path
@@ -175,19 +168,15 @@ impl Picture<'static, 'static> {
                     .map_err(|_| error::Kind::UnsupportedPictureFormat(format.to_owned()))?
             };
             let data = filesystem.read(path).await?;
-            return Ok(Some(Picture::new(Some(source.into_string().into()), format, data)?));
+            return Ok(Some(Picture::new(format, data)?));
         }
         Ok(None)
     }
 }
 
-impl<'s> Picture<'s, 'static> {
-    pub async fn fetch(
-        client: &reqwest::Client,
-        source: impl Into<Cow<'s, str>>,
-    ) -> Result<Self, Error> {
-        let source = source.into();
-        let response = client.get(source.as_str()).send().await?.error_for_status()?;
+impl Picture<'static> {
+    pub async fn fetch(client: &reqwest::Client, url: impl AsRef<str>) -> Result<Self, Error> {
+        let response = client.get(url.as_ref()).send().await?.error_for_status()?;
         let content_type = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
@@ -198,7 +187,7 @@ impl<'s> Picture<'s, 'static> {
             .and_then(|(ty, subtype)| if ty == "image" { subtype.parse().ok() } else { None })
             .ok_or_else(|| error::Kind::UnsupportedPictureFormat(content_type.to_owned()))?;
         let data = response.bytes().await?;
-        Picture::new(Some(source), format, data.to_vec())
+        Picture::new(format, data.to_vec())
     }
 }
 
@@ -227,7 +216,7 @@ mod test {
         }
     }
 
-    impl Dummy<Faker> for Picture<'_, '_> {
+    impl Dummy<Faker> for Picture<'_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
             let format: Format = config.fake_with_rng(rng);
 
@@ -244,12 +233,12 @@ mod test {
             .unwrap();
             cursor.set_position(0);
 
-            Self::new(None, format, cursor.into_inner()).unwrap()
+            Self::new(format, cursor.into_inner()).unwrap()
         }
     }
 
-    impl From<Picture<'_, '_>> for LoftyPicture {
-        fn from(value: Picture<'_, '_>) -> Self {
+    impl From<Picture<'_>> for LoftyPicture {
+        fn from(value: Picture<'_>) -> Self {
             Self::new_unchecked(
                 PictureType::Other,
                 Some(value.property.format.into()),
@@ -259,27 +248,21 @@ mod test {
         }
     }
 
-    impl Picture<'_, '_> {
-        pub async fn upsert_mock(&self, mock: &Mock) -> Uuid {
-            self.upsert(mock.database(), mock.config.cover_art.dir.as_ref().unwrap()).await.unwrap()
+    impl Picture<'_> {
+        pub async fn upsert_mock(&self, mock: &Mock, source: Option<impl AsRef<str>>) -> Uuid {
+            self.upsert(mock.database(), mock.config.cover_art.dir.as_ref().unwrap(), source)
+                .await
+                .unwrap()
         }
 
-        pub async fn dump_filesystem(&self, filesystem: &filesystem::Impl<'_>) {
-            filesystem
-                .write(filesystem.path().from_str(self.source.as_ref().unwrap()), &self.data)
-                .await;
-        }
-    }
-
-    impl<'s> Picture<'s, '_> {
         async fn load_cache(
             dir: impl AsRef<Utf8PlatformPath>,
-            upsert: cover_arts::Upsert<'s>,
+            upsert: cover_arts::Upsert<'_>,
         ) -> Self {
             let property: file::Property<Format> = upsert.property.try_into().unwrap();
             let path = property.path(dir, Self::FILENAME);
             let data = tokio::fs::read(path).await.unwrap();
-            Self { source: upsert.source, property, data: data.into() }
+            Self { property, data: data.into() }
         }
 
         pub async fn query_song(mock: &Mock, id: Uuid) -> Option<Self> {
@@ -321,36 +304,22 @@ mod test {
                 None
             }
         }
-
-        pub fn with_source(self, source: Option<impl Into<Cow<'s, str>>>) -> Self {
-            Self { source: source.map(std::convert::Into::into), ..self }
-        }
     }
 
-    impl Picture<'static, 'static> {
+    impl Picture<'static> {
         pub async fn scan_filesystem(
             filesystem: &filesystem::Impl<'_>,
             config: &config::CoverArt,
             dir: Utf8TypedPath<'_>,
         ) -> Option<Self> {
             for name in &config.names {
-                let path = dir.join(name);
-                if let Some(picture) = Self::load(&filesystem.main(), path).await.unwrap() {
+                if let Some(picture) =
+                    Self::load(&filesystem.main(), dir.join(name).to_path()).await.unwrap()
+                {
                     return Some(picture);
                 }
             }
             None
-        }
-
-        pub async fn fake_filesystem(filesystem: &filesystem::Impl<'_>, format: Format) -> Self {
-            let path = filesystem.prefix().join(format.name());
-            let picture = Picture {
-                source: Some(path.to_string().into()),
-                property: Property { format, ..Faker.fake() },
-                data: fake::vec![u8; 100..200].into(),
-            };
-            filesystem.write(path.to_path(), &picture.data).await;
-            picture
         }
     }
 }
@@ -376,10 +345,13 @@ mod tests {
         let music_folder = mock.music_folder(0).await;
         let filesystem = music_folder.to_impl();
         let format: Format = Faker.fake();
+        let path = filesystem.prefix().join(format.name());
+        let path = path.to_path();
 
-        let picture = Picture::fake_filesystem(&filesystem, format).await;
-        let picture_id = picture.upsert_mock(&mock).await;
-        Picture::fake_filesystem(&filesystem, format).await;
+        let picture = Picture { data: fake::vec![u8; 100].into(), ..Faker.fake() };
+        let picture_id = picture.upsert_mock(&mock, Some(&path)).await;
+        filesystem.write(path, &picture.data).await;
+        filesystem.write(path, &fake::vec![u8; 100]).await;
 
         let scanned_picture_id = Picture::scan(
             mock.database(),

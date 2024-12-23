@@ -57,7 +57,7 @@ impl Information<'_> {
             if let Some(ref picture) = self.metadata.picture
                 && let Some(dir) = dir
             {
-                Some(picture.upsert(database, dir).await?)
+                Some(picture.upsert(database, dir, None::<&str>).await?)
             } else {
                 None
             },

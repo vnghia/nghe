@@ -48,7 +48,7 @@ default impl<T: TagMut> Metadata for T {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
         self.tag_mut().dump_picture(picture);
         self
     }
@@ -62,7 +62,7 @@ impl TagMut for FlacFile {
 }
 
 impl Metadata for FlacFile {
-    fn dump_picture(&mut self, picture: Option<Picture<'_, '_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
         if let Some(picture) = picture {
             self.insert_picture(picture.into(), None).unwrap();
         }

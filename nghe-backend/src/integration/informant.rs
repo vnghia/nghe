@@ -40,15 +40,18 @@ impl Informant {
         &self,
         database: &Database,
         dir: Option<&impl AsRef<Utf8PlatformPath>>,
-        source: Option<impl Into<Cow<'_, str>>>,
+        url: Option<impl AsRef<str>>,
     ) -> Result<Option<Uuid>, Error> {
         Ok(
             if let Some(dir) = dir
-                && let Some(source) = source
+                && let Some(url) = url.as_ref()
             {
-                // TODO: Checking source before upserting.
-                let picture = picture::Picture::fetch(&self.reqwest, source).await?;
-                Some(picture.upsert(database, dir).await?)
+                if let Some(picture_id) = picture::Picture::query_source(database, url).await? {
+                    Some(picture_id)
+                } else {
+                    let picture = picture::Picture::fetch(&self.reqwest, url).await?;
+                    Some(picture.upsert(database, dir, Some(url)).await?)
+                }
             } else {
                 None
             },

@@ -55,7 +55,7 @@ impl<'a> Artist<'a> {
     }
 }
 
-impl<'a> Picture<'static, 'a> {
+impl<'a> Picture<'a> {
     pub fn extrat_ogg_picture_storage(
         tag: &'a impl OggPictureStorage,
     ) -> Result<Option<Self>, Error> {
@@ -121,7 +121,7 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
         Ok(self.get_all(&config.vorbis_comments.genres).collect())
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'static, 'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
         Picture::extrat_ogg_picture_storage(self)
     }
 }
