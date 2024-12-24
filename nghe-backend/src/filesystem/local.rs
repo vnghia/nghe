@@ -95,6 +95,10 @@ impl super::Trait for Filesystem {
         tokio::fs::read(path.as_str()).await.map_err(Error::from)
     }
 
+    async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+        tokio::fs::read_to_string(path.as_str()).await.map_err(Error::from)
+    }
+
     async fn read_to_binary(
         &self,
         source: &binary::Source<file::Property<audio::Format>>,

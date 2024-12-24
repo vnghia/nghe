@@ -42,6 +42,7 @@ pub trait Trait {
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error>;
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error>;
+    async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error>;
     async fn read_to_binary(
         &self,
         source: &binary::Source<file::Property<audio::Format>>,
@@ -81,6 +82,13 @@ impl Trait for Impl<'_> {
         match self {
             Impl::Local(filesystem) => filesystem.read(path).await,
             Impl::S3(filesystem) => filesystem.read(path).await,
+        }
+    }
+
+    async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+        match self {
+            Impl::Local(filesystem) => filesystem.read_to_string(path).await,
+            Impl::S3(filesystem) => filesystem.read_to_string(path).await,
         }
     }
 

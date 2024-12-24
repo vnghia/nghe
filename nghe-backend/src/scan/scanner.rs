@@ -41,6 +41,7 @@ pub struct Scanner<'db, 'fs, 'mf> {
 }
 
 impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
+    #[coverage(off)]
     pub async fn new(
         database: &'db Database,
         filesystem: &'fs Filesystem,

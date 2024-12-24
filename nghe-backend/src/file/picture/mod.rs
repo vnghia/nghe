@@ -172,9 +172,7 @@ impl Picture<'static> {
         }
         Ok(None)
     }
-}
 
-impl Picture<'static> {
     pub async fn fetch(client: &reqwest::Client, url: impl AsRef<str>) -> Result<Self, Error> {
         let response = client.get(url.as_ref()).send().await?.error_for_status()?;
         let content_type = response
