@@ -30,7 +30,6 @@ pub struct Lyrics<'a> {
 #[cfg_attr(test, derive(Queryable, Selectable))]
 pub struct Key<'a> {
     pub description: Cow<'a, str>,
-    pub external: bool,
 }
 
 #[derive(Debug, Insertable)]
@@ -38,6 +37,7 @@ pub struct Key<'a> {
 #[diesel(treat_none_as_null = true)]
 pub struct Foreign {
     pub song_id: Uuid,
+    pub external: bool,
 }
 
 #[derive(Debug, Insertable)]
@@ -59,4 +59,67 @@ pub struct Upsert<'a> {
     pub foreign: Foreign,
     #[diesel(embed)]
     pub data: Data<'a>,
+}
+
+mod upsert {
+    use diesel::ExpressionMethods;
+    use diesel_async::RunQueryDsl;
+
+    use super::{Upsert, lyrics};
+    use crate::Error;
+    use crate::database::Database;
+
+    impl Upsert<'_> {
+        pub async fn upsert(&self, database: &Database) -> Result<(), Error> {
+            diesel::insert_into(lyrics::table)
+                .values(self)
+                .on_conflict((lyrics::song_id, lyrics::external, lyrics::description))
+                .do_update()
+                .set((&self.data.lyrics, lyrics::scanned_at.eq(crate::time::now().await)))
+                .execute(&mut database.get().await?)
+                .await?;
+            Ok(())
+        }
+    }
+}
+
+mod convert {
+    use crate::Error;
+    use crate::file::lyrics::{Lines, Lyrics};
+    use crate::orm::lyrics;
+
+    impl<'a> TryFrom<&'a Lyrics<'_>> for lyrics::Data<'a> {
+        type Error = Error;
+
+        fn try_from(value: &'a Lyrics<'_>) -> Result<Self, Error> {
+            let (line_starts, line_values) = match &value.lines {
+                Lines::Unsync(lines) => {
+                    (None, lines.iter().map(|line| line.as_str().into()).collect())
+                }
+                Lines::Sync(lines) => {
+                    let (durations, texts) = lines
+                        .iter()
+                        .map(|(duration, text)| {
+                            Ok::<_, Error>(((*duration).try_into()?, text.as_str().into()))
+                        })
+                        .try_collect::<Vec<(i32, _)>>()?
+                        .into_iter()
+                        .unzip();
+                    (Some(durations), texts)
+                }
+            };
+            let lyrics = lyrics::Lyrics {
+                language: value.language.to_639_3().into(),
+                line_starts,
+                line_values,
+            };
+            let key = lyrics::Key {
+                description: value
+                    .description
+                    .as_ref()
+                    .map_or_else(|| "".into(), |description| description.as_str().into()),
+            };
+            Ok(Self { key, lyrics })
+        }
+    }
 }

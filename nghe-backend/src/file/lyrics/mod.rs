@@ -10,7 +10,6 @@ use lofty::id3::v2::{BinaryFrame, SynchronizedTextFrame, UnsynchronizedTextFrame
 use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
-use super::audio;
 use crate::database::Database;
 use crate::filesystem::Trait as _;
 use crate::orm::{lyrics, songs};
@@ -20,7 +19,7 @@ use crate::{Error, error, filesystem};
 #[cfg_attr(test, derive(PartialEq, Eq, Clone))]
 pub enum Lines<'a> {
     Unsync(Vec<Cow<'a, str>>),
-    Sync(Vec<(audio::Duration, Cow<'a, str>)>),
+    Sync(Vec<(u32, Cow<'a, str>)>),
 }
 
 #[derive(Debug)]
@@ -37,19 +36,9 @@ impl<'a> FromIterator<&'a str> for Lines<'a> {
     }
 }
 
-impl FromIterator<(time::Duration, String)> for Lines<'_> {
-    fn from_iter<T: IntoIterator<Item = (time::Duration, String)>>(iter: T) -> Self {
-        Self::Sync(
-            iter.into_iter().map(|(duration, text)| (duration.into(), text.into())).collect(),
-        )
-    }
-}
-
 impl FromIterator<(u32, String)> for Lines<'_> {
     fn from_iter<T: IntoIterator<Item = (u32, String)>>(iter: T) -> Self {
-        iter.into_iter()
-            .map(|(duration, text)| (time::Duration::milliseconds(duration.into()), text))
-            .collect()
+        Self::Sync(iter.into_iter().map(|(duration, text)| (duration, text.into())).collect())
     }
 }
 
@@ -100,13 +89,10 @@ impl<'a> Lyrics<'a> {
                 .lines
                 .into_iter()
                 .map(|line| {
-                    let minutes: i64 = line.time.minutes.into();
-                    let seconds: i64 = line.time.seconds.into();
-                    let milliseconds: i64 = line.time.millis.unwrap_or_default().into();
-                    let duration = time::Duration::milliseconds(
-                        minutes * 60 * 1000 + seconds * 1000 + milliseconds * 10,
-                    );
-                    (duration, line.text)
+                    let minutes: u32 = line.time.minutes.into();
+                    let seconds: u32 = line.time.seconds.into();
+                    let milliseconds: u32 = line.time.millis.unwrap_or_default().into();
+                    (minutes * 60 * 1000 + seconds * 1000 + milliseconds * 10, line.text)
                 })
                 .collect(),
         })
@@ -114,6 +100,12 @@ impl<'a> Lyrics<'a> {
 }
 
 impl Lyrics<'_> {
+    pub const EXTERNAL_EXTENSION: &'static str = "lrc";
+
+    pub async fn upsert(&self, database: &Database, foreign: lyrics::Foreign) -> Result<(), Error> {
+        lyrics::Upsert { foreign, data: self.try_into()? }.upsert(database).await
+    }
+
     pub async fn query_external(database: &Database, song_id: Uuid) -> Result<bool, Error> {
         select(exists(
             lyrics::table
@@ -144,12 +136,14 @@ impl Lyrics<'_> {
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
-        if !full && Self::query_external(database, song_id).await? {
-            Ok(())
-        } else {
-            let lyrics = Self::load(filesystem, song_path.with_extension("lrc").to_path()).await?;
-            Ok(())
+        if (full || !Self::query_external(database, song_id).await?)
+            && let Some(lyrics) =
+                Self::load(filesystem, song_path.with_extension(Self::EXTERNAL_EXTENSION).to_path())
+                    .await?
+        {
+            lyrics.upsert(database, lyrics::Foreign { song_id, external: true }).await?;
         }
+        Ok(())
     }
 }
 
@@ -220,10 +214,10 @@ mod test {
                     writeln!(f, "[lang:{}]\n", self.language)?;
 
                     for (duration, text) in lines {
-                        let seconds = duration.0.whole_seconds();
+                        let seconds = duration / 1000;
                         let minutes = seconds / 60;
                         let seconds = seconds % 60;
-                        let milliseconds = duration.0.subsec_milliseconds() / 10;
+                        let milliseconds = (duration % 1000) / 10;
                         write!(f, "[{minutes:02}:{seconds:02}.{milliseconds:02}]")?;
                         writeln!(f, "{text}")?;
                     }
