@@ -156,6 +156,10 @@ impl super::Trait for Filesystem {
             .map_err(Error::from)
     }
 
+    async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+        String::from_utf8(self.read(path).await?).map_err(Error::from)
+    }
+
     async fn read_to_binary(
         &self,
         source: &binary::Source<file::Property<audio::Format>>,

@@ -68,6 +68,13 @@ impl filesystem::Trait for Impl<'_> {
         }
     }
 
+    async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+        match self {
+            Impl::Local(filesystem) => filesystem.read_to_string(path).await,
+            Impl::S3(filesystem) => filesystem.read_to_string(path).await,
+        }
+    }
+
     async fn read_to_binary(
         &self,
         source: &binary::Source<file::Property<audio::Format>>,

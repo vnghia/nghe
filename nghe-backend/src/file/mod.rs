@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod lyrics;
 pub mod picture;
 
 use std::num::{NonZero, NonZeroU32, NonZeroU64};

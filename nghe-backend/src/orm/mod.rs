@@ -7,6 +7,7 @@ pub mod cover_arts;
 pub mod function;
 pub mod genres;
 pub mod id3;
+pub mod lyrics;
 pub mod music_folders;
 pub mod permission;
 pub mod playbacks;

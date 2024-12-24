@@ -98,14 +98,12 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
-    lyrics (song_id, description, language, external) {
+    lyrics (song_id, description, external) {
         song_id -> Uuid,
         description -> Text,
         language -> Text,
         line_values -> Array<Nullable<Text>>,
         line_starts -> Nullable<Array<Nullable<Int4>>>,
-        lyric_hash -> Int8,
-        lyric_size -> Int4,
         external -> Bool,
         updated_at -> Timestamptz,
         scanned_at -> Timestamptz,

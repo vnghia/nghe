@@ -21,12 +21,7 @@ pub struct Song<'a> {
     #[map(~.try_into()?)]
     pub track_disc: position::TrackDisc,
     #[from(~.into_iter().map(
-        |language| language
-            .as_str()
-            .parse()
-            .map_err(
-                |_| error::Kind::InvalidLanguageTagFormat(language.into_owned())
-            )
+        |language| language.as_str().parse().map_err(error::Kind::from)
     ).try_collect()?)]
     #[into(~.iter().map(|language| language.to_639_3().into()).collect())]
     #[cfg_attr(

@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
 use diesel::prelude::*;
-pub use genres::*;
 
-pub use crate::schema::genres;
+pub use crate::schema::{genres, *};
 
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = genres)]

@@ -113,7 +113,7 @@ pub async fn build(config: config::Config) -> Router {
                     tracing::info_span!(nghe_api::constant::SERVER_NAME, trace = %id)
                 })
                 .on_request(|request: &axum::extract::Request, _: &tracing::Span| {
-                    tracing::info!(method = request.method().as_str(), path = request.uri().path());
+                    tracing::info!(method = request.method().as_str(), path = ?request.uri());
                 })
                 .on_response(
                     |response: &axum::response::Response,

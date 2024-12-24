@@ -48,6 +48,10 @@ impl filesystem::Trait for Mock {
         self.filesystem.read(path).await
     }
 
+    async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+        self.filesystem.read_to_string(path).await
+    }
+
     async fn read_to_binary(
         &self,
         source: &binary::Source<file::Property<audio::Format>>,
