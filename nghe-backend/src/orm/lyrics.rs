@@ -12,7 +12,7 @@ pub use crate::schema::lyrics::{self, *};
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = lyrics, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-pub struct Data<'a> {
+pub struct Lyrics<'a> {
     pub language: Cow<'a, str>,
     #[diesel(select_expression = sql("lyrics.line_starts line_starts"))]
     #[diesel(select_expression_type =
@@ -29,7 +29,6 @@ pub struct Data<'a> {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[cfg_attr(test, derive(Queryable, Selectable))]
 pub struct Key<'a> {
-    pub song_id: Uuid,
     pub description: Cow<'a, str>,
     pub external: bool,
 }
@@ -37,10 +36,27 @@ pub struct Key<'a> {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = lyrics, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
+pub struct Foreign {
+    pub song_id: Uuid,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = lyrics, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
 #[cfg_attr(test, derive(Queryable, Selectable))]
-pub struct Upsert<'a> {
+pub struct Data<'a> {
     #[diesel(embed)]
     pub key: Key<'a>,
+    #[diesel(embed)]
+    pub lyrics: Lyrics<'a>,
+}
+
+#[derive(Debug, Insertable)]
+#[diesel(table_name = lyrics, check_for_backend(crate::orm::Type))]
+#[diesel(treat_none_as_null = true)]
+pub struct Upsert<'a> {
+    #[diesel(embed)]
+    pub foreign: Foreign,
     #[diesel(embed)]
     pub data: Data<'a>,
 }

@@ -2,11 +2,19 @@ use core::str;
 use std::borrow::Cow;
 
 use alrc::AdvancedLrc;
+use diesel::dsl::{exists, select};
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use isolang::Language;
 use lofty::id3::v2::{BinaryFrame, SynchronizedTextFrame, UnsynchronizedTextFrame};
+use typed_path::Utf8TypedPath;
+use uuid::Uuid;
 
 use super::audio;
-use crate::{Error, error};
+use crate::database::Database;
+use crate::filesystem::Trait as _;
+use crate::orm::{lyrics, songs};
+use crate::{Error, error, filesystem};
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq, Clone))]
@@ -102,6 +110,46 @@ impl<'a> Lyrics<'a> {
                 })
                 .collect(),
         })
+    }
+}
+
+impl Lyrics<'_> {
+    pub async fn query_external(database: &Database, song_id: Uuid) -> Result<bool, Error> {
+        select(exists(
+            lyrics::table
+                .inner_join(songs::table)
+                .filter(lyrics::external)
+                .filter(songs::id.eq(song_id)),
+        ))
+        .get_result(&mut database.get().await?)
+        .await
+        .map_err(Error::from)
+    }
+
+    pub async fn load(
+        filesystem: &filesystem::Impl<'_>,
+        path: Utf8TypedPath<'_>,
+    ) -> Result<Option<Self>, Error> {
+        if filesystem.exists(path).await? {
+            let content = filesystem.read_to_string(path).await?;
+            return Ok(Some(Self::from_sync_text(&content)?));
+        }
+        Ok(None)
+    }
+
+    pub async fn scan(
+        database: &Database,
+        filesystem: &filesystem::Impl<'_>,
+        full: bool,
+        song_id: Uuid,
+        song_path: Utf8TypedPath<'_>,
+    ) -> Result<(), Error> {
+        if !full && Self::query_external(database, song_id).await? {
+            Ok(())
+        } else {
+            let lyrics = Self::load(filesystem, song_path.with_extension("lrc").to_path()).await?;
+            Ok(())
+        }
     }
 }
 
