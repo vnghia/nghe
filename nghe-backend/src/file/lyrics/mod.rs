@@ -105,12 +105,6 @@ impl<'a> Lyrics<'a> {
     }
 }
 
-impl Lyrics<'_> {
-    pub fn is_sync(&self) -> bool {
-        matches!(self.lines, Lines::Sync(_))
-    }
-}
-
 #[cfg(test)]
 #[coverage(off)]
 mod test {
@@ -127,33 +121,43 @@ mod test {
         }
     }
 
+    impl Lyrics<'_> {
+        pub fn is_sync(&self) -> bool {
+            matches!(self.lines, Lines::Sync(_))
+        }
+
+        pub fn fake_sync() -> Self {
+            Self {
+                description: Faker.fake::<Option<String>>().map(Cow::Owned),
+                language: Language::from_usize((0..=7915).fake()).unwrap(),
+                lines: fake::vec![String; 1..=5]
+                    .into_iter()
+                    .map(|text| {
+                        (
+                            (((0..100).fake::<u32>() * 60 * 100
+                                + (0..60).fake::<u32>() * 100
+                                + (0..99).fake::<u32>())
+                                * 10),
+                            text,
+                        )
+                    })
+                    .sorted()
+                    .collect(),
+            }
+        }
+
+        pub fn fake_unsync() -> Self {
+            Self {
+                description: None,
+                language: Language::Und,
+                lines: fake::vec![String; 1..=5].into_iter().collect(),
+            }
+        }
+    }
+
     impl Dummy<Faker> for Lyrics<'_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
-            if config.fake_with_rng(rng) {
-                Self {
-                    description: config.fake_with_rng::<Option<String>, _>(rng).map(Cow::Owned),
-                    language: Language::from_usize((0..=7915).fake()).unwrap(),
-                    lines: fake::vec![String; 1..=5]
-                        .into_iter()
-                        .map(|text| {
-                            (
-                                (((0..100).fake::<u32>() * 60 * 100
-                                    + (0..60).fake::<u32>() * 100
-                                    + (0..99).fake::<u32>())
-                                    * 10),
-                                text,
-                            )
-                        })
-                        .sorted()
-                        .collect(),
-                }
-            } else {
-                Self {
-                    description: None,
-                    language: Language::Und,
-                    lines: fake::vec![String; 1..=5].into_iter().collect(),
-                }
-            }
+            if config.fake_with_rng(rng) { Self::fake_sync() } else { Self::fake_unsync() }
         }
     }
 
@@ -186,18 +190,18 @@ mod test {
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
-    use fake::{Fake, Faker};
     use rstest::rstest;
 
     use super::*;
     use crate::test::assets;
 
     #[rstest]
-    fn test_lyrics_roundtrip() {
-        let lyrics: Lyrics<'_> = Faker.fake();
-        if lyrics.is_sync() {
+    fn test_lyrics_roundtrip(#[values(true, false)] sync: bool) {
+        if sync {
+            let lyrics = Lyrics::fake_sync();
             assert_eq!(lyrics, Lyrics::from_sync_text(&lyrics.to_string()).unwrap());
         } else {
+            let lyrics = Lyrics::fake_unsync();
             assert_eq!(lyrics, Lyrics::from_unsync_text(&lyrics.to_string()));
         }
     }
