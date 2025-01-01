@@ -2,8 +2,7 @@ use core::str;
 use std::borrow::Cow;
 
 use alrc::AdvancedLrc;
-use diesel::dsl::{exists, select};
-use diesel::{ExpressionMethods, QueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension};
 use diesel_async::RunQueryDsl;
 use isolang::Language;
 use lofty::id3::v2::{BinaryFrame, SynchronizedTextFrame, UnsynchronizedTextFrame};
@@ -12,7 +11,8 @@ use uuid::Uuid;
 
 use crate::database::Database;
 use crate::filesystem::Trait as _;
-use crate::orm::{lyrics, songs};
+use crate::orm::lyrics;
+use crate::orm::upsert::Insert;
 use crate::{Error, error, filesystem};
 
 #[derive(Debug)]
@@ -102,20 +102,35 @@ impl<'a> Lyrics<'a> {
 impl Lyrics<'_> {
     pub const EXTERNAL_EXTENSION: &'static str = "lrc";
 
-    pub async fn upsert(&self, database: &Database, foreign: lyrics::Foreign) -> Result<(), Error> {
-        lyrics::Upsert { foreign, data: self.try_into()? }.upsert(database).await
+    pub async fn upsert(
+        &self,
+        database: &Database,
+        foreign: lyrics::Foreign,
+        source: Option<impl AsRef<str>>,
+    ) -> Result<Uuid, Error> {
+        lyrics::Upsert {
+            foreign,
+            source: source.as_ref().map(AsRef::as_ref).map(Cow::Borrowed),
+            data: self.try_into()?,
+        }
+        .insert(database)
+        .await
     }
 
-    pub async fn query_external(database: &Database, song_id: Uuid) -> Result<bool, Error> {
-        select(exists(
-            lyrics::table
-                .inner_join(songs::table)
-                .filter(lyrics::external)
-                .filter(songs::id.eq(song_id)),
-        ))
-        .get_result(&mut database.get().await?)
-        .await
-        .map_err(Error::from)
+    pub async fn set_source_scanned_at(
+        database: &Database,
+        song_id: Uuid,
+        source: impl AsRef<str>,
+    ) -> Result<Option<Uuid>, Error> {
+        diesel::update(lyrics::table)
+            .filter(lyrics::song_id.eq(song_id))
+            .filter(lyrics::source.eq(source.as_ref()))
+            .set(lyrics::scanned_at.eq(crate::time::now().await))
+            .returning(lyrics::id)
+            .get_result(&mut database.get().await?)
+            .await
+            .optional()
+            .map_err(Error::from)
     }
 
     pub async fn load(
@@ -135,15 +150,22 @@ impl Lyrics<'_> {
         full: bool,
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
-    ) -> Result<(), Error> {
-        if (full || !Self::query_external(database, song_id).await?)
-            && let Some(lyrics) =
-                Self::load(filesystem, song_path.with_extension(Self::EXTERNAL_EXTENSION).to_path())
-                    .await?
-        {
-            lyrics.upsert(database, lyrics::Foreign { song_id, external: true }).await?;
-        }
-        Ok(())
+    ) -> Result<Option<Uuid>, Error> {
+        let path = song_path.with_extension(Self::EXTERNAL_EXTENSION);
+        let path = path.to_path();
+
+        Ok(
+            if !full
+                && let Some(lyrics_id) =
+                    Self::set_source_scanned_at(database, song_id, path).await?
+            {
+                Some(lyrics_id)
+            } else if let Some(lyrics) = Self::load(filesystem, path).await? {
+                Some(lyrics.upsert(database, lyrics::Foreign { song_id }, Some(path)).await?)
+            } else {
+                None
+            },
+        )
     }
 }
 

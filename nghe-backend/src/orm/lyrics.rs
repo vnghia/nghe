@@ -12,24 +12,17 @@ pub use crate::schema::lyrics::{self, *};
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset)]
 #[diesel(table_name = lyrics, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-pub struct Lyrics<'a> {
+pub struct Data<'a> {
+    pub description: Option<Cow<'a, str>>,
     pub language: Cow<'a, str>,
-    #[diesel(select_expression = sql("lyrics.line_starts line_starts"))]
+    #[diesel(select_expression = sql("lyrics.durations durations"))]
     #[diesel(select_expression_type =
         SqlLiteral<sql_types::Nullable<sql_types::Array<sql_types::Integer>>>
     )]
-    pub line_starts: Option<Vec<i32>>,
-    #[diesel(select_expression = sql("lyrics.line_values line_values"))]
+    pub durations: Option<Vec<i32>>,
+    #[diesel(select_expression = sql("lyrics.texts texts"))]
     #[diesel(select_expression_type = SqlLiteral<sql_types::Array<sql_types::Text>>)]
-    pub line_values: Vec<Cow<'a, str>>,
-}
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = lyrics)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-#[cfg_attr(test, derive(Queryable, Selectable))]
-pub struct Key<'a> {
-    pub description: Cow<'a, str>,
+    pub texts: Vec<Cow<'a, str>>,
 }
 
 #[derive(Debug, Insertable)]
@@ -37,18 +30,6 @@ pub struct Key<'a> {
 #[diesel(treat_none_as_null = true)]
 pub struct Foreign {
     pub song_id: Uuid,
-    pub external: bool,
-}
-
-#[derive(Debug, Insertable)]
-#[diesel(table_name = lyrics, check_for_backend(crate::orm::Type))]
-#[diesel(treat_none_as_null = true)]
-#[cfg_attr(test, derive(Queryable, Selectable))]
-pub struct Data<'a> {
-    #[diesel(embed)]
-    pub key: Key<'a>,
-    #[diesel(embed)]
-    pub lyrics: Lyrics<'a>,
 }
 
 #[derive(Debug, Insertable)]
@@ -57,33 +38,50 @@ pub struct Data<'a> {
 pub struct Upsert<'a> {
     #[diesel(embed)]
     pub foreign: Foreign,
+    pub source: Option<Cow<'a, str>>,
     #[diesel(embed)]
     pub data: Data<'a>,
 }
 
 mod upsert {
-    use diesel::ExpressionMethods;
+    use diesel::{DecoratableTarget, ExpressionMethods};
     use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
 
     use super::{Upsert, lyrics};
     use crate::Error;
     use crate::database::Database;
 
-    impl Upsert<'_> {
-        pub async fn upsert(&self, database: &Database) -> Result<(), Error> {
-            diesel::insert_into(lyrics::table)
-                .values(self)
-                .on_conflict((lyrics::song_id, lyrics::external, lyrics::description))
-                .do_update()
-                .set((&self.data.lyrics, lyrics::scanned_at.eq(crate::time::now().await)))
-                .execute(&mut database.get().await?)
-                .await?;
-            Ok(())
+    impl crate::orm::upsert::Insert for Upsert<'_> {
+        async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
+            if self.source.is_some() {
+                diesel::insert_into(lyrics::table)
+                    .values(self)
+                    .on_conflict((lyrics::song_id, lyrics::source))
+                    .do_update()
+                    .set((&self.data, lyrics::scanned_at.eq(crate::time::now().await)))
+                    .returning(lyrics::id)
+                    .get_result(&mut database.get().await?)
+                    .await
+            } else {
+                diesel::insert_into(lyrics::table)
+                    .values(self)
+                    .on_conflict((lyrics::song_id, lyrics::description))
+                    .filter_target(lyrics::source.is_null())
+                    .do_update()
+                    .set((&self.data, lyrics::scanned_at.eq(crate::time::now().await)))
+                    .returning(lyrics::id)
+                    .get_result(&mut database.get().await?)
+                    .await
+            }
+            .map_err(Error::from)
         }
     }
 }
 
 mod convert {
+    use std::borrow::Cow;
+
     use crate::Error;
     use crate::file::lyrics::{Lines, Lyrics};
     use crate::orm::lyrics;
@@ -92,7 +90,7 @@ mod convert {
         type Error = Error;
 
         fn try_from(value: &'a Lyrics<'_>) -> Result<Self, Error> {
-            let (line_starts, line_values) = match &value.lines {
+            let (durations, texts) = match &value.lines {
                 Lines::Unsync(lines) => {
                     (None, lines.iter().map(|line| line.as_str().into()).collect())
                 }
@@ -108,18 +106,12 @@ mod convert {
                     (Some(durations), texts)
                 }
             };
-            let lyrics = lyrics::Lyrics {
+            Ok(Self {
+                description: value.description.as_deref().map(Cow::Borrowed),
                 language: value.language.to_639_3().into(),
-                line_starts,
-                line_values,
-            };
-            let key = lyrics::Key {
-                description: value
-                    .description
-                    .as_ref()
-                    .map_or_else(|| "".into(), |description| description.as_str().into()),
-            };
-            Ok(Self { key, lyrics })
+                durations,
+                texts,
+            })
         }
     }
 }
