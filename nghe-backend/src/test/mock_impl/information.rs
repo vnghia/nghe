@@ -7,8 +7,8 @@ use fake::{Fake, Faker};
 use uuid::Uuid;
 
 use super::music_folder;
-use crate::file::{self, audio, lyrics, picture};
-use crate::orm::{albums, songs};
+use crate::file::{self, audio, lyric, picture};
+use crate::orm::{albums, lyrics, songs};
 use crate::test::assets;
 use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::Trait as _;
@@ -17,7 +17,7 @@ use crate::test::filesystem::Trait as _;
 pub struct Mock<'info, 'picture, 'lyrics, 'path> {
     pub information: audio::Information<'info>,
     pub dir_picture: Option<picture::Picture<'picture>>,
-    pub lyrics: Option<lyrics::Lyrics<'lyrics>>,
+    pub lyrics: Option<lyric::Lyrics<'lyrics>>,
     pub relative_path: Cow<'path, str>,
 }
 
@@ -44,7 +44,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         let genres = audio::Genres::query(mock, id).await;
         let picture = picture::Picture::query_song(mock, id).await;
 
-        let lyrics = lyrics::Lyrics::query_source(mock, id).await;
+        let lyrics = lyric::Lyrics::query_source(mock, id).await;
         let dir_picture = picture::Picture::query_album(mock, album_id).await;
 
         Self {
@@ -80,7 +80,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         format: Option<audio::Format>,
         file_property: Option<file::Property<audio::Format>>,
         property: Option<audio::Property>,
-        lyrics: Option<Option<lyrics::Lyrics<'static>>>,
+        lyrics: Option<Option<lyric::Lyrics<'static>>>,
         dir_picture: Option<Option<picture::Picture<'static>>>,
         relative_path: Option<Cow<'static, str>>,
     ) -> Self {
@@ -98,7 +98,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         let property = property.unwrap_or_else(|| audio::Property::default(file.format));
 
         let lyrics = lyrics
-            .unwrap_or_else(|| if Faker.fake() { Some(lyrics::Lyrics::fake_sync()) } else { None });
+            .unwrap_or_else(|| if Faker.fake() { Some(lyric::Lyrics::fake_sync()) } else { None });
         let dir_picture = dir_picture.unwrap_or_else(|| Faker.fake());
         let relative_path =
             relative_path.map_or_else(|| Faker.fake::<String>().into(), std::convert::Into::into);
@@ -147,7 +147,7 @@ impl Mock<'_, '_, '_, '_> {
             lyrics
                 .upsert(
                     database,
-                    crate::orm::lyrics::Foreign { song_id },
+                    lyrics::Foreign { song_id },
                     Some(music_folder.absolutize(&self.relative_path)),
                 )
                 .await
@@ -192,7 +192,7 @@ impl Mock<'_, '_, '_, '_> {
         if let Some(lyrics) = self.lyrics.as_ref() {
             filesystem
                 .write(
-                    path.with_extension(lyrics::Lyrics::EXTERNAL_EXTENSION).to_path(),
+                    path.with_extension(lyric::Lyrics::EXTERNAL_EXTENSION).to_path(),
                     lyrics.to_string().as_bytes(),
                 )
                 .await;

@@ -15,7 +15,7 @@ use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::file::{self, File, audio, lyrics, picture};
+use crate::file::{self, File, audio, lyric, picture};
 use crate::filesystem::{self, Entry, Filesystem, Trait, entry};
 use crate::integration::Informant;
 use crate::orm::{albums, music_folders, songs};
@@ -178,7 +178,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
-        lyrics::Lyrics::scan(&self.database, &self.filesystem, false, song_id, song_path).await?;
+        lyric::Lyrics::scan(&self.database, &self.filesystem, false, song_id, song_path).await?;
         Ok(())
     }
 

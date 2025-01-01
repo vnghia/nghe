@@ -317,9 +317,11 @@ impl<'a> Mock<'a> {
 }
 
 mod duration {
+    use audio::duration::Trait;
+
     use super::*;
 
-    impl audio::duration::Trait for IndexMap<Uuid, Information<'static, 'static, 'static, 'static>> {
+    impl Trait for IndexMap<Uuid, Information<'static, 'static, 'static, 'static>> {
         fn duration(&self) -> audio::Duration {
             self.values().map(|information| information.information.property.duration).sum()
         }

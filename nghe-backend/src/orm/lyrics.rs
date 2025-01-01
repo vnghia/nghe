@@ -83,7 +83,7 @@ mod convert {
     use std::borrow::Cow;
 
     use crate::Error;
-    use crate::file::lyrics::{Lines, Lyrics};
+    use crate::file::lyric::{Lines, Lyrics};
     use crate::orm::lyrics;
 
     impl<'a> TryFrom<&'a Lyrics<'_>> for lyrics::Data<'a> {
@@ -121,7 +121,7 @@ mod convert {
 mod test {
     use std::borrow::Cow;
 
-    use crate::file::lyrics::Lyrics;
+    use crate::file::lyric::Lyrics;
     use crate::orm::lyrics;
 
     impl From<lyrics::Data<'_>> for Lyrics<'static> {
