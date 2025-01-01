@@ -46,8 +46,9 @@ impl<'a> TryFrom<&'a UnsynchronizedTextFrame<'_>> for Lyric<'a> {
     type Error = Error;
 
     fn try_from(frame: &'a UnsynchronizedTextFrame<'_>) -> Result<Self, Self::Error> {
+        let description = frame.description.as_str();
         Ok(Self {
-            description: Some(frame.description.as_str().into()),
+            description: if description.is_empty() { None } else { Some(description.into()) },
             language: str::from_utf8(&frame.language)?.parse().map_err(error::Kind::from)?,
             lines: frame.content.lines().collect(),
         })
@@ -69,11 +70,15 @@ impl<'a> TryFrom<&'a BinaryFrame<'_>> for Lyric<'a> {
 
 impl<'a> Lyric<'a> {
     pub fn from_unsync_text(content: &'a str) -> Self {
-        Self {
-            description: None,
-            language: Language::Und,
-            lines: content.lines().filter(|text| !text.is_empty()).collect(),
-        }
+        let lines = content.lines().filter(|text| !text.is_empty());
+        let (description, lines) = if cfg!(test) {
+            let mut lines = lines;
+            let description = lines.next().unwrap();
+            (if description.is_empty() { None } else { Some(description.into()) }, lines.collect())
+        } else {
+            (None, lines.collect())
+        };
+        Self { description, language: Language::Und, lines }
     }
 
     pub fn from_sync_text(content: &str) -> Result<Self, Error> {
@@ -230,9 +235,9 @@ mod test {
 
         pub fn fake_unsync() -> Self {
             Self {
-                description: None,
+                description: Faker.fake::<Option<String>>().map(Cow::Owned),
                 language: Language::Und,
-                lines: fake::vec![String; 1..=5].into_iter().collect(),
+                lines: fake::vec![String; 2..=5].into_iter().collect(),
             }
         }
     }
@@ -274,7 +279,12 @@ mod test {
     impl Display for Lyric<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match &self.lines {
-                Lines::Unsync(lines) => write!(f, "{}", lines.join("\n")),
+                Lines::Unsync(lines) => write!(
+                    f,
+                    "{}\n{}",
+                    self.description.as_ref().map::<&str, _>(Cow::as_ref).unwrap_or_default(),
+                    lines.join("\n")
+                ),
                 Lines::Sync(lines) => {
                     if let Some(description) = self.description.as_ref() {
                         writeln!(f, "[desc:{description}]")?;
