@@ -178,7 +178,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
-        lyric::Lyrics::scan(&self.database, &self.filesystem, false, song_id, song_path).await?;
+        lyric::Lyric::scan(&self.database, &self.filesystem, false, song_id, song_path).await?;
         Ok(())
     }
 

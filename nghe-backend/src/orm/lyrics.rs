@@ -83,13 +83,13 @@ mod convert {
     use std::borrow::Cow;
 
     use crate::Error;
-    use crate::file::lyric::{Lines, Lyrics};
+    use crate::file::lyric::{Lines, Lyric};
     use crate::orm::lyrics;
 
-    impl<'a> TryFrom<&'a Lyrics<'_>> for lyrics::Data<'a> {
+    impl<'a> TryFrom<&'a Lyric<'_>> for lyrics::Data<'a> {
         type Error = Error;
 
-        fn try_from(value: &'a Lyrics<'_>) -> Result<Self, Error> {
+        fn try_from(value: &'a Lyric<'_>) -> Result<Self, Error> {
             let (durations, texts) = match &value.lines {
                 Lines::Unsync(lines) => {
                     (None, lines.iter().map(|line| line.as_str().into()).collect())
@@ -121,10 +121,10 @@ mod convert {
 mod test {
     use std::borrow::Cow;
 
-    use crate::file::lyric::Lyrics;
+    use crate::file::lyric::Lyric;
     use crate::orm::lyrics;
 
-    impl From<lyrics::Data<'_>> for Lyrics<'static> {
+    impl From<lyrics::Data<'_>> for Lyric<'static> {
         fn from(value: lyrics::Data<'_>) -> Self {
             Self {
                 description: value.description.map(Cow::into_owned).map(Cow::Owned),

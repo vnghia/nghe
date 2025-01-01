@@ -24,7 +24,7 @@ pub enum Lines<'a> {
 
 #[derive(Debug)]
 #[cfg_attr(test, derive(PartialEq, Eq, Clone))]
-pub struct Lyrics<'a> {
+pub struct Lyric<'a> {
     pub description: Option<Cow<'a, str>>,
     pub language: Language,
     pub lines: Lines<'a>,
@@ -42,7 +42,7 @@ impl FromIterator<(u32, String)> for Lines<'_> {
     }
 }
 
-impl<'a> TryFrom<&'a UnsynchronizedTextFrame<'_>> for Lyrics<'a> {
+impl<'a> TryFrom<&'a UnsynchronizedTextFrame<'_>> for Lyric<'a> {
     type Error = Error;
 
     fn try_from(frame: &'a UnsynchronizedTextFrame<'_>) -> Result<Self, Self::Error> {
@@ -54,7 +54,7 @@ impl<'a> TryFrom<&'a UnsynchronizedTextFrame<'_>> for Lyrics<'a> {
     }
 }
 
-impl<'a> TryFrom<&'a BinaryFrame<'_>> for Lyrics<'a> {
+impl<'a> TryFrom<&'a BinaryFrame<'_>> for Lyric<'a> {
     type Error = Error;
 
     fn try_from(frame: &'a BinaryFrame<'_>) -> Result<Self, Error> {
@@ -67,7 +67,7 @@ impl<'a> TryFrom<&'a BinaryFrame<'_>> for Lyrics<'a> {
     }
 }
 
-impl<'a> Lyrics<'a> {
+impl<'a> Lyric<'a> {
     pub fn from_unsync_text(content: &'a str) -> Self {
         Self {
             description: None,
@@ -99,7 +99,7 @@ impl<'a> Lyrics<'a> {
     }
 }
 
-impl Lyrics<'_> {
+impl Lyric<'_> {
     pub const EXTERNAL_EXTENSION: &'static str = "lrc";
 
     pub async fn upsert(
@@ -201,7 +201,7 @@ mod test {
         }
     }
 
-    impl Lyrics<'_> {
+    impl Lyric<'_> {
         pub fn is_sync(&self) -> bool {
             matches!(self.lines, Lines::Sync(_))
         }
@@ -235,7 +235,7 @@ mod test {
         }
     }
 
-    impl Lyrics<'static> {
+    impl Lyric<'static> {
         pub async fn query_source(mock: &Mock, id: Uuid) -> Option<Self> {
             lyrics::table
                 .filter(lyrics::song_id.eq(id))
@@ -249,13 +249,13 @@ mod test {
         }
     }
 
-    impl Dummy<Faker> for Lyrics<'_> {
+    impl Dummy<Faker> for Lyric<'_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
             if config.fake_with_rng(rng) { Self::fake_sync() } else { Self::fake_unsync() }
         }
     }
 
-    impl Display for Lyrics<'_> {
+    impl Display for Lyric<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match &self.lines {
                 Lines::Unsync(lines) => write!(f, "{}", lines.join("\n")),
@@ -292,17 +292,17 @@ mod tests {
     #[rstest]
     fn test_lyrics_roundtrip(#[values(true, false)] sync: bool) {
         if sync {
-            let lyrics = Lyrics::fake_sync();
-            assert_eq!(lyrics, Lyrics::from_sync_text(&lyrics.to_string()).unwrap());
+            let lyrics = Lyric::fake_sync();
+            assert_eq!(lyrics, Lyric::from_sync_text(&lyrics.to_string()).unwrap());
         } else {
-            let lyrics = Lyrics::fake_unsync();
-            assert_eq!(lyrics, Lyrics::from_unsync_text(&lyrics.to_string()));
+            let lyrics = Lyric::fake_unsync();
+            assert_eq!(lyrics, Lyric::from_unsync_text(&lyrics.to_string()));
         }
     }
 
     #[rstest]
-    #[case("sync.lrc", Lyrics {
-        description: Some("Lyrics".to_owned().into()),
+    #[case("sync.lrc", Lyric {
+        description: Some("Lyric".to_owned().into()),
         language: Language::Eng,
         lines: vec![
             (1020_u32, "Hello hi".to_owned()),
@@ -312,7 +312,7 @@ mod tests {
         .into_iter()
         .collect()
     })]
-    #[case("unsync.txt", Lyrics {
+    #[case("unsync.txt", Lyric {
         description: None,
         language: Language::Und,
         lines: vec![
@@ -323,12 +323,12 @@ mod tests {
         .into_iter()
         .collect()
     })]
-    fn test_from_text(#[case] filename: &str, #[case] lyrics: Lyrics<'_>) {
+    fn test_from_text(#[case] filename: &str, #[case] lyrics: Lyric<'_>) {
         let content = std::fs::read_to_string(assets::dir().join("lyrics").join(filename)).unwrap();
         let parsed = if lyrics.is_sync() {
-            Lyrics::from_sync_text(&content).unwrap()
+            Lyric::from_sync_text(&content).unwrap()
         } else {
-            Lyrics::from_unsync_text(&content)
+            Lyric::from_unsync_text(&content)
         };
         assert_eq!(parsed, lyrics);
     }

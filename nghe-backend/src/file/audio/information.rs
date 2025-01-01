@@ -102,7 +102,7 @@ impl Information<'_> {
     ) -> Result<(), Error> {
         Artists::cleanup_one(database, started_at, song_id).await?;
         Genres::cleanup_one(database, started_at, song_id).await?;
-        lyric::Lyrics::cleanup_one(database, started_at, song_id).await?;
+        lyric::Lyric::cleanup_one(database, started_at, song_id).await?;
         Ok(())
     }
 
