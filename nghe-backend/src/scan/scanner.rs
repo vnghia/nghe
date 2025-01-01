@@ -477,6 +477,7 @@ mod tests {
         async fn test_overwrite(
             #[future(awt)] mock: Mock,
             #[values(true, false)] same_album: bool,
+            #[values(true, false)] same_external_lyric: bool,
         ) {
             // Test a constraint with `album_id` and `relative_path`.
             let mut music_folder = mock.music_folder(0).await;
@@ -489,6 +490,11 @@ mod tests {
             music_folder
                 .add_audio_filesystem()
                 .maybe_album(if same_album { Some(album) } else { None })
+                .maybe_external_lyric(if same_external_lyric {
+                    Some(database_audio[0].external_lyric.clone())
+                } else {
+                    None
+                })
                 .path("test")
                 .format(database_audio[0].information.file.format)
                 .call()
@@ -500,14 +506,23 @@ mod tests {
 
             let database_audio = database_audio.shift_remove_index(0).unwrap().1;
             let filesystem_audio = music_folder.filesystem.shift_remove_index(0).unwrap().1;
-            if same_album {
-                assert_eq!(
-                    database_audio.with_dir_picture(None),
-                    filesystem_audio.with_dir_picture(None)
-                );
+
+            let (database_audio, filesystem_audio) = if same_external_lyric {
+                (database_audio, filesystem_audio)
             } else {
-                assert_eq!(database_audio, filesystem_audio);
-            }
+                (
+                    database_audio.with_external_lyric(None),
+                    filesystem_audio.with_external_lyric(None),
+                )
+            };
+
+            let (database_audio, filesystem_audio) = if same_album {
+                (database_audio.with_dir_picture(None), filesystem_audio.with_dir_picture(None))
+            } else {
+                (database_audio, filesystem_audio)
+            };
+
+            assert_eq!(database_audio, filesystem_audio);
         }
 
         #[rstest]
@@ -531,6 +546,7 @@ mod tests {
         async fn test_duplicate(
             #[future(awt)] mock: Mock,
             #[values(true, false)] same_dir: bool,
+            #[values(true, false)] same_external_lyric: bool,
             #[values(true, false)] full: bool,
         ) {
             let mut music_folder = mock.music_folder(0).await;
@@ -540,6 +556,11 @@ mod tests {
             music_folder
                 .add_audio_filesystem::<&str>()
                 .metadata(audio.information.metadata.clone())
+                .maybe_external_lyric(if same_external_lyric {
+                    Some(audio.external_lyric.clone())
+                } else {
+                    None
+                })
                 .format(audio.information.file.format)
                 .depth(if same_dir { 0 } else { (1..3).fake() })
                 .full(scan::start::Full { file: full, ..Default::default() })
@@ -557,6 +578,12 @@ mod tests {
                 ))
                 .unwrap();
             assert_eq!(database_path, path);
+
+            let (database_audio, audio) = if same_external_lyric {
+                (database_audio, audio)
+            } else {
+                (database_audio.with_external_lyric(None), audio.with_external_lyric(None))
+            };
 
             let (database_audio, audio) = if same_dir {
                 (database_audio, audio)

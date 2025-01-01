@@ -17,7 +17,7 @@ use crate::test::filesystem::Trait as _;
 pub struct Mock<'info, 'picture, 'lyrics, 'path> {
     pub information: audio::Information<'info>,
     pub dir_picture: Option<picture::Picture<'picture>>,
-    pub lyrics: Option<lyric::Lyric<'lyrics>>,
+    pub external_lyric: Option<lyric::Lyric<'lyrics>>,
     pub relative_path: Cow<'path, str>,
 }
 
@@ -44,7 +44,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         let genres = audio::Genres::query(mock, id).await;
         let picture = picture::Picture::query_song(mock, id).await;
 
-        let lyrics = lyric::Lyric::query_external(mock, id).await;
+        let external_lyric = lyric::Lyric::query_external(mock, id).await;
         let dir_picture = picture::Picture::query_album(mock, album_id).await;
 
         Self {
@@ -59,7 +59,7 @@ impl Mock<'static, 'static, 'static, 'static> {
                 property: upsert.data.property.try_into().unwrap(),
                 file: upsert.data.file.try_into().unwrap(),
             },
-            lyrics,
+            external_lyric,
             dir_picture,
             relative_path: upsert.relative_path,
         }
@@ -80,7 +80,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         format: Option<audio::Format>,
         file_property: Option<file::Property<audio::Format>>,
         property: Option<audio::Property>,
-        lyrics: Option<Option<lyric::Lyric<'static>>>,
+        external_lyric: Option<Option<lyric::Lyric<'static>>>,
         dir_picture: Option<Option<picture::Picture<'static>>>,
         relative_path: Option<Cow<'static, str>>,
     ) -> Self {
@@ -97,7 +97,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         });
         let property = property.unwrap_or_else(|| audio::Property::default(file.format));
 
-        let lyrics = lyrics
+        let external_lyric = external_lyric
             .unwrap_or_else(|| if Faker.fake() { Some(lyric::Lyric::fake_sync()) } else { None });
         let dir_picture = dir_picture.unwrap_or_else(|| Faker.fake());
         let relative_path =
@@ -105,7 +105,7 @@ impl Mock<'static, 'static, 'static, 'static> {
 
         Self {
             information: audio::Information { metadata, property, file },
-            lyrics,
+            external_lyric,
             dir_picture,
             relative_path,
         }
@@ -143,8 +143,8 @@ impl Mock<'_, '_, '_, '_> {
             .await
             .unwrap();
 
-        if let Some(lyrics) = self.lyrics.as_ref() {
-            lyrics
+        if let Some(external_lyric) = self.external_lyric.as_ref() {
+            external_lyric
                 .upsert(
                     database,
                     lyrics::Foreign { song_id },
@@ -189,11 +189,11 @@ impl Mock<'_, '_, '_, '_> {
         let filesystem = &music_folder.to_impl();
         filesystem.write(path, &data).await;
 
-        if let Some(lyrics) = self.lyrics.as_ref() {
+        if let Some(external_lyric) = self.external_lyric.as_ref() {
             filesystem
                 .write(
                     path.with_extension(lyric::Lyric::EXTERNAL_EXTENSION).to_path(),
-                    lyrics.to_string().as_bytes(),
+                    external_lyric.to_string().as_bytes(),
                 )
                 .await;
         }
@@ -220,6 +220,10 @@ impl Mock<'_, '_, '_, '_> {
             dir_picture,
             ..self
         }
+    }
+
+    pub fn with_external_lyric(self, external_lyric: Option<lyric::Lyric<'static>>) -> Self {
+        Self { external_lyric, ..self }
     }
 
     pub fn with_dir_picture(self, dir_picture: Option<picture::Picture<'static>>) -> Self {

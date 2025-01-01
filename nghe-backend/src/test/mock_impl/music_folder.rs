@@ -14,8 +14,7 @@ use uuid::Uuid;
 
 use super::Information;
 use crate::database::Database;
-use crate::file;
-use crate::file::{File, audio, picture};
+use crate::file::{self, File, audio, lyric, picture};
 use crate::filesystem::Trait as _;
 use crate::orm::{albums, music_folders, songs};
 use crate::scan::scanner;
@@ -108,6 +107,7 @@ impl<'a> Mock<'a> {
         genres: Option<audio::Genres<'static>>,
         picture: Option<Option<picture::Picture<'static>>>,
         file_property: Option<file::Property<audio::Format>>,
+        external_lyric: Option<Option<lyric::Lyric<'static>>>,
         dir_picture: Option<Option<picture::Picture<'static>>>,
         relative_path: Option<Cow<'static, str>>,
         song_id: Option<Uuid>,
@@ -121,6 +121,7 @@ impl<'a> Mock<'a> {
             .maybe_genres(genres)
             .maybe_picture(picture)
             .maybe_file_property(file_property)
+            .maybe_external_lyric(external_lyric)
             .maybe_dir_picture(dir_picture)
             .maybe_relative_path(relative_path);
 
@@ -145,6 +146,7 @@ impl<'a> Mock<'a> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         picture: Option<Option<picture::Picture<'static>>>,
+        external_lyric: Option<Option<lyric::Lyric<'static>>>,
         dir_picture: Option<Option<picture::Picture<'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
@@ -158,6 +160,7 @@ impl<'a> Mock<'a> {
             .maybe_artists(artists)
             .maybe_genres(genres)
             .maybe_picture(picture)
+            .maybe_external_lyric(external_lyric)
             .maybe_dir_picture(dir_picture);
 
         for _ in 0..n_song {
