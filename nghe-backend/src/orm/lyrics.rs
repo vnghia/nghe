@@ -115,3 +115,30 @@ mod convert {
         }
     }
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod test {
+    use std::borrow::Cow;
+
+    use crate::file::lyrics::Lyrics;
+    use crate::orm::lyrics;
+
+    impl From<lyrics::Data<'_>> for Lyrics<'static> {
+        fn from(value: lyrics::Data<'_>) -> Self {
+            Self {
+                description: value.description.map(Cow::into_owned).map(Cow::Owned),
+                language: value.language.parse().unwrap(),
+                lines: if let Some(durations) = value.durations {
+                    durations
+                        .into_iter()
+                        .zip(value.texts)
+                        .map(|(duration, text)| (duration.try_into().unwrap(), text.into_owned()))
+                        .collect()
+                } else {
+                    value.texts.into_iter().map(Cow::into_owned).collect()
+                },
+            }
+        }
+    }
+}

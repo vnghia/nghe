@@ -174,10 +174,12 @@ impl Lyrics<'_> {
 mod test {
     use std::fmt::Display;
 
+    use diesel::{QueryDsl, SelectableHelper};
     use fake::{Dummy, Fake, Faker};
     use itertools::Itertools;
 
     use super::*;
+    use crate::test::Mock;
 
     impl FromIterator<String> for Lines<'_> {
         fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
@@ -216,6 +218,20 @@ mod test {
                 language: Language::Und,
                 lines: fake::vec![String; 1..=5].into_iter().collect(),
             }
+        }
+    }
+
+    impl Lyrics<'static> {
+        pub async fn query_source(mock: &Mock, id: Uuid) -> Option<Self> {
+            lyrics::table
+                .filter(lyrics::song_id.eq(id))
+                .filter(lyrics::source.is_not_null())
+                .select(lyrics::Data::as_select())
+                .get_result(&mut mock.get().await)
+                .await
+                .optional()
+                .unwrap()
+                .map(Self::from)
         }
     }
 
