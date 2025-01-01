@@ -117,7 +117,7 @@ impl Lyrics<'_> {
         .await
     }
 
-    pub async fn set_source_scanned_at(
+    async fn set_source_scanned_at(
         database: &Database,
         song_id: Uuid,
         source: impl AsRef<str>,
@@ -166,6 +166,20 @@ impl Lyrics<'_> {
                 None
             },
         )
+    }
+
+    pub async fn cleanup_one(
+        database: &Database,
+        started_at: time::OffsetDateTime,
+        song_id: Uuid,
+    ) -> Result<(), Error> {
+        // Delete all lyrics of a song which haven't been refreshed since timestamp.
+        diesel::delete(lyrics::table)
+            .filter(lyrics::song_id.eq(song_id))
+            .filter(lyrics::scanned_at.lt(started_at))
+            .execute(&mut database.get().await?)
+            .await?;
+        Ok(())
     }
 }
 
