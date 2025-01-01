@@ -36,7 +36,7 @@ convert_case = { version = "0.6.0" }
 educe = { version = "0.6.0" }
 faster-hex = { version = "0.10.0" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
-itertools = { version = "0.12.1" }
+itertools = { version = "0.14.0" }
 rand = { version = "0.8.5" }
 serde = { version = "1.0.215", features = ["derive"] }
 serde_html_form = { version = "0.2.6" }
