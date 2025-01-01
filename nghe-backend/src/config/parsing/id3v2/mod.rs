@@ -1,6 +1,7 @@
 pub mod frame;
 
 use educe::Educe;
+use lofty::id3;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 
@@ -93,6 +94,11 @@ impl Artist {
             mbz_id: "TXXX:MusicBrainz Album Artist Id".parse().unwrap(),
         }
     }
+}
+
+impl Id3v2 {
+    pub const SYNC_LYRIC_FRAME_ID: id3::v2::FrameId<'static> =
+        id3::v2::FrameId::Valid(std::borrow::Cow::Borrowed("SYLT"));
 }
 
 #[cfg(test)]

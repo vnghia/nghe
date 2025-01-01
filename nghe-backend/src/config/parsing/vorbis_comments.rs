@@ -45,6 +45,15 @@ pub struct TrackDisc {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Educe)]
 #[educe(Default)]
+pub struct Lyric {
+    #[educe(Default(expression = "USNYNCEDLYRICS".into()))]
+    pub unsync: String,
+    #[educe(Default(expression = "SYNCEDLYRICS".into()))]
+    pub sync: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Educe)]
+#[educe(Default)]
 pub struct VorbisComments {
     #[educe(Default(expression = Common::default_song()))]
     pub song: Common,
@@ -58,6 +67,7 @@ pub struct VorbisComments {
     pub genres: String,
     #[educe(Default(expression = "COMPILATION".into()))]
     pub compilation: String,
+    pub lyric: Lyric,
 }
 
 impl Common {

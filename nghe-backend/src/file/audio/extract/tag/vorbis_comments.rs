@@ -7,6 +7,7 @@ use lofty::ogg::{OggPictureStorage, VorbisComments};
 use uuid::Uuid;
 
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
+use crate::file::lyric::Lyric;
 use crate::file::picture::Picture;
 use crate::{Error, config, error};
 
@@ -116,6 +117,14 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
         Ok(self.get_all(&config.vorbis_comments.genres).collect())
+    }
+
+    fn lyrics(&'a self, config: &'a config::Parsing) -> Result<Vec<Lyric<'a>>, Error> {
+        self.get(&config.vorbis_comments.lyric.unsync)
+            .map(|content| Ok(Lyric::from_unsync_text(content)))
+            .into_iter()
+            .chain(self.get_all(&config.vorbis_comments.lyric.sync).map(Lyric::from_sync_text))
+            .try_collect()
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {

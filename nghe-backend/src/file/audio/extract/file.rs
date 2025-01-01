@@ -6,6 +6,7 @@ use lofty::ogg::VorbisComments;
 
 use super::{Metadata, Property};
 use crate::file::audio::{self, Album, Artists, Genres, NameDateMbz, TrackDisc};
+use crate::file::lyric::Lyric;
 use crate::file::picture::Picture;
 use crate::{Error, config, error};
 
@@ -37,6 +38,10 @@ default impl<'a, T: Tag<'a>> Metadata<'a> for T {
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
         self.tag()?.genres(config)
+    }
+
+    fn lyrics(&'a self, config: &'a config::Parsing) -> Result<Vec<Lyric<'a>>, Error> {
+        self.tag()?.lyrics(config)
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
