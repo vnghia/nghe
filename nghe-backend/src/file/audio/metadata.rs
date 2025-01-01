@@ -41,6 +41,7 @@ pub struct Metadata<'a> {
     pub album: name_date_mbz::Album<'a>,
     pub artists: artist::Artists<'a>,
     pub genres: Genres<'a>,
+    #[cfg_attr(test, dummy(expr = "Lyric::fake_vec()"))]
     pub lyrics: Vec<Lyric<'a>>,
     pub picture: Option<Picture<'a>>,
 }

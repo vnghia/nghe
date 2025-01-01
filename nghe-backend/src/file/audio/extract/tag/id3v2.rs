@@ -142,7 +142,7 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
 
     fn lyrics(&'a self, _: &'a config::Parsing) -> Result<Vec<Lyric<'a>>, Error> {
         self.unsync_text()
-            .map(|frame| Ok(Lyric::from_unsync_text(&frame.content)))
+            .map(std::convert::TryInto::try_into)
             .chain(self.into_iter().filter_map(|frame| {
                 if *frame.id() == config::parsing::id3v2::Id3v2::SYNC_LYRIC_FRAME_ID
                     && let Frame::Binary(frame) = frame

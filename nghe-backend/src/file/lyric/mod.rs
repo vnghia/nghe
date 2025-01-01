@@ -240,8 +240,9 @@ mod test {
         }
 
         pub fn fake_sync() -> Self {
+            // Force description as Some to avoid clash with unsync.
             Self {
-                description: Faker.fake::<Option<String>>().map(Cow::Owned),
+                description: Some(Faker.fake::<String>().into()),
                 language: Language::from_usize((0..=7915).fake()).unwrap(),
                 lines: fake::vec![String; 1..=5]
                     .into_iter()
@@ -263,8 +264,14 @@ mod test {
             Self {
                 description: Faker.fake::<Option<String>>().map(Cow::Owned),
                 language: Language::Und,
-                lines: fake::vec![String; 2..=5].into_iter().collect(),
+                lines: fake::vec![String; 1..=5].into_iter().collect(),
             }
+        }
+
+        pub fn fake_vec() -> Vec<Self> {
+            let unsync = if Faker.fake() { Some(Self::fake_unsync()) } else { None };
+            let sync = if Faker.fake() { Some(Self::fake_sync()) } else { None };
+            unsync.into_iter().chain(sync).collect()
         }
     }
 

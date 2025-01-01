@@ -92,11 +92,7 @@ impl Mock<'static, 'static, 'static, 'static> {
             album: album.unwrap_or_else(|| Faker.fake()),
             artists: artists.unwrap_or_else(|| Faker.fake()),
             genres: genres.unwrap_or_else(|| Faker.fake()),
-            lyrics: lyrics.unwrap_or_else(|| {
-                let unsync = if Faker.fake() { Some(lyric::Lyric::fake_unsync()) } else { None };
-                let sync = if Faker.fake() { Some(lyric::Lyric::fake_sync()) } else { None };
-                unsync.into_iter().chain(sync).collect()
-            }),
+            lyrics: lyrics.unwrap_or_else(lyric::Lyric::fake_vec),
             picture: picture.unwrap_or_else(|| Faker.fake()),
         });
         let file = file_property.unwrap_or_else(|| file::Property {
