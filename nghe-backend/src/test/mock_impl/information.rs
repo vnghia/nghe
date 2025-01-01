@@ -44,7 +44,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         let genres = audio::Genres::query(mock, id).await;
         let picture = picture::Picture::query_song(mock, id).await;
 
-        let lyrics = lyric::Lyric::query_source(mock, id).await;
+        let lyrics = lyric::Lyric::query_external(mock, id).await;
         let dir_picture = picture::Picture::query_album(mock, album_id).await;
 
         Self {

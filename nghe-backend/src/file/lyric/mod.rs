@@ -168,7 +168,7 @@ impl Lyric<'_> {
         )
     }
 
-    pub async fn cleanup_one(
+    pub async fn cleanup_one_external(
         database: &Database,
         started_at: time::OffsetDateTime,
         song_id: Uuid,
@@ -177,6 +177,7 @@ impl Lyric<'_> {
         diesel::delete(lyrics::table)
             .filter(lyrics::song_id.eq(song_id))
             .filter(lyrics::scanned_at.lt(started_at))
+            .filter(lyrics::source.is_not_null())
             .execute(&mut database.get().await?)
             .await?;
         Ok(())
@@ -236,7 +237,7 @@ mod test {
     }
 
     impl Lyric<'static> {
-        pub async fn query_source(mock: &Mock, id: Uuid) -> Option<Self> {
+        pub async fn query_external(mock: &Mock, id: Uuid) -> Option<Self> {
             lyrics::table
                 .filter(lyrics::song_id.eq(id))
                 .filter(lyrics::source.is_not_null())

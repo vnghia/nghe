@@ -8,7 +8,6 @@ use uuid::Uuid;
 
 use super::{Album, Artists, Genres};
 use crate::database::Database;
-use crate::file::lyric;
 use crate::orm::upsert::Upsert as _;
 use crate::orm::{albums, songs};
 use crate::scan::scanner;
@@ -102,7 +101,7 @@ impl Information<'_> {
     ) -> Result<(), Error> {
         Artists::cleanup_one(database, started_at, song_id).await?;
         Genres::cleanup_one(database, started_at, song_id).await?;
-        lyric::Lyric::cleanup_one(database, started_at, song_id).await?;
+        crate::file::lyric::Lyric::cleanup_one_external(database, started_at, song_id).await?;
         Ok(())
     }
 

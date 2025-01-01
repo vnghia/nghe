@@ -173,12 +173,16 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(())
     }
 
-    async fn update_external_lyrics(
+    async fn update_external_lyric(
         &self,
+        started_at: impl Into<Option<time::OffsetDateTime>>,
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
         lyric::Lyric::scan(&self.database, &self.filesystem, false, song_id, song_path).await?;
+        if let Some(started_at) = started_at.into() {
+            lyric::Lyric::cleanup_one_external(&self.database, started_at, song_id).await?;
+        }
         Ok(())
     }
 
@@ -252,7 +256,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 // We also need to set album cover_art_id and external lyrics since it might be
                 // added or removed after the previous scan.
                 self.update_dir_picture(song_path.id, dir_picture_id).await?;
-                self.update_external_lyrics(song_path.id, absolute_path).await?;
+                self.update_external_lyric(started_at, song_path.id, absolute_path).await?;
                 tracing::debug!("already scanned");
                 return Ok(song_path.id);
             } else if let Some(song_id) = song_id {
@@ -317,7 +321,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 // We also need to set album cover_art_id and external lyrics since it might be
                 // added or removed after the previous scan.
                 self.update_dir_picture(song_path.id, dir_picture_id).await?;
-                self.update_external_lyrics(song_path.id, absolute_path).await?;
+                self.update_external_lyric(started_at, song_path.id, absolute_path).await?;
                 tracing::warn!(
                     old = %song_path.relative_path, new = %relative_path, "renamed duplication"
                 );
@@ -343,7 +347,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 song_id,
             )
             .await?;
-        self.update_external_lyrics(song_id, absolute_path).await?;
+        self.update_external_lyric(None, song_id, absolute_path).await?;
         audio::Information::cleanup_one(database, started_at, song_id).await?;
 
         Ok(song_id)
