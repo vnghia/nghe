@@ -42,7 +42,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         let album = audio::Album::query_upsert(mock, upsert.foreign.album_id).await;
         let artists = audio::Artists::query(mock, id).await;
         let genres = audio::Genres::query(mock, id).await;
-        let lyrics = lyric::Lyric::query(mock, id).await;
+        let lyrics = lyric::Lyric::query_embedded(mock, id).await;
         let picture = picture::Picture::query_song(mock, id).await;
 
         let external_lyric = lyric::Lyric::query_external(mock, id).await;

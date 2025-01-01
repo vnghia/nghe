@@ -8,8 +8,9 @@ use uuid::Uuid;
 
 use super::{Album, Artists, Genres};
 use crate::database::Database;
+use crate::file::lyric::Lyric;
 use crate::orm::upsert::Upsert as _;
-use crate::orm::{albums, songs};
+use crate::orm::{albums, lyrics, songs};
 use crate::scan::scanner;
 use crate::{Error, file};
 
@@ -46,6 +47,12 @@ impl Information<'_> {
     pub async fn upsert_genres(&self, database: &Database, song_id: Uuid) -> Result<(), Error> {
         let genre_ids = self.metadata.genres.upsert(database).await?;
         Genres::upsert_song(database, song_id, &genre_ids).await
+    }
+
+    pub async fn upsert_lyrics(&self, database: &Database, song_id: Uuid) -> Result<(), Error> {
+        Lyric::upserts_embedded(database, lyrics::Foreign { song_id }, &self.metadata.lyrics)
+            .await?;
+        Ok(())
     }
 
     pub async fn upsert_cover_art(
@@ -91,6 +98,7 @@ impl Information<'_> {
         let song_id = self.upsert_song(database, foreign, relative_path, song_id).await?;
         self.upsert_artists(database, &config.index.ignore_prefixes, song_id).await?;
         self.upsert_genres(database, song_id).await?;
+        self.upsert_lyrics(database, song_id).await?;
         Ok(song_id)
     }
 
@@ -101,7 +109,7 @@ impl Information<'_> {
     ) -> Result<(), Error> {
         Artists::cleanup_one(database, started_at, song_id).await?;
         Genres::cleanup_one(database, started_at, song_id).await?;
-        crate::file::lyric::Lyric::cleanup_one_external(database, started_at, song_id).await?;
+        crate::file::lyric::Lyric::cleanup_one(database, started_at, song_id).await?;
         Ok(())
     }
 

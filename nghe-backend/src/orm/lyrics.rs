@@ -25,7 +25,7 @@ pub struct Data<'a> {
     pub texts: Vec<Cow<'a, str>>,
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Clone, Copy, Insertable)]
 #[diesel(table_name = lyrics, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Foreign {

@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use alrc::AdvancedLrc;
 use diesel::{ExpressionMethods, OptionalExtension};
 use diesel_async::RunQueryDsl;
+use futures_lite::{StreamExt as _, stream};
 use isolang::Language;
 use lofty::id3::v2::{BinaryFrame, SynchronizedTextFrame, UnsynchronizedTextFrame};
 use typed_path::Utf8TypedPath;
@@ -71,9 +72,9 @@ impl<'a> TryFrom<&'a BinaryFrame<'_>> for Lyric<'a> {
 impl<'a> Lyric<'a> {
     pub fn from_unsync_text(content: &'a str) -> Self {
         let lines = content.lines().filter(|text| !text.is_empty());
-        let (description, lines) = if cfg!(test) {
+        let (description, lines) = if cfg!(test) && content.starts_with('#') {
             let mut lines = lines;
-            let description = lines.next().unwrap();
+            let description = lines.next().unwrap().strip_prefix('#').unwrap();
             (if description.is_empty() { None } else { Some(description.into()) }, lines.collect())
         } else {
             (None, lines.collect())
@@ -122,7 +123,18 @@ impl Lyric<'_> {
         .await
     }
 
-    async fn set_source_scanned_at(
+    pub async fn upserts_embedded(
+        database: &Database,
+        foreign: lyrics::Foreign,
+        lyrics: &[Self],
+    ) -> Result<Vec<Uuid>, Error> {
+        stream::iter(lyrics)
+            .then(async |lyric| lyric.upsert(database, foreign, None::<&str>).await)
+            .try_collect()
+            .await
+    }
+
+    async fn set_external_scanned_at(
         database: &Database,
         song_id: Uuid,
         source: impl AsRef<str>,
@@ -162,7 +174,7 @@ impl Lyric<'_> {
         Ok(
             if !full
                 && let Some(lyrics_id) =
-                    Self::set_source_scanned_at(database, song_id, path).await?
+                    Self::set_external_scanned_at(database, song_id, path).await?
             {
                 Some(lyrics_id)
             } else if let Some(lyrics) = Self::load(filesystem, path).await? {
@@ -183,6 +195,20 @@ impl Lyric<'_> {
             .filter(lyrics::song_id.eq(song_id))
             .filter(lyrics::scanned_at.lt(started_at))
             .filter(lyrics::source.is_not_null())
+            .execute(&mut database.get().await?)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn cleanup_one(
+        database: &Database,
+        started_at: time::OffsetDateTime,
+        song_id: Uuid,
+    ) -> Result<(), Error> {
+        // Delete all lyrics of a song which haven't been refreshed since timestamp.
+        diesel::delete(lyrics::table)
+            .filter(lyrics::song_id.eq(song_id))
+            .filter(lyrics::scanned_at.lt(started_at))
             .execute(&mut database.get().await?)
             .await?;
         Ok(())
@@ -243,7 +269,7 @@ mod test {
     }
 
     impl Lyric<'static> {
-        pub async fn query(mock: &Mock, id: Uuid) -> Vec<Self> {
+        pub async fn query_embedded(mock: &Mock, id: Uuid) -> Vec<Self> {
             lyrics::table
                 .filter(lyrics::song_id.eq(id))
                 .filter(lyrics::source.is_null())
@@ -279,12 +305,12 @@ mod test {
     impl Display for Lyric<'_> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match &self.lines {
-                Lines::Unsync(lines) => write!(
-                    f,
-                    "{}\n{}",
-                    self.description.as_ref().map::<&str, _>(Cow::as_ref).unwrap_or_default(),
-                    lines.join("\n")
-                ),
+                Lines::Unsync(lines) => {
+                    if let Some(description) = self.description.as_ref() {
+                        writeln!(f, "#{description}")?;
+                    }
+                    write!(f, "{}", lines.join("\n"))?;
+                }
                 Lines::Sync(lines) => {
                     if let Some(description) = self.description.as_ref() {
                         writeln!(f, "[desc:{description}]")?;
@@ -299,10 +325,9 @@ mod test {
                         write!(f, "[{minutes:02}:{seconds:02}.{milliseconds:02}]")?;
                         writeln!(f, "{text}")?;
                     }
-
-                    Ok(())
                 }
             }
+            Ok(())
         }
     }
 
