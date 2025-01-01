@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::config::parsing::id3v2::frame;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
+use crate::file::lyric::Lyric;
 use crate::file::picture::Picture;
 use crate::{Error, config, error};
 
@@ -137,6 +138,21 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
         Ok(get_texts(self, &config.id3v2.genres, config.id3v2.separator)?
             .map(std::iter::Iterator::collect)
             .unwrap_or_default())
+    }
+
+    fn lyrics(&'a self, _: &'a config::Parsing) -> Result<Vec<Lyric<'a>>, Error> {
+        self.unsync_text()
+            .map(std::convert::TryInto::try_into)
+            .chain(self.into_iter().filter_map(|frame| {
+                if *frame.id() == config::parsing::id3v2::Id3v2::SYNC_LYRIC_FRAME_ID
+                    && let Frame::Binary(frame) = frame
+                {
+                    Some(frame.try_into())
+                } else {
+                    None
+                }
+            }))
+            .try_collect()
     }
 
     fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {

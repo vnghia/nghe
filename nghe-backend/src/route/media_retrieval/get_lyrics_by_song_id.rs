@@ -14,7 +14,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
     let lyrics = lyrics::table
         .inner_join(songs::table)
         .filter(songs::id.eq(request.id))
-        .select(lyrics::Lyrics::as_select())
+        .select(lyrics::Data::as_select())
         .get_results(&mut database.get().await?)
         .await?;
     Ok(Response {
@@ -22,18 +22,18 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
             structured_lyrics: lyrics
                 .into_iter()
                 .map(|lyrics| -> Result<_, Error> {
-                    if let Some(line_starts) = lyrics.line_starts {
+                    if let Some(durations) = lyrics.durations {
                         Ok(Lyrics {
                             lang: lyrics.language.into_owned(),
                             synced: true,
-                            line: line_starts
+                            line: durations
                                 .into_iter()
-                                .zip_longest(lyrics.line_values.into_iter())
+                                .zip_longest(lyrics.texts.into_iter())
                                 .map(|iter| {
-                                    if let EitherOrBoth::Both(start, value) = iter {
+                                    if let EitherOrBoth::Both(duration, text) = iter {
                                         Ok(Line {
-                                            start: Some(start.try_into()?),
-                                            value: value.into_owned(),
+                                            start: Some(duration.try_into()?),
+                                            value: text.into_owned(),
                                         })
                                     } else {
                                         error::Kind::DatabaseCorruptionDetected.into()
@@ -46,9 +46,9 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
                             lang: lyrics.language.into_owned(),
                             synced: false,
                             line: lyrics
-                                .line_values
+                                .texts
                                 .into_iter()
-                                .map(|value| Line { start: None, value: value.into_owned() })
+                                .map(|text| Line { start: None, value: text.into_owned() })
                                 .collect(),
                         })
                     }

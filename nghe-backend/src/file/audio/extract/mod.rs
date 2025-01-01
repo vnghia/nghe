@@ -4,6 +4,7 @@ mod tag;
 use isolang::Language;
 
 use super::{Album, Artists, File, Genres, NameDateMbz, TrackDisc};
+use crate::file::lyric::Lyric;
 use crate::file::picture::Picture;
 use crate::{Error, config};
 
@@ -14,6 +15,7 @@ pub trait Metadata<'a> {
     fn track_disc(&'a self, config: &'a config::Parsing) -> Result<TrackDisc, Error>;
     fn languages(&'a self, config: &'a config::Parsing) -> Result<Vec<Language>, Error>;
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error>;
+    fn lyrics(&'a self, config: &'a config::Parsing) -> Result<Vec<Lyric<'a>>, Error>;
     fn picture(&'a self) -> Result<Option<Picture<'a>>, Error>;
 
     fn metadata(&'a self, config: &'a config::Parsing) -> Result<super::Metadata<'a>, Error> {
@@ -26,6 +28,7 @@ pub trait Metadata<'a> {
             album: self.album(config)?,
             artists: self.artists(config)?,
             genres: self.genres(config)?,
+            lyrics: self.lyrics(config)?,
             picture: self.picture()?,
         })
     }
@@ -75,6 +78,13 @@ impl<'a> Metadata<'a> for File {
         match self {
             File::Flac { audio, .. } => audio.genres(config),
             File::Mpeg { audio, .. } => audio.genres(config),
+        }
+    }
+
+    fn lyrics(&'a self, config: &'a config::Parsing) -> Result<Vec<Lyric<'a>>, Error> {
+        match self {
+            File::Flac { audio, .. } => audio.lyrics(config),
+            File::Mpeg { audio, .. } => audio.lyrics(config),
         }
     }
 

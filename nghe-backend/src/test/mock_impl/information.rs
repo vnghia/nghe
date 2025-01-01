@@ -7,21 +7,22 @@ use fake::{Fake, Faker};
 use uuid::Uuid;
 
 use super::music_folder;
-use crate::file::{self, audio, picture};
-use crate::orm::{albums, songs};
+use crate::file::{self, audio, lyric, picture};
+use crate::orm::{albums, lyrics, songs};
 use crate::test::assets;
 use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::Trait as _;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mock<'info, 'picture, 'path> {
+pub struct Mock<'info, 'picture, 'lyrics, 'path> {
     pub information: audio::Information<'info>,
     pub dir_picture: Option<picture::Picture<'picture>>,
+    pub external_lyric: Option<lyric::Lyric<'lyrics>>,
     pub relative_path: Cow<'path, str>,
 }
 
 #[bon::bon]
-impl Mock<'static, 'static, 'static> {
+impl Mock<'static, 'static, 'static, 'static> {
     pub async fn query_upsert(mock: &super::Mock, id: Uuid) -> songs::Upsert<'static> {
         songs::table
             .filter(songs::id.eq(id))
@@ -41,8 +42,10 @@ impl Mock<'static, 'static, 'static> {
         let album = audio::Album::query_upsert(mock, upsert.foreign.album_id).await;
         let artists = audio::Artists::query(mock, id).await;
         let genres = audio::Genres::query(mock, id).await;
+        let lyrics = lyric::Lyric::query_embedded(mock, id).await;
         let picture = picture::Picture::query_song(mock, id).await;
 
+        let external_lyric = lyric::Lyric::query_external(mock, id).await;
         let dir_picture = picture::Picture::query_album(mock, album_id).await;
 
         Self {
@@ -52,11 +55,13 @@ impl Mock<'static, 'static, 'static> {
                     album: album.data.try_into().unwrap(),
                     artists,
                     genres,
+                    lyrics,
                     picture,
                 },
                 property: upsert.data.property.try_into().unwrap(),
                 file: upsert.data.file.try_into().unwrap(),
             },
+            external_lyric,
             dir_picture,
             relative_path: upsert.relative_path,
         }
@@ -73,10 +78,12 @@ impl Mock<'static, 'static, 'static> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
+        lyrics: Option<Vec<lyric::Lyric<'static>>>,
         picture: Option<Option<picture::Picture<'static>>>,
         format: Option<audio::Format>,
         file_property: Option<file::Property<audio::Format>>,
         property: Option<audio::Property>,
+        external_lyric: Option<Option<lyric::Lyric<'static>>>,
         dir_picture: Option<Option<picture::Picture<'static>>>,
         relative_path: Option<Cow<'static, str>>,
     ) -> Self {
@@ -85,6 +92,7 @@ impl Mock<'static, 'static, 'static> {
             album: album.unwrap_or_else(|| Faker.fake()),
             artists: artists.unwrap_or_else(|| Faker.fake()),
             genres: genres.unwrap_or_else(|| Faker.fake()),
+            lyrics: lyrics.unwrap_or_else(lyric::Lyric::fake_vec),
             picture: picture.unwrap_or_else(|| Faker.fake()),
         });
         let file = file_property.unwrap_or_else(|| file::Property {
@@ -93,25 +101,29 @@ impl Mock<'static, 'static, 'static> {
         });
         let property = property.unwrap_or_else(|| audio::Property::default(file.format));
 
+        let external_lyric = external_lyric
+            .unwrap_or_else(|| if Faker.fake() { Some(lyric::Lyric::fake_sync()) } else { None });
         let dir_picture = dir_picture.unwrap_or_else(|| Faker.fake());
         let relative_path =
             relative_path.map_or_else(|| Faker.fake::<String>().into(), std::convert::Into::into);
 
         Self {
             information: audio::Information { metadata, property, file },
+            external_lyric,
             dir_picture,
             relative_path,
         }
     }
 }
 
-impl Mock<'_, '_, '_> {
+impl Mock<'_, '_, '_, '_> {
     pub async fn upsert(
         &self,
         music_folder: &music_folder::Mock<'_>,
         song_id: impl Into<Option<Uuid>>,
     ) -> Uuid {
         let database = music_folder.database();
+
         let dir_picture_id = if let Some(ref dir) = music_folder.config.cover_art.dir
             && let Some(ref picture) = self.dir_picture
         {
@@ -120,7 +132,8 @@ impl Mock<'_, '_, '_> {
             None
         };
 
-        self.information
+        let song_id = self
+            .information
             .upsert(
                 database,
                 &music_folder.config,
@@ -132,7 +145,20 @@ impl Mock<'_, '_, '_> {
                 song_id,
             )
             .await
-            .unwrap()
+            .unwrap();
+
+        if let Some(external_lyric) = self.external_lyric.as_ref() {
+            external_lyric
+                .upsert(
+                    database,
+                    lyrics::Foreign { song_id },
+                    Some(music_folder.absolutize(&self.relative_path)),
+                )
+                .await
+                .unwrap();
+        }
+
+        song_id
     }
 
     pub async fn upsert_mock(
@@ -167,6 +193,15 @@ impl Mock<'_, '_, '_> {
         let filesystem = &music_folder.to_impl();
         filesystem.write(path, &data).await;
 
+        if let Some(external_lyric) = self.external_lyric.as_ref() {
+            filesystem
+                .write(
+                    path.with_extension(lyric::Lyric::EXTERNAL_EXTENSION).to_path(),
+                    external_lyric.to_string().as_bytes(),
+                )
+                .await;
+        }
+
         let cover_art_config = &music_folder.config.cover_art;
         let parent = path.parent().unwrap();
         let dir_picture = if let Some(picture) =
@@ -191,12 +226,16 @@ impl Mock<'_, '_, '_> {
         }
     }
 
+    pub fn with_external_lyric(self, external_lyric: Option<lyric::Lyric<'static>>) -> Self {
+        Self { external_lyric, ..self }
+    }
+
     pub fn with_dir_picture(self, dir_picture: Option<picture::Picture<'static>>) -> Self {
         Self { dir_picture, ..self }
     }
 }
 
-impl<'path> Mock<'_, '_, 'path> {
+impl<'path> Mock<'_, '_, '_, 'path> {
     pub fn with_relative_path(self, relative_path: Cow<'path, str>) -> Self {
         Self { relative_path, ..self }
     }

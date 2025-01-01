@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::config;
 use crate::file::audio::position::Position;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
+use crate::file::lyric::Lyric;
 use crate::file::picture::Picture;
 use crate::test::file::audio::dump;
 
@@ -104,6 +105,21 @@ impl dump::Metadata for VorbisComments {
     fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self {
         for genre in genres.value {
             self.push(config.vorbis_comments.genres.clone(), genre.value.into_owned());
+        }
+        self
+    }
+
+    fn dump_lyrics(&mut self, config: &config::Parsing, lyrics: Vec<Lyric<'_>>) -> &mut Self {
+        for lyric in lyrics {
+            self.push(
+                if lyric.is_sync() {
+                    &config.vorbis_comments.lyric.sync
+                } else {
+                    &config.vorbis_comments.lyric.unsync
+                }
+                .clone(),
+                lyric.to_string(),
+            );
         }
         self
     }

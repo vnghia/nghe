@@ -10,6 +10,7 @@ use crate::config;
 use crate::config::parsing::id3v2::frame;
 use crate::file::audio::position::Position;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
+use crate::file::lyric::Lyric;
 use crate::file::picture::Picture;
 use crate::test::file::audio::dump;
 
@@ -136,6 +137,13 @@ impl dump::Metadata for Id3v2Tag {
             config.id3v2.genres.clone(),
             genres.value.into_iter().map(|genre| genre.value.into_owned()),
         );
+        self
+    }
+
+    fn dump_lyrics(&mut self, _: &config::Parsing, lyrics: Vec<Lyric<'_>>) -> &mut Self {
+        for lyric in lyrics {
+            self.insert(lyric.into());
+        }
         self
     }
 
