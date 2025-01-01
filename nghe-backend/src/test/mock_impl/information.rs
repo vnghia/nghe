@@ -42,6 +42,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         let album = audio::Album::query_upsert(mock, upsert.foreign.album_id).await;
         let artists = audio::Artists::query(mock, id).await;
         let genres = audio::Genres::query(mock, id).await;
+        let lyrics = lyric::Lyric::query(mock, id).await;
         let picture = picture::Picture::query_song(mock, id).await;
 
         let external_lyric = lyric::Lyric::query_external(mock, id).await;
@@ -54,6 +55,7 @@ impl Mock<'static, 'static, 'static, 'static> {
                     album: album.data.try_into().unwrap(),
                     artists,
                     genres,
+                    lyrics,
                     picture,
                 },
                 property: upsert.data.property.try_into().unwrap(),
@@ -76,6 +78,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
+        lyrics: Option<Vec<lyric::Lyric<'static>>>,
         picture: Option<Option<picture::Picture<'static>>>,
         format: Option<audio::Format>,
         file_property: Option<file::Property<audio::Format>>,
@@ -89,6 +92,11 @@ impl Mock<'static, 'static, 'static, 'static> {
             album: album.unwrap_or_else(|| Faker.fake()),
             artists: artists.unwrap_or_else(|| Faker.fake()),
             genres: genres.unwrap_or_else(|| Faker.fake()),
+            lyrics: lyrics.unwrap_or_else(|| {
+                let unsync = if Faker.fake() { Some(lyric::Lyric::fake_unsync()) } else { None };
+                let sync = if Faker.fake() { Some(lyric::Lyric::fake_sync()) } else { None };
+                unsync.into_iter().chain(sync).collect()
+            }),
             picture: picture.unwrap_or_else(|| Faker.fake()),
         });
         let file = file_property.unwrap_or_else(|| file::Property {

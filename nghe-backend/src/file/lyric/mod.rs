@@ -192,6 +192,7 @@ mod test {
     use diesel::{QueryDsl, SelectableHelper};
     use fake::{Dummy, Fake, Faker};
     use itertools::Itertools;
+    use lofty::id3::v2::Frame;
 
     use super::*;
     use crate::test::Mock;
@@ -237,6 +238,20 @@ mod test {
     }
 
     impl Lyric<'static> {
+        pub async fn query(mock: &Mock, id: Uuid) -> Vec<Self> {
+            lyrics::table
+                .filter(lyrics::song_id.eq(id))
+                .filter(lyrics::source.is_null())
+                .select(lyrics::Data::as_select())
+                .order_by(lyrics::scanned_at)
+                .get_results(&mut mock.get().await)
+                .await
+                .unwrap()
+                .into_iter()
+                .map(Self::from)
+                .collect()
+        }
+
         pub async fn query_external(mock: &Mock, id: Uuid) -> Option<Self> {
             lyrics::table
                 .filter(lyrics::song_id.eq(id))
@@ -277,6 +292,38 @@ mod test {
 
                     Ok(())
                 }
+            }
+        }
+    }
+
+    impl From<Lyric<'_>> for Frame<'static> {
+        fn from(value: Lyric<'_>) -> Self {
+            let language = value.language.to_639_3().as_bytes().try_into().unwrap();
+            match value.lines {
+                Lines::Unsync(lines) => UnsynchronizedTextFrame::new(
+                    lofty::TextEncoding::UTF8,
+                    language,
+                    value.description.map(Cow::into_owned).unwrap_or_default(),
+                    lines.join("\n"),
+                )
+                .into(),
+                Lines::Sync(lines) => BinaryFrame::new(
+                    crate::config::parsing::id3v2::Id3v2::SYNC_LYRIC_FRAME_ID,
+                    SynchronizedTextFrame::new(
+                        lofty::TextEncoding::UTF8,
+                        language,
+                        lofty::id3::v2::TimestampFormat::MS,
+                        lofty::id3::v2::SyncTextContentType::Lyrics,
+                        value.description.map(Cow::into_owned),
+                        lines
+                            .into_iter()
+                            .map(|(duration, text)| (duration, text.into_owned()))
+                            .collect(),
+                    )
+                    .as_bytes()
+                    .unwrap(),
+                )
+                .into(),
             }
         }
     }

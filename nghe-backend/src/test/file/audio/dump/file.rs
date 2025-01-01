@@ -6,6 +6,7 @@ use lofty::ogg::{OggPictureStorage as _, VorbisComments};
 use super::Metadata;
 use crate::config;
 use crate::file::audio::{Album, Artists, Genres, NameDateMbz, TrackDisc};
+use crate::file::lyric::Lyric;
 use crate::file::picture::Picture;
 
 trait TagMut {
@@ -45,6 +46,11 @@ default impl<T: TagMut> Metadata for T {
 
     fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self {
         self.tag_mut().dump_genres(config, genres);
+        self
+    }
+
+    fn dump_lyrics(&mut self, config: &config::Parsing, lyrics: Vec<Lyric<'_>>) -> &mut Self {
+        self.tag_mut().dump_lyrics(config, lyrics);
         self
     }
 
