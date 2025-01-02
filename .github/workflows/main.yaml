@@ -150,11 +150,11 @@ jobs:
 
       - name: Build and test
         run: |
-          ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
+          ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
           if [[ ${{ matrix.platform.command }} == 'cross' ]]; then
-            cross-util run --target ${{ matrix.platform.target }} -- '/usr/bin/cargo-nextest nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace'
+            cross-util run --target ${{ matrix.platform.target }} -- '/usr/bin/cargo-nextest nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend'
           else
-            cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
+            cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
           fi
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
@@ -381,8 +381,8 @@ jobs:
 
             curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
 
-            cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }}
-            cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
+            cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
+            cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
       - name: Upload test report to Codecov
         if: success() || failure()
         uses: codecov/codecov-action@v5
@@ -461,8 +461,8 @@ jobs:
       - name: Build and test
         run: |
           .\minio.exe server data &
-          cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }}
-          cargo nextest run --locked --target x86_64-pc-windows-msvc --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
+          cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --package nghe_backend
+          cargo nextest run --locked --target x86_64-pc-windows-msvc --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
@@ -559,8 +559,8 @@ jobs:
 
       - name: Build and test
         run: |
-          cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }}
-          cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
+          cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
+          cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
