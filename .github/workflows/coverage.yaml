@@ -87,7 +87,7 @@ jobs:
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
       - name: Generate code coverage
-        run: cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json
+        run: cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
