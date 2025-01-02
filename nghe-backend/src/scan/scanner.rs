@@ -186,6 +186,20 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         Ok(())
     }
 
+    async fn update_external(
+        &self,
+        started_at: time::OffsetDateTime,
+        song_id: Uuid,
+        song_path: Utf8TypedPath<'_>,
+        dir_picture_id: Option<Uuid>,
+    ) -> Result<(), Error> {
+        // We also need to set album cover_art_id and external lyrics since it might be
+        // added or removed after the previous scan.
+        self.update_dir_picture(song_id, dir_picture_id).await?;
+        self.update_external_lyric(started_at, song_id, song_path).await?;
+        Ok(())
+    }
+
     #[cfg_attr(
         not(coverage_nightly),
         instrument(
@@ -253,10 +267,8 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 // `song_id` can be None if there are more than two duplicated files in the same
                 // music folder.
 
-                // We also need to set album cover_art_id and external lyrics since it might be
-                // added or removed after the previous scan.
-                self.update_dir_picture(song_path.id, dir_picture_id).await?;
-                self.update_external_lyric(started_at, song_path.id, absolute_path).await?;
+                self.update_external(started_at, song_path.id, absolute_path, dir_picture_id)
+                    .await?;
                 tracing::debug!("already scanned");
                 return Ok(song_path.id);
             } else if let Some(song_id) = song_id {
@@ -289,9 +301,13 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                             .execute(&mut database.get().await?)
                             .await?;
 
-                        // We also need to set album cover_art_id since it might be added or removed
-                        // after the previous scan.
-                        self.update_dir_picture(song_path.id, dir_picture_id).await?;
+                        self.update_external(
+                            started_at,
+                            song_path.id,
+                            absolute_path,
+                            dir_picture_id,
+                        )
+                        .await?;
                         tracing::debug!("stale last_modified");
                         return Ok(song_path.id);
                     }
@@ -318,10 +334,8 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                     .execute(&mut database.get().await?)
                     .await?;
 
-                // We also need to set album cover_art_id and external lyrics since it might be
-                // added or removed after the previous scan.
-                self.update_dir_picture(song_path.id, dir_picture_id).await?;
-                self.update_external_lyric(started_at, song_path.id, absolute_path).await?;
+                self.update_external(started_at, song_path.id, absolute_path, dir_picture_id)
+                    .await?;
                 tracing::warn!(
                     old = %song_path.relative_path, new = %relative_path, "renamed duplication"
                 );
@@ -426,10 +440,13 @@ mod tests {
 
         let song_id = music_folder.song_id_filesystem(0).await;
         let filesystem_audio = music_folder.filesystem[0].clone();
+        // Don't modify lyric because we won't rescan it even in full mode (it will be rescanned
+        // only in full lyric mode).
         music_folder
             .add_audio()
             .album(filesystem_audio.information.metadata.album)
             .file_property(filesystem_audio.information.file)
+            .external_lyric(None)
             .relative_path(filesystem_audio.relative_path)
             .song_id(song_id)
             .call()

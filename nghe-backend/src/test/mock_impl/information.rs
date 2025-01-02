@@ -14,10 +14,10 @@ use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::Trait as _;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mock<'info, 'picture, 'lyrics, 'path> {
+pub struct Mock<'info, 'lyrics, 'picture, 'path> {
     pub information: audio::Information<'info>,
-    pub dir_picture: Option<picture::Picture<'picture>>,
     pub external_lyric: Option<lyric::Lyric<'lyrics>>,
+    pub dir_picture: Option<picture::Picture<'picture>>,
     pub relative_path: Cow<'path, str>,
 }
 

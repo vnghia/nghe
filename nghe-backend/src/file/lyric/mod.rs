@@ -269,6 +269,16 @@ mod test {
     }
 
     impl Lyric<'static> {
+        pub async fn query(mock: &Mock, id: Uuid) -> Self {
+            lyrics::table
+                .filter(lyrics::id.eq(id))
+                .select(lyrics::Data::as_select())
+                .get_result(&mut mock.get().await)
+                .await
+                .unwrap()
+                .into()
+        }
+
         pub async fn query_embedded(mock: &Mock, id: Uuid) -> Vec<Self> {
             lyrics::table
                 .filter(lyrics::song_id.eq(id))
@@ -367,10 +377,11 @@ mod test {
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
+    use fake::{Fake, Faker};
     use rstest::rstest;
 
     use super::*;
-    use crate::test::assets;
+    use crate::test::{Mock, assets, mock};
 
     #[rstest]
     fn test_lyrics_roundtrip(#[values(true, false)] sync: bool) {
@@ -414,5 +425,50 @@ mod tests {
             Lyric::from_unsync_text(&content)
         };
         assert_eq!(parsed, lyrics);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_lyric_upsert_roundtrip(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] external: bool,
+        #[values(true, false)] update_lyric: bool,
+        #[values(true, false)] same_description: bool,
+    ) {
+        let mut music_folder = mock.music_folder(0).await;
+        let song_id = music_folder.add_audio().call().await.song_id(0);
+
+        let lyric: Lyric = Faker.fake();
+        let id =
+            lyric.upsert(mock.database(), lyrics::Foreign { song_id }, external).await.unwrap();
+
+        let database_lyric = Lyric::query(&mock, id).await;
+        assert_eq!(database_lyric, lyric);
+
+        if update_lyric {
+            let update_lyric = Lyric {
+                description: if same_description {
+                    lyric.description.clone()
+                } else {
+                    // Force description to Some to avoid both descriptions are None.
+                    Some(Faker.fake::<String>().into())
+                },
+                ..Faker.fake()
+            };
+            let update_id = update_lyric
+                .upsert(mock.database(), lyrics::Foreign { song_id }, external)
+                .await
+                .unwrap();
+            let database_update_lyric = Lyric::query(&mock, id).await;
+
+            if external || same_description {
+                assert_eq!(id, update_id);
+                assert_eq!(database_update_lyric, update_lyric);
+            } else {
+                // This will always insert a new row to the database
+                // since there is nothing to identify the old lyric.
+                assert_ne!(id, update_id);
+            }
+        }
     }
 }
