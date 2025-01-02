@@ -381,6 +381,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
+    use crate::test::filesystem::Trait as _;
     use crate::test::{Mock, assets, mock};
 
     #[rstest]
@@ -470,5 +471,42 @@ mod tests {
                 assert_ne!(id, update_id);
             }
         }
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_scan_full(
+        #[future(awt)]
+        #[with(0, 1)]
+        mock: Mock,
+        #[values(true, false)] full: bool,
+    ) {
+        let mut music_folder = mock.music_folder(0).await;
+        let song_id = music_folder.add_audio().call().await.song_id(0);
+
+        let lyric: Lyric = Faker.fake();
+        let id = lyric.upsert(mock.database(), lyrics::Foreign { song_id }, true).await.unwrap();
+
+        let new_lyric = Lyric::fake_sync();
+
+        let filesystem = music_folder.to_impl();
+        let path = filesystem.prefix().join("test");
+        let path = path.to_path();
+        filesystem
+            .write(
+                path.with_extension(Lyric::EXTERNAL_EXTENSION).to_path(),
+                new_lyric.to_string().as_bytes(),
+            )
+            .await;
+        let scanned_id = Lyric::scan(mock.database(), &filesystem.main(), full, song_id, path)
+            .await
+            .unwrap()
+            .unwrap();
+
+        // They will always be the same because there can only be at most one external lyric for a
+        // song.
+        assert_eq!(scanned_id, id);
+        let database_lyric = Lyric::query(&mock, id).await;
+        assert_eq!(database_lyric, if full { new_lyric } else { lyric });
     }
 }

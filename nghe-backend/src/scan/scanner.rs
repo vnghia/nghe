@@ -179,7 +179,14 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
-        lyric::Lyric::scan(&self.database, &self.filesystem, false, song_id, song_path).await?;
+        lyric::Lyric::scan(
+            &self.database,
+            &self.filesystem,
+            self.full.external_lyric,
+            song_id,
+            song_path,
+        )
+        .await?;
         if let Some(started_at) = started_at.into() {
             lyric::Lyric::cleanup_one_external(&self.database, started_at, song_id).await?;
         }
