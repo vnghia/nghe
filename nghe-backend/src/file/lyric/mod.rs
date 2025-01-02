@@ -112,15 +112,9 @@ impl Lyric<'_> {
         &self,
         database: &Database,
         foreign: lyrics::Foreign,
-        source: Option<impl AsRef<str>>,
+        external: bool,
     ) -> Result<Uuid, Error> {
-        lyrics::Upsert {
-            foreign,
-            source: source.as_ref().map(AsRef::as_ref).map(Cow::Borrowed),
-            data: self.try_into()?,
-        }
-        .insert(database)
-        .await
+        lyrics::Upsert { foreign, external, data: self.try_into()? }.insert(database).await
     }
 
     pub async fn upserts_embedded(
@@ -129,7 +123,7 @@ impl Lyric<'_> {
         lyrics: &[Self],
     ) -> Result<Vec<Uuid>, Error> {
         stream::iter(lyrics)
-            .then(async |lyric| lyric.upsert(database, foreign, None::<&str>).await)
+            .then(async |lyric| lyric.upsert(database, foreign, false).await)
             .try_collect()
             .await
     }
@@ -137,11 +131,10 @@ impl Lyric<'_> {
     async fn set_external_scanned_at(
         database: &Database,
         song_id: Uuid,
-        source: impl AsRef<str>,
     ) -> Result<Option<Uuid>, Error> {
         diesel::update(lyrics::table)
             .filter(lyrics::song_id.eq(song_id))
-            .filter(lyrics::source.eq(source.as_ref()))
+            .filter(lyrics::external)
             .set(lyrics::scanned_at.eq(crate::time::now().await))
             .returning(lyrics::id)
             .get_result(&mut database.get().await?)
@@ -168,17 +161,16 @@ impl Lyric<'_> {
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
     ) -> Result<Option<Uuid>, Error> {
-        let path = song_path.with_extension(Self::EXTERNAL_EXTENSION);
-        let path = path.to_path();
-
         Ok(
             if !full
-                && let Some(lyrics_id) =
-                    Self::set_external_scanned_at(database, song_id, path).await?
+                && let Some(lyrics_id) = Self::set_external_scanned_at(database, song_id).await?
             {
                 Some(lyrics_id)
-            } else if let Some(lyrics) = Self::load(filesystem, path).await? {
-                Some(lyrics.upsert(database, lyrics::Foreign { song_id }, Some(path)).await?)
+            } else if let Some(lyrics) =
+                Self::load(filesystem, song_path.with_extension(Self::EXTERNAL_EXTENSION).to_path())
+                    .await?
+            {
+                Some(lyrics.upsert(database, lyrics::Foreign { song_id }, true).await?)
             } else {
                 None
             },
@@ -194,7 +186,7 @@ impl Lyric<'_> {
         diesel::delete(lyrics::table)
             .filter(lyrics::song_id.eq(song_id))
             .filter(lyrics::scanned_at.lt(started_at))
-            .filter(lyrics::source.is_not_null())
+            .filter(lyrics::external)
             .execute(&mut database.get().await?)
             .await?;
         Ok(())
@@ -220,6 +212,7 @@ impl Lyric<'_> {
 mod test {
     use std::fmt::Display;
 
+    use diesel::dsl::not;
     use diesel::{QueryDsl, SelectableHelper};
     use fake::{Dummy, Fake, Faker};
     use itertools::Itertools;
@@ -279,7 +272,7 @@ mod test {
         pub async fn query_embedded(mock: &Mock, id: Uuid) -> Vec<Self> {
             lyrics::table
                 .filter(lyrics::song_id.eq(id))
-                .filter(lyrics::source.is_null())
+                .filter(not(lyrics::external))
                 .select(lyrics::Data::as_select())
                 .order_by(lyrics::scanned_at)
                 .get_results(&mut mock.get().await)
@@ -293,7 +286,7 @@ mod test {
         pub async fn query_external(mock: &Mock, id: Uuid) -> Option<Self> {
             lyrics::table
                 .filter(lyrics::song_id.eq(id))
-                .filter(lyrics::source.is_not_null())
+                .filter(lyrics::external)
                 .select(lyrics::Data::as_select())
                 .get_result(&mut mock.get().await)
                 .await

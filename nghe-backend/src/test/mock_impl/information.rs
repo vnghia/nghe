@@ -148,14 +148,7 @@ impl Mock<'_, '_, '_, '_> {
             .unwrap();
 
         if let Some(external_lyric) = self.external_lyric.as_ref() {
-            external_lyric
-                .upsert(
-                    database,
-                    lyrics::Foreign { song_id },
-                    Some(music_folder.absolutize(&self.relative_path)),
-                )
-                .await
-                .unwrap();
+            external_lyric.upsert(database, lyrics::Foreign { song_id }, true).await.unwrap();
         }
 
         song_id

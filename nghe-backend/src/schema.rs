@@ -101,7 +101,7 @@ diesel::table! {
     lyrics (id) {
         id -> Uuid,
         song_id -> Uuid,
-        source -> Nullable<Text>,
+        external -> Bool,
         description -> Nullable<Text>,
         language -> Text,
         durations -> Nullable<Array<Nullable<Int4>>>,
