@@ -1,0 +1,5 @@
+max_width = 100
+newline_style = "Unix"
+attr_value_brace_style = "WhenRequired"
+macro_names = ["leptos::view", "view"]
+closing_tag_style = "SelfClosing"
