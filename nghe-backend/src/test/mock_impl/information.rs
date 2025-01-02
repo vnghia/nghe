@@ -14,10 +14,10 @@ use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::Trait as _;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mock<'info, 'picture, 'lyrics, 'path> {
+pub struct Mock<'info, 'lyrics, 'picture, 'path> {
     pub information: audio::Information<'info>,
-    pub dir_picture: Option<picture::Picture<'picture>>,
     pub external_lyric: Option<lyric::Lyric<'lyrics>>,
+    pub dir_picture: Option<picture::Picture<'picture>>,
     pub relative_path: Cow<'path, str>,
 }
 
@@ -148,14 +148,7 @@ impl Mock<'_, '_, '_, '_> {
             .unwrap();
 
         if let Some(external_lyric) = self.external_lyric.as_ref() {
-            external_lyric
-                .upsert(
-                    database,
-                    lyrics::Foreign { song_id },
-                    Some(music_folder.absolutize(&self.relative_path)),
-                )
-                .await
-                .unwrap();
+            external_lyric.upsert(database, lyrics::Foreign { song_id }, true).await.unwrap();
         }
 
         song_id

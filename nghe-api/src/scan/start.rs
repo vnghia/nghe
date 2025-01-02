@@ -7,6 +7,8 @@ pub struct Full {
     #[serde(default)]
     pub file: bool,
     #[serde(default)]
+    pub external_lyric: bool,
+    #[serde(default)]
     pub dir_picture: bool,
     #[serde(default)]
     pub information: bool,

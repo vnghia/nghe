@@ -38,12 +38,13 @@ pub struct Foreign {
 pub struct Upsert<'a> {
     #[diesel(embed)]
     pub foreign: Foreign,
-    pub source: Option<Cow<'a, str>>,
+    pub external: bool,
     #[diesel(embed)]
     pub data: Data<'a>,
 }
 
 mod upsert {
+    use diesel::dsl::not;
     use diesel::{DecoratableTarget, ExpressionMethods};
     use diesel_async::RunQueryDsl;
     use uuid::Uuid;
@@ -54,10 +55,11 @@ mod upsert {
 
     impl crate::orm::upsert::Insert for Upsert<'_> {
         async fn insert(&self, database: &Database) -> Result<Uuid, Error> {
-            if self.source.is_some() {
+            if self.external {
                 diesel::insert_into(lyrics::table)
                     .values(self)
-                    .on_conflict((lyrics::song_id, lyrics::source))
+                    .on_conflict(lyrics::song_id)
+                    .filter_target(lyrics::external)
                     .do_update()
                     .set((&self.data, lyrics::scanned_at.eq(crate::time::now().await)))
                     .returning(lyrics::id)
@@ -67,7 +69,7 @@ mod upsert {
                 diesel::insert_into(lyrics::table)
                     .values(self)
                     .on_conflict((lyrics::song_id, lyrics::description))
-                    .filter_target(lyrics::source.is_null())
+                    .filter_target(not(lyrics::external))
                     .do_update()
                     .set((&self.data, lyrics::scanned_at.eq(crate::time::now().await)))
                     .returning(lyrics::id)
