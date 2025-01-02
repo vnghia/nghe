@@ -1,7 +1,6 @@
 #![allow(incomplete_features)]
 #![feature(adt_const_params)]
 #![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(async_closure)]
 #![feature(coverage_attribute)]
 #![feature(duration_constructors)]
 #![feature(if_let_guard)]
