@@ -17,6 +17,7 @@ pub struct Line {
 pub struct Lyrics {
     pub lang: String,
     pub synced: bool,
+    pub offset: u32,
     pub line: Vec<Line>,
 }
 

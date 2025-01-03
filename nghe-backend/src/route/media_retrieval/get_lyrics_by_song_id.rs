@@ -21,14 +21,15 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         lyrics_list: LyricsList {
             structured_lyrics: lyrics
                 .into_iter()
-                .map(|lyrics| -> Result<_, Error> {
-                    if let Some(durations) = lyrics.durations {
+                .map(|lyric| -> Result<_, Error> {
+                    if let Some(durations) = lyric.durations {
                         Ok(Lyrics {
-                            lang: lyrics.language.into_owned(),
+                            lang: lyric.language.into_owned(),
                             synced: true,
+                            offset: 0,
                             line: durations
                                 .into_iter()
-                                .zip_longest(lyrics.texts.into_iter())
+                                .zip_longest(lyric.texts.into_iter())
                                 .map(|iter| {
                                     if let EitherOrBoth::Both(duration, text) = iter {
                                         Ok(Line {
@@ -43,9 +44,10 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
                         })
                     } else {
                         Ok(Lyrics {
-                            lang: lyrics.language.into_owned(),
+                            lang: lyric.language.into_owned(),
                             synced: false,
-                            line: lyrics
+                            offset: 0,
+                            line: lyric
                                 .texts
                                 .into_iter()
                                 .map(|text| Line { start: None, value: text.into_owned() })
