@@ -7,7 +7,7 @@ use diesel_async::RunQueryDsl;
 use futures_lite::{StreamExt as _, stream};
 use isolang::Language;
 use lofty::id3::v2::{BinaryFrame, SynchronizedTextFrame, UnsynchronizedTextFrame};
-use typed_path::Utf8TypedPath;
+use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 
 use crate::database::Database;
@@ -34,6 +34,12 @@ pub struct Lyric<'a> {
 impl<'a> FromIterator<&'a str> for Lines<'a> {
     fn from_iter<T: IntoIterator<Item = &'a str>>(iter: T) -> Self {
         Self::Unsync(iter.into_iter().map(Cow::Borrowed).collect())
+    }
+}
+
+impl FromIterator<String> for Lines<'_> {
+    fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
+        Self::Unsync(iter.into_iter().map(Cow::Owned).collect())
     }
 }
 
@@ -71,7 +77,7 @@ impl<'a> TryFrom<&'a BinaryFrame<'_>> for Lyric<'a> {
 
 impl<'a> Lyric<'a> {
     pub fn from_unsync_text(content: &'a str) -> Self {
-        let lines = content.lines().filter(|text| !text.is_empty());
+        let lines = content.lines();
         let (description, lines) = if cfg!(test) && content.starts_with('#') {
             let mut lines = lines;
             let description = lines.next().unwrap().strip_prefix('#').unwrap();
@@ -103,11 +109,23 @@ impl<'a> Lyric<'a> {
                 .collect(),
         })
     }
+
+    pub fn into_owned(self) -> Lyric<'static> {
+        Lyric {
+            description: self.description.map(Cow::into_owned).map(Cow::Owned),
+            language: self.language,
+            lines: match self.lines {
+                Lines::Unsync(lines) => lines.into_iter().map(Cow::into_owned).collect(),
+                Lines::Sync(lines) => lines
+                    .into_iter()
+                    .map(|(duration, text)| (duration, text.into_owned()))
+                    .collect(),
+            },
+        }
+    }
 }
 
 impl Lyric<'_> {
-    pub const EXTERNAL_EXTENSION: &'static str = "lrc";
-
     pub async fn upsert(
         &self,
         database: &Database,
@@ -126,55 +144,6 @@ impl Lyric<'_> {
             .then(async |lyric| lyric.upsert(database, foreign, false).await)
             .try_collect()
             .await
-    }
-
-    async fn set_external_scanned_at(
-        database: &Database,
-        song_id: Uuid,
-    ) -> Result<Option<Uuid>, Error> {
-        diesel::update(lyrics::table)
-            .filter(lyrics::song_id.eq(song_id))
-            .filter(lyrics::external)
-            .set(lyrics::scanned_at.eq(crate::time::now().await))
-            .returning(lyrics::id)
-            .get_result(&mut database.get().await?)
-            .await
-            .optional()
-            .map_err(Error::from)
-    }
-
-    pub async fn load(
-        filesystem: &filesystem::Impl<'_>,
-        path: Utf8TypedPath<'_>,
-    ) -> Result<Option<Self>, Error> {
-        if filesystem.exists(path).await? {
-            let content = filesystem.read_to_string(path).await?;
-            return Ok(Some(Self::from_sync_text(&content)?));
-        }
-        Ok(None)
-    }
-
-    pub async fn scan(
-        database: &Database,
-        filesystem: &filesystem::Impl<'_>,
-        full: bool,
-        song_id: Uuid,
-        song_path: Utf8TypedPath<'_>,
-    ) -> Result<Option<Uuid>, Error> {
-        Ok(
-            if !full
-                && let Some(lyrics_id) = Self::set_external_scanned_at(database, song_id).await?
-            {
-                Some(lyrics_id)
-            } else if let Some(lyrics) =
-                Self::load(filesystem, song_path.with_extension(Self::EXTERNAL_EXTENSION).to_path())
-                    .await?
-            {
-                Some(lyrics.upsert(database, lyrics::Foreign { song_id }, true).await?)
-            } else {
-                None
-            },
-        )
     }
 
     pub async fn cleanup_one_external(
@@ -207,6 +176,78 @@ impl Lyric<'_> {
     }
 }
 
+impl Lyric<'static> {
+    const EXTERNAL_SYNC_EXTENSION: &'static str = "lrc";
+    const EXTERNAL_UNSYNC_EXTENSION: &'static str = "txt";
+
+    fn path(path: Utf8TypedPath<'_>, sync: bool) -> Utf8TypedPathBuf {
+        path.with_extension(if sync {
+            Self::EXTERNAL_SYNC_EXTENSION
+        } else {
+            Self::EXTERNAL_UNSYNC_EXTENSION
+        })
+    }
+
+    fn from_text(content: &str, sync: bool) -> Result<Self, Error> {
+        if sync {
+            Self::from_sync_text(content)
+        } else {
+            Ok(Lyric::from_unsync_text(content).into_owned())
+        }
+    }
+
+    pub async fn load(
+        filesystem: &filesystem::Impl<'_>,
+        path: Utf8TypedPath<'_>,
+        sync: bool,
+    ) -> Result<Option<Self>, Error> {
+        let path = Self::path(path, sync);
+        let path = path.to_path();
+        if filesystem.exists(path).await? {
+            let content = filesystem.read_to_string(path).await?;
+            return Ok(Some(Self::from_text(&content, sync)?));
+        }
+        Ok(None)
+    }
+
+    async fn set_external_scanned_at(
+        database: &Database,
+        song_id: Uuid,
+    ) -> Result<Option<Uuid>, Error> {
+        diesel::update(lyrics::table)
+            .filter(lyrics::song_id.eq(song_id))
+            .filter(lyrics::external)
+            .set(lyrics::scanned_at.eq(crate::time::now().await))
+            .returning(lyrics::id)
+            .get_result(&mut database.get().await?)
+            .await
+            .optional()
+            .map_err(Error::from)
+    }
+
+    pub async fn scan(
+        database: &Database,
+        filesystem: &filesystem::Impl<'_>,
+        full: bool,
+        song_id: Uuid,
+        song_path: Utf8TypedPath<'_>,
+    ) -> Result<Option<Uuid>, Error> {
+        Ok(
+            if !full
+                && let Some(lyrics_id) = Self::set_external_scanned_at(database, song_id).await?
+            {
+                Some(lyrics_id)
+            } else if let Some(lyrics) = Self::load(filesystem, song_path, true).await? {
+                Some(lyrics.upsert(database, lyrics::Foreign { song_id }, true).await?)
+            } else if let Some(lyrics) = Self::load(filesystem, song_path, false).await? {
+                Some(lyrics.upsert(database, lyrics::Foreign { song_id }, true).await?)
+            } else {
+                None
+            },
+        )
+    }
+}
+
 #[cfg(test)]
 #[coverage(off)]
 mod test {
@@ -219,20 +260,15 @@ mod test {
     use lofty::id3::v2::Frame;
 
     use super::*;
-    use crate::test::Mock;
-
-    impl FromIterator<String> for Lines<'_> {
-        fn from_iter<T: IntoIterator<Item = String>>(iter: T) -> Self {
-            Self::Unsync(iter.into_iter().map(Cow::Owned).collect())
-        }
-    }
+    use crate::test::filesystem::Trait as _;
+    use crate::test::{Mock, filesystem};
 
     impl Lyric<'_> {
         pub fn is_sync(&self) -> bool {
             matches!(self.lines, Lines::Sync(_))
         }
 
-        pub fn fake_sync() -> Self {
+        fn fake_sync() -> Self {
             // Force description as Some to avoid clash with unsync.
             Self {
                 description: Some(Faker.fake::<String>().into()),
@@ -253,7 +289,7 @@ mod test {
             }
         }
 
-        pub fn fake_unsync() -> Self {
+        fn fake_unsync() -> Self {
             Self {
                 description: Faker.fake::<Option<String>>().map(Cow::Owned),
                 language: Language::Und,
@@ -261,10 +297,20 @@ mod test {
             }
         }
 
+        pub fn fake(sync: bool) -> Self {
+            if sync { Self::fake_sync() } else { Self::fake_unsync() }
+        }
+
         pub fn fake_vec() -> Vec<Self> {
-            let unsync = if Faker.fake() { Some(Self::fake_unsync()) } else { None };
-            let sync = if Faker.fake() { Some(Self::fake_sync()) } else { None };
+            let unsync = if Faker.fake() { Some(Self::fake(false)) } else { None };
+            let sync = if Faker.fake() { Some(Self::fake(true)) } else { None };
             unsync.into_iter().chain(sync).collect()
+        }
+
+        pub async fn dump(&self, filesystem: &filesystem::Impl<'_>, path: Utf8TypedPath<'_>) {
+            let path = Lyric::path(path, self.is_sync());
+            let content = self.to_string();
+            filesystem.write(path.to_path(), content.as_bytes()).await;
         }
     }
 
@@ -308,7 +354,7 @@ mod test {
 
     impl Dummy<Faker> for Lyric<'_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
-            if config.fake_with_rng(rng) { Self::fake_sync() } else { Self::fake_unsync() }
+            Self::fake(config.fake_with_rng(rng))
         }
     }
 
@@ -386,13 +432,8 @@ mod tests {
 
     #[rstest]
     fn test_lyrics_roundtrip(#[values(true, false)] sync: bool) {
-        if sync {
-            let lyrics = Lyric::fake_sync();
-            assert_eq!(lyrics, Lyric::from_sync_text(&lyrics.to_string()).unwrap());
-        } else {
-            let lyrics = Lyric::fake_unsync();
-            assert_eq!(lyrics, Lyric::from_unsync_text(&lyrics.to_string()));
-        }
+        let lyrics = Lyric::fake(sync);
+        assert_eq!(lyrics, Lyric::from_text(&lyrics.to_string(), sync).unwrap());
     }
 
     #[rstest]
@@ -413,6 +454,7 @@ mod tests {
         lines: vec![
             "Hello hi",
             "Bonjour salut",
+            "",
             "おはよう こんにちは",
         ]
         .into_iter()
@@ -420,11 +462,7 @@ mod tests {
     })]
     fn test_from_text(#[case] filename: &str, #[case] lyrics: Lyric<'_>) {
         let content = std::fs::read_to_string(assets::dir().join("lyrics").join(filename)).unwrap();
-        let parsed = if lyrics.is_sync() {
-            Lyric::from_sync_text(&content).unwrap()
-        } else {
-            Lyric::from_unsync_text(&content)
-        };
+        let parsed = Lyric::from_text(&content, lyrics.is_sync()).unwrap();
         assert_eq!(parsed, lyrics);
     }
 
@@ -487,17 +525,12 @@ mod tests {
         let lyric: Lyric = Faker.fake();
         let id = lyric.upsert(mock.database(), lyrics::Foreign { song_id }, true).await.unwrap();
 
-        let new_lyric = Lyric::fake_sync();
+        let new_lyric: Lyric = Faker.fake();
 
-        let filesystem = music_folder.to_impl();
+        let filesystem = &music_folder.to_impl();
         let path = filesystem.prefix().join("test");
         let path = path.to_path();
-        filesystem
-            .write(
-                path.with_extension(Lyric::EXTERNAL_EXTENSION).to_path(),
-                new_lyric.to_string().as_bytes(),
-            )
-            .await;
+        new_lyric.dump(filesystem, path).await;
         let scanned_id = Lyric::scan(mock.database(), &filesystem.main(), full, song_id, path)
             .await
             .unwrap()

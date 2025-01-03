@@ -1,7 +1,9 @@
+use std::borrow::Cow;
+
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::{EitherOrBoth, Itertools};
-use nghe_api::media_retrieval::get_lyrics_by_song_id::{Line, Lyrics, LyricsList};
+use nghe_api::media_retrieval::get_lyrics_by_song_id::{Line, Lyric, LyricsList};
 pub use nghe_api::media_retrieval::get_lyrics_by_song_id::{Request, Response};
 use nghe_proc_macro::handler;
 
@@ -21,14 +23,19 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         lyrics_list: LyricsList {
             structured_lyrics: lyrics
                 .into_iter()
-                .map(|lyrics| -> Result<_, Error> {
-                    if let Some(durations) = lyrics.durations {
-                        Ok(Lyrics {
-                            lang: lyrics.language.into_owned(),
+                .map(|lyric| -> Result<_, Error> {
+                    let display_title = lyric.description.map(Cow::into_owned);
+                    let lang = lyric.language.into_owned();
+
+                    if let Some(durations) = lyric.durations {
+                        Ok(Lyric {
+                            display_title,
+                            lang,
                             synced: true,
+                            offset: 0,
                             line: durations
                                 .into_iter()
-                                .zip_longest(lyrics.texts.into_iter())
+                                .zip_longest(lyric.texts.into_iter())
                                 .map(|iter| {
                                     if let EitherOrBoth::Both(duration, text) = iter {
                                         Ok(Line {
@@ -42,10 +49,12 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
                                 .try_collect()?,
                         })
                     } else {
-                        Ok(Lyrics {
-                            lang: lyrics.language.into_owned(),
+                        Ok(Lyric {
+                            display_title,
+                            lang,
                             synced: false,
-                            line: lyrics
+                            offset: 0,
+                            line: lyric
                                 .texts
                                 .into_iter()
                                 .map(|text| Line { start: None, value: text.into_owned() })
@@ -56,4 +65,33 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
                 .try_collect()?,
         },
     })
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+    use crate::test::{Mock, mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_handler(#[future(awt)] mock: Mock) {
+        let mut music_folder = mock.music_folder(0).await;
+        let (id, audio) = music_folder.add_audio().call().await.database.get_index(0).unwrap();
+
+        let n_lyrics =
+            usize::from(audio.external_lyric.is_some()) + audio.information.metadata.lyrics.len();
+
+        assert_eq!(
+            handler(mock.database(), Request { id: *id })
+                .await
+                .unwrap()
+                .lyrics_list
+                .structured_lyrics
+                .len(),
+            n_lyrics
+        );
+    }
 }

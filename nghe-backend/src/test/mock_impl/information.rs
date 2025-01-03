@@ -101,8 +101,7 @@ impl Mock<'static, 'static, 'static, 'static> {
         });
         let property = property.unwrap_or_else(|| audio::Property::default(file.format));
 
-        let external_lyric = external_lyric
-            .unwrap_or_else(|| if Faker.fake() { Some(lyric::Lyric::fake_sync()) } else { None });
+        let external_lyric = external_lyric.unwrap_or_else(|| Faker.fake());
         let dir_picture = dir_picture.unwrap_or_else(|| Faker.fake());
         let relative_path =
             relative_path.map_or_else(|| Faker.fake::<String>().into(), std::convert::Into::into);
@@ -187,12 +186,7 @@ impl Mock<'_, '_, '_, '_> {
         filesystem.write(path, &data).await;
 
         if let Some(external_lyric) = self.external_lyric.as_ref() {
-            filesystem
-                .write(
-                    path.with_extension(lyric::Lyric::EXTERNAL_EXTENSION).to_path(),
-                    external_lyric.to_string().as_bytes(),
-                )
-                .await;
+            external_lyric.dump(filesystem, path).await;
         }
 
         let cover_art_config = &music_folder.config.cover_art;
