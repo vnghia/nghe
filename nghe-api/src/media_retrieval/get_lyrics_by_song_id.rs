@@ -14,7 +14,8 @@ pub struct Line {
 }
 
 #[api_derive]
-pub struct Lyrics {
+pub struct Lyric {
+    pub display_title: Option<String>,
     pub lang: String,
     pub synced: bool,
     pub offset: u32,
@@ -23,7 +24,7 @@ pub struct Lyrics {
 
 #[api_derive]
 pub struct LyricsList {
-    pub structured_lyrics: Vec<Lyrics>,
+    pub structured_lyrics: Vec<Lyric>,
 }
 
 #[api_derive]
