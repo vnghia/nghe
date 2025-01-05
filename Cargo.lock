@@ -3152,6 +3152,7 @@ version = "0.9.10"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
+ "gloo-net",
  "leptos",
  "leptos_router",
  "nghe_api",

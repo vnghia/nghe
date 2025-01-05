@@ -1,5 +1,8 @@
+use anyhow::Error;
 use leptos::html;
 use leptos::prelude::*;
+use nghe_api::common::JsonURL;
+use nghe_api::user::setup::Request;
 
 use super::form;
 
@@ -11,6 +14,14 @@ pub fn Setup() -> impl IntoView {
     let (username_error, set_username_error) = signal(Option::default());
     let (email_error, set_email_error) = signal(Option::default());
     let (password_error, set_password_error) = signal(Option::default());
+
+    let setup_action = Action::<_, _, SyncStorage>::new_unsync(|request: &Request| {
+        let request = request.clone();
+        async move {
+            gloo_net::http::Request::post(Request::URL_JSON).json(&request)?.send().await?;
+            Ok::<_, Error>(())
+        }
+    });
 
     html::section().class("bg-gray-50 dark:bg-gray-900").child(
         html::div()
@@ -79,6 +90,14 @@ pub fn Setup() -> impl IntoView {
                             None
                         };
                         set_password_error(password_error);
+
+                        if username_error.is_some()
+                            || email_error.is_some()
+                            || password_error.is_some()
+                        {
+                            return;
+                        }
+                        setup_action.dispatch(Request { username, password, email });
                     },
                 ),
             )),
