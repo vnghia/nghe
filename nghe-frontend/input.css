@@ -1,2 +1,2 @@
 @import "tailwindcss";
-@source "./node_modules/flowbite/**/*.js";
+@config "./tailwind.config.js";
