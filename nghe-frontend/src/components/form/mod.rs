@@ -1,12 +1,14 @@
 pub mod input;
 
-use leptos::html;
 use leptos::prelude::*;
+use leptos::{ev, html};
+use web_sys::MouseEvent;
 
 pub fn Form<IV: IntoView>(
     title: &'static str,
     fields: impl Fn() -> IV,
     button: &'static str,
+    on_click: impl Fn(MouseEvent) + 'static,
 ) -> impl IntoView {
     html::div()
         .class(
@@ -30,7 +32,8 @@ pub fn Form<IV: IntoView>(
                              text-sm px-5 py-2.5 text-center dark:bg-primary-600 \
                              dark:hover:bg-primary-700 dark:focus:ring-primary-800",
                         )
-                        .child(button),
+                        .child(button)
+                        .on(ev::click, on_click),
                 )),
             )),
         )

@@ -47,6 +47,11 @@ pub fn Setup() -> impl IntoView {
                         )
                     },
                     "Setup",
+                    move |_| {
+                        leptos::logging::log!("{}", username());
+                        leptos::logging::log!("{}", email());
+                        leptos::logging::log!("{}", password());
+                    },
                 ),
             )),
     )

@@ -3150,6 +3150,7 @@ dependencies = [
 name = "nghe_frontend"
 version = "0.9.10"
 dependencies = [
+ "anyhow",
  "console_error_panic_hook",
  "leptos",
  "leptos_router",
