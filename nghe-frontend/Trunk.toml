@@ -1,0 +1,6 @@
+[serve]
+port = 8080
+open = true
+
+[[proxy]]
+backend = "http://localhost:3000/rest"
