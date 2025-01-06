@@ -1,10 +1,9 @@
-use anyhow::Error;
 use leptos::html;
 use leptos::prelude::*;
-use nghe_api::common::JsonURL;
 use nghe_api::user::setup::Request;
 
 use super::form;
+use crate::client::Client;
 
 pub fn Setup() -> impl IntoView {
     let username = RwSignal::new(String::default());
@@ -17,10 +16,7 @@ pub fn Setup() -> impl IntoView {
 
     let setup_action = Action::<_, _, SyncStorage>::new_unsync(|request: &Request| {
         let request = request.clone();
-        async move {
-            gloo_net::http::Request::post(Request::URL_JSON).json(&request)?.send().await?;
-            Ok::<_, Error>(())
-        }
+        async move { Client::json(&request).await }
     });
 
     html::section().class("bg-gray-50 dark:bg-gray-900").child(
