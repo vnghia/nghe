@@ -4,7 +4,7 @@ pub mod typed_uuid;
 
 use nghe_proc_macro::api_derive;
 use serde::de::DeserializeOwned;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 use super::constant;
 use crate::auth;
@@ -36,11 +36,11 @@ pub trait FormURL {
     const URL_FORM_VIEW: &'static str;
 }
 
-pub trait FormRequest<'u, 's>: FormURL + DeserializeOwned {
-    type AuthForm: auth::form::Trait<'u, 's, Self> + Send;
+pub trait FormRequest<'u, 's, 'p, 'de: 'u + 's + 'p>: FormURL + Deserialize<'de> {
+    type AuthForm: auth::form::Trait<'u, 's, 'p, 'de, Self> + Send;
 }
 
-pub trait FormEndpoint: for<'u, 's> FormRequest<'u, 's> {
+pub trait FormEndpoint: for<'form> FormRequest<'form, 'form, 'form, 'form> {
     type Response: Serialize;
 }
 

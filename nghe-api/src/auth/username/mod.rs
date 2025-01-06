@@ -1,25 +1,43 @@
-use nghe_proc_macro::api_derive;
-use serde::Deserialize;
+pub mod token;
+use std::borrow::Cow;
 
-use super::username;
+use nghe_proc_macro::api_derive;
 
 #[api_derive]
 #[derive(Clone)]
 #[serde(untagged)]
 #[cfg_attr(test, derive(PartialEq))]
-pub enum Form<'u, 's, 'p> {
-    Username(username::Username<'u, 's, 'p>),
+pub enum Auth<'s, 'p> {
+    Token(token::Auth<'s>),
+    Password {
+        #[serde(rename = "p")]
+        password: Cow<'p, str>,
+    },
 }
 
-pub trait Trait<'u, 's, 'p, 'de: 'u + 's + 'p, R>: Deserialize<'de> {
-    fn new(request: R, auth: Form<'u, 's, 'p>) -> Self;
-    fn auth<'form>(&'form self) -> &'form Form<'u, 's, 'p>;
-    fn request(self) -> R;
+#[api_derive]
+#[derive(Clone)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct Username<'u, 's, 'p> {
+    #[serde(rename = "u")]
+    pub username: Cow<'u, str>,
+    #[serde(flatten)]
+    pub auth: Auth<'s, 'p>,
 }
 
-impl<'u, 's, 'p> From<username::Username<'u, 's, 'p>> for Form<'u, 's, 'p> {
-    fn from(value: username::Username<'u, 's, 'p>) -> Self {
-        Self::Username(value)
+mod convert {
+    use super::*;
+
+    impl<'s> From<token::Auth<'s>> for Auth<'s, '_> {
+        fn from(value: token::Auth<'s>) -> Self {
+            Self::Token(value)
+        }
+    }
+
+    impl<'p, C: Into<Cow<'p, str>>> From<C> for Auth<'_, 'p> {
+        fn from(value: C) -> Self {
+            Self::Password { password: value.into() }
+        }
     }
 }
 
@@ -35,7 +53,7 @@ mod tests {
     pub struct Test<'u, 's, 'p> {
         value: Option<u32>,
         #[serde(flatten)]
-        form: Form<'u, 's, 'p>,
+        username: Username<'u, 's, 'p>,
     }
 
     #[rstest]
@@ -44,46 +62,46 @@ mod tests {
         u=username&s=c19b2d&value=10",
         Some(Test {
             value: Some(10),
-            form: username::Username {
+            username: Username {
                 username: "username".into(),
-                auth: username::token::Auth {
+                auth: token::Auth {
                     salt: "c19b2d".into(),
-                    token: username::token::Token::new(b"sesame", "c19b2d")
+                    token: token::Token::new(b"sesame", "c19b2d")
                 }.into()
-            }.into()
+            }
         }
     ))]
     #[case(
         "t=26719a1196d2a940705a59634eb18eab&u=username&s=c19b2d",
         Some(Test {
             value: None,
-            form: username::Username {
+            username: Username {
                 username: "username".into(),
-                auth: username::token::Auth {
+                auth: token::Auth {
                     salt: "c19b2d".into(),
-                    token: username::token::Token::new(b"sesame", "c19b2d")
+                    token: token::Token::new(b"sesame", "c19b2d")
                 }.into()
-            }.into()
+            }
         }
     ))]
     #[case(
         "u=username&p=password&value=10",
         Some(Test {
             value: Some(10),
-            form: username::Username {
+            username: Username {
                 username: "username".into(),
                 auth: "password".into()
-            }.into()
+            }
         }
     ))]
     #[case(
         "u=username&p=password",
         Some(Test {
             value: None,
-            form: username::Username {
+            username: Username {
                 username: "username".into(),
                 auth: "password".into()
-            }.into()
+            }
         }
     ))]
     #[case("u=username&s=c19b2d", None)]
