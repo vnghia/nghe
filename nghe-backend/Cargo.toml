@@ -67,7 +67,7 @@ hyper = { version = "0.14.31" }
 hyper-tls = { version = "0.5.0" }
 indexmap = { version = "2.6.0" }
 libaes = { version = "0.7.0" }
-lofty = { version = "0.21.1" }
+lofty = { version = "0.22.0" }
 loole = { version = "0.4.0" }
 mimalloc = { version = "0.1.43" }
 o2o = { version = "0.5.1-beta1", default-features = false, features = ["syn2"] }
