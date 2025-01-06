@@ -1,7 +1,7 @@
 use nghe_proc_macro::api_derive;
 use serde::Deserialize;
 
-use super::username;
+use super::{api_key, username};
 
 #[api_derive]
 #[derive(Clone)]
@@ -9,6 +9,7 @@ use super::username;
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Form<'u, 's, 'p> {
     Username(username::Username<'u, 's, 'p>),
+    ApiKey(api_key::ApiKey),
 }
 
 pub trait Trait<'u, 's, 'p, 'de: 'u + 's + 'p, R>: Deserialize<'de> {
@@ -17,9 +18,21 @@ pub trait Trait<'u, 's, 'p, 'de: 'u + 's + 'p, R>: Deserialize<'de> {
     fn request(self) -> R;
 }
 
-impl<'u, 's, 'p> From<username::Username<'u, 's, 'p>> for Form<'u, 's, 'p> {
-    fn from(value: username::Username<'u, 's, 'p>) -> Self {
-        Self::Username(value)
+mod convert {
+    use uuid::Uuid;
+
+    use super::*;
+
+    impl<'u, 's, 'p> From<username::Username<'u, 's, 'p>> for Form<'u, 's, 'p> {
+        fn from(value: username::Username<'u, 's, 'p>) -> Self {
+            Self::Username(value)
+        }
+    }
+
+    impl From<Uuid> for Form<'_, '_, '_> {
+        fn from(value: Uuid) -> Self {
+            Self::ApiKey(value.into())
+        }
     }
 }
 
@@ -27,6 +40,7 @@ impl<'u, 's, 'p> From<username::Username<'u, 's, 'p>> for Form<'u, 's, 'p> {
 #[coverage(off)]
 mod tests {
     use rstest::rstest;
+    use uuid::uuid;
 
     use super::*;
 
@@ -84,6 +98,20 @@ mod tests {
                 username: "username".into(),
                 auth: "password".into()
             }.into()
+        }
+    ))]
+    #[case(
+        "apiKey=ce8216ee-c293-4285-8847-2268e6704a19&value=10",
+        Some(Test {
+            value: Some(10),
+            form: uuid!("ce8216ee-c293-4285-8847-2268e6704a19").into()
+        }
+    ))]
+    #[case(
+        "apiKey=ce8216ee-c293-4285-8847-2268e6704a19",
+        Some(Test {
+            value: None,
+            form: uuid!("ce8216ee-c293-4285-8847-2268e6704a19").into()
         }
     ))]
     #[case("u=username&s=c19b2d", None)]
