@@ -16,18 +16,6 @@ pub struct Auth<'s> {
     pub token: Token,
 }
 
-impl Token {
-    pub fn new(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Self {
-        let password = password.as_ref();
-        let salt = salt.as_ref();
-
-        let mut data = Vec::with_capacity(password.len() + salt.len());
-        data.extend_from_slice(password);
-        data.extend_from_slice(salt);
-        Self(md5::compute(data).into())
-    }
-}
-
 mod serde {
     use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
@@ -51,6 +39,24 @@ mod serde {
             Ok(Token(data.try_into().map_err(|_| {
                 de::Error::custom("Could not convert vector to array of length 16")
             })?))
+        }
+    }
+}
+
+#[cfg(any(test, feature = "test"))]
+#[coverage(off)]
+mod test {
+    use super::*;
+
+    impl Token {
+        pub fn new(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Self {
+            let password = password.as_ref();
+            let salt = salt.as_ref();
+
+            let mut data = Vec::with_capacity(password.len() + salt.len());
+            data.extend_from_slice(password);
+            data.extend_from_slice(salt);
+            Self(md5::compute(data).into())
         }
     }
 }

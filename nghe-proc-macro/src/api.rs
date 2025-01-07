@@ -132,7 +132,8 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             }
 
             impl<'u, 's, 'p, 'de: 'u + 's + 'p>
-            #crate_path::auth::form::Trait<'u, 's, 'p, 'de, #ident> for #auth_form_ident<'u, 's, 'p> {
+            #crate_path::auth::form::Trait<'u, 's, 'p, 'de, #ident>
+            for #auth_form_ident<'u, 's, 'p> {
                 fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 's, 'p> {
                     &self.auth
                 }
