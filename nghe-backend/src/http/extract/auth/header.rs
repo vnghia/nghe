@@ -4,22 +4,26 @@ use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum_extra::headers::{self, HeaderMapExt};
 
-use super::{AuthN, AuthZ, login};
+use super::{Authentication, Authorization, username};
 use crate::database::Database;
+use crate::orm::users;
 use crate::{Error, error};
 
+#[derive(Debug)]
 pub struct Header<R> {
     _request: PhantomData<R>,
+    #[allow(unused)]
+    user: users::Authenticated,
 }
 
 pub type BaiscAuthorization = headers::Authorization<headers::authorization::Basic>;
 
-impl AuthN for BaiscAuthorization {
+impl username::Authentication for BaiscAuthorization {
     fn username(&self) -> &str {
         self.username()
     }
 
-    fn is_authenticated(&self, password: impl AsRef<[u8]>) -> bool {
+    fn authenticated(&self, password: impl AsRef<[u8]>) -> bool {
         self.password().as_bytes() == password.as_ref()
     }
 }
@@ -28,7 +32,7 @@ impl<S, R> FromRequestParts<S> for Header<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: AuthZ,
+    R: Authorization + Send,
 {
     type Rejection = Error;
 
@@ -37,8 +41,7 @@ where
             .headers
             .typed_get::<BaiscAuthorization>()
             .ok_or_else(|| error::Kind::MissingAuthenticationHeader)?;
-        login::<R, _>(state, &header).await?;
-        Ok(Self { _request: PhantomData })
+        Ok(Self { _request: PhantomData, user: header.login::<S, R>(state).await? })
     }
 }
 
@@ -51,18 +54,19 @@ mod tests {
     use fake::faker::internet::en::{Password, Username};
     use rstest::rstest;
 
+    use super::username::Authentication;
     use super::*;
     use crate::test::{Mock, mock};
 
     #[rstest]
-    fn test_is_authenticated(#[values(true, false)] ok: bool) {
+    fn test_authenticated(#[values(true, false)] ok: bool) {
         let username = Username().fake::<String>();
         let password = Password(16..32).fake::<String>();
         let header = BaiscAuthorization::basic(
             &username,
             &if ok { password.clone() } else { Password(16..32).fake::<String>() },
         );
-        assert_eq!(header.is_authenticated(&password), ok);
+        assert_eq!(header.authenticated(&password), ok);
     }
 
     #[rstest]
@@ -70,8 +74,8 @@ mod tests {
     async fn test_from_request_parts(#[future(awt)] mock: Mock, #[values(true, false)] ok: bool) {
         struct Request;
 
-        impl AuthZ for Request {
-            fn is_authorized(_: crate::orm::users::Role) -> bool {
+        impl Authorization for Request {
+            fn authorized(_: crate::orm::users::Role) -> bool {
                 true
             }
         }
@@ -88,5 +92,8 @@ mod tests {
 
         let header = Header::<Request>::from_request_parts(&mut parts, mock.state()).await;
         assert_eq!(header.is_ok(), ok);
+        if ok {
+            assert_eq!(header.unwrap().user.id, user.id());
+        }
     }
 }

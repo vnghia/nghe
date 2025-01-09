@@ -31,7 +31,11 @@ pub enum Kind {
     #[error(transparent)]
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
-    DeserializeForm(#[from] axum_extra::extract::FormRejection),
+    ExtractForm(#[from] axum::extract::rejection::RawFormRejection),
+    #[error(transparent)]
+    #[into(StatusCode| StatusCode::BAD_REQUEST)]
+    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
+    DeserializeForm(#[from] serde_html_form::de::Error),
     #[error("Could not deserialize binary request")]
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]

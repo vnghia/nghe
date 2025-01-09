@@ -44,13 +44,13 @@ impl<'a> Mock<'a> {
         BaiscAuthorization::basic(&self.username(), &self.password())
     }
 
-    pub fn auth_form(&self) -> auth::Form<'static, 'static> {
+    pub fn auth_form(&self) -> auth::Form<'static, 'static, 'static> {
         let salt: String = Faker.fake();
-        let token = auth::Token::new(self.password(), &salt);
-        auth::Form::Token(auth::token::Auth {
+        let token = auth::username::Token::new(self.password(), &salt);
+        auth::username::Username {
             username: self.username().into(),
-            salt: salt.into(),
-            token,
-        })
+            auth: auth::username::token::Auth { salt: salt.into(), token }.into(),
+        }
+        .into()
     }
 }
