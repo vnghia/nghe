@@ -6,6 +6,7 @@ static EXTENSIONS: &[Extension] = &[
     Extension { name: "transcodeOffset", versions: &[1] },
     Extension { name: "songLyrics", versions: &[1] },
     Extension { name: "formPost", versions: &[1] },
+    Extension { name: "apiKeyAuthentication", versions: &[1] },
 ];
 
 #[handler(need_auth = false)]
