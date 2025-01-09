@@ -331,7 +331,6 @@ diesel::table! {
     user_sessions (id) {
         id -> Uuid,
         user_id -> Uuid,
-        client -> Text,
         created_at -> Timestamptz,
     }
 }
