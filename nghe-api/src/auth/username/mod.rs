@@ -2,6 +2,7 @@ pub mod token;
 use std::borrow::Cow;
 
 use nghe_proc_macro::api_derive;
+pub use token::Token;
 
 #[api_derive]
 #[derive(Clone)]

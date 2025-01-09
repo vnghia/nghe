@@ -38,4 +38,5 @@ md5 = { version = "0.7.0" }
 built = { version = "0.7.5", features = ["git2"] }
 
 [features]
-test = ["fake", "md5"]
+backend = ["md5"]
+test = ["fake"]

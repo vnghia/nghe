@@ -43,9 +43,8 @@ mod serde {
     }
 }
 
-#[cfg(any(test, feature = "test"))]
-#[coverage(off)]
-mod test {
+#[cfg(any(test, feature = "backend"))]
+mod backend {
     use super::*;
 
     impl Token {
