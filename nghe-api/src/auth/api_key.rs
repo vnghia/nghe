@@ -1,7 +1,7 @@
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-#[api_derive]
+#[api_derive(fake = true)]
 #[derive(Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct ApiKey {

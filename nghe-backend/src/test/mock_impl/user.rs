@@ -44,13 +44,25 @@ impl<'a> Mock<'a> {
         BaiscAuthorization::basic(&self.username(), &self.password())
     }
 
-    pub fn auth_form(&self) -> auth::Form<'static, 'static, 'static> {
-        let salt: String = Faker.fake();
-        let token = auth::username::Token::new(self.password(), &salt);
-        auth::username::Username {
-            username: self.username().into(),
-            auth: auth::username::token::Auth { salt: salt.into(), token }.into(),
+    // use_token: None -> use ApiKey
+    // use_token: Some(true) -> use Token
+    // use_token: Some(false) -> use Password
+    pub fn auth_form(&self, use_token: Option<bool>) -> auth::Form<'static, 'static, 'static> {
+        if let Some(use_token) = use_token {
+            let username = self.username().into();
+            if use_token {
+                let salt: String = Faker.fake();
+                let token = auth::username::Token::new(self.password(), &salt);
+                auth::Username {
+                    username,
+                    auth: auth::username::token::Auth { salt: salt.into(), token }.into(),
+                }
+                .into()
+            } else {
+                auth::Username { username, auth: self.password().into() }.into()
+            }
+        } else {
+            todo!()
         }
-        .into()
     }
 }

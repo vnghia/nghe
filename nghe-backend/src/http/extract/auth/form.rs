@@ -49,7 +49,6 @@ mod tests {
     use axum::http;
     use axum_extra::headers::{self, HeaderMapExt};
     use concat_string::concat_string;
-    use fake::faker::internet::en::{Password, Username};
     use fake::{Fake, Faker};
     use nghe_proc_macro::api_derive;
     use rstest::rstest;
@@ -57,66 +56,66 @@ mod tests {
     use super::*;
     use crate::test::{Mock, mock};
 
-    // #[rstest]
-    // #[tokio::test]
-    // async fn test_from_request(
-    //     #[future(awt)] mock: Mock,
-    //     #[values(true, false)] get: bool,
-    //     #[values(true, false)] ok: bool,
-    // ) {
-    //     #[api_derive(fake = true)]
-    //     #[endpoint(path = "test", url_only = true, same_crate = false)]
-    //     #[derive(Clone, Copy, PartialEq)]
-    //     struct Request {
-    //         param_one: i32,
-    //         param_two: u32,
-    //     }
+    #[rstest]
+    #[tokio::test]
+    async fn test_from_request(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] get: bool,
+        #[values(true, false)] ok: bool,
+        #[values(Some(true), Some(false))] use_token: Option<bool>,
+    ) {
+        #[api_derive(fake = true)]
+        #[endpoint(path = "test", url_only = true, same_crate = false)]
+        #[derive(Clone, Copy, PartialEq)]
+        struct Request {
+            param_one: i32,
+            param_two: u32,
+        }
 
-    //     impl AuthZ for Request {
-    //         fn is_authorized(_: crate::orm::users::Role) -> bool {
-    //             true
-    //         }
-    //     }
+        impl Authorization for Request {
+            fn authorized(_: crate::orm::users::Role) -> bool {
+                true
+            }
+        }
 
-    //     let request: Request = Faker.fake();
-    //     let user = mock.user(0).await;
-    //     let auth = user.auth_form();
+        let request: Request = Faker.fake();
+        let user = mock.user(0).await;
+        let auth = user.auth_form(use_token);
+        let auth = if ok {
+            user.auth_form(use_token)
+        } else {
+            match auth {
+                auth::Form::Username(_) => auth::Form::Username(Faker.fake()),
+                auth::Form::ApiKey(_) => auth::Form::ApiKey(Faker.fake()),
+            }
+        };
 
-    //     let auth = if ok {
-    //         auth
-    //     } else {
-    //         match auth {
-    //             auth::Form::Token(auth) => {
-    //                 auth::token::Auth { salt: Faker.fake::<String>().into(), ..auth }.into()
-    //             }
-    //         }
-    //     };
+        let builder = http::Request::builder();
+        let query =
+            serde_html_form::to_string(<Request as FormRequest>::AuthForm::new(request, auth))
+                .unwrap();
 
-    //     let builder = http::Request::builder();
-    //     let query =
-    //         serde_html_form::to_string(<Request as FormRequest>::AuthForm::new(request, auth))
-    //             .unwrap();
-    //     let http_request = if get {
-    //         builder
-    //             .method(http::Method::GET)
-    //             .uri(concat_string!("/test?", query))
-    //             .body(Body::empty())
-    //             .unwrap()
-    //     } else {
-    //         let mut http_request =
-    //             builder.method(http::Method::POST).uri("/test").body(Body::from(query)).unwrap();
-    //         http_request.headers_mut().typed_insert(headers::ContentType::form_url_encoded());
-    //         http_request
-    //     };
+        let http_request = if get {
+            builder
+                .method(http::Method::GET)
+                .uri(concat_string!("/test?", query))
+                .body(Body::empty())
+                .unwrap()
+        } else {
+            let mut http_request =
+                builder.method(http::Method::POST).uri("/test").body(Body::from(query)).unwrap();
+            http_request.headers_mut().typed_insert(headers::ContentType::form_url_encoded());
+            http_request
+        };
 
-    //     let form_request = Form::<Request>::from_request(http_request, mock.state()).await;
+        let form_request = Form::<Request>::from_request(http_request, mock.state()).await;
 
-    //     if ok {
-    //         let form_request = form_request.unwrap();
-    //         assert_eq!(form_request.id, user.id());
-    //         assert_eq!(form_request.request, request);
-    //     } else {
-    //         assert!(form_request.is_err());
-    //     }
-    // }
+        if ok {
+            let form_request = form_request.unwrap();
+            assert_eq!(form_request.id, user.id());
+            assert_eq!(form_request.request, request);
+        } else {
+            assert!(form_request.is_err());
+        }
+    }
 }

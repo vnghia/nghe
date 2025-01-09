@@ -12,7 +12,6 @@ use crate::{Error, error};
 #[derive(Debug)]
 pub struct Header<R> {
     _request: PhantomData<R>,
-    #[allow(unused)]
     user: users::Authenticated,
 }
 

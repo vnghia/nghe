@@ -1,10 +1,12 @@
 pub mod token;
 use std::borrow::Cow;
 
+#[cfg(feature = "fake")]
+use fake::{Fake, Faker};
 use nghe_proc_macro::api_derive;
 pub use token::Token;
 
-#[api_derive]
+#[api_derive(fake = true)]
 #[derive(Clone)]
 #[serde(untagged)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -12,15 +14,17 @@ pub enum Auth<'s, 'p> {
     Token(token::Auth<'s>),
     Password {
         #[serde(rename = "p")]
+        #[cfg_attr(feature = "fake", dummy(expr = "Faker.fake::<String>().into()"))]
         password: Cow<'p, str>,
     },
 }
 
-#[api_derive]
+#[api_derive(fake = true)]
 #[derive(Clone)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Username<'u, 's, 'p> {
     #[serde(rename = "u")]
+    #[cfg_attr(feature = "fake", dummy(expr = "Faker.fake::<String>().into()"))]
     pub username: Cow<'u, str>,
     #[serde(flatten)]
     pub auth: Auth<'s, 'p>,
