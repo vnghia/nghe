@@ -86,7 +86,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41058deaa38c9d9dd933d6d238d825227cffa668e2839b52879f6619c63eee3b"
 dependencies = [
  "futures",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "wasm-bindgen-futures",
 ]
 
@@ -2625,7 +2625,7 @@ dependencies = [
  "server_fn",
  "slotmap",
  "tachys",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "throw_error",
  "typed-builder",
  "typed-builder-macro",
@@ -2642,7 +2642,7 @@ dependencies = [
  "config",
  "regex",
  "serde",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "typed-builder",
 ]
 
@@ -3099,7 +3099,7 @@ dependencies = [
  "serde_with",
  "strum",
  "tempfile",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "time",
  "tokio",
  "tokio-util",
@@ -3732,7 +3732,7 @@ dependencies = [
  "send_wrapper",
  "serde",
  "slotmap",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "web-sys",
 ]
 
@@ -3929,7 +3929,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "url",
 ]
 
@@ -3944,7 +3944,7 @@ dependencies = [
  "maybe-async",
  "reqwest",
  "serde_json",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
 ]
 
 [[package]]
@@ -3964,7 +3964,7 @@ dependencies = [
  "serde",
  "serde_json",
  "strum",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
 ]
 
 [[package]]
@@ -4339,7 +4339,7 @@ dependencies = [
  "serde_json",
  "serde_qs",
  "server_fn_macro_default",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "throw_error",
  "url",
  "wasm-bindgen",
@@ -4645,11 +4645,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.9"
+version = "2.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f072643fd0190df67a8bab670c20ef5d8737177d6ac6b2e9a236cb096206b2cc"
+checksum = "a3ac7f54ca534db81081ef1c1e7f6ea8a3ef428d2fc069097c079443d24124d3"
 dependencies = [
- "thiserror-impl 2.0.9",
+ "thiserror-impl 2.0.10",
 ]
 
 [[package]]
@@ -4665,9 +4665,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.9"
+version = "2.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b50fa271071aae2e6ee85f842e2e28ba8cd2c5fb67f11fcb1fd70b276f9e7d4"
+checksum = "9e9465d30713b56a37ede7185763c3492a91be2f5fa68d958c44e41ab9248beb"
 dependencies = [
  "proc-macro2",
  "quote",
