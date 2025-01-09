@@ -11,7 +11,7 @@ pub trait Authentication: Sized {
     fn authenticated(&self, password: impl AsRef<[u8]>) -> bool;
 }
 
-impl Authentication for auth::Username<'_, '_, '_> {
+impl Authentication for auth::Username<'_, '_, '_, '_> {
     fn username(&self) -> &str {
         &self.username
     }
@@ -53,7 +53,7 @@ mod tests {
     use std::borrow::Cow;
 
     use fake::Fake;
-    use fake::faker::internet::en::{Password, Username};
+    use fake::faker::internet::en::{Password, UserAgent, Username};
     use rstest::rstest;
 
     use super::*;
@@ -76,7 +76,11 @@ mod tests {
             password.into()
         };
 
-        let username = auth::Username { username: Username().fake::<String>().into(), auth };
+        let username = auth::Username {
+            username: Username().fake::<String>().into(),
+            client: UserAgent().fake::<String>().into(),
+            auth,
+        };
         assert_eq!(username.authenticated(password.as_bytes()), ok);
     }
 }

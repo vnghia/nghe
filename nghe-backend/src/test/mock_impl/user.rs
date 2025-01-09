@@ -47,19 +47,24 @@ impl<'a> Mock<'a> {
     // use_token: None -> use ApiKey
     // use_token: Some(true) -> use Token
     // use_token: Some(false) -> use Password
-    pub fn auth_form(&self, use_token: Option<bool>) -> auth::Form<'static, 'static, 'static> {
+    pub fn auth_form(
+        &self,
+        use_token: Option<bool>,
+    ) -> auth::Form<'static, 'static, 'static, 'static> {
         if let Some(use_token) = use_token {
             let username = self.username().into();
+            let client = Faker.fake::<String>().into();
             if use_token {
                 let salt: String = Faker.fake();
                 let token = auth::username::Token::new(self.password(), &salt);
                 auth::Username {
                     username,
+                    client,
                     auth: auth::username::token::Auth { salt: salt.into(), token }.into(),
                 }
                 .into()
             } else {
-                auth::Username { username, auth: self.password().into() }.into()
+                auth::Username { username, client, auth: self.password().into() }.into()
             }
         } else {
             todo!()

@@ -59,6 +59,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         auth_form_struct.attrs.clear();
         auth_form_struct.ident = auth_form_ident.clone();
         auth_form_struct.generics.params.push(parse_quote!('auth_u));
+        auth_form_struct.generics.params.push(parse_quote!('auth_c));
         auth_form_struct.generics.params.push(parse_quote!('auth_s));
         auth_form_struct.generics.params.push(parse_quote!('auth_p));
         auth_form_struct.fields = syn::Fields::Named(match input.fields {
@@ -72,13 +73,13 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
                 );
                 fields.named.push(parse_quote! {
                         #[serde(flatten, borrow)]
-                        auth: #crate_path::auth::Form<'auth_u, 'auth_s, 'auth_p>
+                        auth: #crate_path::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
                 });
                 fields
             }
             syn::Fields::Unit => parse_quote! {{
                 #[serde(flatten, borrow)]
-                auth: #crate_path::auth::Form<'auth_u, 'auth_s, 'auth_p>
+                auth: #crate_path::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
             }},
             syn::Fields::Unnamed(_) => {
                 return Err(syn::Error::new(
@@ -100,7 +101,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
         let impl_auth_form_trait = if let Some(auth_form_fields) = auth_form_fields {
             quote! {
-                fn new(request: #ident, auth: #crate_path::auth::Form<'u, 's, 'p>) -> Self {
+                fn new(request: #ident, auth: #crate_path::auth::Form<'u, 'c, 's, 'p>) -> Self {
                     let #ident { #(#auth_form_fields),* } = request;
                     Self { #(#auth_form_fields),*, auth }
                 }
@@ -112,7 +113,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             }
         } else {
             quote! {
-                fn new(_: #ident, auth: #crate_path::auth::Form<'u, 's, 'p>) -> Self {
+                fn new(_: #ident, auth: #crate_path::auth::Form<'u, 'c, 's, 'p>) -> Self {
                     Self { auth }
                 }
 
@@ -131,19 +132,19 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
                 const URL_FORM_VIEW: &'static str = #url_form_view;
             }
 
-            impl<'u, 's, 'p, 'de: 'u + 's + 'p>
-            #crate_path::auth::form::Trait<'u, 's, 'p, 'de, #ident>
-            for #auth_form_ident<'u, 's, 'p> {
-                fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 's, 'p> {
+            impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>
+            #crate_path::auth::form::Trait<'u, 'c, 's, 'p, 'de, #ident>
+            for #auth_form_ident<'u, 'c, 's, 'p> {
+                fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 'c, 's, 'p> {
                     &self.auth
                 }
 
                 #impl_auth_form_trait
             }
 
-            impl<'u, 's, 'p, 'de: 'u + 's + 'p>
-            #crate_path::common::FormRequest<'u, 's, 'p, 'de> for #ident {
-                type AuthForm = #auth_form_ident<'u, 's, 'p>;
+            impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>
+            #crate_path::common::FormRequest<'u, 'c, 's, 'p, 'de> for #ident {
+                type AuthForm = #auth_form_ident<'u, 'c, 's, 'p>;
             }
 
             #impl_endpoint

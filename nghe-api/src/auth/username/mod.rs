@@ -22,10 +22,13 @@ pub enum Auth<'s, 'p> {
 #[api_derive(fake = true)]
 #[derive(Clone)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct Username<'u, 's, 'p> {
+pub struct Username<'u, 'c, 's, 'p> {
     #[serde(rename = "u")]
     #[cfg_attr(feature = "fake", dummy(expr = "Faker.fake::<String>().into()"))]
     pub username: Cow<'u, str>,
+    #[serde(rename = "c")]
+    #[cfg_attr(feature = "fake", dummy(expr = "Faker.fake::<String>().into()"))]
+    pub client: Cow<'c, str>,
     #[serde(flatten)]
     pub auth: Auth<'s, 'p>,
 }

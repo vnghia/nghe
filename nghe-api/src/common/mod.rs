@@ -36,11 +36,11 @@ pub trait FormURL {
     const URL_FORM_VIEW: &'static str;
 }
 
-pub trait FormRequest<'u, 's, 'p, 'de: 'u + 's + 'p>: FormURL + Deserialize<'de> {
-    type AuthForm: auth::form::Trait<'u, 's, 'p, 'de, Self> + Send;
+pub trait FormRequest<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: FormURL + Deserialize<'de> {
+    type AuthForm: auth::form::Trait<'u, 'c, 's, 'p, 'de, Self> + Send;
 }
 
-pub trait FormEndpoint: for<'form> FormRequest<'form, 'form, 'form, 'form> {
+pub trait FormEndpoint: for<'form> FormRequest<'form, 'form, 'form, 'form, 'form> {
     type Response: Serialize;
 }
 

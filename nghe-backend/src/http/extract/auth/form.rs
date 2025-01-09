@@ -14,7 +14,7 @@ pub struct Form<R> {
     pub request: R,
 }
 
-impl Authentication for auth::Form<'_, '_, '_> {
+impl Authentication for auth::Form<'_, '_, '_, '_> {
     async fn authenticated(&self, database: &Database) -> Result<users::Authenticated, Error> {
         match self {
             auth::Form::Username(username) => username.authenticated(database).await,
@@ -27,7 +27,7 @@ impl<S, R> FromRequest<S> for Form<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: for<'form> FormRequest<'form, 'form, 'form, 'form> + Authorization + Send,
+    R: for<'form> FormRequest<'form, 'form, 'form, 'form, 'form> + Authorization + Send,
 {
     type Rejection = Error;
 
