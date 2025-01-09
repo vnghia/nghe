@@ -16,6 +16,7 @@ pub mod permission;
 pub mod playlists;
 pub mod scan;
 pub mod search;
+pub mod session;
 pub mod system;
 pub mod time;
 pub mod user;

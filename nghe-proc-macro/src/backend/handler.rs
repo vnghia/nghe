@@ -128,7 +128,7 @@ impl Arg {
                 }),
                 if *use_database { Some(parse_quote!(&#ident)) } else { None },
             ),
-            Arg::User(ident) => (None, Some(parse_quote!(user.#ident))),
+            Arg::User(ident) => (None, Some(parse_quote!(user.user.#ident))),
             Arg::Request => (None, None),
             Arg::Extension { ident, ty, reference, .. } => (
                 Some(

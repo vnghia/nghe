@@ -8,5 +8,6 @@ pub mod permission;
 pub mod playlists;
 pub mod scan;
 pub mod search;
+pub mod sessions;
 pub mod system;
 pub mod user;

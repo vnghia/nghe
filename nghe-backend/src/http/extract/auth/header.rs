@@ -12,7 +12,7 @@ use crate::{Error, error};
 #[derive(Debug)]
 pub struct Header<R> {
     _request: PhantomData<R>,
-    user: users::Authenticated,
+    pub user: users::Authenticated,
 }
 
 pub type BaiscAuthorization = headers::Authorization<headers::authorization::Basic>;

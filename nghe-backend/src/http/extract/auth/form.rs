@@ -2,7 +2,6 @@ use axum::extract::{FromRef, FromRequest, Request};
 use nghe_api::auth;
 use nghe_api::auth::form::Trait;
 use nghe_api::common::FormRequest;
-use uuid::Uuid;
 
 use super::{Authentication, Authorization};
 use crate::database::Database;
@@ -10,7 +9,7 @@ use crate::orm::users;
 use crate::{Error, error};
 
 pub struct Form<R> {
-    pub id: Uuid,
+    pub user: users::Authenticated,
     pub request: R,
 }
 
@@ -35,8 +34,7 @@ where
         let axum::extract::RawForm(bytes) =
             axum::extract::RawForm::from_request(request, &()).await.map_err(error::Kind::from)?;
         let form: R::AuthForm = serde_html_form::from_bytes(&bytes).map_err(error::Kind::from)?;
-        let id = form.auth().login::<S, R>(state).await?.id;
-        Ok(Self { id, request: form.request() })
+        Ok(Self { user: form.auth().login::<S, R>(state).await?, request: form.request() })
     }
 }
 
@@ -112,7 +110,7 @@ mod tests {
 
         if ok {
             let form_request = form_request.unwrap();
-            assert_eq!(form_request.id, user.id());
+            assert_eq!(form_request.user.id, user.id());
             assert_eq!(form_request.request, request);
         } else {
             assert!(form_request.is_err());
