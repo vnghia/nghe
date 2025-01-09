@@ -328,6 +328,18 @@ diesel::table! {
     use diesel::sql_types::*;
     use diesel_full_text_search::*;
 
+    user_sessions (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        client -> Text,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use diesel_full_text_search::*;
+
     users (id) {
         id -> Uuid,
         username -> Text,
@@ -371,6 +383,7 @@ diesel::joinable!(star_songs -> songs (song_id));
 diesel::joinable!(star_songs -> users (user_id));
 diesel::joinable!(user_music_folder_permissions -> music_folders (music_folder_id));
 diesel::joinable!(user_music_folder_permissions -> users (user_id));
+diesel::joinable!(user_sessions -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     albums,
@@ -395,5 +408,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     star_artists,
     star_songs,
     user_music_folder_permissions,
+    user_sessions,
     users,
 );
