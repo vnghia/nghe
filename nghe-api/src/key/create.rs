@@ -9,5 +9,5 @@ pub struct Request;
 #[api_derive]
 #[serde(transparent)]
 pub struct Response {
-    api_key: ApiKey,
+    pub api_key: ApiKey,
 }

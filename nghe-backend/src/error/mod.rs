@@ -15,6 +15,7 @@ pub enum OpensubsonicCode {
     AGenericError = 0,
     RequiredParameterIsMissing = 10,
     WrongUsernameOrPassword = 40,
+    InvalidApiKey = 44,
     UserIsNotAuthorizedForTheGivenOperation = 50,
     TheRequestedDataWasNotFound = 70,
 }
@@ -49,6 +50,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::UNAUTHORIZED)]
     #[into(OpensubsonicCode| OpensubsonicCode::WrongUsernameOrPassword)]
     WrongUsernameOrPassword,
+    #[error("Invalid API key")]
+    #[into(StatusCode| StatusCode::UNAUTHORIZED)]
+    #[into(OpensubsonicCode| OpensubsonicCode::InvalidApiKey)]
+    InvalidApiKey,
     #[error("User is not authorized for the given operation")]
     #[into(StatusCode| StatusCode::FORBIDDEN)]
     #[into(OpensubsonicCode| OpensubsonicCode::UserIsNotAuthorizedForTheGivenOperation)]

@@ -1,4 +1,4 @@
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use nghe_api::auth;
 
@@ -36,7 +36,8 @@ impl<A: Authentication> super::Authentication for A {
             .select(users::UsernameAuthentication::as_select())
             .first(&mut database.get().await?)
             .await
-            .map_err(|_| error::Kind::WrongUsernameOrPassword)?;
+            .optional()?
+            .ok_or_else(|| error::Kind::WrongUsernameOrPassword)?;
         if self.authenticated(database.decrypt(&user.password)?) {
             Ok(user.authenticated)
         } else {

@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::http::extract::auth::header::BaiscAuthorization;
 use crate::orm::users;
+use crate::route::key;
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
@@ -47,7 +48,7 @@ impl<'a> Mock<'a> {
     // use_token: None -> use ApiKey
     // use_token: Some(true) -> use Token
     // use_token: Some(false) -> use Password
-    pub fn auth_form(
+    pub async fn auth_form(
         &self,
         use_token: Option<bool>,
     ) -> auth::Form<'static, 'static, 'static, 'static> {
@@ -67,7 +68,12 @@ impl<'a> Mock<'a> {
                 auth::Username { username, client, auth: self.password().into() }.into()
             }
         } else {
-            todo!()
+            key::create::handler(self.mock.database(), self.id())
+                .await
+                .unwrap()
+                .api_key
+                .api_key
+                .into()
         }
     }
 }

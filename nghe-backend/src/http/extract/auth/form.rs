@@ -17,7 +17,7 @@ impl Authentication for auth::Form<'_, '_, '_, '_> {
     async fn authenticated(&self, database: &Database) -> Result<users::Authenticated, Error> {
         match self {
             auth::Form::Username(username) => username.authenticated(database).await,
-            auth::Form::ApiKey(api_key) => todo!(),
+            auth::Form::ApiKey(api_key) => api_key.authenticated(database).await,
         }
     }
 }
@@ -60,7 +60,7 @@ mod tests {
         #[future(awt)] mock: Mock,
         #[values(true, false)] get: bool,
         #[values(true, false)] ok: bool,
-        #[values(Some(true), Some(false))] use_token: Option<bool>,
+        #[values(None, Some(true), Some(false))] use_token: Option<bool>,
     ) {
         #[api_derive(fake = true)]
         #[endpoint(path = "test", url_only = true, same_crate = false)]
@@ -78,9 +78,9 @@ mod tests {
 
         let request: Request = Faker.fake();
         let user = mock.user(0).await;
-        let auth = user.auth_form(use_token);
+        let auth = user.auth_form(use_token).await;
         let auth = if ok {
-            user.auth_form(use_token)
+            auth
         } else {
             match auth {
                 auth::Form::Username(_) => auth::Form::Username(Faker.fake()),
