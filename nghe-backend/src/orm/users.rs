@@ -22,11 +22,18 @@ pub struct Role {
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = users, check_for_backend(super::Type))]
-pub struct Auth<'a> {
+pub struct Authenticated {
     pub id: Uuid,
-    pub password: Cow<'a, [u8]>,
     #[diesel(embed)]
     pub role: Role,
+}
+
+#[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = users, check_for_backend(super::Type))]
+pub struct UsernameAuthentication<'a> {
+    #[diesel(embed)]
+    pub authenticated: Authenticated,
+    pub password: Cow<'a, [u8]>,
 }
 
 #[derive(Debug, Queryable, Selectable, Insertable)]

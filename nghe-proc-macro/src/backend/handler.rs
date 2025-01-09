@@ -128,7 +128,7 @@ impl Arg {
                 }),
                 if *use_database { Some(parse_quote!(&#ident)) } else { None },
             ),
-            Arg::User(ident) => (None, Some(parse_quote!(user.#ident))),
+            Arg::User(ident) => (None, Some(parse_quote!(user.user.#ident))),
             Arg::Request => (None, None),
             Arg::Extension { ident, ty, reference, .. } => (
                 Some(
@@ -178,7 +178,7 @@ impl Handler {
     }
 
     pub fn build(&self) -> TokenStream {
-        let authz = self.authz();
+        let authorization = self.authorization();
 
         let user_ident = if self.args.use_user || self.args.use_request {
             format_ident!("user")
@@ -286,7 +286,7 @@ impl Handler {
             #tracing_attribute
             #handler
 
-            #authz
+            #authorization
 
             #form_handler
             #binary_handler
@@ -347,7 +347,7 @@ impl Handler {
         parse_quote!(#[cfg_attr(not(coverage_nightly), tracing::instrument(#tracing_args))])
     }
 
-    fn authz(&self) -> syn::ItemImpl {
+    fn authorization(&self) -> syn::ItemImpl {
         let source: syn::Expr = if let Some(role) = self.config.role.as_ref() {
             if role == "admin" {
                 parse_quote!(role.admin)
@@ -360,9 +360,9 @@ impl Handler {
 
         parse_quote! {
             #[coverage(off)]
-            impl crate::http::extract::auth::AuthZ for Request {
+            impl crate::http::extract::auth::Authorization for Request {
                 #[inline(always)]
-                fn is_authorized(role: crate::orm::users::Role) ->  bool {
+                fn authorized(role: crate::orm::users::Role) ->  bool {
                     #source
                 }
             }

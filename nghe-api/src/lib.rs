@@ -8,6 +8,7 @@ pub mod browsing;
 pub mod common;
 pub mod constant;
 pub mod id3;
+pub mod key;
 pub mod lists;
 pub mod media_annotation;
 pub mod media_retrieval;

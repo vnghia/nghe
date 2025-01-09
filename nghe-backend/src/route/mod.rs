@@ -1,5 +1,6 @@
 pub mod bookmarks;
 pub mod browsing;
+pub mod key;
 pub mod lists;
 pub mod media_annotation;
 pub mod media_retrieval;

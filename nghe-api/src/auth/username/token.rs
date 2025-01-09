@@ -1,39 +1,28 @@
 use std::borrow::Cow;
 
+#[cfg(feature = "fake")]
+use fake::{Fake, Faker};
 use nghe_proc_macro::api_derive;
 
-#[api_derive(request = false, response = false)]
+#[api_derive(request = false, response = false, fake = true)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Token([u8; 16]);
 
-#[api_derive]
+#[api_derive(fake = true)]
 #[derive(Clone)]
 #[cfg_attr(test, derive(PartialEq))]
-pub struct Auth<'u, 's> {
-    #[serde(rename = "u")]
-    pub username: Cow<'u, str>,
+pub struct Auth<'s> {
     #[serde(rename = "s")]
+    #[cfg_attr(feature = "fake", dummy(expr = "Faker.fake::<String>().into()"))]
     pub salt: Cow<'s, str>,
     #[serde(rename = "t")]
     pub token: Token,
 }
 
-impl Token {
-    pub fn new(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Self {
-        let password = password.as_ref();
-        let salt = salt.as_ref();
-
-        let mut data = Vec::with_capacity(password.len() + salt.len());
-        data.extend_from_slice(password);
-        data.extend_from_slice(salt);
-        Self(md5::compute(data).into())
-    }
-}
-
 mod serde {
-    use ::serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-    use super::*;
+    use super::Token;
 
     impl Serialize for Token {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -53,6 +42,23 @@ mod serde {
             Ok(Token(data.try_into().map_err(|_| {
                 de::Error::custom("Could not convert vector to array of length 16")
             })?))
+        }
+    }
+}
+
+#[cfg(any(test, feature = "backend"))]
+mod backend {
+    use super::*;
+
+    impl Token {
+        pub fn new(password: impl AsRef<[u8]>, salt: impl AsRef<[u8]>) -> Self {
+            let password = password.as_ref();
+            let salt = salt.as_ref();
+
+            let mut data = Vec::with_capacity(password.len() + salt.len());
+            data.extend_from_slice(password);
+            data.extend_from_slice(salt);
+            Self(md5::compute(data).into())
         }
     }
 }

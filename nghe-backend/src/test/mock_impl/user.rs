@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::http::extract::auth::header::BaiscAuthorization;
 use crate::orm::users;
+use crate::route::key;
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
@@ -44,13 +45,35 @@ impl<'a> Mock<'a> {
         BaiscAuthorization::basic(&self.username(), &self.password())
     }
 
-    pub fn auth_form(&self) -> auth::Form<'static, 'static> {
-        let salt: String = Faker.fake();
-        let token = auth::Token::new(self.password(), &salt);
-        auth::Form::Token(auth::token::Auth {
-            username: self.username().into(),
-            salt: salt.into(),
-            token,
-        })
+    // use_token: None -> use ApiKey
+    // use_token: Some(true) -> use Token
+    // use_token: Some(false) -> use Password
+    pub async fn auth_form(
+        &self,
+        use_token: Option<bool>,
+    ) -> auth::Form<'static, 'static, 'static, 'static> {
+        if let Some(use_token) = use_token {
+            let username = self.username().into();
+            let client = Faker.fake::<String>().into();
+            if use_token {
+                let salt: String = Faker.fake();
+                let token = auth::username::Token::new(self.password(), &salt);
+                auth::Username {
+                    username,
+                    client,
+                    auth: auth::username::token::Auth { salt: salt.into(), token }.into(),
+                }
+                .into()
+            } else {
+                auth::Username { username, client, auth: self.password().into() }.into()
+            }
+        } else {
+            key::create::handler(self.mock.database(), self.id())
+                .await
+                .unwrap()
+                .api_key
+                .api_key
+                .into()
+        }
     }
 }
