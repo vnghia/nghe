@@ -24,8 +24,8 @@ pub mod star_albums;
 pub mod star_artists;
 pub mod star_songs;
 pub mod upsert;
+pub mod user_keys;
 pub mod user_music_folder_permissions;
-pub mod user_sessions;
 pub mod users;
 
 pub type Type = diesel::pg::Pg;

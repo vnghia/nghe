@@ -1,5 +1,5 @@
 use diesel_async::RunQueryDsl;
-pub use nghe_api::session::new::{Request, Response};
+pub use nghe_api::key::create::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
