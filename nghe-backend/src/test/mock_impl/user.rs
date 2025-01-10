@@ -52,9 +52,13 @@ impl<'a> Mock<'a> {
         &self,
         use_token: Option<bool>,
     ) -> auth::Form<'static, 'static, 'static, 'static> {
+        let username = self.username();
+        let password = self.password();
+        let client = Faker.fake::<String>();
+
         if let Some(use_token) = use_token {
-            let username = self.username().into();
-            let client = Faker.fake::<String>().into();
+            let username = username.into();
+            let client = client.into();
             if use_token {
                 let salt: String = Faker.fake();
                 let token = auth::username::Token::new(self.password(), &salt);
@@ -68,12 +72,16 @@ impl<'a> Mock<'a> {
                 auth::Username { username, client, auth: self.password().into() }.into()
             }
         } else {
-            key::create::handler(self.mock.database(), self.id())
-                .await
-                .unwrap()
-                .api_key
-                .api_key
-                .into()
+            key::create::handler(self.mock.database(), key::create::Request {
+                username,
+                password,
+                client,
+            })
+            .await
+            .unwrap()
+            .api_key
+            .api_key
+            .into()
         }
     }
 }

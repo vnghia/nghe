@@ -1,13 +1,37 @@
 use leptos::prelude::*;
-use leptos_router::components::Router;
+use leptos_router::components::{Route, Router, Routes};
+use leptos_router::path;
 
-use super::setup::Setup;
+use super::authentication;
 
 #[component]
 pub fn Body() -> impl IntoView {
-    view! {
-        <Router>
-            <Setup />
-        </Router>
-    }
+    Router(
+        component_props_builder(&Router)
+            .base("/frontend")
+            .children(ToChildren::to_children(move || {
+                Routes(
+                    component_props_builder(&Routes)
+                        .fallback(|| "Not found")
+                        .children(ToChildren::to_children(move || {
+                            (
+                                Route(
+                                    component_props_builder(&Route)
+                                        .path(path!("/setup"))
+                                        .view(authentication::Setup)
+                                        .build(),
+                                ),
+                                Route(
+                                    component_props_builder(&Route)
+                                        .path(path!("/login"))
+                                        .view(authentication::Login)
+                                        .build(),
+                                ),
+                            )
+                        }))
+                        .build(),
+                )
+            }))
+            .build(),
+    )
 }

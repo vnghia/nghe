@@ -104,6 +104,7 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::playlists::router())
         .merge(route::search::router())
         .merge(route::system::router())
+        .merge(route::key::router())
         .with_state(database::Database::new(&config.database))
         .layer(
             TraceLayer::new_for_http()

@@ -1,8 +1,7 @@
 #![allow(non_snake_case)]
 
-mod app;
+mod authentication;
 mod body;
 mod form;
-mod setup;
 
 pub use body::Body;
