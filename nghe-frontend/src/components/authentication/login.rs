@@ -8,18 +8,19 @@ use crate::components::form;
 pub fn Login() -> impl IntoView {
     let username = RwSignal::new(String::default());
     let password = RwSignal::new(String::default());
+    let client = RwSignal::new(nghe_api::constant::SERVER_NAME.into());
 
     let (username_error, set_username_error) = signal(Option::default());
     let (password_error, set_password_error) = signal(Option::default());
+    let (client_error, set_client_error) = signal(Option::default());
 
-    let login_action =
-        Action::<_, _, SyncStorage>::new_unsync(|(username, password): &(String, String)| {
-            // let request = request.clone();
-            async move {
-                // Client::json(&request).await.map_err(|error| error.to_string())?;
-                Ok::<_, String>(())
-            }
-        });
+    let login_action = Action::<_, _, SyncStorage>::new_unsync(|request: &Request| {
+        let request = request.clone();
+        async move {
+            Client::json(&request).await.map_err(|error| error.to_string())?;
+            Ok::<_, String>(())
+        }
+    });
 
     html::section().class("bg-gray-50 dark:bg-gray-900").child(
         html::div()
@@ -55,6 +56,15 @@ pub fn Login() -> impl IntoView {
                                 password,
                                 password_error,
                             ),
+                            form::input::Text(
+                                "client",
+                                "Client",
+                                "text",
+                                None,
+                                None,
+                                client,
+                                client_error,
+                            ),
                         )
                     },
                     "Login",
@@ -75,10 +85,21 @@ pub fn Login() -> impl IntoView {
                         };
                         set_password_error(password_error);
 
-                        if username_error.is_some() || password_error.is_some() {
+                        let client = client();
+                        let client_error = if client.is_empty() {
+                            Some("Client could not be empty")
+                        } else {
+                            None
+                        };
+                        set_client_error(client_error);
+
+                        if username_error.is_some()
+                            || password_error.is_some()
+                            || client_error.is_some()
+                        {
                             return;
                         }
-                        login_action.dispatch((username, password));
+                        login_action.dispatch(Request { username, password, client });
                     },
                     login_action,
                 ),
