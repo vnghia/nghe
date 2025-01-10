@@ -2716,7 +2716,7 @@ dependencies = [
  "reactive_graph",
  "send_wrapper",
  "tachys",
- "thiserror 2.0.9",
+ "thiserror 2.0.10",
  "url",
  "wasm-bindgen",
  "web-sys",

@@ -16,7 +16,10 @@ pub fn Setup() -> impl IntoView {
 
     let setup_action = Action::<_, _, SyncStorage>::new_unsync(|request: &Request| {
         let request = request.clone();
-        async move { Client::json(&request).await }
+        async move {
+            Client::json(&request).await.map_err(|error| error.to_string())?;
+            Ok::<_, String>(())
+        }
     });
 
     html::section().class("bg-gray-50 dark:bg-gray-900").child(
@@ -95,6 +98,7 @@ pub fn Setup() -> impl IntoView {
                         }
                         setup_action.dispatch(Request { username, password, email });
                     },
+                    setup_action,
                 ),
             )),
     )

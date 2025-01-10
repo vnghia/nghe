@@ -1,14 +1,17 @@
+mod error;
 pub mod input;
+mod submit;
 
+use leptos::html;
 use leptos::prelude::*;
-use leptos::{ev, html};
 use web_sys::MouseEvent;
 
-pub fn Form<IV: IntoView>(
+pub fn Form<IV: IntoView, I: Send + Sync + 'static>(
     title: &'static str,
     fields: impl Fn() -> IV,
     button: &'static str,
     on_click: impl Fn(MouseEvent) + 'static,
+    action: Action<I, Result<(), String>, SyncStorage>,
 ) -> impl IntoView {
     html::div()
         .class(
@@ -25,15 +28,8 @@ pub fn Form<IV: IntoView>(
                     .child(title),
                 html::div().class("space-y-4 md:space-y-6").child((
                     fields(),
-                    html::button()
-                        .class(
-                            "w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 \
-                             focus:outline-none focus:ring-primary-300 font-medium rounded-lg \
-                             text-sm px-5 py-2.5 text-center dark:bg-primary-600 \
-                             dark:hover:bg-primary-700 dark:focus:ring-primary-800",
-                        )
-                        .child(button)
-                        .on(ev::click, on_click),
+                    submit::Submit(button, on_click, action),
+                    error::Error(action),
                 )),
             )),
         )
