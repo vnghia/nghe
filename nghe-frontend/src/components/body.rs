@@ -8,6 +8,7 @@ use super::authentication;
 pub fn Body() -> impl IntoView {
     Router(
         component_props_builder(&Router)
+            .base("/frontend")
             .children(ToChildren::to_children(move || {
                 Routes(
                     component_props_builder(&Routes)

@@ -1,5 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
+use leptos_router::NavigateOptions;
 use nghe_api::key::create::Request;
 
 use crate::client::Client;
@@ -19,6 +20,12 @@ pub fn Login() -> impl IntoView {
         async move {
             Client::json(&request).await.map_err(|error| error.to_string())?;
             Ok::<_, String>(())
+        }
+    });
+    Effect::new(move || {
+        if login_action.value().with(|result| result.as_ref().is_some_and(Result::is_ok)) {
+            let navigate = leptos_router::hooks::use_navigate();
+            navigate("/", NavigateOptions::default());
         }
     });
 
