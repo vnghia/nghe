@@ -4,7 +4,11 @@ use crate::auth::ApiKey;
 
 #[api_derive]
 #[endpoint(path = "createKey", internal = true)]
-pub struct Request;
+pub struct Request {
+    pub username: String,
+    pub password: String,
+    pub client: String,
+}
 
 #[api_derive]
 #[serde(transparent)]
