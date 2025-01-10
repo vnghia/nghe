@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use super::setup::Setup;
+use super::authentication;
 
 #[component]
 pub fn Body() -> impl IntoView {
@@ -16,7 +16,7 @@ pub fn Body() -> impl IntoView {
                             Route(
                                 component_props_builder(&Route)
                                     .path(path!("/setup"))
-                                    .view(Setup)
+                                    .view(authentication::Setup)
                                     .build(),
                             )
                         }))

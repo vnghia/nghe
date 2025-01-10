@@ -2,8 +2,8 @@ use leptos::html;
 use leptos::prelude::*;
 use nghe_api::user::setup::Request;
 
-use super::form;
 use crate::client::Client;
+use crate::components::form;
 
 pub fn Setup() -> impl IntoView {
     let username = RwSignal::new(String::default());
