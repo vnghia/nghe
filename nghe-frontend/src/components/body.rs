@@ -13,11 +13,19 @@ pub fn Body() -> impl IntoView {
                     component_props_builder(&Routes)
                         .fallback(|| "Not found")
                         .children(ToChildren::to_children(move || {
-                            Route(
-                                component_props_builder(&Route)
-                                    .path(path!("/setup"))
-                                    .view(authentication::Setup)
-                                    .build(),
+                            (
+                                Route(
+                                    component_props_builder(&Route)
+                                        .path(path!("/setup"))
+                                        .view(authentication::Setup)
+                                        .build(),
+                                ),
+                                Route(
+                                    component_props_builder(&Route)
+                                        .path(path!("/login"))
+                                        .view(authentication::Login)
+                                        .build(),
+                                ),
                             )
                         }))
                         .build(),
