@@ -7,7 +7,15 @@ edition = { workspace = true }
 workspace = true
 
 [dependencies]
+anyhow = { version = "1.0.95" }
 console_error_panic_hook = { version = "0.1.7" }
+gloo-net = { version = "0.6.0", default-features = false, features = [
+    "http",
+    "json",
+] }
 leptos = { version = "0.7.2", features = ["csr", "nightly"] }
+leptos_router = { version = "0.7.2", features = ["nightly"] }
+wasm-bindgen = { version = "0.2.99" }
 
 nghe_api = { path = "../nghe-api" }
+web-sys = "0.3.76"
