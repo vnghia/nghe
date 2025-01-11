@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use leptos::{html, svg};
+use nghe_api::user::info::Request;
 use wasm_bindgen::prelude::*;
 
 use crate::client::Client;
@@ -19,6 +20,9 @@ pub fn Shell<IV: IntoView + 'static>(
     });
 
     let (client, _effect) = Client::use_client();
+    let user_info = LocalResource::new(move || async move {
+        if let Some(client) = client() { Some(client.json(&Request).await) } else { None }
+    });
 
     Show(
         component_props_builder(&Show)

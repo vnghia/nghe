@@ -41,10 +41,10 @@ impl Client {
 
     async fn json_impl<R: JsonEndpoint>(
         request: &R,
-        authorization: impl Into<Option<&str>>,
+        authorization: Option<&str>,
     ) -> Result<R::Response, Error> {
         let response = http::Request::post(<R as JsonURL>::URL_JSON)
-            .header("Authorization", authorization.into().unwrap_or_default())
+            .header("Authorization", authorization.unwrap_or_default())
             .json(request)?
             .send()
             .await?;
@@ -57,5 +57,9 @@ impl Client {
 
     pub async fn json_no_auth<R: JsonEndpoint>(request: &R) -> Result<R::Response, Error> {
         Self::json_impl(request, None).await
+    }
+
+    pub async fn json<R: JsonEndpoint>(&self, request: &R) -> Result<R::Response, Error> {
+        Self::json_impl(request, Some(&self.authorization)).await
     }
 }
