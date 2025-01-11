@@ -3,7 +3,7 @@
 mod authentication;
 mod body;
 mod form;
-mod shell;
+mod root;
 
 pub use body::Body;
-use shell::Shell;
+pub use root::Root;

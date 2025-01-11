@@ -32,7 +32,10 @@ impl Client {
         let (read_api_key, _) = Self::use_api_key();
         let client = Signal::derive(move || read_api_key.with(|api_key| api_key.map(Client::new)));
         let effect = Effect::new(move |_| {
-            if client.with(Option::is_none) {
+            let client = client();
+            if let Some(client) = client {
+                provide_context(client);
+            } else {
                 use_navigate()("/login", NavigateOptions::default());
             }
         });

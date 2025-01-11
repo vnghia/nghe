@@ -7,6 +7,7 @@ use super::Role;
 pub struct Request;
 
 #[api_derive]
+#[derive(Clone)]
 pub struct Response {
     pub username: String,
     pub email: String,

@@ -2,14 +2,14 @@ use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use super::{Shell, authentication};
+use super::{Root, authentication};
 
 pub fn Body() -> impl IntoView {
     Router(
         component_props_builder(&Router)
             .base("/frontend")
             .children(ToChildren::to_children(move || {
-                Shell(move || {
+                Root(move || {
                     Routes(
                         component_props_builder(&Routes)
                             .fallback(|| "Not found")
