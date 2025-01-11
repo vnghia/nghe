@@ -14,10 +14,8 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
 
     let user_id = diesel::insert_into(users::table)
         .values(users::Data {
-            username: username.into(),
+            info: users::Info { username: username.into(), email: email.into(), role: role.into() },
             password: password.into(),
-            email: email.into(),
-            role: role.into(),
         })
         .returning(users::id)
         .get_result(&mut database.get().await?)
