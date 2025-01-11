@@ -3194,6 +3194,7 @@ version = "0.9.10"
 dependencies = [
  "anyhow",
  "codee",
+ "concat-string",
  "console_error_panic_hook",
  "gloo-net",
  "leptos",

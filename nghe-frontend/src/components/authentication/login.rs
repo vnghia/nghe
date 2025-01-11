@@ -27,8 +27,11 @@ pub fn Login() -> impl IntoView {
     let login_action = Action::<_, _, SyncStorage>::new_unsync(move |request: &Request| {
         let request = request.clone();
         async move {
-            let api_key =
-                Client::json(&request).await.map_err(|error| error.to_string())?.api_key.api_key;
+            let api_key = Client::json_no_auth(&request)
+                .await
+                .map_err(|error| error.to_string())?
+                .api_key
+                .api_key;
             set_api_key(Some(api_key));
             Ok::<_, String>(())
         }

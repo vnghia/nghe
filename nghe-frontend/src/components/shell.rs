@@ -29,7 +29,7 @@ pub fn Shell<IV: IntoView + 'static>(
             })
             .children(ToChildren::to_children(move || {
                 client.with(|client| {
-                    client.map(|_| {
+                    client.as_ref().map(|_| {
                         html::div().class("antialiased bg-gray-50 dark:bg-gray-900").child((
                             html::nav()
                                 .class(
