@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos::{html, svg};
 
 pub fn Loading() -> impl IntoView {
-    html::div().class("flex items-center justify-center w-full h-full").child(
+    html::div().class("flex items-center justify-center h-full w-full").child(
         html::div().role("status").child((
             svg::svg()
                 .aria_hidden("true")

@@ -25,11 +25,11 @@ pub fn Shell<IV: IntoView + 'static>(
                     let user_info = user_info.await;
                     html::div()
                         .node_ref(node_ref)
-                        .class("antialiased bg-gray-50 dark:bg-gray-900")
+                        .class("antialiased bg-gray-50 dark:bg-gray-900 w-full")
                         .child((
                             Navbar(user_info),
                             Sidebar(),
-                            html::main().class("p-4 md:ml-64 h-auto pt-20").child(child()),
+                            html::main().class("p-4 md:ml-64 pt-17 h-full").child(child()),
                         ))
                 })
             }))

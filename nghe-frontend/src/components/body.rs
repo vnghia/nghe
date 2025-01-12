@@ -1,3 +1,4 @@
+use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
@@ -5,7 +6,7 @@ use leptos_router::path;
 use super::{Home, Loading, Root, authentication};
 
 pub fn Body() -> impl IntoView {
-    Router(
+    html::div().class("flex h-dvh box-border").child(Router(
         component_props_builder(&Router)
             .base("/frontend")
             .children(ToChildren::to_children(move || {
@@ -46,5 +47,5 @@ pub fn Body() -> impl IntoView {
                 })
             }))
             .build(),
-    )
+    ))
 }
