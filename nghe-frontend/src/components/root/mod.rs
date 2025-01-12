@@ -1,5 +1,6 @@
 mod navbar;
 mod shell;
+mod sidebar;
 
 use leptos::prelude::*;
 
