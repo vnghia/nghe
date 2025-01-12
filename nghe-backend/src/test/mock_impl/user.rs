@@ -5,7 +5,7 @@ use image::EncodableLayout;
 use nghe_api::auth;
 use uuid::Uuid;
 
-use crate::http::extract::auth::header::BaiscAuthorization;
+use crate::http::extract::auth::header::{BaiscAuthorization, BearerAuthorization};
 use crate::orm::users;
 use crate::route::key;
 
@@ -41,7 +41,22 @@ impl<'a> Mock<'a> {
             .unwrap()
     }
 
-    pub fn auth_header(&self) -> BaiscAuthorization {
+    pub async fn api_key(&self) -> auth::ApiKey {
+        key::create::handler(self.mock.database(), key::create::Request {
+            username: self.username(),
+            password: self.password(),
+            client: Faker.fake::<String>(),
+        })
+        .await
+        .unwrap()
+        .api_key
+    }
+
+    pub async fn auth_bearer(&self) -> BearerAuthorization {
+        BearerAuthorization::bearer(&self.api_key().await.api_key.to_string()).unwrap()
+    }
+
+    pub fn auth_basic(&self) -> BaiscAuthorization {
         BaiscAuthorization::basic(&self.username(), &self.password())
     }
 
@@ -52,13 +67,9 @@ impl<'a> Mock<'a> {
         &self,
         use_token: Option<bool>,
     ) -> auth::Form<'static, 'static, 'static, 'static> {
-        let username = self.username();
-        let password = self.password();
-        let client = Faker.fake::<String>();
-
         if let Some(use_token) = use_token {
-            let username = username.into();
-            let client = client.into();
+            let username = self.username().into();
+            let client = Faker.fake::<String>().into();
             if use_token {
                 let salt: String = Faker.fake();
                 let token = auth::username::Token::new(self.password(), &salt);
@@ -72,16 +83,7 @@ impl<'a> Mock<'a> {
                 auth::Username { username, client, auth: self.password().into() }.into()
             }
         } else {
-            key::create::handler(self.mock.database(), key::create::Request {
-                username,
-                password,
-                client,
-            })
-            .await
-            .unwrap()
-            .api_key
-            .api_key
-            .into()
+            self.api_key().await.api_key.into()
         }
     }
 }

@@ -3,6 +3,8 @@ use std::marker::PhantomData;
 use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request::Parts;
 use axum_extra::headers::{self, HeaderMapExt};
+use nghe_api::auth;
+use uuid::Uuid;
 
 use super::{Authentication, Authorization, username};
 use crate::database::Database;
@@ -17,7 +19,20 @@ pub struct Header<R> {
     pub user: users::Authenticated,
 }
 
+pub type BearerAuthorization = headers::Authorization<headers::authorization::Bearer>;
 pub type BaiscAuthorization = headers::Authorization<headers::authorization::Basic>;
+
+impl Authentication for BearerAuthorization {
+    async fn authenticated(&self, database: &Database) -> Result<users::Authenticated, Error> {
+        auth::ApiKey::from(
+            self.token()
+                .parse::<Uuid>()
+                .map_err(|_| error::Kind::InvalidBearerAuthorizationFormat)?,
+        )
+        .authenticated(database)
+        .await
+    }
+}
 
 impl username::Authentication for BaiscAuthorization {
     fn username(&self) -> &str {
@@ -38,11 +53,14 @@ where
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let header = parts
-            .headers
-            .typed_get::<BaiscAuthorization>()
-            .ok_or_else(|| error::Kind::MissingAuthenticationHeader)?;
-        Ok(Self { _request: PhantomData, user: header.login::<S, R>(state).await? })
+        let user = if let Some(header) = parts.headers.typed_get::<BearerAuthorization>() {
+            header.login::<S, R>(state).await?
+        } else if let Some(header) = parts.headers.typed_get::<BaiscAuthorization>() {
+            header.login::<S, R>(state).await?
+        } else {
+            return error::Kind::MissingAuthenticationHeader.into();
+        };
+        Ok(Self { _request: PhantomData, user })
     }
 }
 
@@ -51,13 +69,21 @@ where
 mod tests {
     use axum::http;
     use axum_extra::headers::HeaderMapExt;
-    use fake::Fake;
     use fake::faker::internet::en::{Password, Username};
+    use fake::{Fake, Faker};
     use rstest::rstest;
 
     use super::username::Authentication;
     use super::*;
     use crate::test::{Mock, mock};
+
+    struct Request;
+
+    impl Authorization for Request {
+        fn authorized(_: crate::orm::users::Role) -> bool {
+            true
+        }
+    }
 
     #[rstest]
     fn test_authenticated(#[values(true, false)] ok: bool) {
@@ -72,17 +98,36 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_from_request_parts(#[future(awt)] mock: Mock, #[values(true, false)] ok: bool) {
-        struct Request;
-
-        impl Authorization for Request {
-            fn authorized(_: crate::orm::users::Role) -> bool {
-                true
-            }
-        }
-
+    async fn test_from_request_parts_bearer(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] ok: bool,
+    ) {
         let user = mock.user(0).await;
-        let auth = user.auth_header();
+        let auth = user.auth_bearer().await;
+
+        let mut http_request = http::Request::builder().body(()).unwrap();
+        http_request.headers_mut().typed_insert(if ok {
+            auth
+        } else {
+            BearerAuthorization::bearer(&Faker.fake::<Uuid>().to_string()).unwrap()
+        });
+        let mut parts = http_request.into_parts().0;
+
+        let header = Header::<Request>::from_request_parts(&mut parts, mock.state()).await;
+        assert_eq!(header.is_ok(), ok);
+        if ok {
+            assert_eq!(header.unwrap().user.id, user.id());
+        }
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_from_request_parts_basic(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] ok: bool,
+    ) {
+        let user = mock.user(0).await;
+        let auth = user.auth_basic();
 
         let mut http_request = http::Request::builder().body(()).unwrap();
         http_request.headers_mut().typed_insert(BaiscAuthorization::basic(
