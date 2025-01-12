@@ -1,3 +1,4 @@
+mod navbar;
 mod shell;
 
 use leptos::prelude::*;
