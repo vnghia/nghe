@@ -32,8 +32,8 @@ impl<'a> Mock<'a> {
         self.user.id
     }
 
-    fn username(&self) -> String {
-        self.user.data.username.to_string()
+    pub fn username(&self) -> String {
+        self.user.data.info.username.to_string()
     }
 
     fn password(&self) -> String {

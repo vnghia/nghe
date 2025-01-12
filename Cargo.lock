@@ -1232,6 +1232,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "092966b41edc516079bdf31ec78a2e0588d1d0c08f78b91d8307215928642b2b"
 
 [[package]]
+name = "default-struct-builder"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0df63c21a4383f94bd5388564829423f35c316aed85dc4f8427aded372c7c0d"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "deluxe"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2640,6 +2652,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "leptos-use"
+version = "0.15.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1af542655ab0c5e93238774c5a60f4d5541ad2c61bb6552d520d29eebcb60351"
+dependencies = [
+ "cfg-if",
+ "chrono",
+ "codee",
+ "default-struct-builder",
+ "js-sys",
+ "lazy_static",
+ "leptos",
+ "paste",
+ "send_wrapper",
+ "thiserror 2.0.11",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "leptos_config"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3160,11 +3193,15 @@ name = "nghe_frontend"
 version = "0.9.10"
 dependencies = [
  "anyhow",
+ "codee",
+ "concat-string",
  "console_error_panic_hook",
  "gloo-net",
  "leptos",
+ "leptos-use",
  "leptos_router",
  "nghe_api",
+ "uuid",
  "wasm-bindgen",
  "web-sys",
 ]

@@ -36,14 +36,25 @@ pub struct UsernameAuthentication<'a> {
     pub password: Cow<'a, [u8]>,
 }
 
+#[derive(Debug, Queryable, Selectable, Insertable, o2o)]
+#[diesel(table_name = users, check_for_backend(super::Type))]
+#[owned_into(nghe_api::user::info::Response)]
+pub struct Info<'a> {
+    #[into(~.into_owned())]
+    pub username: Cow<'a, str>,
+    #[into(~.into_owned())]
+    pub email: Cow<'a, str>,
+    #[diesel(embed)]
+    #[into(~.into())]
+    pub role: Role,
+}
+
 #[derive(Debug, Queryable, Selectable, Insertable)]
 #[diesel(table_name = users, check_for_backend(super::Type))]
 pub struct Data<'a> {
-    pub username: Cow<'a, str>,
-    pub password: Cow<'a, [u8]>,
-    pub email: Cow<'a, str>,
     #[diesel(embed)]
-    pub role: Role,
+    pub info: Info<'a>,
+    pub password: Cow<'a, [u8]>,
 }
 
 #[derive(Debug, Queryable, Selectable, Identifiable)]

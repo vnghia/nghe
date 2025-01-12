@@ -7,6 +7,15 @@ use crate::client::Client;
 use crate::components::form;
 
 pub fn Login() -> impl IntoView {
+    let navigate = leptos_router::hooks::use_navigate();
+
+    let (read_api_key, set_api_key) = Client::use_api_key();
+    Effect::new(move || {
+        if read_api_key.with(Option::is_some) {
+            navigate("/", NavigateOptions::default());
+        }
+    });
+
     let username = RwSignal::new(String::default());
     let password = RwSignal::new(String::default());
     let client = RwSignal::new(nghe_api::constant::SERVER_NAME.into());
@@ -15,17 +24,16 @@ pub fn Login() -> impl IntoView {
     let (password_error, set_password_error) = signal(Option::default());
     let (client_error, set_client_error) = signal(Option::default());
 
-    let login_action = Action::<_, _, SyncStorage>::new_unsync(|request: &Request| {
+    let login_action = Action::<_, _, SyncStorage>::new_unsync(move |request: &Request| {
         let request = request.clone();
         async move {
-            Client::json(&request).await.map_err(|error| error.to_string())?;
+            let api_key = Client::json_no_auth(&request)
+                .await
+                .map_err(|error| error.to_string())?
+                .api_key
+                .api_key;
+            set_api_key(Some(api_key));
             Ok::<_, String>(())
-        }
-    });
-    Effect::new(move || {
-        if login_action.value().with(|result| result.as_ref().is_some_and(Result::is_ok)) {
-            let navigate = leptos_router::hooks::use_navigate();
-            navigate("/", NavigateOptions::default());
         }
     });
 
