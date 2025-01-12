@@ -76,7 +76,7 @@ pub fn Navbar(user_info: Response) -> impl IntoView {
                     html::button()
                         .r#type("button")
                         .aria_controls("drawer-navigation")
-                        .attr("data-dropdown-toggle", "drawer-navigation")
+                        .attr("data-drawer-toggle", "drawer-navigation")
                         .class(
                             "p-2 mr-1 text-gray-500 rounded-lg md:hidden hover:text-gray-900 \
                              hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white \
