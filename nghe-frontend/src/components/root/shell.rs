@@ -1,4 +1,3 @@
-use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use nghe_api::user::info::Request;
@@ -16,21 +15,24 @@ pub fn Shell<IV: IntoView + 'static>(
         let client = client().expect(Client::EXPECT_MSG);
         client.json(&Request).await.unwrap()
     });
-    Effect::new(move || {
-        user_info.track();
-        init::flowbite();
-    });
 
-    // TODO: rework after https://github.com/leptos-rs/leptos/issues/3481
-    View::new(move || match user_info.get() {
-        Some(user_info) => {
-            let user_info = user_info.take();
-            Either::Left(html::div().class("antialiased bg-gray-50 dark:bg-gray-900").child((
-                Navbar(user_info),
-                Sidebar(),
-                html::main().class("p-4 md:ml-64 h-auto pt-20").child(child()),
-            )))
-        }
-        None => Either::Right(Loading()),
-    })
+    let node_ref = init::flowbite_suspense();
+    Suspense(
+        component_props_builder(&Suspense)
+            .fallback(Loading)
+            .children(ToChildren::to_children(move || {
+                Suspend::new(async move {
+                    let user_info = user_info.await;
+                    html::div()
+                        .node_ref(node_ref)
+                        .class("antialiased bg-gray-50 dark:bg-gray-900")
+                        .child((
+                            Navbar(user_info),
+                            Sidebar(),
+                            html::main().class("p-4 md:ml-64 h-auto pt-20").child(child()),
+                        ))
+                })
+            }))
+            .build(),
+    )
 }
