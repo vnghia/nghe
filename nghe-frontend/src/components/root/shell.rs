@@ -4,7 +4,7 @@ use leptos::{html, svg};
 use nghe_api::user::info::Request;
 
 use crate::client::Client;
-use crate::components::init;
+use crate::components::{Loading, init};
 
 pub fn Shell<IV: IntoView + 'static>(
     child: impl Fn() -> IV + Copy + Send + Sync + 'static,
@@ -15,9 +15,8 @@ pub fn Shell<IV: IntoView + 'static>(
         client.json(&Request).await.unwrap()
     });
     Effect::new(move || {
-        if user_info.with(Option::is_some) {
-            init::flowbite();
-        }
+        user_info.track();
+        init::flowbite();
     });
 
     // TODO: rework after https://github.com/leptos-rs/leptos/issues/3481
@@ -216,6 +215,6 @@ pub fn Shell<IV: IntoView + 'static>(
                 )),
             )
         }
-        None => Either::Right("Loading"),
+        None => Either::Right(Loading()),
     })
 }

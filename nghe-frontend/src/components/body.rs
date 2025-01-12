@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use super::{Home, Root, authentication};
+use super::{Home, Loading, Root, authentication};
 
 pub fn Body() -> impl IntoView {
     Router(
@@ -19,6 +19,12 @@ pub fn Body() -> impl IntoView {
                                         component_props_builder(&Route)
                                             .path(path!(""))
                                             .view(Home)
+                                            .build(),
+                                    ),
+                                    Route(
+                                        component_props_builder(&Route)
+                                            .path(path!("/loading"))
+                                            .view(Loading)
                                             .build(),
                                     ),
                                     Route(
