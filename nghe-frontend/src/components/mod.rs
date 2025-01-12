@@ -3,6 +3,7 @@
 mod authentication;
 mod body;
 mod form;
+mod init;
 mod root;
 
 pub use body::Body;

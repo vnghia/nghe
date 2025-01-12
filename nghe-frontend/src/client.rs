@@ -17,6 +17,8 @@ pub struct Client {
 impl Client {
     const API_KEY_STORAGE_KEY: &'static str = "api-key";
 
+    pub const EXPECT_MSG: &'static str = "use_client_redirect should prevent this";
+
     pub fn new(api_key: Uuid) -> Self {
         Self { authorization: concat_string!("Bearer ", api_key.to_string()) }
     }
@@ -28,14 +30,15 @@ impl Client {
         (read, write)
     }
 
-    pub fn use_client() -> (Signal<Option<Client>>, Effect<LocalStorage>) {
+    pub fn use_client() -> Signal<Option<Client>> {
         let (read_api_key, _) = Self::use_api_key();
-        let client = Signal::derive(move || read_api_key.with(|api_key| api_key.map(Client::new)));
-        let effect = Effect::new(move |_| {
-            let client = client();
-            if let Some(client) = client {
-                provide_context(client);
-            } else {
+        Signal::derive(move || read_api_key.with(|api_key| api_key.map(Client::new)))
+    }
+
+    pub fn use_client_redirect() -> (Signal<Option<Client>>, Effect<LocalStorage>) {
+        let client = Self::use_client();
+        let effect = Effect::new(move || {
+            if client.with(Option::is_none) {
                 use_navigate()("/login", NavigateOptions::default());
             }
         });
