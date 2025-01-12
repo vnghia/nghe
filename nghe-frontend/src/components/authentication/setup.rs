@@ -7,6 +7,15 @@ use crate::client::Client;
 use crate::components::form;
 
 pub fn Setup() -> impl IntoView {
+    let navigate = leptos_router::hooks::use_navigate();
+
+    let (read_api_key, _) = Client::use_api_key();
+    let _ = RenderEffect::new(move |_| {
+        if read_api_key.with(Option::is_some) {
+            navigate("/", NavigateOptions::default());
+        }
+    });
+
     let username = RwSignal::new(String::default());
     let email = RwSignal::new(String::default());
     let password = RwSignal::new(String::default());

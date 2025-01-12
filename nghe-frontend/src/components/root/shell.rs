@@ -7,7 +7,7 @@ use crate::client::Client;
 pub fn Shell<IV: IntoView + 'static>(
     child: impl Fn() -> IV + Copy + Send + Sync + 'static,
 ) -> impl IntoView {
-    let (client, _redirect) = Client::use_client_redirect();
+    let (client, _) = Client::use_client_redirect();
     let user_info = LocalResource::new(move || async move {
         let client = client().expect(Client::EXPECT_MSG);
         client.json(&Request).await.unwrap()

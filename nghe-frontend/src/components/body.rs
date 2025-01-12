@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use super::{Root, authentication};
+use super::{Home, Root, authentication};
 
 pub fn Body() -> impl IntoView {
     Router(
@@ -15,6 +15,12 @@ pub fn Body() -> impl IntoView {
                             .fallback(|| "Not found")
                             .children(ToChildren::to_children(move || {
                                 (
+                                    Route(
+                                        component_props_builder(&Route)
+                                            .path(path!(""))
+                                            .view(Home)
+                                            .build(),
+                                    ),
                                     Route(
                                         component_props_builder(&Route)
                                             .path(path!("/setup"))
