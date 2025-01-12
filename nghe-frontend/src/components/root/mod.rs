@@ -9,7 +9,7 @@ pub fn Root<IV: IntoView + 'static>(
     child: impl Fn() -> IV + Copy + Send + Sync + 'static,
 ) -> impl IntoView {
     let location = leptos_router::hooks::use_location();
-    Effect::new(move |_| {
+    Effect::new(move || {
         location.pathname.track();
         init::flowbite();
     });
