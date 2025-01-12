@@ -46,6 +46,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
     MissingAuthenticationHeader,
+    #[error("Invalid bearer authorization format")]
+    #[into(StatusCode| StatusCode::BAD_REQUEST)]
+    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
+    InvalidBearerAuthorizationFormat,
     #[error("Wrong username or password")]
     #[into(StatusCode| StatusCode::UNAUTHORIZED)]
     #[into(OpensubsonicCode| OpensubsonicCode::WrongUsernameOrPassword)]
