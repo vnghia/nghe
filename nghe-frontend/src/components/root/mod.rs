@@ -1,4 +1,6 @@
+mod navbar;
 mod shell;
+mod sidebar;
 
 use leptos::prelude::*;
 
@@ -9,7 +11,7 @@ pub fn Root<IV: IntoView + 'static>(
     child: impl Fn() -> IV + Copy + Send + Sync + 'static,
 ) -> impl IntoView {
     let location = leptos_router::hooks::use_location();
-    Effect::new(move |_| {
+    Effect::new(move || {
         location.pathname.track();
         init::flowbite();
     });
@@ -17,12 +19,7 @@ pub fn Root<IV: IntoView + 'static>(
     let client = Client::use_client();
     Show(
         component_props_builder(&Show)
-            .when(move || {
-                client.with(Option::is_some)
-                    && location.pathname.with(|pathname| {
-                        pathname != "/frontend/setup" && pathname != "/frontend/login"
-                    })
-            })
+            .when(move || client.with(Option::is_some))
             .children(ToChildren::to_children(move || shell::Shell(child)))
             .fallback(child)
             .build(),

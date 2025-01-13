@@ -17,8 +17,8 @@ gloo-net = { version = "0.6.0", default-features = false, features = [
     "http",
     "json",
 ] }
-leptos = { version = "0.7.2", features = ["csr", "nightly"] }
-leptos_router = { version = "0.7.2", features = ["nightly"] }
+leptos = { version = "0.7.3", features = ["csr", "nightly"] }
+leptos_router = { version = "0.7.3", features = ["nightly"] }
 leptos-use = { version = "0.15.3", default-features = false, features = [
     "storage",
 ] }

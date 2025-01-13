@@ -35,9 +35,9 @@ impl Client {
         Signal::derive(move || read_api_key.with(|api_key| api_key.map(Client::new)))
     }
 
-    pub fn use_client_redirect() -> (Signal<Option<Client>>, Effect<LocalStorage>) {
+    pub fn use_client_redirect() -> (Signal<Option<Client>>, RenderEffect<()>) {
         let client = Self::use_client();
-        let effect = Effect::new(move || {
+        let effect = RenderEffect::new(move |_| {
             if client.with(Option::is_none) {
                 use_navigate()("/login", NavigateOptions::default());
             }
@@ -57,7 +57,11 @@ impl Client {
         if response.ok() {
             Ok(response.json().await?)
         } else {
-            anyhow::bail!("{}", response.text().await?)
+            let text = response.text().await?;
+            if text.is_empty() {
+                anyhow::bail!("{} {}", response.status(), response.status_text());
+            }
+            anyhow::bail!("{text}");
         }
     }
 

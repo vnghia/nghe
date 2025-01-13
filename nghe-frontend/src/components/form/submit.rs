@@ -25,7 +25,7 @@ pub fn Submit<I: Send + Sync + 'static>(
         .child(move || {
             if action_pending() {
                 Either::Left(
-                    html::div().role("submit-status").child((
+                    html::div().role("status").child((
                         svg::svg()
                             .aria_hidden(true)
                             .class("inline w-5 h-5 me-1 text-white animate-spin")
