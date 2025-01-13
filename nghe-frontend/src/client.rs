@@ -57,7 +57,11 @@ impl Client {
         if response.ok() {
             Ok(response.json().await?)
         } else {
-            anyhow::bail!("{}", response.text().await?)
+            let text = response.text().await?;
+            if text.is_empty() {
+                anyhow::bail!("{} {}", response.status(), response.status_text());
+            }
+            anyhow::bail!("{text}");
         }
     }
 
