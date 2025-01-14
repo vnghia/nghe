@@ -25,12 +25,13 @@ pub fn Shell<IV: IntoView + 'static>(
                 Suspend::new(async move {
                     let user_info = user_info.await;
                     user_info.map(|user_info| {
+                        let user_role = user_info.role;
                         html::div()
                             .node_ref(node_ref)
                             .class("antialiased bg-gray-50 dark:bg-gray-900 w-full")
                             .child((
                                 Navbar(user_info),
-                                Sidebar(),
+                                Sidebar(user_role),
                                 html::main().class("p-4 md:ml-64 pt-17 h-full").child(child()),
                             ))
                     })
