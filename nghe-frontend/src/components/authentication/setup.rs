@@ -27,8 +27,8 @@ pub fn Setup() -> impl IntoView {
     let setup_action = Action::<_, _, SyncStorage>::new_unsync(|request: &Request| {
         let request = request.clone();
         async move {
-            Client::json_no_auth(&request).await.map_err(|error| error.to_string())?;
-            Ok::<_, String>(())
+            Client::json_no_auth(&request).await?;
+            Ok(())
         }
     });
     Effect::new(move || {

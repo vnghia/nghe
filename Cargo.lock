@@ -3192,7 +3192,6 @@ dependencies = [
 name = "nghe_frontend"
 version = "0.9.10"
 dependencies = [
- "anyhow",
  "codee",
  "concat-string",
  "console_error_panic_hook",
@@ -3201,6 +3200,7 @@ dependencies = [
  "leptos-use",
  "leptos_router",
  "nghe_api",
+ "thiserror 2.0.11",
  "uuid",
  "wasm-bindgen",
  "web-sys",

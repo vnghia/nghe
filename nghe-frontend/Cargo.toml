@@ -8,9 +8,9 @@ workspace = true
 
 [dependencies]
 concat-string = { workspace = true }
+thiserror = { workspace = true }
 uuid = { workspace = true }
 
-anyhow = { version = "1.0.95" }
 codee = { version = "0.2.0" }
 console_error_panic_hook = { version = "0.1.7" }
 gloo-net = { version = "0.6.0", default-features = false, features = [

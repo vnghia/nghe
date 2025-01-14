@@ -5,7 +5,6 @@ use nghe_api::user::get::Request;
 use super::navbar::Navbar;
 use super::sidebar::Sidebar;
 use crate::client::Client;
-use crate::components::error::Toast as _;
 use crate::components::{Loading, init};
 
 pub fn Shell<IV: IntoView + 'static>(
@@ -14,7 +13,7 @@ pub fn Shell<IV: IntoView + 'static>(
     let (client, _) = Client::use_client_redirect();
     let user = LocalResource::new(move || async move {
         let client = client().expect(Client::EXPECT_MSG);
-        client.json(&Request).await.toast()
+        client.json(&Request).await.ok()
     });
 
     let node_ref = init::flowbite_suspense();
