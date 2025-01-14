@@ -1,5 +1,5 @@
 pub mod create;
-pub mod info;
+pub mod get;
 mod role;
 pub mod setup;
 

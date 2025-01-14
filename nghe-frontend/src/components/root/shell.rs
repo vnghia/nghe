@@ -1,6 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
-use nghe_api::user::info::Request;
+use nghe_api::user::get::Request;
 
 use super::navbar::Navbar;
 use super::sidebar::Sidebar;
@@ -12,7 +12,7 @@ pub fn Shell<IV: IntoView + 'static>(
     child: impl Fn() -> IV + Copy + Send + Sync + 'static,
 ) -> impl IntoView {
     let (client, _) = Client::use_client_redirect();
-    let user_info = LocalResource::new(move || async move {
+    let user = LocalResource::new(move || async move {
         let client = client().expect(Client::EXPECT_MSG);
         client.json(&Request).await.toast()
     });
@@ -23,15 +23,15 @@ pub fn Shell<IV: IntoView + 'static>(
             .fallback(Loading)
             .children(ToChildren::to_children(move || {
                 Suspend::new(async move {
-                    let user_info = user_info.await;
-                    user_info.map(|user_info| {
-                        let user_role = user_info.role;
+                    let user = user.await;
+                    user.map(|user| {
+                        let role = user.role;
                         html::div()
                             .node_ref(node_ref)
                             .class("antialiased bg-gray-50 dark:bg-gray-900 w-full")
                             .child((
-                                Navbar(user_info),
-                                Sidebar(user_role),
+                                Navbar(user),
+                                Sidebar(role),
                                 html::main().class("p-4 md:ml-64 pt-17 h-full").child(child()),
                             ))
                     })

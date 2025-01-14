@@ -1,11 +1,11 @@
 pub mod create;
-mod info;
+mod get;
 mod setup;
 
 nghe_proc_macro::build_router! {
     modules = [
         create(internal = true),
-        info(internal = true),
+        get(internal = true),
         setup(internal = true),
     ],
 }
