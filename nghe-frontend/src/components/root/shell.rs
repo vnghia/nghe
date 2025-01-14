@@ -32,7 +32,7 @@ pub fn Shell<IV: IntoView + 'static>(
                             .child((
                                 Navbar(user),
                                 Sidebar(role),
-                                html::main().class("p-4 md:ml-64 pt-17 h-full").child(child()),
+                                html::main().class("md:ml-64 pt-13 h-full").child(child()),
                             ))
                     })
                 })

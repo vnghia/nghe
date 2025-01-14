@@ -1,6 +1,8 @@
+mod boundary;
 mod context;
 mod toast;
 
+pub use boundary::Boundary;
 use leptos::prelude::*;
 use leptos::{ev, html};
 pub use toast::Toast;

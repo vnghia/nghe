@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
-use super::{Error, Home, Loading, Root, authentication};
+use super::{Error, Home, Loading, Root, authentication, error};
 
 pub fn Body() -> impl IntoView {
     html::div().class("flex h-dvh box-border").child((
@@ -27,6 +27,16 @@ pub fn Body() -> impl IntoView {
                                             component_props_builder(&Route)
                                                 .path(path!("/loading"))
                                                 .view(Loading)
+                                                .build(),
+                                        ),
+                                        Route(
+                                            component_props_builder(&Route)
+                                                .path(path!("/error"))
+                                                .view(move || {
+                                                    error::Boundary(ArcRwSignal::new(
+                                                        Errors::default(),
+                                                    ))
+                                                })
                                                 .build(),
                                         ),
                                         Route(
