@@ -1,4 +1,5 @@
-pub mod http;
+pub mod generic;
+mod http;
 
 use leptos::html;
 use leptos::prelude::*;
