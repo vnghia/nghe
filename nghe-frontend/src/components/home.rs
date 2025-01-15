@@ -1,8 +1,7 @@
 use leptos::prelude::*;
 
-use crate::client::Client;
+use crate::components::ClientRedirect;
 
 pub fn Home() -> impl IntoView {
-    let _ = Client::use_client_redirect();
-    "Home"
+    ClientRedirect(move |_| "Home")
 }

@@ -2,6 +2,7 @@
 
 mod authentication;
 mod body;
+mod client_redirect;
 mod error;
 mod form;
 mod home;
@@ -10,6 +11,7 @@ mod loading;
 mod root;
 
 pub use body::Body;
+pub use client_redirect::ClientRedirect;
 pub use error::Boundary;
 pub use home::Home;
 pub use loading::Loading;
