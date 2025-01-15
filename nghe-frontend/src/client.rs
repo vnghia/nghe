@@ -2,8 +2,6 @@ use codee::string::{FromToStringCodec, OptionCodec};
 use concat_string::concat_string;
 use gloo_net::http;
 use leptos::prelude::*;
-use leptos_router::NavigateOptions;
-use leptos_router::hooks::use_navigate;
 use leptos_use::storage::use_local_storage;
 use nghe_api::common::{JsonEndpoint, JsonURL};
 use uuid::Uuid;
@@ -17,8 +15,6 @@ pub struct Client {
 
 impl Client {
     const API_KEY_STORAGE_KEY: &'static str = "api-key";
-
-    pub const EXPECT_MSG: &'static str = "use_client_redirect should prevent this";
 
     pub fn new(api_key: Uuid) -> Self {
         Self { authorization: concat_string!("Bearer ", api_key.to_string()) }
@@ -34,16 +30,6 @@ impl Client {
     pub fn use_client() -> Signal<Option<Client>> {
         let (read_api_key, _) = Self::use_api_key();
         Signal::derive(move || read_api_key.with(|api_key| api_key.map(Client::new)))
-    }
-
-    pub fn use_client_redirect() -> (Signal<Option<Client>>, RenderEffect<()>) {
-        let client = Self::use_client();
-        let effect = RenderEffect::new(move |_| {
-            if client.with(Option::is_none) {
-                use_navigate()("/login", NavigateOptions::default());
-            }
-        });
-        (client, effect)
     }
 
     async fn json_impl<R: JsonEndpoint>(
