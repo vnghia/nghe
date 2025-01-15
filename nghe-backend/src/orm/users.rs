@@ -38,7 +38,7 @@ pub struct UsernameAuthentication<'a> {
 
 #[derive(Debug, Queryable, Selectable, Insertable, o2o)]
 #[diesel(table_name = users, check_for_backend(super::Type))]
-#[owned_into(nghe_api::user::info::Response)]
+#[owned_into(nghe_api::user::get::Response)]
 pub struct Info<'a> {
     #[into(~.into_owned())]
     pub username: Cow<'a, str>,

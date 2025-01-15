@@ -1,8 +1,8 @@
 use leptos::prelude::*;
 use leptos::{html, svg};
-use nghe_api::user::info::Response;
+use nghe_api::user::get::Response;
 
-pub fn Navbar(user_info: Response) -> impl IntoView {
+pub fn Navbar(user: Response) -> impl IntoView {
     html::nav()
         .class(
             "bg-white border-b border-gray-200 px-4 py-2.5 dark:bg-gray-800 dark:border-gray-700 \
@@ -129,10 +129,10 @@ pub fn Navbar(user_info: Response) -> impl IntoView {
                                     .class(
                                         "block text-sm font-semibold text-gray-900 dark:text-white",
                                     )
-                                    .child(user_info.username),
+                                    .child(user.username),
                                 html::span()
                                     .class("block text-sm text-gray-900 truncate dark:text-white")
-                                    .child(user_info.email),
+                                    .child(user.email),
                             )),
                             html::ul()
                                 .aria_labelledby("dropdown")

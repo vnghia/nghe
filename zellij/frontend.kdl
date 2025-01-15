@@ -1,0 +1,17 @@
+layout {
+    tab split_direction="vertical" {
+        pane focus=true
+        pane split_direction="horizontal" {
+            pane {
+                cwd "nghe-frontend"
+                command "trunk"
+                args "serve" "--log" "INFO"
+            }
+            pane {
+                cwd "nghe-frontend"
+                command "npm"
+                args "run" "dev"
+            }
+        }
+    }
+}

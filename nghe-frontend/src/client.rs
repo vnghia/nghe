@@ -1,4 +1,3 @@
-use anyhow::Error;
 use codee::string::{FromToStringCodec, OptionCodec};
 use concat_string::concat_string;
 use gloo_net::http;
@@ -8,6 +7,8 @@ use leptos_router::hooks::use_navigate;
 use leptos_use::storage::use_local_storage;
 use nghe_api::common::{JsonEndpoint, JsonURL};
 use uuid::Uuid;
+
+use crate::{Error, error};
 
 #[derive(Clone)]
 pub struct Client {
@@ -57,11 +58,13 @@ impl Client {
         if response.ok() {
             Ok(response.json().await?)
         } else {
+            let code = response.status();
             let text = response.text().await?;
-            if text.is_empty() {
-                anyhow::bail!("{} {}", response.status(), response.status_text());
-            }
-            anyhow::bail!("{text}");
+            Err(if text.is_empty() {
+                error::Http { code, text: response.status_text() }.into()
+            } else {
+                error::Http { code, text }.into()
+            })
         }
     }
 

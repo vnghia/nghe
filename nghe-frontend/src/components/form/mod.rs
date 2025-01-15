@@ -6,12 +6,14 @@ use leptos::html;
 use leptos::prelude::*;
 use web_sys::MouseEvent;
 
+use crate::Error;
+
 pub fn Form<IV: IntoView, I: Send + Sync + 'static>(
     title: &'static str,
     fields: impl Fn() -> IV,
     button: &'static str,
     on_click: impl Fn(MouseEvent) + 'static,
-    action: Action<I, Result<(), String>, SyncStorage>,
+    action: Action<I, Result<(), Error>, SyncStorage>,
 ) -> impl IntoView {
     html::div()
         .class(

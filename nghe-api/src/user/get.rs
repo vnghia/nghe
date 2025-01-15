@@ -3,7 +3,7 @@ use nghe_proc_macro::api_derive;
 use super::Role;
 
 #[api_derive(fake = true)]
-#[endpoint(path = "userInfo", internal = true)]
+#[endpoint(path = "getUser", internal = true)]
 pub struct Request;
 
 #[api_derive]
