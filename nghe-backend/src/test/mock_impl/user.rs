@@ -11,7 +11,7 @@ use crate::route::key;
 
 pub struct Mock<'a> {
     mock: &'a super::Mock,
-    pub user: users::User<'static>,
+    pub user: users::Full<'static>,
 }
 
 impl<'a> Mock<'a> {
@@ -19,7 +19,7 @@ impl<'a> Mock<'a> {
         Self {
             mock,
             user: users::table
-                .select(users::User::as_select())
+                .select(users::Full::as_select())
                 .order_by(users::created_at)
                 .offset(index.try_into().unwrap())
                 .first(&mut mock.get().await)

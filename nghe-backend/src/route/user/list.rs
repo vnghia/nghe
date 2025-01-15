@@ -11,11 +11,11 @@ use crate::orm::users;
 pub async fn handler(database: &Database) -> Result<Response, Error> {
     Ok(Response {
         users: users::table
-            .select(users::Info::as_select())
+            .select(users::User::as_select())
             .get_results(&mut database.get().await?)
             .await?
             .into_iter()
-            .map(users::Info::into)
+            .map(users::User::into)
             .collect(),
     })
 }
