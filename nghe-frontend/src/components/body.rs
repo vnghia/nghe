@@ -32,7 +32,10 @@ pub fn Body() -> impl IntoView {
                                         component_props_builder(&Route)
                                             .path(path!("/error"))
                                             .view(move || {
-                                                error::Error(ArcRwSignal::new(Errors::default()))
+                                                error::http::Http(crate::error::Http {
+                                                    code: 404,
+                                                    text: "Not Found".into(),
+                                                })
                                             })
                                             .build(),
                                     ),

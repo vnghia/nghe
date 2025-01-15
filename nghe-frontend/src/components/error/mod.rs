@@ -1,3 +1,5 @@
+pub mod http;
+
 use leptos::html;
 use leptos::prelude::*;
 
