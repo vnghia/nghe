@@ -8,7 +8,7 @@ use leptos_use::storage::use_local_storage;
 use nghe_api::common::{JsonEndpoint, JsonURL};
 use uuid::Uuid;
 
-use crate::Error;
+use crate::{Error, error};
 
 #[derive(Clone)]
 pub struct Client {
@@ -58,11 +58,12 @@ impl Client {
         if response.ok() {
             Ok(response.json().await?)
         } else {
+            let code = response.status();
             let text = response.text().await?;
             Err(if text.is_empty() {
-                Error::HttpStatus { code: response.status(), text: response.status_text() }
+                error::Http { code, text: response.status_text() }.into()
             } else {
-                Error::Server(text)
+                error::Http { code, text }.into()
             })
         }
     }

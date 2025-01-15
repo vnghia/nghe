@@ -4,10 +4,8 @@ use std::sync::Arc;
 pub enum Error {
     #[error(transparent)]
     GlooNet(#[from] Arc<gloo_net::Error>),
-    #[error("{code} {text}")]
-    HttpStatus { code: u16, text: String },
-    #[error("{0}")]
-    Server(String),
+    #[error(transparent)]
+    Http(#[from] Http),
 }
 
 #[derive(Debug, thiserror::Error, Clone)]

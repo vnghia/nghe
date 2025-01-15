@@ -1,12 +1,23 @@
-pub mod generic;
+#![allow(clippy::needless_pass_by_value)]
+
+mod generic;
 mod http;
 
-use leptos::html;
+use leptos::either::Either;
 use leptos::prelude::*;
 
-pub fn Error(errors: ArcRwSignal<Errors>) -> impl IntoView {
-    html::div().class(
-        "flex items-center justify-center h-full w-full m-[-4] text-red-800 bg-red-50 \
-         dark:bg-gray-800 dark:text-red-400",
-    )
+fn Error(errors: ArcRwSignal<Errors>) -> impl IntoView {
+    let errors = errors();
+    leptos::logging::error!("{:?}", errors);
+    errors.into_iter().next().map(|(_, error)| {
+        let error = error.into_inner();
+        match error.downcast_ref::<crate::Error>().expect("Could not handle this error type") {
+            crate::Error::Http(error) => Either::Left(http::Http(error.clone())),
+            crate::Error::GlooNet(_) => Either::Right(generic::Generic(error.to_string())),
+        }
+    })
+}
+
+pub fn Boundary(child: TypedChildren<impl IntoView + 'static>) -> impl IntoView {
+    ErrorBoundary(component_props_builder(&ErrorBoundary).fallback(Error).children(child).build())
 }
