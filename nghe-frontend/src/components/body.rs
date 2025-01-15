@@ -14,6 +14,7 @@ pub fn Body() -> impl IntoView {
                     Routes(
                         component_props_builder(&Routes)
                             .fallback(|| "Not found")
+                            .transition(true)
                             .children(ToChildren::to_children(move || {
                                 (
                                     Route(
