@@ -4,11 +4,13 @@ layout {
         pane split_direction="horizontal" {
             pane {
                 cwd "nghe-frontend"
+                close_on_exit false
                 command "trunk"
                 args "serve" "--log" "INFO"
             }
             pane {
                 cwd "nghe-frontend"
+                close_on_exit false
                 command "npm"
                 args "run" "dev"
             }

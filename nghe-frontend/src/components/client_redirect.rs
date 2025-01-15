@@ -13,7 +13,7 @@ pub fn ClientRedirect<IV: IntoView + 'static>(
             let child = child(client);
             Either::Left(child)
         } else {
-            Redirect(component_props_builder(&Redirect).path("login").build());
+            Redirect(component_props_builder(&Redirect).path("/login").build());
             Either::Right(())
         }
     })

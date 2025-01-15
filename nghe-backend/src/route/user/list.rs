@@ -12,6 +12,7 @@ pub async fn handler(database: &Database) -> Result<Response, Error> {
     Ok(Response {
         users: users::table
             .select(users::User::as_select())
+            .order_by(users::username)
             .get_results(&mut database.get().await?)
             .await?
             .into_iter()
