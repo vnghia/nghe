@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use leptos::{html, svg};
+use leptos_router::components::A;
 use nghe_api::user::get::Response;
 
 pub fn Navbar(user: Response) -> impl IntoView {
@@ -60,17 +61,19 @@ pub fn Navbar(user: Response) -> impl IntoView {
                                 ),
                             html::span().class("sr-only").child("Toggle sidebar"),
                         )),
-                    html::a()
-                        .href("/frontend")
-                        .class("flex items-center justify-between mr-4")
-                        .child(
+                    A(component_props_builder(&A)
+                        .href("")
+                        .children(Box::new(move || {
                             html::span()
                                 .class(
                                     "self-center text-2xl font-semibold whitespace-nowrap \
                                      dark:text-white",
                                 )
-                                .child("Nghe"),
-                        ),
+                                .child("Nghe")
+                                .into_any()
+                        }))
+                        .build())
+                    .attr("class", "flex items-center justify-between mr-4"),
                 )),
                 html::div().class("flex items-center lg:order-2").child((
                     html::button()
