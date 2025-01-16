@@ -2876,9 +2876,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_router"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69ff7d8c058b4bd7512fa58224b684d5da10d5f056171b8e27d516e0d36e1a5d"
+checksum = "9a193dbd62b9617a5d7d199ea70c570da01a1bbe798e617373b6351845be6778"
 dependencies = [
  "any_spawner",
  "either_of",
@@ -2900,9 +2900,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_router_macro"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15a48035e8d796233a5b43322aeab9387f946f914dacdf17a1981c3910879b19"
+checksum = "34bc3f80ad810b22058f12d278bb0bf929779cc0bc1289a06980d896f62743f0"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -4848,7 +4848,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5568,7 +5568,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
