@@ -1,4 +1,5 @@
 use nghe_proc_macro::api_derive;
+use uuid::Uuid;
 
 use super::Role;
 
@@ -9,6 +10,7 @@ pub struct Request;
 #[api_derive]
 #[derive(Clone)]
 pub struct Response {
+    pub id: Uuid,
     pub username: String,
     pub email: String,
     pub role: Role,
