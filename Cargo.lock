@@ -305,9 +305,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "aws-config"
-version = "1.5.14"
+version = "1.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f40e82e858e02445402906e454a73e244c7f501fcae198977585946c48e8697"
+checksum = "dc47e70fc35d054c8fcd296d47a61711f043ac80534a10b4f741904f81e73a90"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -368,9 +368,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-s3"
-version = "1.70.0"
+version = "1.71.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d781684ce9da2f82da4e23eaf753310d5ddb05efe2d91cd59033828727218f5"
+checksum = "705cb534fb7b620f540d2fac268d378918dc67d25b173f67edcab3851fe19392"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -402,9 +402,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-sts"
-version = "1.55.0"
+version = "1.57.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33ef5b73a927ed80b44096f8c20fb4abae65469af15198367e179ae267256e9d"
+checksum = "115fd4fb663817ed595a5ee4f1649d7aacd861d47462323cb37576ce89271b93"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
