@@ -15,6 +15,6 @@ concat-string = { workspace = true }
 convert_case = { workspace = true }
 
 deluxe = { version = "0.5.0" }
-proc-macro2 = { version = "1.0.92" }
-quote = { version = "1.0.37" }
-syn = { version = "2.0.89", features = ["fold", "full"] }
+proc-macro2 = { version = "1.0.93" }
+quote = { version = "1.0.38" }
+syn = { version = "2.0.96", features = ["fold", "full"] }

@@ -30,20 +30,20 @@ nghe_api = { path = "../nghe-api", features = ["backend"] }
 nghe_proc_macro = { path = "../nghe-proc-macro" }
 
 alrc = { version = "0.1.0" }
-async-walkdir = { version = "2.0.0" }
-aws-config = { version = "1.5.10", default-features = false, features = [
+async-walkdir = { version = "2.1.0" }
+aws-config = { version = "1.5.15", default-features = false, features = [
   "rt-tokio",
   "behavior-version-latest",
 ] }
-aws-sdk-s3 = { version = "1.63.0", default-features = false, features = [
+aws-sdk-s3 = { version = "1.72.0", default-features = false, features = [
   "rt-tokio",
   "sigv4a",
 ] }
-aws-smithy-runtime = { version = "1.7.3", default-features = false, features = [
+aws-smithy-runtime = { version = "1.7.7", default-features = false, features = [
   "client",
   "connector-hyper-0-14-x",
 ] }
-axum = { version = "0.8.0-rc.1", default-features = false, features = [
+axum = { version = "0.8.1", default-features = false, features = [
   "http1",
   "http2",
   "json",
@@ -51,7 +51,7 @@ axum = { version = "0.8.0-rc.1", default-features = false, features = [
   "tokio",
 ] }
 axum-extra = { version = "0.11.0", features = ["typed-header"] }
-diesel = { version = "2.2.5", features = ["time", "uuid"] }
+diesel = { version = "2.2.7", features = ["time", "uuid"] }
 # TODO: remove this when diesel is released
 diesel_derives = { git = "https://github.com/diesel-rs/diesel", rev = "ecf6e9215a898045ed096f905f4a0e7e4a999dba" }
 diesel-async = { version = "0.5.2", features = [
@@ -62,15 +62,15 @@ diesel-async = { version = "0.5.2", features = [
 diesel_full_text_search = { version = "2.2.0", default-features = false }
 diesel_migrations = { version = "2.2.0", features = ["postgres"] }
 figment = { version = "0.10.19", features = ["env"] }
-futures-lite = { version = "2.5.0" }
-hyper = { version = "0.14.31" }
+futures-lite = { version = "2.6.0" }
+hyper = { version = "0.14.32" }
 hyper-tls = { version = "0.5.0" }
-indexmap = { version = "2.6.0" }
+indexmap = { version = "2.7.1" }
 libaes = { version = "0.7.0" }
-lofty = { version = "0.22.0" }
+lofty = { version = "0.22.1" }
 loole = { version = "0.4.0" }
 mimalloc = { version = "0.1.43" }
-o2o = { version = "0.5.1-beta1", default-features = false, features = ["syn2"] }
+o2o = { version = "0.5.3", default-features = false, features = ["syn2"] }
 rsmpeg = { version = "0.15.1", default-features = false, features = [
   "ffmpeg7",
   "link_system_ffmpeg",
@@ -79,13 +79,13 @@ rspotify = { version = "0.14.0", default-features = false, features = [
   "client-reqwest",
   "reqwest-native-tls",
 ] }
-tokio = { version = "1.41.1", features = [
+tokio = { version = "1.43.0", features = [
   "fs",
   "macros",
   "rt-multi-thread",
   "sync",
 ] }
-tokio-util = { version = "0.7.12", features = ["io"] }
+tokio-util = { version = "0.7.13", features = ["io"] }
 tower-http = { version = "0.6.2", features = [
   "cors",
   "compression-br",
@@ -94,10 +94,10 @@ tower-http = { version = "0.6.2", features = [
   "trace",
 ] }
 tracing-error = { version = "0.2.1" }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 typed-path = { version = "0.10.0" }
 unicode-normalization = { version = "0.1.24" }
-xxhash-rust = { version = "0.8.12", features = ["xxh3"] }
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 
 [dev-dependencies]
 bon = { workspace = true }
@@ -113,10 +113,10 @@ image = { version = "0.25.5", default-features = false, features = [
   "jpeg",
   "png",
 ] }
-tempfile = { version = "3.14.0" }
+tempfile = { version = "3.16.0" }
 
 [target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
-diesel = { version = "2.2.5", features = ["postgres"] }
+diesel = { version = "2.2.7", features = ["postgres"] }
 
 [build-dependencies]
 built = { version = "0.7.5" }

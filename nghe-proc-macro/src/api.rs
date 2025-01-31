@@ -240,7 +240,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
             attributes.push(parse_quote!(#[serde(rename_all_fields = "camelCase")]));
         }
         attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
-    };
+    }
 
     let apply_statement = if has_serde && args.serde_apply {
         quote! {
