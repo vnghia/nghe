@@ -17,12 +17,12 @@ gloo-net = { version = "0.6.0", default-features = false, features = [
     "http",
     "json",
 ] }
-leptos = { version = "0.7.3", features = ["csr", "nightly"] }
-leptos_router = { version = "0.7.3", features = ["nightly"] }
-leptos-use = { version = "0.15.3", default-features = false, features = [
+leptos = { version = "0.7.5", features = ["csr", "nightly"] }
+leptos_router = { version = "0.7.5", features = ["nightly"] }
+leptos-use = { version = "0.15.5", default-features = false, features = [
     "storage",
 ] }
-wasm-bindgen = { version = "0.2.99" }
+wasm-bindgen = { version = "0.2.100" }
 
 nghe_api = { path = "../nghe-api" }
-web-sys = "0.3.76"
+web-sys = "0.3.77"

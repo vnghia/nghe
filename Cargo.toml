@@ -26,37 +26,37 @@ wildcard_imports = { level = "allow", priority = 0 }
 
 [workspace.dependencies]
 bitcode = { version = "0.6.3", features = ["serde"] }
-bon = { version = "3.1.1" }
+bon = { version = "3.3.2" }
 color-eyre = { version = "0.6.3", default-features = false, features = [
   "capture-spantrace",
 ] }
 concat-string = { version = "1.0.1" }
-const_format = { version = "0.2.33", features = ["fmt"] }
-convert_case = { version = "0.7.0" }
+const_format = { version = "0.2.34", features = ["fmt"] }
+convert_case = { version = "0.7.1" }
 educe = { version = "0.6.0" }
 faster-hex = { version = "0.10.0" }
 isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.14.0" }
 rand = { version = "0.8.5" }
-serde = { version = "1.0.215", features = ["derive"] }
-serde_html_form = { version = "0.2.6" }
-serde_with = { version = "3.11.0", features = ["time_0_3"] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_html_form = { version = "0.2.7" }
+serde_with = { version = "3.12.0", features = ["time_0_3"] }
 strum = { version = "0.26.3", features = ["derive"] }
-time = { version = "0.3.36", features = ["serde-human-readable", "macros"] }
-tracing = { version = "0.1.40" }
-uuid = { version = "1.11.0", features = ["serde"] }
-reqwest = { version = "0.12.9", default-features = false, features = [
+time = { version = "0.3.37", features = ["serde-human-readable", "macros"] }
+tracing = { version = "0.1.41" }
+uuid = { version = "1.12.1", features = ["serde"] }
+reqwest = { version = "0.12.12", default-features = false, features = [
   "json",
   "http2",
   "native-tls",
 ] }
 rstest = { version = "0.24.0" }
-thiserror = { version = "2.0.4" }
+thiserror = { version = "2.0.11" }
 url = { version = "2.5.4" }
 
 # Dev
-serde_json = { version = "1.0.133" }
-fake = { version = "3.0.1", features = ["derive", "uuid", "time"] }
+serde_json = { version = "1.0.138" }
+fake = { version = "3.1.0", features = ["derive", "uuid", "time"] }
 
 [profile.dev.package.backtrace]
 opt-level = 3
