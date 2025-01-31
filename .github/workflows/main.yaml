@@ -111,13 +111,6 @@ jobs:
           docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
           docker restart postgres
 
-      - name: Setup arm64 environment
-        run: |
-          sudo apt install --assume-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-          sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/aarch64-linux-gnu-pkg-config
-          aarch64-linux-gnu-pkg-config --version
-        if: ${{ matrix.platform.target == 'aarch64-unknown-linux-gnu' }}
-
       - name: Setup musl environment
         run: |
           wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/${{ steps.build.outputs.arch }}-linux-musl-cross.linux.tgz -O - | tar -xz
