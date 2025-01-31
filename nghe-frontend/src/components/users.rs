@@ -5,6 +5,10 @@ use nghe_api::user::list::Request;
 
 use crate::components::{Boundary, ClientRedirect, Loading, init};
 
+fn ColGroup() -> impl IntoView {
+    html::colgroup().child((html::col(), html::col(), html::col()))
+}
+
 fn Head() -> impl IntoView {
     html::thead()
         .class("text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400")
@@ -21,7 +25,6 @@ fn Head() -> impl IntoView {
                 )),
             ),
             html::th().scope("col").class("px-6 py-3").child("Name"),
-            html::th().scope("col").class("px-6 py-3").child("Admin"),
             html::th().scope("col").class("px-6 py-3").child("Permissions"),
             html::th().scope("col").class("px-6 py-3").child("Actions"),
         )))
@@ -43,41 +46,25 @@ fn Row(user: Response) -> impl IntoView {
                 ),
                 html::label().r#for("checkbox-all-search").class("sr-only").child("checkbox"),
             )),
-            html::th()
-                .scope("row")
-                .class(
-                    "flex items-center px-6 py-4 text-gray-900 whitespace-nowrap dark:text-white",
-                )
-                .child(html::div().child((
-                    html::div().class("text-base font-semibold").child(user.username),
-                    html::div().class("font-normal text-gray-500").child(user.email),
-                ))),
-            html::td().class("px-6 py-4").child(user.role.admin.then(|| {
-                html::div().class("flex items-center justify-center").child(
+            html::th().scope("row").class("flex items-center space-x-3 px-6 py-4").child((
+                html::div().class("flex-1 min-w-0").child((
+                    html::div()
+                        .class("font-semibold text-gray-900 dark:text-white")
+                        .child(user.username),
+                    html::div()
+                        .class("text-gray-500 truncate dark:text-gray-400")
+                        .child(user.email),
+                )),
+                user.role.admin.then(|| {
                     html::span()
                         .class(
-                            "inline-flex items-center justify-center w-6 h-6 me-2 text-sm \
-                             font-semibold text-gray-800 bg-gray-100 rounded-full \
-                             dark:bg-gray-700 dark:text-gray-300",
+                            "inline-flex items-center bg-green-100 text-green-800 text-xs \
+                             font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 \
+                             dark:text-green-300",
                         )
-                        .child(
-                            svg::svg()
-                                .aria_hidden("true")
-                                .attr("fill", "none")
-                                .attr("viewBox", "0 0 16 12")
-                                .attr("xmlns", "http://www.w3.org/2000/svg")
-                                .class("w-2.5 h-2.5")
-                                .child(
-                                    svg::path()
-                                        .attr("stroke", "currentColor")
-                                        .attr("stroke-linecap", "round")
-                                        .attr("stroke-linejoin", "round")
-                                        .attr("stroke-width", "2")
-                                        .attr("d", "M1 5.917 5.724 10.5 15 1.5"),
-                                ),
-                        ),
-                )
-            })),
+                        .child("admin")
+                }),
+            )),
         ))
 }
 
@@ -96,16 +83,14 @@ fn Table(users: Vec<Response>) -> impl IntoView {
         .class("m-4 relative overflow-x-auto shadow-md sm:rounded-lg")
         .child(
             html::table()
-                .class("w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400")
-                .child((Head(), Body(users))),
+                .class("w-full text-sm text-left text-gray-500 dark:text-gray-400")
+                .child((ColGroup(), Head(), Body(users))),
         )
 }
 
 pub fn Users() -> impl IntoView {
     ClientRedirect(move |client| {
-        let (version, _) = signal(0_usize);
         let users = LocalResource::new(move || {
-            version.track();
             let client = client.clone();
             async move { client.json(&Request).await.map(|response| response.users) }
         });
