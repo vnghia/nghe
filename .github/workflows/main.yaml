@@ -30,219 +30,219 @@ env:
   POSTGRES_VERSION: 17
 
 jobs:
-  # build-linux:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       platform:
-  #         - target: x86_64-unknown-linux-gnu
-  #           command: cargo
-  #           runs-on: ubuntu-latest
-  #         - target: aarch64-unknown-linux-gnu
-  #           command: cargo
-  #           runs-on: ubuntu-24.04-arm
-  #         - target: x86_64-unknown-linux-musl
-  #           command: cross
-  #           runs-on: ubuntu-latest
-  #         - target: aarch64-unknown-linux-musl
-  #           command: cross
-  #           runs-on: ubuntu-latest
+  build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: x86_64-unknown-linux-gnu
+            command: cargo
+            runs-on: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            command: cargo
+            runs-on: ubuntu-24.04-arm
+          - target: x86_64-unknown-linux-musl
+            command: cross
+            runs-on: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            command: cross
+            runs-on: ubuntu-latest
 
-  #   runs-on: ${{ matrix.platform.runs-on }}
+    runs-on: ${{ matrix.platform.runs-on }}
 
-  #   env:
-  #     CROSS_CONTAINER_OPTS: "--network=host"
+    env:
+      CROSS_CONTAINER_OPTS: "--network=host"
 
-  #   services:
-  #     postgres:
-  #       image: postgres:17
-  #       env:
-  #         POSTGRES_PASSWORD: postgres
-  #         POSTGRES_HOST_AUTH_METHOD: md5
-  #         POSTGRES_INITDB_ARGS: --auth-host=md5
-  #       options: >-
-  #         --health-cmd pg_isready
-  #         --health-interval 10s
-  #         --health-timeout 5s
-  #         --health-retries 5
-  #         --name postgres
-  #       ports:
-  #         - 5432:5432
-  #     s3:
-  #       image: bitnami/minio:2025.1.20
-  #       env:
-  #         MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
-  #         MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
-  #       ports:
-  #         - 9000:9000
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: md5
+          POSTGRES_INITDB_ARGS: --auth-host=md5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name postgres
+        ports:
+          - 5432:5432
+      s3:
+        image: bitnami/minio:2025.1.20
+        env:
+          MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
+          MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
+        ports:
+          - 9000:9000
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Export GitHub Actions cache environment variables
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-  #     - name: Extract build information
-  #       id: build
-  #       env:
-  #         TARGET: ${{ matrix.platform.target }}
-  #       run: |
-  #         echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-  #         echo "arch=$(echo $TARGET | cut -d '-' -f1)" >> "$GITHUB_OUTPUT"
-  #         echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
-  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
-  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-  #     - name: Extract rust toolchain
-  #       id: toolchain
-  #       run: |
-  #         echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-  #     - uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: ${{ steps.toolchain.outputs.channel }}
-  #     - uses: Swatinem/rust-cache@v2
-  #       with:
-  #         key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
-  #         save-if: ${{ github.ref == 'refs/heads/main' }}
-  #     - name: Increase postgres max connection
-  #       run: |
-  #         docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-  #         docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-  #         docker restart postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Extract build information
+        id: build
+        env:
+          TARGET: ${{ matrix.platform.target }}
+        run: |
+          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
+          echo "arch=$(echo $TARGET | cut -d '-' -f1)" >> "$GITHUB_OUTPUT"
+          echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+      - name: Extract rust toolchain
+        id: toolchain
+        run: |
+          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Increase postgres max connection
+        run: |
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+          docker restart postgres
 
-  #     - name: Setup musl environment
-  #       run: |
-  #         wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/${{ steps.build.outputs.arch }}-linux-musl-cross.linux.tgz -O - | tar -xz
-  #         sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-g++ /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-g++
-  #         sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc
-  #         ${{ steps.build.outputs.arch }}-linux-musl-gcc --version
-  #         ${{ steps.build.outputs.arch }}-linux-musl-g++ --version
-  #         sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-pkg-config
-  #         ${{ steps.build.outputs.arch }}-linux-musl-pkg-config --version
-  #       if: ${{ steps.build.outputs.env == 'musl' }}
+      - name: Setup musl environment
+        run: |
+          wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/${{ steps.build.outputs.arch }}-linux-musl-cross.linux.tgz -O - | tar -xz
+          sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-g++ /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-g++
+          sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc
+          ${{ steps.build.outputs.arch }}-linux-musl-gcc --version
+          ${{ steps.build.outputs.arch }}-linux-musl-g++ --version
+          sudo ln -s ${{ github.workspace }}/vcpkg/cross-pkg-config /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-pkg-config
+          ${{ steps.build.outputs.arch }}-linux-musl-pkg-config --version
+        if: ${{ steps.build.outputs.env == 'musl' }}
 
-  #     - name: Install vcpkg build deps
-  #       run: sudo apt-get --assume-yes install nasm
-  #     - name: Install cargo-vcpkg
-  #       uses: taiki-e/cache-cargo-install-action@v2
-  #       with:
-  #         tool: cargo-vcpkg
-  #     - name: Build vcpkg dependencies
-  #       run: |
-  #         cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
+      - name: Install vcpkg build deps
+        run: sudo apt-get --assume-yes install nasm
+      - name: Install cargo-vcpkg
+        uses: taiki-e/cache-cargo-install-action@v2
+        with:
+          tool: cargo-vcpkg
+      - name: Build vcpkg dependencies
+        run: |
+          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
 
-  #     - name: Install cross
-  #       if: ${{ matrix.platform.command == 'cross' }}
-  #       uses: taiki-e/cache-cargo-install-action@v2
-  #       with:
-  #         tool: cross
-  #         git: https://github.com/cross-rs/cross
-  #         rev: 19be83481fd3e50ea103d800d72e0f8eddb1c90c
-  #         locked: false
+      - name: Install cross
+        if: ${{ matrix.platform.command == 'cross' }}
+        uses: taiki-e/cache-cargo-install-action@v2
+        with:
+          tool: cross
+          git: https://github.com/cross-rs/cross
+          rev: 19be83481fd3e50ea103d800d72e0f8eddb1c90c
+          locked: false
 
-  #     - name: Install cargo-nextest
-  #       if: ${{ matrix.platform.command == 'cargo' }}
-  #       uses: taiki-e/install-action@nextest
+      - name: Install cargo-nextest
+        if: ${{ matrix.platform.command == 'cargo' }}
+        uses: taiki-e/install-action@nextest
 
-  #     - name: Build and test
-  #       run: |
-  #         ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
-  #         if [[ ${{ matrix.platform.command }} == 'cross' ]]; then
-  #           cross-util run --target ${{ matrix.platform.target }} -- '/usr/bin/cargo-nextest nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend'
-  #         else
-  #           cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
-  #         fi
-  #       env:
-  #         LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
-  #         SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
-  #         SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_SECRET || '' }}
-  #     - name: Upload test report to Codecov
-  #       if: success() || failure()
-  #       uses: codecov/codecov-action@v5
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-  #         files: target/nextest/ci/junit.xml
-  #         disable_search: true
-  #         report_type: "test_results"
-  #         fail_ci_if_error: true
-  #     - name: Upload build artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-  #         path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
-  #         retention-days: 1
+      - name: Build and test
+        run: |
+          ${{ matrix.platform.command }} build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
+          if [[ ${{ matrix.platform.command }} == 'cross' ]]; then
+            cross-util run --target ${{ matrix.platform.target }} -- '/usr/bin/cargo-nextest nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend'
+          else
+            cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
+          fi
+        env:
+          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
+          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
+          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_SECRET || '' }}
+      - name: Upload test report to Codecov
+        if: success() || failure()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
 
-  # build-docker:
-  #   runs-on: ubuntu-latest
-  #   needs: [build-linux]
-  #   if: ${{ vars.BUILD_DOCKER != '' }}
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: [build-linux]
+    if: ${{ vars.BUILD_DOCKER != '' }}
 
-  #   env:
-  #     DOCKER_BUILD_RECORD_UPLOAD: false
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Download build artifact for docker
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         path: ${{ github.workspace }}/artifact/
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v3
-  #       with:
-  #         registry: ghcr.io
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - name: Set up QEMU
-  #       uses: docker/setup-qemu-action@v3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download build artifact for docker
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/artifact/
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-  #     # GNU
-  #     - name: Extract metadata for Docker gnu
-  #       id: meta-gnu
-  #       uses: docker/metadata-action@v5
-  #       with:
-  #         images: |
-  #           name=ghcr.io/${{ github.repository }}-gnu
-  #         tags: |
-  #           type=ref,event=pr
-  #           type=semver,pattern={{version}}
-  #           type=raw,value=develop,enable={{is_default_branch}}
-  #     - name: Build and push gnu
-  #       uses: docker/build-push-action@v6
-  #       with:
-  #         context: .
-  #         file: ci/docker/Dockerfile
-  #         build-args: |
-  #           BASE_IMAGE=debian:12.8-slim
-  #           TARGET_ENV=gnu
-  #         platforms: linux/amd64,linux/arm64
-  #         push: true
-  #         tags: ${{ steps.meta-gnu.outputs.tags }}
+      # GNU
+      - name: Extract metadata for Docker gnu
+        id: meta-gnu
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository }}-gnu
+          tags: |
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push gnu
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: |
+            BASE_IMAGE=debian:12.8-slim
+            TARGET_ENV=gnu
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-gnu.outputs.tags }}
 
-  #     # Musl
-  #     - name: Extract metadata for Docker musl
-  #       id: meta-musl
-  #       uses: docker/metadata-action@v5
-  #       with:
-  #         images: |
-  #           name=ghcr.io/${{ github.repository }}-musl
-  #         tags: |
-  #           type=ref,event=pr
-  #           type=semver,pattern={{version}}
-  #           type=raw,value=develop,enable={{is_default_branch}}
-  #     - name: Build and push musl
-  #       uses: docker/build-push-action@v6
-  #       with:
-  #         context: .
-  #         file: ci/docker/Dockerfile
-  #         build-args: |
-  #           BASE_IMAGE=alpine:3.21.0
-  #           TARGET_ENV=musl
-  #         platforms: linux/amd64,linux/arm64
-  #         push: true
-  #         tags: ${{ steps.meta-musl.outputs.tags }}
+      # Musl
+      - name: Extract metadata for Docker musl
+        id: meta-musl
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository }}-musl
+          tags: |
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push musl
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: |
+            BASE_IMAGE=alpine:3.21.0
+            TARGET_ENV=musl
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-musl.outputs.tags }}
 
   build-freebsd:
     strategy:
@@ -362,7 +362,7 @@ jobs:
         with:
           operating_system: freebsd
           version: ${{ matrix.version }}
-          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
+          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN VCPKG_BINARY_SOURCES"
           shell: "bash"
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
@@ -376,7 +376,7 @@ jobs:
             cargo +1.84 install cargo-vcpkg
             cargo +1.84 vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
-            curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
+            curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C $CARGO_HOME/bin/
 
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
             cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
@@ -396,204 +396,204 @@ jobs:
           path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
 
-  # build-windows:
-  #   runs-on: windows-latest
+  build-windows:
+    runs-on: windows-latest
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Export GitHub Actions cache environment variables
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-  #     - name: Extract build information
-  #       id: build
-  #       run: |
-  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
-  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
-  #     - name: Extract rust toolchain
-  #       id: toolchain
-  #       shell: bash
-  #       run: |
-  #         echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-  #     - uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: ${{ steps.toolchain.outputs.channel }}
-  #     - uses: Swatinem/rust-cache@v2
-  #       with:
-  #         key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
-  #         save-if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Extract build information
+        id: build
+        run: |
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
+      - name: Extract rust toolchain
+        id: toolchain
+        shell: bash
+        run: |
+          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
-  #     - name: Install and setup postgres
-  #       run: |
-  #         curl https://get.enterprisedb.com/postgresql/postgresql-${{ env.POSTGRES_VERSION }}.2-2-windows-x64-binaries.zip --output postgresql.zip
-  #         7z x postgresql.zip
-  #         $env:PGDATA = "$PWD\pgsql\data"
-  #         $env:PGPASSWORD = "postgres"
-  #         echo $env:PGPASSWORD > pwfile
-  #         pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
-  #         pgsql\bin\pg_ctl start
-  #         pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-  #         pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-  #         pgsql\bin\pg_ctl restart
-  #         echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
-  #         echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
-  #         echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
-  #     - name: Install and setup minio
-  #       run: |
-  #         curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
+      - name: Install and setup postgres
+        run: |
+          curl https://get.enterprisedb.com/postgresql/postgresql-${{ env.POSTGRES_VERSION }}.2-2-windows-x64-binaries.zip --output postgresql.zip
+          7z x postgresql.zip
+          $env:PGDATA = "$PWD\pgsql\data"
+          $env:PGPASSWORD = "postgres"
+          echo $env:PGPASSWORD > pwfile
+          pgsql\bin\initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=pwfile
+          pgsql\bin\pg_ctl start
+          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+          pgsql\bin\psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
+          pgsql\bin\pg_ctl restart
+          echo "$PWD\pgsql\bin" >> $env:GITHUB_PATH
+          echo "$PWD\pgsql\lib" >> $env:GITHUB_PATH
+          echo "PQ_LIB_DIR=$PWD\pgsql\lib" >> $env:GITHUB_ENV
+      - name: Install and setup minio
+        run: |
+          curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
 
-  #     - name: Install cargo-vcpkg
-  #       uses: taiki-e/cache-cargo-install-action@v2
-  #       with:
-  #         tool: cargo-vcpkg
-  #     - name: Build vcpkg dependencies
-  #       run: |
-  #         cargo vcpkg --verbose build --manifest-path nghe-backend\Cargo.toml --target x86_64-pc-windows-msvc
+      - name: Install cargo-vcpkg
+        uses: taiki-e/cache-cargo-install-action@v2
+        with:
+          tool: cargo-vcpkg
+      - name: Build vcpkg dependencies
+        run: |
+          cargo vcpkg --verbose build --manifest-path nghe-backend\Cargo.toml --target x86_64-pc-windows-msvc
 
-  #     - name: Install cargo-nextest
-  #       uses: taiki-e/install-action@nextest
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
 
-  #     - name: Build and test
-  #       run: |
-  #         .\minio.exe server data &
-  #         cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --package nghe_backend
-  #         cargo nextest run --locked --target x86_64-pc-windows-msvc --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
-  #       env:
-  #         LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
-  #         SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
-  #         SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
-  #     - name: Upload test report to Codecov
-  #       if: success() || failure()
-  #       uses: codecov/codecov-action@v5
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-  #         files: target\nextest\ci\junit.xml
-  #         disable_search: true
-  #         report_type: "test_results"
-  #         fail_ci_if_error: true
-  #     - name: Upload build artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: amd64-windows
-  #         path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe_backend.exe
-  #         retention-days: 1
+      - name: Build and test
+        run: |
+          .\minio.exe server data &
+          cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --package nghe_backend
+          cargo nextest run --locked --target x86_64-pc-windows-msvc --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
+        env:
+          LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
+          SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
+          SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
+      - name: Upload test report to Codecov
+        if: success() || failure()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target\nextest\ci\junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amd64-windows
+          path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe_backend.exe
+          retention-days: 1
 
-  # build-macos:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       platform:
-  #         - target: x86_64-apple-darwin
-  #           os: macos-13
-  #           vcpkg-target: x64-osx-release
-  #         - target: aarch64-apple-darwin
-  #           os: macos-14
-  #           vcpkg-target: arm64-osx-release
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: x86_64-apple-darwin
+            os: macos-13
+            vcpkg-target: x64-osx-release
+          - target: aarch64-apple-darwin
+            os: macos-14
+            vcpkg-target: arm64-osx-release
 
-  #   runs-on: ${{ matrix.platform.os }}
+    runs-on: ${{ matrix.platform.os }}
 
-  #   env:
-  #     HOMEBREW_NO_AUTO_UPDATE: 1
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Export GitHub Actions cache environment variables
-  #       uses: actions/github-script@v7
-  #       with:
-  #         script: |
-  #           core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-  #           core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-  #     - name: Extract build information
-  #       id: build
-  #       env:
-  #         TARGET: ${{ matrix.platform.target }}
-  #       run: |
-  #         echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-  #         echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
-  #         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
-  #         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-  #     - name: Extract rust toolchain
-  #       id: toolchain
-  #       run: |
-  #         echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-  #     - uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: ${{ steps.toolchain.outputs.channel }}
-  #     - uses: Swatinem/rust-cache@v2
-  #       with:
-  #         key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
-  #         save-if: ${{ github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+      - name: Extract build information
+        id: build
+        env:
+          TARGET: ${{ matrix.platform.target }}
+        run: |
+          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
+          echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
+          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+      - name: Extract rust toolchain
+        id: toolchain
+        run: |
+          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
-  #     - name: Install and setup postgres
-  #       run: |
-  #         brew install postgresql@${{ env.POSTGRES_VERSION }}
-  #         brew link postgresql@${{ env.POSTGRES_VERSION }}
-  #         export PGDATA="$RUNNER_TEMP/pgdata"
-  #         initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
-  #         pg_ctl start
-  #         psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-  #         psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-  #         pg_ctl restart
-  #     - name: Install and setup minio
-  #       run: |
-  #         brew install minio/stable/minio
-  #         minio server data &
+      - name: Install and setup postgres
+        run: |
+          brew install postgresql@${{ env.POSTGRES_VERSION }}
+          brew link postgresql@${{ env.POSTGRES_VERSION }}
+          export PGDATA="$RUNNER_TEMP/pgdata"
+          initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
+          pg_ctl start
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
+          pg_ctl restart
+      - name: Install and setup minio
+        run: |
+          brew install minio/stable/minio
+          minio server data &
 
-  #     - name: Install vcpkg build deps
-  #       run: brew install nasm
-  #     - name: Install cargo-vcpkg
-  #       uses: taiki-e/cache-cargo-install-action@v2
-  #       with:
-  #         tool: cargo-vcpkg
-  #     - name: Build vcpkg dependencies
-  #       run: |
-  #         cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
+      - name: Install vcpkg build deps
+        run: brew install nasm
+      - name: Install cargo-vcpkg
+        uses: taiki-e/cache-cargo-install-action@v2
+        with:
+          tool: cargo-vcpkg
+      - name: Build vcpkg dependencies
+        run: |
+          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
 
-  #     - name: Install cargo-nextest
-  #       uses: taiki-e/install-action@nextest
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
 
-  #     - name: Build and test
-  #       run: |
-  #         cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
-  #         cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
-  #       env:
-  #         LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
-  #         SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
-  #         SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_SECRET || '' }}
-  #     - name: Upload test report to Codecov
-  #       if: success() || failure()
-  #       uses: codecov/codecov-action@v5
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-  #         files: target/nextest/ci/junit.xml
-  #         disable_search: true
-  #         report_type: "test_results"
-  #         fail_ci_if_error: true
-  #     - name: Upload build artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
-  #         path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
-  #         retention-days: 1
+      - name: Build and test
+        run: |
+          cargo build --locked --target ${{ matrix.platform.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
+          cargo nextest run --locked --target ${{ matrix.platform.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
+        env:
+          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
+          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
+          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_SECRET || '' }}
+      - name: Upload test report to Codecov
+        if: success() || failure()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
 
-  # upload-release:
-  #   runs-on: ubuntu-latest
-  #   needs: [build-linux, build-freebsd, build-windows, build-macos]
-  #   if: ${{ github.event_name == 'release' }}
-  #   permissions:
-  #     contents: write
+  upload-release:
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-freebsd, build-windows, build-macos]
+    if: ${{ github.event_name == 'release' }}
+    permissions:
+      contents: write
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Download build artifact for release
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         path: ${{ github.workspace }}/artifact/
-  #     - name: Upload artifact
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       run: |
-  #         find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
-  #         gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.2.zip artifact/amd64-freebsd-13.4.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download build artifact for release
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/artifact/
+      - name: Upload artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
+          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.2.zip artifact/amd64-freebsd-13.4.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip
