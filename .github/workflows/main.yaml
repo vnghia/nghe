@@ -362,20 +362,17 @@ jobs:
         with:
           operating_system: freebsd
           version: ${{ matrix.version }}
-          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN VCPKG_BINARY_SOURCES"
+          environment_variables: "CARGO_TERM_COLOR RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN VCPKG_BINARY_SOURCES"
           shell: "bash"
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
           run: |
             sudo chown -R $(id -u):$(id -g) /root/
             export CARGO_HOME="/root/.cargo"
-            export RUSTUP_HOME="$CARGO_HOME"
             export PATH="$CARGO_HOME/bin/:$PATH"
 
-            rustup install 1.84 --profile minimal --no-self-update
-            cargo +1.84 install cargo-vcpkg
-            cargo +1.84 vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
-
+            cargo install cargo-vcpkg
+            cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
             curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C $CARGO_HOME/bin/
 
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
