@@ -40,6 +40,8 @@ mod test;
 use axum::Router;
 use error::Error;
 use mimalloc::MiMalloc;
+use nghe_api::common::FormURL;
+use nghe_api::system::health;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
@@ -108,18 +110,26 @@ pub async fn build(config: config::Config) -> Router {
         .with_state(database::Database::new(&config.database))
         .layer(
             TraceLayer::new_for_http()
-                .make_span_with(|_: &axum::extract::Request| {
+                .make_span_with(|request: &axum::extract::Request| {
                     let id = Uuid::new_v4();
-                    tracing::info_span!(nghe_api::constant::SERVER_NAME, trace = %id)
+                    if request.uri().path() == health::Request::URL_FORM {
+                        tracing::Span::none()
+                    } else {
+                        tracing::info_span!(nghe_api::constant::SERVER_NAME, trace = %id)
+                    }
                 })
-                .on_request(|request: &axum::extract::Request, _: &tracing::Span| {
-                    tracing::info!(method = request.method().as_str(), path = ?request.uri());
+                .on_request(|request: &axum::extract::Request, span: &tracing::Span| {
+                    if !span.is_none() {
+                        tracing::info!(method = request.method().as_str(), path = ?request.uri());
+                    }
                 })
                 .on_response(
                     |response: &axum::response::Response,
                      latency: std::time::Duration,
-                     _: &tracing::Span| {
-                        tracing::info!(status = response.status().as_u16(), took = ?latency);
+                     span: &tracing::Span| {
+                        if !span.is_none() {
+                            tracing::info!(status = response.status().as_u16(), took = ?latency);
+                        }
                     },
                 ),
         )
