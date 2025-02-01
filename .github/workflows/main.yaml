@@ -373,6 +373,7 @@ jobs:
 
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
+
             curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C $CARGO_HOME/bin/
 
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
