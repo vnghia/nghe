@@ -362,21 +362,19 @@ jobs:
         with:
           operating_system: freebsd
           version: ${{ matrix.version }}
-          environment_variables: "CARGO_TERM_COLOR RUST_BACKTRACE RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT"
+          environment_variables: "CARGO_TERM_COLOR RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN VCPKG_BINARY_SOURCES"
           shell: "bash"
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
           run: |
             sudo chown -R $(id -u):$(id -g) /root/
-            export PATH="/root/.cargo/bin/:$PATH"
+            export CARGO_HOME="/root/.cargo"
+            export PATH="$CARGO_HOME/bin/:$PATH"
 
-            mkdir -p target/vcpkg-archives
-            mkdir -p ~/.cache/vcpkg/
-            ln -s target/vcpkg-archives ~/.cache/vcpkg/archives
             cargo install cargo-vcpkg
             cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
-            curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
+            curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C $CARGO_HOME/bin/
 
             cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
             cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
@@ -596,4 +594,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
-          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.0.zip artifact/amd64-freebsd-13.2.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip artifact/frontend.zip
+          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.2.zip artifact/amd64-freebsd-13.4.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip

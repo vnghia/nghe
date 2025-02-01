@@ -126,7 +126,7 @@ dependencies = [
   "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis,openssl]",
 ]
 git = "https://github.com/microsoft/vcpkg"
-rev = "2024.11.16"
+rev = "2025.01.13"
 overlay-triplets-path = "vcpkg/triplets/"
 
 [package.metadata.vcpkg.target]
