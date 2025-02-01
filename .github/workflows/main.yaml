@@ -372,8 +372,8 @@ jobs:
             export RUSTUP_HOME="$CARGO_HOME"
             export PATH="$CARGO_HOME/bin/:$PATH"
 
-            rustup install ${{ steps.toolchain.outputs.channel }}
-            cargo +nightly install cargo-vcpkg
+            rustup install ${{ steps.toolchain.outputs.channel }} --profile minimal --no-self-update
+            cargo +${{ steps.toolchain.outputs.channel }} install cargo-vcpkg
             cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
             curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
