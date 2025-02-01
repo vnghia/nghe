@@ -374,7 +374,7 @@ jobs:
 
             rustup install 1.84 --profile minimal --no-self-update
             cargo +1.84 install cargo-vcpkg
-            cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
+            cargo +1.84 vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
             curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
 
