@@ -367,11 +367,14 @@ jobs:
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
           run: |
-            sudo pkg install ffmpeg openssl
-
             sudo chown -R $(id -u):$(id -g) /root/
             export CARGO_HOME="/root/.cargo"
+            export RUSTUP_HOME="$CARGO_HOME"
             export PATH="$CARGO_HOME/bin/:$PATH"
+
+            rustup install 1.84 --profile minimal --no-self-update
+            cargo +1.84 install cargo-vcpkg
+            cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
 
             curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C /root/.cargo/bin/
 
