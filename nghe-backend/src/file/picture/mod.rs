@@ -1,13 +1,15 @@
 use std::borrow::Cow;
 
 use diesel::sql_types::Text;
-use diesel::{AsExpression, ExpressionMethods, FromSqlRow, OptionalExtension, QueryDsl};
+use diesel::{
+    AsExpression, ExpressionMethods, FromSqlRow, OptionalExtension, QueryDsl, SelectableHelper,
+};
 use diesel_async::RunQueryDsl;
 use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format;
 use strum::{EnumString, IntoStaticStr};
-use typed_path::{Utf8PlatformPath, Utf8TypedPath};
+use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 use uuid::Uuid;
 
 use super::Property;
@@ -70,6 +72,21 @@ impl format::Trait for Format {
 
     fn extension(&self) -> &'static str {
         self.into()
+    }
+}
+
+impl super::Property<Format> {
+    pub async fn query_cover_art(database: &Database, id: Uuid) -> Result<Self, Error> {
+        cover_arts::table
+            .filter(cover_arts::id.eq(id))
+            .select(cover_arts::Property::as_select())
+            .get_result(&mut database.get().await?)
+            .await?
+            .try_into()
+    }
+
+    pub fn picture_path(&self, base: impl AsRef<Utf8PlatformPath>) -> Utf8PlatformPathBuf {
+        self.path(base, Picture::FILENAME)
     }
 }
 
@@ -255,9 +272,9 @@ mod test {
 
         async fn load_cache(
             dir: impl AsRef<Utf8PlatformPath>,
-            upsert: cover_arts::Upsert<'_>,
+            property: cover_arts::Property,
         ) -> Self {
-            let property: file::Property<Format> = upsert.property.try_into().unwrap();
+            let property: file::Property<Format> = property.try_into().unwrap();
             let path = property.path(dir, Self::FILENAME);
             let data = tokio::fs::read(path).await.unwrap();
             Self { property, data: data.into() }
@@ -265,16 +282,16 @@ mod test {
 
         pub async fn query_song(mock: &Mock, id: Uuid) -> Option<Self> {
             if let Some(ref dir) = mock.config.cover_art.dir {
-                let upsert = cover_arts::table
+                let property = cover_arts::table
                     .inner_join(songs::table)
                     .filter(songs::id.eq(id))
-                    .select(cover_arts::Upsert::as_select())
+                    .select(cover_arts::Property::as_select())
                     .get_result(&mut mock.get().await)
                     .await
                     .optional()
                     .unwrap();
-                if let Some(upsert) = upsert {
-                    Some(Self::load_cache(dir, upsert).await)
+                if let Some(property) = property {
+                    Some(Self::load_cache(dir, property).await)
                 } else {
                     None
                 }
@@ -285,16 +302,16 @@ mod test {
 
         pub async fn query_album(mock: &Mock, id: Uuid) -> Option<Self> {
             if let Some(ref dir) = mock.config.cover_art.dir {
-                let upsert = cover_arts::table
+                let property = cover_arts::table
                     .inner_join(albums::table)
                     .filter(albums::id.eq(id))
-                    .select(cover_arts::Upsert::as_select())
+                    .select(cover_arts::Property::as_select())
                     .get_result(&mut mock.get().await)
                     .await
                     .optional()
                     .unwrap();
-                if let Some(upsert) = upsert {
-                    Some(Self::load_cache(dir, upsert).await)
+                if let Some(property) = property {
+                    Some(Self::load_cache(dir, property).await)
                 } else {
                     None
                 }
