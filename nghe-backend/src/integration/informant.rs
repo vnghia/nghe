@@ -39,6 +39,7 @@ impl Informant {
     async fn upsert_artist_picture(
         &self,
         database: &Database,
+        full: bool,
         dir: Option<&impl AsRef<Utf8PlatformPath>>,
         url: Option<impl AsRef<str>>,
     ) -> Result<Option<Uuid>, Error> {
@@ -46,7 +47,9 @@ impl Informant {
             if let Some(dir) = dir
                 && let Some(url) = url.as_ref()
             {
-                if let Some(picture_id) = picture::Picture::query_source(database, url).await? {
+                if !full
+                    && let Some(picture_id) = picture::Picture::query_source(database, url).await?
+                {
                     Some(picture_id)
                 } else {
                     let picture = picture::Picture::fetch(&self.reqwest, url).await?;
@@ -62,13 +65,19 @@ impl Informant {
         &self,
         database: &Database,
         config: &config::CoverArt,
+        full: bool,
         id: Uuid,
         spotify: Option<&spotify::Artist>,
         lastfm: Option<&lastfm::model::artist::Full>,
     ) -> Result<(), Error> {
         let spotify = if let Some(spotify) = spotify {
             let picture_id = self
-                .upsert_artist_picture(database, config.dir.as_ref(), spotify.image_url.as_ref())
+                .upsert_artist_picture(
+                    database,
+                    full,
+                    config.dir.as_ref(),
+                    spotify.image_url.as_ref(),
+                )
                 .await?;
             artist_informations::Spotify {
                 id: Some(spotify.id.id().into()),
@@ -92,6 +101,7 @@ impl Informant {
         &self,
         database: &Database,
         config: &config::CoverArt,
+        full: bool,
         artist: &artists::Artist<'_>,
     ) -> Result<(), Error> {
         let id = artist.id;
@@ -106,7 +116,7 @@ impl Informant {
             None
         };
 
-        self.upsert_artist(database, config, id, spotify.as_ref(), lastfm.as_ref()).await
+        self.upsert_artist(database, config, full, id, spotify.as_ref(), lastfm.as_ref()).await
     }
 
     pub async fn search_and_upsert_artists(
@@ -131,7 +141,7 @@ impl Informant {
                 offset += artist_len;
 
                 for artist in artists {
-                    self.search_and_upsert_artist(database, config, &artist).await?;
+                    self.search_and_upsert_artist(database, config, full, &artist).await?;
                 }
             }
         }
@@ -149,6 +159,7 @@ impl Informant {
             self.upsert_artist(
                 database,
                 config,
+                true,
                 id,
                 if let Some(ref client) = self.spotify
                     && let Some(ref spotify_id) = request.spotify_id
@@ -206,6 +217,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
+    use crate::file;
     use crate::file::audio;
     use crate::test::{Mock, mock};
 
@@ -253,6 +265,37 @@ mod tests {
         assert!(mltr_data.lastfm.url.is_some());
         assert!(mltr_data.lastfm.mbz_id.is_some());
         assert!(mltr_data.lastfm.biography.is_some());
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_upsert_artist_picture(
+        #[future(awt)]
+        #[with(0, 1, None, true)]
+        mock: Mock,
+        #[values(true, false)] full: bool,
+    ) {
+        let id = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
+        let config = &mock.config.cover_art;
+        mock.informant.search_and_upsert_artists(mock.database(), config, false).await.unwrap();
+
+        let data = artist_informations::table
+            .filter(artist_informations::artist_id.eq(id))
+            .select(artist_informations::Data::as_select())
+            .get_result(&mut mock.get().await)
+            .await
+            .unwrap();
+
+        let cover_art_id = data.spotify.cover_art_id.unwrap();
+        let picture_path = file::Property::query_cover_art(mock.database(), cover_art_id)
+            .await
+            .unwrap()
+            .picture_path(config.dir.as_ref().unwrap());
+        assert!(tokio::fs::try_exists(&picture_path).await.unwrap());
+        tokio::fs::remove_file(&picture_path).await.unwrap();
+
+        mock.informant.search_and_upsert_artists(mock.database(), config, full).await.unwrap();
+        assert_eq!(tokio::fs::try_exists(&picture_path).await.unwrap(), full);
     }
 
     #[rstest]
