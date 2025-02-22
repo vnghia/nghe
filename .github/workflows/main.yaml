@@ -138,7 +138,7 @@ jobs:
         with:
           tool: cross
           git: https://github.com/cross-rs/cross
-          rev: 19be83481fd3e50ea103d800d72e0f8eddb1c90c
+          rev: c7dee4d008475ce1c140773cbcd6078f4b86c2aa
           locked: false
 
       - name: Install cargo-nextest
