@@ -209,10 +209,10 @@ mod tests {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(transcoded, body);
         }
-        assert_eq!(transcode_status, &[
-            TranscodeStatus::ServeCachedOutput,
-            TranscodeStatus::ServeCachedOutput
-        ]);
+        assert_eq!(
+            transcode_status,
+            &[TranscodeStatus::ServeCachedOutput, TranscodeStatus::ServeCachedOutput]
+        );
     }
 
     #[rstest]
@@ -277,9 +277,9 @@ mod tests {
             assert_eq!(status, StatusCode::OK);
             assert!(!body.is_empty());
         }
-        assert_eq!(transcode_status, &[
-            TranscodeStatus::UseCachedOutput,
-            TranscodeStatus::UseCachedOutput
-        ]);
+        assert_eq!(
+            transcode_status,
+            &[TranscodeStatus::UseCachedOutput, TranscodeStatus::UseCachedOutput]
+        );
     }
 }

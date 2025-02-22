@@ -67,10 +67,14 @@ mod tests {
         music_folder.add_audio().n_song(n_song).call().await;
 
         let user_id = mock.user_id(0).await;
-        create_playlist::handler(mock.database(), user_id, create_playlist::Request {
-            create_or_update: Faker.fake::<String>().into(),
-            song_ids: Some(music_folder.database.keys().copied().collect()),
-        })
+        create_playlist::handler(
+            mock.database(),
+            user_id,
+            create_playlist::Request {
+                create_or_update: Faker.fake::<String>().into(),
+                song_ids: Some(music_folder.database.keys().copied().collect()),
+            },
+        )
         .await
         .unwrap();
 

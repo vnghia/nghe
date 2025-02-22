@@ -95,10 +95,14 @@ mod tests {
                 let user_id = mock.user_id(i).await;
                 (
                     user_id,
-                    create_playlist::handler(mock.database(), user_id, create_playlist::Request {
-                        create_or_update: Faker.fake::<String>().into(),
-                        song_ids: Some(song_ids.clone()),
-                    })
+                    create_playlist::handler(
+                        mock.database(),
+                        user_id,
+                        create_playlist::Request {
+                            create_or_update: Faker.fake::<String>().into(),
+                            song_ids: Some(song_ids.clone()),
+                        },
+                    )
                     .await
                     .unwrap()
                     .playlist

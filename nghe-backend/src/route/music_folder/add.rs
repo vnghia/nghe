@@ -23,10 +23,10 @@ async fn handler_impl(
         .await?;
 
     if request.allow {
-        permission::add::handler(database, permission::add::Request {
-            user_id: None,
-            music_folder_id: Some(music_folder_id),
-        })
+        permission::add::handler(
+            database,
+            permission::add::Request { user_id: None, music_folder_id: Some(music_folder_id) },
+        )
         .await?;
     }
 

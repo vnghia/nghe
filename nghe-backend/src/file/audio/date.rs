@@ -84,7 +84,7 @@ impl TryFrom<&lofty::tag::items::Timestamp> for Date {
 #[cfg(test)]
 #[coverage(off)]
 mod test {
-    use std::fmt::{Display, Formatter};
+    use std::fmt::{Display, Formatter, Write};
 
     use fake::{Dummy, Fake, Faker};
 
@@ -96,9 +96,9 @@ mod test {
                 let mut result = format!("{year:04}");
                 if let Some(month) = self.month {
                     let month = month as u8;
-                    result += &format!("-{month:02}");
+                    write!(result, "-{month:02}")?;
                     if let Some(day) = self.day {
-                        result += &format!("-{day:02}");
+                        write!(result, "-{day:02}")?;
                     }
                 }
                 write!(f, "{result}")

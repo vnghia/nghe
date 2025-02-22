@@ -175,34 +175,42 @@ mod tests {
         assert_eq!(main.original_release_date, Date::default());
         assert_eq!(main.mbz_id, None);
 
-        assert_eq!(song.track_disc, TrackDisc {
-            track: Position { number: Some(10), total: None },
-            disc: Position { number: Some(5), total: Some(10) }
-        });
+        assert_eq!(
+            song.track_disc,
+            TrackDisc {
+                track: Position { number: Some(10), total: None },
+                disc: Position { number: Some(5), total: Some(10) }
+            }
+        );
 
         assert_eq!(song.languages, &[Language::Eng, Language::Vie]);
 
         let album = metadata.album;
         assert_eq!(album.name, "Album");
-        assert_eq!(album.date, Date {
-            year: Some(2000),
-            month: Some(Month::December),
-            day: Some(31.try_into().unwrap())
-        });
+        assert_eq!(
+            album.date,
+            Date {
+                year: Some(2000),
+                month: Some(Month::December),
+                day: Some(31.try_into().unwrap())
+            }
+        );
         assert_eq!(album.release_date, Date::default());
-        assert_eq!(album.original_release_date, Date {
-            year: Some(3000),
-            month: Some(Month::January),
-            day: None
-        });
+        assert_eq!(
+            album.original_release_date,
+            Date { year: Some(3000), month: Some(Month::January), day: None }
+        );
         assert_eq!(album.mbz_id, None);
 
         let artists = metadata.artists;
         let song = artists.song;
-        assert_eq!(song.into_iter().collect::<Vec<_>>(), &[
-            ("Artist1", uuid::uuid!("1ffedd2d-f63d-4dc2-9332-d3132e5134ac")).into(),
-            Artist::from("Artist2")
-        ]);
+        assert_eq!(
+            song.into_iter().collect::<Vec<_>>(),
+            &[
+                ("Artist1", uuid::uuid!("1ffedd2d-f63d-4dc2-9332-d3132e5134ac")).into(),
+                Artist::from("Artist2")
+            ]
+        );
         let album = artists.album;
         assert_eq!(album.into_iter().collect::<Vec<_>>(), &["Artist1", "Artist3"]);
         assert!(artists.compilation);

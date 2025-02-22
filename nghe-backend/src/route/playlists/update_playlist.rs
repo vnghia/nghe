@@ -101,22 +101,29 @@ mod tests {
             .collect();
 
         let user_id = mock.user_id(0).await;
-        let playlist_id =
-            create_playlist::handler(mock.database(), user_id, create_playlist::Request {
+        let playlist_id = create_playlist::handler(
+            mock.database(),
+            user_id,
+            create_playlist::Request {
                 create_or_update: Faker.fake::<String>().into(),
                 song_ids: Some(song_ids.clone()),
-            })
-            .await
-            .unwrap()
-            .playlist
-            .playlist
-            .id;
+            },
+        )
+        .await
+        .unwrap()
+        .playlist
+        .playlist
+        .id;
 
-        handler(mock.database(), user_id, Request {
-            playlist_id,
-            remove_indexes: Some(remove_indexes.into()),
-            ..Default::default()
-        })
+        handler(
+            mock.database(),
+            user_id,
+            Request {
+                playlist_id,
+                remove_indexes: Some(remove_indexes.into()),
+                ..Default::default()
+            },
+        )
         .await
         .unwrap();
 
@@ -125,17 +132,18 @@ mod tests {
             .filter_map(|index| song_ids.get::<usize>((*index).into()))
             .copied()
             .collect();
-        let database_song_ids: Vec<_> =
-            get_playlist::handler(mock.database(), user_id, get_playlist::Request {
-                id: playlist_id,
-            })
-            .await
-            .unwrap()
-            .playlist
-            .entry
-            .into_iter()
-            .map(|entry| entry.song.id)
-            .collect();
+        let database_song_ids: Vec<_> = get_playlist::handler(
+            mock.database(),
+            user_id,
+            get_playlist::Request { id: playlist_id },
+        )
+        .await
+        .unwrap()
+        .playlist
+        .entry
+        .into_iter()
+        .map(|entry| entry.song.id)
+        .collect();
         assert_eq!(database_song_ids, song_ids);
     }
 }

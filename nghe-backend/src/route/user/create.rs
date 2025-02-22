@@ -22,10 +22,10 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         .await?;
 
     if allow {
-        permission::add::handler(database, permission::add::Request {
-            user_id: Some(user_id),
-            music_folder_id: None,
-        })
+        permission::add::handler(
+            database,
+            permission::add::Request { user_id: Some(user_id), music_folder_id: None },
+        )
         .await?;
     }
     Ok(Response { user_id })

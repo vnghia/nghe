@@ -241,10 +241,13 @@ mod test {
                 (100..=200).fake_with_rng(rng),
                 |_, _| Rgb::from(Faker.fake_with_rng::<[u8; 3], _>(rng)),
             )
-            .write_to(&mut cursor, match format {
-                Format::Png => ImageFormat::Png,
-                Format::Jpeg => ImageFormat::Jpeg,
-            })
+            .write_to(
+                &mut cursor,
+                match format {
+                    Format::Png => ImageFormat::Png,
+                    Format::Jpeg => ImageFormat::Jpeg,
+                },
+            )
             .unwrap();
             cursor.set_position(0);
 
