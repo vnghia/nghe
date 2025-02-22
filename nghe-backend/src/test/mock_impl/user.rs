@@ -42,11 +42,14 @@ impl<'a> Mock<'a> {
     }
 
     pub async fn api_key(&self) -> auth::ApiKey {
-        key::create::handler(self.mock.database(), key::create::Request {
-            username: self.username(),
-            password: self.password(),
-            client: Faker.fake::<String>(),
-        })
+        key::create::handler(
+            self.mock.database(),
+            key::create::Request {
+                username: self.username(),
+                password: self.password(),
+                client: Faker.fake::<String>(),
+            },
+        )
         .await
         .unwrap()
         .api_key

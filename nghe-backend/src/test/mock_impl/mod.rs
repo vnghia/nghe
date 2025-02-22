@@ -104,11 +104,10 @@ impl Mock {
         role: users::Role,
         #[builder(default = true)] allow: bool,
     ) -> &Self {
-        route::user::create::handler(self.database(), route::user::create::Request {
-            role: role.into(),
-            allow,
-            ..Faker.fake()
-        })
+        route::user::create::handler(
+            self.database(),
+            route::user::create::Request { role: role.into(), allow, ..Faker.fake() },
+        )
         .await
         .unwrap();
         self
@@ -182,14 +181,17 @@ pub async fn mock(
     #[default(None)] prefix: Option<&str>,
     #[default(false)] enable_integration: bool,
 ) -> Mock {
-    let mock = Mock::new(prefix, Config {
-        integration: if enable_integration {
-            config::Integration::from_env()
-        } else {
-            config::Integration::default()
+    let mock = Mock::new(
+        prefix,
+        Config {
+            integration: if enable_integration {
+                config::Integration::from_env()
+            } else {
+                config::Integration::default()
+            },
+            ..Default::default()
         },
-        ..Default::default()
-    })
+    )
     .await;
     for _ in 0..n_user {
         mock.add_user().call().await;

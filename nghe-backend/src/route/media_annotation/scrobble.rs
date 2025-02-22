@@ -86,11 +86,11 @@ mod tests {
                 Some(times.clone())
             };
 
-            let result = handler(mock.database(), user_id, Request {
-                ids: ids.clone(),
-                times,
-                submission: None,
-            })
+            let result = handler(
+                mock.database(),
+                user_id,
+                Request { ids: ids.clone(), times, submission: None },
+            )
             .await;
             assert_eq!(result.is_ok(), i < n_play - 1 || n_song >= n_time);
         }

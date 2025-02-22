@@ -80,11 +80,11 @@ mod test {
 
         let user_id = mock.user_id(0).await;
 
-        save_playqueue::handler(mock.database(), user_id, save_playqueue::Request {
-            ids: song_ids,
-            position: None,
-            current: None,
-        })
+        save_playqueue::handler(
+            mock.database(),
+            user_id,
+            save_playqueue::Request { ids: song_ids, position: None, current: None },
+        )
         .await
         .unwrap();
 

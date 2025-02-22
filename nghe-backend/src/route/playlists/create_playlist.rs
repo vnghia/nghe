@@ -39,9 +39,11 @@ pub async fn handler(
     }
 
     Ok(Response {
-        playlist: get_playlist::handler(database, user_id, get_playlist::Request {
-            id: playlist_id,
-        })
+        playlist: get_playlist::handler(
+            database,
+            user_id,
+            get_playlist::Request { id: playlist_id },
+        )
         .await?
         .playlist,
     })

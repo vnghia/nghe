@@ -68,10 +68,11 @@ mod tests {
         let artist_id = artist.upsert_mock(&mock).await;
         music_folder.add_audio_artist([artist.clone()], [], false, 1).await;
 
-        star::handler(mock.database(), user_id_star, star::Request {
-            artist_ids: Some(vec![artist_id]),
-            ..Default::default()
-        })
+        star::handler(
+            mock.database(),
+            user_id_star,
+            star::Request { artist_ids: Some(vec![artist_id]), ..Default::default() },
+        )
         .await
         .unwrap();
 
@@ -145,10 +146,11 @@ mod tests {
             .call()
             .await;
 
-        star::handler(mock.database(), user_id_star, star::Request {
-            album_ids: Some(vec![album_id]),
-            ..Default::default()
-        })
+        star::handler(
+            mock.database(),
+            user_id_star,
+            star::Request { album_ids: Some(vec![album_id]), ..Default::default() },
+        )
         .await
         .unwrap();
 
@@ -157,9 +159,10 @@ mod tests {
                 handler(database, user_id_star, Request::default()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.artist.is_empty());
-            assert_eq!(starred.album.into_iter().map(|album| album.id).collect::<Vec<_>>(), vec![
-                album_id
-            ]);
+            assert_eq!(
+                starred.album.into_iter().map(|album| album.id).collect::<Vec<_>>(),
+                vec![album_id]
+            );
 
             let albums: Vec<_> =
                 get_artist::handler(database, user_id_star, get_artist::Request { id: artist_id })
@@ -209,10 +212,11 @@ mod tests {
         music_folder.add_audio().album(album).call().await;
         let song_id = *music_folder.database.get_index(0).unwrap().0;
 
-        star::handler(mock.database(), user_id_star, star::Request {
-            song_ids: Some(vec![song_id]),
-            ..Default::default()
-        })
+        star::handler(
+            mock.database(),
+            user_id_star,
+            star::Request { song_ids: Some(vec![song_id]), ..Default::default() },
+        )
         .await
         .unwrap();
 

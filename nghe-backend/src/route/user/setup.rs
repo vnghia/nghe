@@ -15,13 +15,16 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         error::Kind::Forbidden.into()
     } else {
         let Request { username, password, email } = request;
-        create::handler(database, create::Request {
-            username,
-            password,
-            email,
-            role: Role { admin: true, stream: true, download: true, share: true },
-            allow: false,
-        })
+        create::handler(
+            database,
+            create::Request {
+                username,
+                password,
+                email,
+                role: Role { admin: true, stream: true, download: true, share: true },
+                allow: false,
+            },
+        )
         .await?;
         Ok(Response)
     }

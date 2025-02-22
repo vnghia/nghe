@@ -308,11 +308,15 @@ mod tests {
         let id_mltr = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
 
         mock.informant
-            .fetch_and_upsert_artist(mock.database(), &mock.config.cover_art, &Request {
-                artist_id: id_mltr,
-                spotify_id: Some("7zMVPOJPs5jgU8NorRxqJe".to_owned()),
-                lastfm_name: Some("Michael Learns to Rock".to_owned()),
-            })
+            .fetch_and_upsert_artist(
+                mock.database(),
+                &mock.config.cover_art,
+                &Request {
+                    artist_id: id_mltr,
+                    spotify_id: Some("7zMVPOJPs5jgU8NorRxqJe".to_owned()),
+                    lastfm_name: Some("Michael Learns to Rock".to_owned()),
+                },
+            )
             .await
             .unwrap();
 
