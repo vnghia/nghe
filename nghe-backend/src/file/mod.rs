@@ -3,7 +3,6 @@ pub mod lyric;
 pub mod picture;
 
 use std::num::{NonZero, NonZeroU32, NonZeroU64};
-use std::time::Duration;
 
 use axum_extra::headers::{CacheControl, ETag};
 use nghe_api::common::format;
@@ -98,7 +97,7 @@ impl<F: format::Trait> property::Trait for Property<F> {
     }
 
     fn cache_control() -> CacheControl {
-        CacheControl::new().with_private().with_max_age(Duration::from_days(1))
+        CacheControl::new().with_private().with_max_age(F::CACHE_DURATION)
     }
 }
 

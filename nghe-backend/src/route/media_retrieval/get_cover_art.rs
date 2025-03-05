@@ -27,3 +27,42 @@ pub async fn handler(
     )
     .await
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use axum::http::StatusCode;
+    use axum_extra::headers::{CacheControl, ContentLength, HeaderMapExt};
+    use binary::property::Trait as _;
+    use fake::{Fake, Faker};
+    use rstest::rstest;
+
+    use super::*;
+    use crate::file;
+    use crate::test::{Mock, mock};
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_handler(#[future(awt)] mock: Mock) {
+        let picture: picture::Picture = Faker.fake();
+        let id = picture.upsert_mock(&mock, None::<&str>).await;
+
+        let binary = handler(mock.database(), None, mock.config.cover_art.clone(), Request { id })
+            .await
+            .unwrap();
+
+        let (status_code, headers, body) = binary.extract().await;
+        let body_len: u64 = body.len().try_into().unwrap();
+
+        assert_eq!(status_code, StatusCode::OK);
+
+        assert_eq!(headers.typed_get::<ContentLength>().unwrap().0, body_len);
+        assert_eq!(
+            headers.typed_get::<CacheControl>().unwrap(),
+            file::Property::<picture::Format>::cache_control()
+        );
+
+        let local_bytes: &[u8] = picture.data.as_ref();
+        assert_eq!(body, local_bytes);
+    }
+}

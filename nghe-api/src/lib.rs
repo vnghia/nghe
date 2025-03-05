@@ -1,5 +1,6 @@
 #![feature(adt_const_params)]
 #![feature(coverage_attribute)]
+#![feature(duration_constructors)]
 #![feature(trait_alias)]
 
 pub mod auth;
