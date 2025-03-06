@@ -14,6 +14,7 @@ use crate::orm::id3::song;
 use crate::orm::{playlists_songs, songs};
 
 #[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = playlists, check_for_backend(crate::orm::Type))]
 pub struct Full {
     #[diesel(embed)]
     pub playlist: Playlist,
