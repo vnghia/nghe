@@ -1,3 +1,5 @@
+#![allow(clippy::elidable_lifetime_names)]
+
 use diesel::prelude::*;
 use nghe_api::id3;
 use nghe_api::id3::builder::album as builder;
