@@ -41,6 +41,10 @@ impl<'a> Mock<'a> {
             .unwrap()
     }
 
+    pub fn role(&self) -> users::Role {
+        self.user.data.info.role
+    }
+
     pub async fn api_key(&self) -> auth::ApiKey {
         key::create::handler(
             self.mock.database(),

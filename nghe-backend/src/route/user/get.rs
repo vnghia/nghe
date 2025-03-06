@@ -79,6 +79,7 @@ mod tests {
             let response = response.unwrap();
             assert_eq!(user_2.id(), response.id);
             assert_eq!(user_2.username(), response.username);
+            assert_eq!(user_2.role(), response.role.into());
         } else {
             assert!(response.is_err());
         }
