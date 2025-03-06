@@ -11,6 +11,7 @@ use crate::orm::id3::genre;
 
 #[derive(Debug, Queryable, Selectable, o2o)]
 #[owned_try_into(id3::song::Full, Error)]
+#[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 pub struct Full {
     #[into(~.try_into()?)]
     #[diesel(embed)]

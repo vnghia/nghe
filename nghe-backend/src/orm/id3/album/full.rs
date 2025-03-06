@@ -14,6 +14,7 @@ use crate::orm::songs;
 use crate::{Error, error};
 
 #[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 pub struct Full {
     #[diesel(embed)]
     pub album: Album,

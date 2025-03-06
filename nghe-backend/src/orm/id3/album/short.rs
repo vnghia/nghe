@@ -10,6 +10,7 @@ use crate::file::audio::duration::Trait as _;
 use crate::orm::id3::song;
 
 #[derive(Debug, Queryable, Selectable)]
+#[diesel(table_name = albums, check_for_backend(crate::orm::Type))]
 pub struct Short {
     #[diesel(embed)]
     pub album: Album,
