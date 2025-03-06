@@ -1,3 +1,5 @@
+#![allow(clippy::elidable_lifetime_names)]
+
 pub mod full;
 pub mod required;
 
