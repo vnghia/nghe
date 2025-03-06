@@ -63,6 +63,8 @@ impl TryFrom<&MimeType> for Format {
 }
 
 impl format::Trait for Format {
+    const CACHE_DURATION: std::time::Duration = std::time::Duration::from_days(365);
+
     fn mime(&self) -> &'static str {
         match self {
             Self::Png => "image/png",
