@@ -1,14 +1,16 @@
 use std::borrow::Cow;
 
 use diesel::prelude::*;
+use diesel_derives::AsChangeset;
 use o2o::o2o;
 use uuid::Uuid;
 
 pub use crate::schema::users::{self, *};
 
-#[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable, o2o)]
+#[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]
 #[map_owned(nghe_api::user::Role)]
+#[cfg_attr(test, derive(Default, PartialEq, Eq))]
 pub struct Role {
     #[diesel(column_name = admin_role)]
     pub admin: bool,

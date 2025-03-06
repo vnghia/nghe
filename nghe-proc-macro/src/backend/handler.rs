@@ -57,6 +57,7 @@ impl Arg {
             match pat.ident.to_string().as_str() {
                 "database" => Ok(Self::Database { ident: pat.ident.clone(), use_database: true }),
                 "user_id" => Ok(Self::User(parse_quote!(id))),
+                "user_role" => Ok(Self::User(parse_quote!(role))),
                 "request" => Ok(Self::Request),
                 _ => {
                     let ty = if config.header {

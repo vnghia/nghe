@@ -36,9 +36,13 @@ impl<'a> Mock<'a> {
         self.user.data.info.username.to_string()
     }
 
-    fn password(&self) -> String {
+    pub fn password(&self) -> String {
         String::from_utf8(self.mock.database().decrypt(self.user.data.password.as_bytes()).unwrap())
             .unwrap()
+    }
+
+    pub fn role(&self) -> users::Role {
+        self.user.data.info.role
     }
 
     pub async fn api_key(&self) -> auth::ApiKey {

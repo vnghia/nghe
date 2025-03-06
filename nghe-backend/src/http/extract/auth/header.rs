@@ -14,8 +14,6 @@ use crate::{Error, error};
 #[derive(Debug)]
 pub struct Header<R> {
     _request: PhantomData<R>,
-    #[allow(unused)]
-    // TODO: remove unused
     pub user: users::Authenticated,
 }
 

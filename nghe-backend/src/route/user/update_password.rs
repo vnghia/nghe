@@ -1,6 +1,6 @@
-use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
+use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-pub use nghe_api::user::get::{Request, Response};
+pub use nghe_api::user::update_password::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
@@ -24,18 +24,19 @@ pub async fn handler(
         user_id
     };
 
-    users::table
+    diesel::update(users::table)
         .filter(users::id.eq(user_id))
-        .select(users::User::as_select())
-        .first(&mut database.get().await?)
-        .await
-        .map(users::User::into)
-        .map_err(Error::from)
+        .set(users::password.eq(database.encrypt(request.password)))
+        .execute(&mut database.get().await?)
+        .await?;
+
+    Ok(Response)
 }
 
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
+    use fake::{Fake, Faker};
     use rstest::rstest;
 
     use super::*;
@@ -45,16 +46,19 @@ mod tests {
     #[tokio::test]
     async fn test_handler(#[future(awt)] mock: Mock) {
         let user = mock.user(0).await;
-        let response = handler(
+        let password: String = Faker.fake();
+
+        handler(
             mock.database(),
             user.id(),
             users::Role { admin: false, ..users::Role::default() },
-            Request { id: None },
+            Request { id: None, password: password.clone() },
         )
         .await
         .unwrap();
-        assert_eq!(user.id(), response.id);
-        assert_eq!(user.username(), response.username);
+
+        let user = mock.user(0).await;
+        assert_eq!(user.password(), password);
     }
 
     #[rstest]
@@ -67,19 +71,20 @@ mod tests {
     ) {
         let user_1 = mock.user(0).await;
         let user_2 = mock.user(1).await;
+        let password: String = Faker.fake();
+
         let response = handler(
             mock.database(),
             user_1.id(),
             users::Role { admin, ..users::Role::default() },
-            Request { id: Some(user_2.id()) },
+            Request { id: Some(user_2.id()), password: password.clone() },
         )
         .await;
 
         if admin {
-            let response = response.unwrap();
-            assert_eq!(user_2.id(), response.id);
-            assert_eq!(user_2.username(), response.username);
-            assert_eq!(user_2.role(), response.role.into());
+            response.unwrap();
+            let user_2 = mock.user(1).await;
+            assert_eq!(user_2.password(), password);
         } else {
             assert!(response.is_err());
         }
