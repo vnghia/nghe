@@ -9,6 +9,7 @@ pub use crate::schema::users::{self, *};
 #[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable, o2o)]
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]
 #[map_owned(nghe_api::user::Role)]
+#[cfg_attr(test, derive(Default))]
 pub struct Role {
     #[diesel(column_name = admin_role)]
     pub admin: bool,

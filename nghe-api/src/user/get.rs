@@ -5,7 +5,9 @@ use super::Role;
 
 #[api_derive(fake = true)]
 #[endpoint(path = "getUser", internal = true)]
-pub struct Request;
+pub struct Request {
+    pub id: Option<Uuid>,
+}
 
 #[api_derive]
 #[derive(Clone)]
