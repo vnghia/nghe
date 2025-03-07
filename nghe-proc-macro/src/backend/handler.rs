@@ -1,4 +1,3 @@
-use concat_string::concat_string;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::punctuated::Punctuated;
@@ -302,9 +301,7 @@ impl Handler {
         let tracing_name = if source_path.as_os_str().is_empty() {
             "handler".to_owned()
         } else {
-            let source_dir = source_path.parent().unwrap().file_name().unwrap().to_str().unwrap();
-            let source_stem = source_path.file_stem().unwrap().to_str().unwrap();
-            concat_string!(source_dir, ":", source_stem)
+            source_path.file_stem().unwrap().to_str().unwrap().to_string()
         };
 
         let skip_debugs: Punctuated<&syn::Ident, syn::Token![,]> =
@@ -313,7 +310,7 @@ impl Handler {
         tracing_args.push(parse_quote!(name = #tracing_name));
         tracing_args.push(parse_quote!(skip(#skip_debugs)));
         if self.is_result_binary.is_some() {
-            tracing_args.push(parse_quote!(ret(level = "trace")));
+            tracing_args.push(parse_quote!(ret(level = "debug")));
             tracing_args.push(parse_quote!(err(Debug)));
         }
 

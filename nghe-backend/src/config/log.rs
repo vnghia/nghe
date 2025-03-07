@@ -15,4 +15,6 @@ pub struct Log {
     #[educe(Default(expression = true))]
     pub time: bool,
     pub format: Format,
+    #[educe(Default(expression = false))]
+    pub header: bool,
 }

@@ -85,11 +85,13 @@ tokio = { version = "1.43.0", features = [
   "sync",
 ] }
 tokio-util = { version = "0.7.13", features = ["io"] }
+tower = { version = "0.5.2" }
 tower-http = { version = "0.6.2", features = [
   "cors",
   "compression-br",
   "compression-gzip",
   "compression-zstd",
+  "request-id",
   "trace",
 ] }
 tracing-error = { version = "0.2.1" }
