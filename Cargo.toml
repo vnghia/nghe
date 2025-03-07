@@ -3,7 +3,7 @@ resolver = "2"
 members = ["nghe-api", "nghe-proc-macro", "nghe-frontend", "nghe-backend"]
 
 [workspace.package]
-version = "0.10.1"
+version = "0.10.2"
 edition = "2024"
 
 [workspace.lints.rust]
