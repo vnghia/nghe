@@ -37,10 +37,6 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
     DeserializeForm(#[from] serde_html_form::de::Error),
-    #[error("Could not deserialize binary request")]
-    #[into(StatusCode| StatusCode::BAD_REQUEST)]
-    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
-    DeserializeBinary,
 
     #[error("Missing authentication header")]
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
@@ -273,7 +269,6 @@ pub enum Kind {
 #[from_owned(typed_path::StripPrefixError)]
 #[from_owned(aws_sdk_s3::primitives::ByteStreamError)]
 #[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
-#[from_owned(bitcode::Error)]
 #[from_owned(tokio::task::JoinError)]
 #[from_owned(rsmpeg::error::RsmpegError)]
 #[from_owned(tokio::sync::AcquireError)]

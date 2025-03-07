@@ -222,33 +222,6 @@ impl Handler {
             None
         };
 
-        let binary_handler = if self.config.attribute.binary() {
-            let mut additional_args = vec![];
-            let mut additional_exprs = vec![];
-
-            if self.config.need_auth {
-                additional_args
-                    .push(parse_quote!(#user_ident: crate::http::extract::auth::Header<Request>));
-            }
-            if self.args.use_request {
-                additional_args.push(parse_quote! {
-                    crate::http::extract::Binary(request): crate::http::extract::Binary<Request>
-                });
-                additional_exprs.push(parse_quote!(request));
-            }
-
-            Some(self.handler(
-                "binary",
-                self.ident(),
-                additional_args,
-                additional_exprs,
-                &parse_quote!(Result<Vec<u8>, crate::Error>),
-                &parse_quote!(bitcode::serialize(&response)?),
-            ))
-        } else {
-            None
-        };
-
         let json_handler = if self.config.attribute.json() {
             let mut additional_args = vec![];
             let mut additional_exprs = vec![];
@@ -290,7 +263,6 @@ impl Handler {
             #authorization
 
             #form_handler
-            #binary_handler
             #json_handler
         }
     }

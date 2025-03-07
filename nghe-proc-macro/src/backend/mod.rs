@@ -55,18 +55,6 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
                 });
             }
 
-            if attribute.binary() {
-                let binary_handler = quote! { #module::binary_handler };
-
-                let request = quote! { <#module::Request as nghe_api::common::BinaryURL> };
-                routers.push(quote! {
-                    route(
-                        #request::URL_BINARY,
-                        axum::routing::post(#binary_handler)
-                    )
-                });
-            }
-
             if attribute.json() {
                 let json_handler = quote! { #module::json_handler };
 
