@@ -38,34 +38,47 @@ mod test;
 use axum::Router;
 use error::Error;
 use mimalloc::MiMalloc;
-use nghe_api::common::FormURL;
-use nghe_api::system::health;
+use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
+use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use uuid::Uuid;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
 #[coverage(off)]
-pub fn init_tracing() -> Result<(), Error> {
+pub fn init_tracing(log: &config::Log) -> Result<(), Error> {
     color_eyre::install()?;
 
     let tracing = tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            if cfg!(test) { "debug" } else { const_format::concatc!(constant::PKG_NAME, "=info") }
-                .into()
-        }))
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| if cfg!(test) { "debug" } else { "info" }.into()),
+        )
         .with(tracing_error::ErrorLayer::default());
-    let tracing_layer = tracing_subscriber::fmt::layer().with_target(false);
+
+    let tracing_layer = tracing_subscriber::fmt::layer();
 
     if cfg!(test) {
         tracing.with(tracing_layer.with_test_writer()).try_init()?;
+    } else if log.time {
+        match log.format {
+            config::log::Format::Plain => tracing.with(tracing_layer).try_init()?,
+            config::log::Format::Json => tracing
+                .with(tracing_layer.json().flatten_event(true).with_span_list(false))
+                .try_init()?,
+        }
     } else {
-        tracing.with(tracing_layer).try_init()?;
+        let tracing_layer = tracing_layer.without_time();
+        match log.format {
+            config::log::Format::Plain => tracing.with(tracing_layer).try_init()?,
+            config::log::Format::Json => tracing
+                .with(tracing_layer.json().flatten_event(true).with_span_list(false))
+                .try_init()?,
+        }
     }
 
     Ok(())
@@ -76,6 +89,16 @@ pub async fn build(config: config::Config) -> Router {
     let filesystem =
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
     let informant = integration::Informant::new(config.integration).await;
+
+    let middleware = ServiceBuilder::new()
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().include_headers(config.log.header))
+                .on_request(())
+                .on_response(DefaultOnResponse::new().include_headers(config.log.header)),
+        )
+        .layer(PropagateRequestIdLayer::x_request_id());
 
     Router::new()
         .merge(route::music_folder::router(filesystem.clone()))
@@ -106,31 +129,7 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::system::router())
         .merge(route::key::router())
         .with_state(database::Database::new(&config.database))
-        .layer(
-            TraceLayer::new_for_http()
-                .make_span_with(|request: &axum::extract::Request| {
-                    let id = Uuid::new_v4();
-                    if request.uri().path() == health::Request::URL_FORM {
-                        tracing::Span::none()
-                    } else {
-                        tracing::info_span!(nghe_api::constant::SERVER_NAME, trace = %id)
-                    }
-                })
-                .on_request(|request: &axum::extract::Request, span: &tracing::Span| {
-                    if !span.is_none() {
-                        tracing::info!(method = request.method().as_str(), path = ?request.uri());
-                    }
-                })
-                .on_response(
-                    |response: &axum::response::Response,
-                     latency: std::time::Duration,
-                     span: &tracing::Span| {
-                        if !span.is_none() {
-                            tracing::info!(status = response.status().as_u16(), took = ?latency);
-                        }
-                    },
-                ),
-        )
+        .layer(middleware)
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new().br(true).gzip(true).zstd(true))
 }
