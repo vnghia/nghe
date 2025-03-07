@@ -91,6 +91,9 @@ tower-http = { version = "0.6.2", features = [
   "compression-br",
   "compression-gzip",
   "compression-zstd",
+  "decompression-br",
+  "decompression-gzip",
+  "decompression-zstd",
   "request-id",
   "trace",
 ] }

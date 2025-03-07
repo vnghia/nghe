@@ -41,6 +41,7 @@ use mimalloc::MiMalloc;
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
+use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing_subscriber::layer::SubscriberExt;
@@ -91,6 +92,7 @@ pub async fn build(config: config::Config) -> Router {
     let informant = integration::Informant::new(config.integration).await;
 
     let middleware = ServiceBuilder::new()
+        .layer(RequestDecompressionLayer::new().br(true).gzip(true).zstd(true))
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(
             TraceLayer::new_for_http()
@@ -98,7 +100,9 @@ pub async fn build(config: config::Config) -> Router {
                 .on_request(())
                 .on_response(DefaultOnResponse::new().include_headers(config.log.header)),
         )
-        .layer(PropagateRequestIdLayer::x_request_id());
+        .layer(PropagateRequestIdLayer::x_request_id())
+        .layer(CorsLayer::permissive())
+        .layer(CompressionLayer::new().br(true).gzip(true).zstd(true));
 
     Router::new()
         .merge(route::music_folder::router(filesystem.clone()))
@@ -130,6 +134,4 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::key::router())
         .with_state(database::Database::new(&config.database))
         .layer(middleware)
-        .layer(CorsLayer::permissive())
-        .layer(CompressionLayer::new().br(true).gzip(true).zstd(true))
 }
