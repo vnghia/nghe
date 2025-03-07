@@ -25,7 +25,6 @@ struct_excessive_bools = { level = "allow", priority = 0 }
 wildcard_imports = { level = "allow", priority = 0 }
 
 [workspace.dependencies]
-bitcode = { version = "0.6.5", features = ["serde"] }
 bon = { version = "3.3.2" }
 color-eyre = { version = "0.6.3", default-features = false, features = [
   "capture-spantrace",

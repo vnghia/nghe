@@ -153,30 +153,6 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         quote! {}
     };
 
-    let impl_binary = if attribute.binary() {
-        let url_binary = concat_string!("/rest/", &path, ".bin");
-
-        let impl_endpoint = if url_only {
-            quote! {}
-        } else {
-            quote! {
-                impl #crate_path::common::BinaryEndpoint for #ident {
-                    type Response = Response;
-                }
-            }
-        };
-
-        quote! {
-            impl #crate_path::common::BinaryURL for #ident {
-                const URL_BINARY: &'static str = #url_binary;
-            }
-
-            #impl_endpoint
-        }
-    } else {
-        quote! {}
-    };
-
     let impl_json = if attribute.json() {
         let url_json = concat_string!("/rest/", &path, ".json");
 
@@ -203,7 +179,6 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
     Ok(quote! {
         #impl_form
-        #impl_binary
         #impl_json
     })
 }
