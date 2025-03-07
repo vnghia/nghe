@@ -93,7 +93,7 @@ tower-http = { version = "0.6.2", features = [
   "trace",
 ] }
 tracing-error = { version = "0.2.1" }
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }
 typed-path = { version = "0.10.0" }
 unicode-normalization = { version = "0.1.24" }
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }

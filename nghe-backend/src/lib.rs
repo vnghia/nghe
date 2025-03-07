@@ -51,7 +51,7 @@ use uuid::Uuid;
 static GLOBAL: MiMalloc = MiMalloc;
 
 #[coverage(off)]
-pub fn init_tracing() -> Result<(), Error> {
+pub fn init_tracing(log: &config::Log) -> Result<(), Error> {
     color_eyre::install()?;
 
     let tracing = tracing_subscriber::registry()
@@ -60,12 +60,26 @@ pub fn init_tracing() -> Result<(), Error> {
                 .into()
         }))
         .with(tracing_error::ErrorLayer::default());
+
     let tracing_layer = tracing_subscriber::fmt::layer().with_target(false);
 
     if cfg!(test) {
         tracing.with(tracing_layer.with_test_writer()).try_init()?;
+    } else if log.time {
+        match log.format {
+            config::log::Format::Plain => tracing.with(tracing_layer).try_init()?,
+            config::log::Format::Json => tracing
+                .with(tracing_layer.json().flatten_event(true).with_span_list(false))
+                .try_init()?,
+        }
     } else {
-        tracing.with(tracing_layer).try_init()?;
+        let tracing_layer = tracing_layer.without_time();
+        match log.format {
+            config::log::Format::Plain => tracing.with(tracing_layer).try_init()?,
+            config::log::Format::Json => tracing
+                .with(tracing_layer.json().flatten_event(true).with_span_list(false))
+                .try_init()?,
+        }
     }
 
     Ok(())

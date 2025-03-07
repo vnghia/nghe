@@ -3,6 +3,7 @@ mod database;
 pub mod filesystem;
 mod index;
 pub mod integration;
+pub mod log;
 pub mod parsing;
 mod server;
 mod transcode;
@@ -14,6 +15,7 @@ use figment::providers::{Env, Serialized};
 use filesystem::Filesystem;
 pub use index::Index;
 pub use integration::Integration;
+pub use log::Log;
 use nghe_api::constant;
 pub use parsing::Parsing;
 use serde::Deserialize;
@@ -30,6 +32,7 @@ pub struct Config {
     pub transcode: Transcode,
     pub cover_art: CoverArt,
     pub integration: Integration,
+    pub log: Log,
 }
 
 impl Default for Config {
@@ -43,6 +46,7 @@ impl Default for Config {
             .join(Serialized::default("transcode", Transcode::default()))
             .join(Serialized::default("cover_art", CoverArt::default()))
             .join(Serialized::default("integration", Integration::default()))
+            .join(Serialized::default("log", Log::default()))
             .extract()
             .expect("Could not parse config")
     }
