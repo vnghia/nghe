@@ -12,22 +12,13 @@ pub use crate::schema::users::{self, *};
 #[map_owned(nghe_api::user::Role)]
 #[cfg_attr(test, derive(Default, PartialEq, Eq))]
 pub struct Role {
-    #[diesel(column_name = admin_role)]
     pub admin: bool,
-    #[diesel(column_name = stream_role)]
-    pub stream: bool,
-    #[diesel(column_name = download_role)]
-    pub download: bool,
-    #[diesel(column_name = share_role)]
-    pub share: bool,
 }
 
 #[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]
 pub struct Authenticated {
     pub id: Uuid,
-    #[diesel(embed)]
-    pub role: Role,
 }
 
 #[derive(Debug, Queryable, Selectable)]
@@ -77,4 +68,28 @@ pub struct Full<'a> {
     pub id: Uuid,
     #[diesel(embed)]
     pub data: Data<'a>,
+}
+
+mod check {
+    use diesel_async::RunQueryDsl;
+
+    use super::*;
+    use crate::database::Database;
+    use crate::{Error, error};
+
+    impl Role {
+        pub async fn query(database: &Database, user_id: Uuid) -> Result<Self, Error> {
+            users::table
+                .filter(users::id.eq(user_id))
+                .select(Self::as_select())
+                .get_result(&mut database.get().await?)
+                .await
+                .map_err(Error::from)
+        }
+
+        pub async fn check_admin(database: &Database, user_id: Uuid) -> Result<(), Error> {
+            let role = Self::query(database, user_id).await?;
+            if role.admin { Ok(()) } else { error::Kind::Forbidden.into() }
+        }
+    }
 }

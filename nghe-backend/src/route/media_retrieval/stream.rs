@@ -12,7 +12,7 @@ use crate::http::header::ToOffset;
 use crate::test::transcode::Status as TranscodeStatus;
 use crate::{Error, config, transcode};
 
-#[handler(role = stream)]
+#[handler]
 pub async fn handler(
     database: &Database,
     filesystem: &Filesystem,

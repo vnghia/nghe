@@ -69,7 +69,11 @@ mod tests {
     ) {
         permission::add::handler(
             mock.database(),
-            permission::add::Request { user_id: None, music_folder_id: None },
+            permission::add::Request {
+                user_id: None,
+                music_folder_id: None,
+                permission: nghe_api::permission::Permission::default(),
+            },
         )
         .await
         .unwrap();

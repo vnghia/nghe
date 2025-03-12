@@ -9,11 +9,12 @@ use crate::orm::{music_folders, user_music_folder_permissions, users};
 
 #[handler(role = admin, internal = true)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
-    let Request { user_id, music_folder_id } = request;
+    let Request { user_id, music_folder_id, permission } = request;
+    let permission = permission.into();
 
     if let Some(user_id) = user_id {
         if let Some(music_folder_id) = music_folder_id {
-            let new = user_music_folder_permissions::New { user_id, music_folder_id };
+            let new = user_music_folder_permissions::New { user_id, music_folder_id, permission };
 
             diesel::insert_into(user_music_folder_permissions::table)
                 .values(new)
@@ -92,7 +93,18 @@ mod tests {
         let user_id = if with_user { Some(mock.user_id(0).await) } else { None };
         let music_folder_id =
             if with_music_folder { Some(mock.music_folder_id(0).await) } else { None };
-        assert!(handler(mock.database(), Request { user_id, music_folder_id }).await.is_ok());
+        assert!(
+            handler(
+                mock.database(),
+                Request {
+                    user_id,
+                    music_folder_id,
+                    permission: nghe_api::permission::Permission::default()
+                }
+            )
+            .await
+            .is_ok()
+        );
         assert_eq!(count(&mock).await, permission_count);
     }
 }

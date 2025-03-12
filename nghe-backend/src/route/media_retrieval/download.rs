@@ -18,7 +18,7 @@ pub async fn handler_impl(
     filesystem.read_to_binary(&source, offset).await
 }
 
-#[handler(role = download)]
+#[handler]
 pub async fn handler(
     database: &Database,
     filesystem: &Filesystem,

@@ -4,21 +4,18 @@ pub use nghe_api::user::update_password::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
+use crate::Error;
 use crate::database::Database;
 use crate::orm::users;
-use crate::{Error, error};
 
 #[handler(internal = true)]
 pub async fn handler(
     database: &Database,
     user_id: Uuid,
-    user_role: users::Role,
     request: Request,
 ) -> Result<Response, Error> {
     let user_id = if let Some(id) = request.id {
-        if !user_role.admin {
-            return error::Kind::Forbidden.into();
-        }
+        users::Role::check_admin(database, user_id).await?;
         id
     } else {
         user_id
@@ -48,14 +45,9 @@ mod tests {
         let user = mock.user(0).await;
         let password: String = Faker.fake();
 
-        handler(
-            mock.database(),
-            user.id(),
-            users::Role { admin: false, ..users::Role::default() },
-            Request { id: None, password: password.clone() },
-        )
-        .await
-        .unwrap();
+        handler(mock.database(), user.id(), Request { id: None, password: password.clone() })
+            .await
+            .unwrap();
 
         let user = mock.user(0).await;
         assert_eq!(user.password(), password);
@@ -65,18 +57,17 @@ mod tests {
     #[tokio::test]
     async fn test_handler_admin(
         #[future(awt)]
-        #[with(2, 0)]
+        #[with(0, 0)]
         mock: Mock,
         #[values(true, false)] admin: bool,
     ) {
-        let user_1 = mock.user(0).await;
-        let user_2 = mock.user(1).await;
+        let user_1 = mock.add_user().role(users::Role { admin }).call().await.user(0).await;
+        let user_2 = mock.add_user().role(users::Role { admin: false }).call().await.user(1).await;
         let password: String = Faker.fake();
 
         let response = handler(
             mock.database(),
             user_1.id(),
-            users::Role { admin, ..users::Role::default() },
             Request { id: Some(user_2.id()), password: password.clone() },
         )
         .await;

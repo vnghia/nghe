@@ -33,12 +33,9 @@ mod tests {
         #[with(0, 0)]
         mock: Mock,
     ) {
-        mock.add_user().role(users::Role { stream: false, ..users::Role::default() }).call().await;
-        let user = mock.user(0).await;
-        let role = users::Role { stream: true, ..users::Role::default() };
-
+        let user = mock.add_user().role(users::Role { admin: false }).call().await.user(0).await;
+        let role = users::Role { admin: true };
         handler(mock.database(), Request { id: user.id(), role: role.into() }).await.unwrap();
-
         let user = mock.user(0).await;
         assert_eq!(user.role(), role);
     }

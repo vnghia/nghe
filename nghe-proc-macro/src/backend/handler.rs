@@ -178,13 +178,12 @@ impl Handler {
     }
 
     pub fn build(&self) -> TokenStream {
-        let authorization = self.authorization();
-
-        let user_ident = if self.args.use_user || self.args.use_request {
-            format_ident!("user")
-        } else {
-            format_ident!("_user")
-        };
+        let user_ident =
+            if self.config.role.is_some() || self.args.use_user || self.args.use_request {
+                format_ident!("user")
+            } else {
+                format_ident!("_user")
+            };
 
         let form_handler = if self.config.attribute.form() {
             let mut additional_args = vec![];
@@ -259,8 +258,6 @@ impl Handler {
             #tracing_attribute
             #handler
 
-            #authorization
-
             #form_handler
             #json_handler
         }
@@ -317,25 +314,14 @@ impl Handler {
         parse_quote!(#[cfg_attr(not(coverage_nightly), tracing::instrument(#tracing_args))])
     }
 
-    fn authorization(&self) -> syn::ItemImpl {
-        let source: syn::Expr = if let Some(role) = self.config.role.as_ref() {
-            if role == "admin" {
-                parse_quote!(role.admin)
-            } else {
-                parse_quote!(role.admin || role.#role)
-            }
+    fn authorization(&self) -> Option<syn::Expr> {
+        if let Some(role) = self.config.role.as_ref() {
+            let method_ident = format_ident!("check_{role}");
+            Some(parse_quote! {
+                crate::orm::users::Role::#method_ident(&database, user.user.id).await?
+            })
         } else {
-            parse_quote!(true)
-        };
-
-        parse_quote! {
-            #[coverage(off)]
-            impl crate::http::extract::auth::Authorization for Request {
-                #[inline(always)]
-                fn authorized(role: crate::orm::users::Role) ->  bool {
-                    #source
-                }
-            }
+            None
         }
     }
 
@@ -356,6 +342,8 @@ impl Handler {
         let exprs: Punctuated<syn::Expr, syn::Token![,]> =
             exprs.into_iter().flatten().chain(additional_exprs).collect();
 
+        let authorization = self.authorization();
+
         let asyncness = self.item.sig.asyncness.map(|_| quote!(.await));
         let tryness = self.is_result_binary.map(|_| quote!(?));
 
@@ -364,6 +352,7 @@ impl Handler {
                 #[coverage(off)]
                 #[axum::debug_handler]
                 pub async fn #ident(#args) -> Result<crate::http::binary::Response, crate::Error> {
+                    #authorization;
                     #handler_ident(#exprs)#asyncness
                 }
             }
@@ -372,6 +361,7 @@ impl Handler {
                 #[coverage(off)]
                 #[axum::debug_handler]
                 pub async fn #ident(#args) -> #result {
+                    #authorization;
                     let response = #handler_ident(#exprs)
                         #asyncness
                         #tryness;

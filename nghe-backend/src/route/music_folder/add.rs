@@ -25,7 +25,11 @@ async fn handler_impl(
     if request.allow {
         permission::add::handler(
             database,
-            permission::add::Request { user_id: None, music_folder_id: Some(music_folder_id) },
+            permission::add::Request {
+                user_id: None,
+                music_folder_id: Some(music_folder_id),
+                permission: nghe_api::permission::Permission::default(),
+            },
         )
         .await?;
     }

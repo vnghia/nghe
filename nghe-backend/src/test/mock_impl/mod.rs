@@ -97,9 +97,6 @@ impl Mock {
         &self,
         #[builder(default = users::Role {
             admin: false,
-            stream: true,
-            download: true,
-            share: false
         })]
         role: users::Role,
         #[builder(default = true)] allow: bool,

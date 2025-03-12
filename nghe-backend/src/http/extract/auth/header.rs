@@ -6,7 +6,7 @@ use axum_extra::headers::{self, HeaderMapExt};
 use nghe_api::auth;
 use uuid::Uuid;
 
-use super::{Authentication, Authorization, username};
+use super::{Authentication, username};
 use crate::database::Database;
 use crate::orm::users;
 use crate::{Error, error};
@@ -46,15 +46,16 @@ impl<S, R> FromRequestParts<S> for Header<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: Authorization + Send,
+    R: Send,
 {
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let database = &Database::from_ref(state);
         let user = if let Some(header) = parts.headers.typed_get::<BearerAuthorization>() {
-            header.login::<S, R>(state).await?
+            header.authenticated(database).await?
         } else if let Some(header) = parts.headers.typed_get::<BaiscAuthorization>() {
-            header.login::<S, R>(state).await?
+            header.authenticated(database).await?
         } else {
             return error::Kind::MissingAuthenticationHeader.into();
         };
@@ -76,12 +77,6 @@ mod tests {
     use crate::test::{Mock, mock};
 
     struct Request;
-
-    impl Authorization for Request {
-        fn authorized(_: crate::orm::users::Role) -> bool {
-            true
-        }
-    }
 
     #[rstest]
     fn test_authenticated(#[values(true, false)] ok: bool) {

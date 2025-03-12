@@ -332,6 +332,8 @@ diesel::table! {
     user_music_folder_permissions (user_id, music_folder_id) {
         user_id -> Uuid,
         music_folder_id -> Uuid,
+        owner -> Bool,
+        share -> Bool,
     }
 }
 
@@ -344,10 +346,7 @@ diesel::table! {
         username -> Text,
         password -> Bytea,
         email -> Text,
-        admin_role -> Bool,
-        stream_role -> Bool,
-        download_role -> Bool,
-        share_role -> Bool,
+        admin -> Bool,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }
