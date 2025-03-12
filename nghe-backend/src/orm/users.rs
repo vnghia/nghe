@@ -71,9 +71,11 @@ pub struct Full<'a> {
 }
 
 mod check {
+    use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
+    use uuid::Uuid;
 
-    use super::*;
+    use super::{Role, users};
     use crate::database::Database;
     use crate::{Error, error};
 
