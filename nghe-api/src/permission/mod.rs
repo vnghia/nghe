@@ -1,5 +1,6 @@
 pub mod add;
 pub mod remove;
+pub mod update;
 
 use nghe_proc_macro::api_derive;
 

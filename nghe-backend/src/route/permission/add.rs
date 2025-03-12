@@ -48,6 +48,8 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
             .execute(&mut database.get().await?)
             .await?;
     } else {
+        tracing::warn!("Adding permission for all users with all music folders");
+
         let new = users::table
             .inner_join(music_folders::table.on(true.into_sql::<sql_types::Bool>()))
             .select((users::id, music_folders::id));
@@ -81,7 +83,7 @@ mod tests {
     #[case(false, true, 2)]
     #[case(false, false, 6)]
     #[tokio::test]
-    async fn test_add(
+    async fn test_handler(
         #[future(awt)]
         #[with(2, 3)]
         mock: Mock,
