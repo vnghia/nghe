@@ -3,7 +3,7 @@ use nghe_api::auth;
 use nghe_api::auth::form::Trait;
 use nghe_api::common::FormRequest;
 
-use super::{Authentication, Authorization};
+use super::Authentication;
 use crate::database::Database;
 use crate::orm::users;
 use crate::{Error, error};
@@ -26,7 +26,7 @@ impl<S, R> FromRequest<S> for Form<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: for<'form> FormRequest<'form, 'form, 'form, 'form, 'form> + Authorization + Send,
+    R: for<'form> FormRequest<'form, 'form, 'form, 'form, 'form> + Send,
 {
     type Rejection = Error;
 
@@ -34,7 +34,10 @@ where
         let axum::extract::RawForm(bytes) =
             axum::extract::RawForm::from_request(request, &()).await.map_err(error::Kind::from)?;
         let form: R::AuthForm = serde_html_form::from_bytes(&bytes).map_err(error::Kind::from)?;
-        Ok(Self { user: form.auth().login::<S, R>(state).await?, request: form.request() })
+        Ok(Self {
+            user: form.auth().authenticated(&Database::from_ref(state)).await?,
+            request: form.request(),
+        })
     }
 }
 
@@ -68,12 +71,6 @@ mod tests {
         struct Request {
             param_one: i32,
             param_two: u32,
-        }
-
-        impl Authorization for Request {
-            fn authorized(_: crate::orm::users::Role) -> bool {
-                true
-            }
         }
 
         let request: Request = Faker.fake();

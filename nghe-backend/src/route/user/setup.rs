@@ -17,13 +17,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
         let Request { username, password, email } = request;
         create::handler(
             database,
-            create::Request {
-                username,
-                password,
-                email,
-                role: Role { admin: true, stream: true, download: true, share: true },
-                allow: false,
-            },
+            create::Request { username, password, email, role: Role { admin: true }, allow: false },
         )
         .await?;
         Ok(Response)

@@ -4,7 +4,4 @@ use nghe_proc_macro::api_derive;
 #[derive(Clone, Copy)]
 pub struct Role {
     pub admin: bool,
-    pub stream: bool,
-    pub download: bool,
-    pub share: bool,
 }

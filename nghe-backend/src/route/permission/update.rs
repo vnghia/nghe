@@ -1,43 +1,43 @@
-use diesel::{ExpressionMethods, QueryDsl};
+use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-pub use nghe_api::permission::remove::{Request, Response};
+pub use nghe_api::permission::update::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::Error;
 use crate::database::Database;
-use crate::orm::{music_folders, user_music_folder_permissions, users};
+use crate::orm::user_music_folder_permissions;
 
 #[handler(role = admin, internal = true)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
-    let Request { user_id, music_folder_id } = request;
+    let Request { user_id, music_folder_id, permission } = request;
+    let permission: user_music_folder_permissions::Permission = permission.into();
 
     if let Some(user_id) = user_id {
         if let Some(music_folder_id) = music_folder_id {
-            diesel::delete(user_music_folder_permissions::table)
+            diesel::update(user_music_folder_permissions::table)
                 .filter(user_music_folder_permissions::user_id.eq(user_id))
                 .filter(user_music_folder_permissions::music_folder_id.eq(music_folder_id))
+                .set(permission)
                 .execute(&mut database.get().await?)
                 .await?;
         } else {
-            diesel::delete(user_music_folder_permissions::table)
+            diesel::update(user_music_folder_permissions::table)
                 .filter(user_music_folder_permissions::user_id.eq(user_id))
-                .filter(
-                    user_music_folder_permissions::music_folder_id
-                        .eq_any(music_folders::table.select(music_folders::id)),
-                )
+                .set(permission)
                 .execute(&mut database.get().await?)
                 .await?;
         }
     } else if let Some(music_folder_id) = music_folder_id {
-        diesel::delete(user_music_folder_permissions::table)
-            .filter(user_music_folder_permissions::user_id.eq_any(users::table.select(users::id)))
+        diesel::update(user_music_folder_permissions::table)
             .filter(user_music_folder_permissions::music_folder_id.eq(music_folder_id))
+            .set(permission)
             .execute(&mut database.get().await?)
             .await?;
     } else {
-        tracing::warn!("Removing permission for all users with all music folders");
+        tracing::warn!("Updating permission for all users with all music folders");
 
-        diesel::delete(user_music_folder_permissions::table)
+        diesel::update(user_music_folder_permissions::table)
+            .set(permission)
             .execute(&mut database.get().await?)
             .await?;
     }
@@ -52,14 +52,14 @@ mod tests {
 
     use super::*;
     use crate::route::permission;
-    use crate::test::route::permission::count;
+    use crate::test::route::permission::count_owner;
     use crate::test::{Mock, mock};
 
     #[rstest]
-    #[case(true, true, 5)]
+    #[case(true, true, 1)]
     #[case(true, false, 3)]
-    #[case(false, true, 4)]
-    #[case(false, false, 0)]
+    #[case(false, true, 2)]
+    #[case(false, false, 6)]
     #[tokio::test]
     async fn test_handler(
         #[future(awt)]
@@ -83,7 +83,21 @@ mod tests {
         let user_id = if with_user { Some(mock.user_id(0).await) } else { None };
         let music_folder_id =
             if with_music_folder { Some(mock.music_folder_id(0).await) } else { None };
-        assert!(handler(mock.database(), Request { user_id, music_folder_id }).await.is_ok());
-        assert_eq!(count(&mock).await, permission_count);
+        assert!(
+            handler(
+                mock.database(),
+                Request {
+                    user_id,
+                    music_folder_id,
+                    permission: nghe_api::permission::Permission {
+                        owner: true,
+                        ..nghe_api::permission::Permission::default()
+                    }
+                }
+            )
+            .await
+            .is_ok()
+        );
+        assert_eq!(count_owner(&mock).await, permission_count);
     }
 }
