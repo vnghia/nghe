@@ -112,7 +112,7 @@ pub fn Navbar(user: Response) -> impl IntoView {
                         .aria_expanded("false")
                         .attr("data-dropdown-toggle", "dropdown")
                         .class(
-                            "flex mx-3 text-sm rounded-full md:mr-0 focus:ring-4 \
+                            "flex mx-3 text-sm rounded-full md:mr-0 focus:ring-3 \
                              focus:ring-gray-300 dark:focus:ring-gray-600",
                         )
                         .child((

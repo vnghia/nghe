@@ -51,6 +51,7 @@ pub fn Setup() -> impl IntoView {
                                         .child("Nghe"),
                                     form::Form(
                                         "Setup admin account",
+                                        None,
                                         move || {
                                             (
                                                 form::input::Text(

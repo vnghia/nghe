@@ -47,6 +47,7 @@ pub fn Login() -> impl IntoView {
                                 .child("Nghe"),
                             form::Form(
                                 "Login",
+                                None,
                                 move || {
                                     (
                                         form::input::Text(

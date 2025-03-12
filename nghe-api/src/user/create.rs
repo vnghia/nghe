@@ -4,6 +4,7 @@ use uuid::Uuid;
 use super::Role;
 
 #[api_derive(fake = true)]
+#[derive(Clone)]
 #[endpoint(path = "createUser", internal = true)]
 pub struct Request {
     pub username: String,
