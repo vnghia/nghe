@@ -89,8 +89,8 @@ pub fn Login() -> impl IntoView {
                                     set_username_error(username_error);
 
                                     let password = password();
-                                    let password_error = if password.len() < 8 {
-                                        Some("Password must have at least 8 characters")
+                                    let password_error = if password.is_empty() {
+                                        Some("Password could not be empty")
                                     } else {
                                         None
                                     };

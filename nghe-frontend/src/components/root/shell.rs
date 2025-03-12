@@ -12,7 +12,7 @@ pub fn Shell<IV: IntoView + 'static>(
     ClientRedirect(move |client| {
         let user = LocalResource::new(move || {
             let client = client.clone();
-            async move { client.json(&Request).await }
+            async move { client.json(&Request { id: None }).await }
         });
         let node_ref = init::flowbite_suspense();
         Suspense(
