@@ -43,6 +43,7 @@ use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
+use tower_http::services::{Redirect, ServeDir, ServeFile};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -104,6 +105,9 @@ pub async fn build(config: config::Config) -> Router {
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new().br(true).gzip(true).zstd(true));
 
+    let frontend_router = ServeDir::new(&config.server.frontend_dir)
+        .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
+
     let backend_router = Router::new()
         .merge(route::music_folder::router(filesystem.clone()))
         .merge(route::permission::router())
@@ -135,5 +139,13 @@ pub async fn build(config: config::Config) -> Router {
         .with_state(database::Database::new(&config.database))
         .layer(middleware);
 
-    Router::new().nest(nghe_api::common::BACKEND_PREFIX, backend_router)
+    Router::new()
+        .nest_service(
+            "/",
+            Redirect::<axum::body::Body>::permanent(
+                nghe_api::common::FRONTEND_PREFIX.parse().unwrap(),
+            ),
+        )
+        .nest_service(nghe_api::common::FRONTEND_PREFIX, frontend_router)
+        .nest(nghe_api::common::BACKEND_PREFIX, backend_router)
 }
