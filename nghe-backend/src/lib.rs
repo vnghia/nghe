@@ -92,7 +92,10 @@ pub async fn build(config: config::Config) -> Router {
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
     let informant = integration::Informant::new(config.integration).await;
 
-    let middleware = ServiceBuilder::new()
+    let frontend_router = ServeDir::new(&config.server.frontend_dir)
+        .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
+
+    let backend_middleware = ServiceBuilder::new()
         .layer(RequestDecompressionLayer::new().br(true).gzip(true).zstd(true))
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(
@@ -104,9 +107,6 @@ pub async fn build(config: config::Config) -> Router {
         .layer(PropagateRequestIdLayer::x_request_id())
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new().br(true).gzip(true).zstd(true));
-
-    let frontend_router = ServeDir::new(&config.server.frontend_dir)
-        .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
 
     let backend_router = Router::new()
         .merge(route::music_folder::router(filesystem.clone()))
@@ -137,15 +137,12 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::system::router())
         .merge(route::key::router())
         .with_state(database::Database::new(&config.database))
-        .layer(middleware);
+        .layer(backend_middleware);
 
     Router::new()
-        .nest_service(
-            "/",
-            Redirect::<axum::body::Body>::permanent(
-                nghe_api::common::FRONTEND_PREFIX.parse().unwrap(),
-            ),
-        )
         .nest_service(nghe_api::common::FRONTEND_PREFIX, frontend_router)
         .nest(nghe_api::common::BACKEND_PREFIX, backend_router)
+        .fallback_service(Redirect::<axum::body::Body>::permanent(
+            nghe_api::common::FRONTEND_PREFIX.parse().unwrap(),
+        ))
 }
