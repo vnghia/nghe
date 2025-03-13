@@ -19,7 +19,7 @@ impl Mock {
     pub fn new(filesystem: local::Filesystem) -> Self {
         Self {
             root: Builder::new()
-                .prefix(&const_format::concatc!(constant::SERVER_NAME, "."))
+                .prefix(&const_format::concatcp!(constant::SERVER_NAME, "."))
                 .tempdir()
                 .unwrap(),
             filesystem,

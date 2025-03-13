@@ -8,7 +8,7 @@ use super::{Home, Loading, Root, Users, authentication};
 pub fn Body() -> impl IntoView {
     html::div().class("flex h-dvh box-border").child(Router(
         component_props_builder(&Router)
-            .base("/frontend")
+            .base(nghe_api::common::FRONTEND_PREFIX)
             .children(ToChildren::to_children(move || {
                 Root(move || {
                     Routes(

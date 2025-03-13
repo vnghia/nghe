@@ -38,7 +38,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Figment::new()
-            .merge(Env::prefixed(const_format::concatc!(constant::SERVER_NAME, "_")).split("__"))
+            .merge(Env::prefixed(const_format::concatcp!(constant::SERVER_NAME, "_")).split("__"))
             .join(Serialized::default("server", Server::default()))
             .join(Serialized::default("filesystem", Filesystem::default()))
             .join(Serialized::default("parsing", Parsing::default()))
