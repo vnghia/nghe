@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize, Serializer};
 use super::constant;
 use crate::auth;
 
+pub const FRONTEND_PREFIX: &str = "/frontend";
+pub const BACKEND_PREFIX: &str = "/rest";
+
 #[api_derive(debug = false)]
 struct RootResponse<B> {
     #[serde(serialize_with = "emit_open_subsonic_version")]

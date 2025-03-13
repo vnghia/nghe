@@ -49,8 +49,8 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let crate_path = if same_crate { format_ident!("crate") } else { format_ident!("nghe_api") };
 
     let impl_form = if attribute.form() {
-        let url_form = concat_string!("/rest/", &path);
-        let url_form_view = concat_string!("/rest/", &path, ".view");
+        let url_form = concat_string!("/", &path);
+        let url_form_view = concat_string!("/", &path, ".view");
 
         let mut auth_form_struct = input.clone();
         let auth_form_ident = format_ident!("AuthFormRequest");
@@ -154,7 +154,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     };
 
     let impl_json = if attribute.json() {
-        let url_json = concat_string!("/rest/", &path, ".json");
+        let url_json = concat_string!("/", &path, ".json");
 
         let impl_endpoint = if url_only {
             quote! {}

@@ -104,7 +104,7 @@ pub async fn build(config: config::Config) -> Router {
         .layer(CorsLayer::permissive())
         .layer(CompressionLayer::new().br(true).gzip(true).zstd(true));
 
-    Router::new()
+    let backend_router = Router::new()
         .merge(route::music_folder::router(filesystem.clone()))
         .merge(route::permission::router())
         .merge(route::user::router())
@@ -133,5 +133,7 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::system::router())
         .merge(route::key::router())
         .with_state(database::Database::new(&config.database))
-        .layer(middleware)
+        .layer(middleware);
+
+    Router::new().nest(nghe_api::common::BACKEND_PREFIX, backend_router)
 }

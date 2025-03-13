@@ -36,11 +36,14 @@ impl Client {
         request: &R,
         authorization: Option<&str>,
     ) -> Result<R::Response, Error> {
-        let response = http::Request::post(<R as JsonURL>::URL_JSON)
-            .header("Authorization", authorization.unwrap_or_default())
-            .json(request)?
-            .send()
-            .await?;
+        let response = http::Request::post(&concat_string!(
+            nghe_api::common::BACKEND_PREFIX,
+            <R as JsonURL>::URL_JSON
+        ))
+        .header("Authorization", authorization.unwrap_or_default())
+        .json(request)?
+        .send()
+        .await?;
         if response.ok() {
             Ok(response.json().await?)
         } else {
