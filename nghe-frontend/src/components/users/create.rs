@@ -7,12 +7,13 @@ use wasm_bindgen::prelude::*;
 use crate::Error;
 use crate::client::Client;
 use crate::components::form;
+
 pub const MODAL_ID: &str = "create-user-modal";
 
-#[wasm_bindgen(inline_js = "export function closeUserCreateModal() { \
+#[wasm_bindgen(inline_js = "export function hideUserCreateModal() { \
                             FlowbiteInstances.getInstance('Modal', 'create-user-modal').hide(); }")]
 extern "C" {
-    fn closeUserCreateModal();
+    fn hideUserCreateModal();
 }
 
 pub fn Modal(
@@ -32,7 +33,7 @@ pub fn Modal(
         let request = request.clone();
         async move {
             client.json(&request).await?;
-            closeUserCreateModal();
+            hideUserCreateModal();
             users_resource.refetch();
             Ok(())
         }

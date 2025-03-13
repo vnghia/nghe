@@ -1,4 +1,5 @@
 mod create;
+mod delete;
 
 use leptos::prelude::*;
 use leptos::{html, svg};
@@ -101,7 +102,8 @@ fn Row(user: Response) -> impl IntoView {
                 html::a()
                     .class("font-medium text-blue-600 dark:text-blue-500 hover:underline")
                     .child("Edit"),
-                html::a()
+                html::button()
+                    .r#type("button")
                     .class("font-medium text-red-600 dark:text-red-500 hover:underline ms-3")
                     .child("Delete"),
             )),
@@ -150,7 +152,8 @@ pub fn Users() -> impl IntoView {
                                     users_resource.await.map(|users| {
                                         (
                                             Table(node_ref, users),
-                                            create::Modal(client, users_resource),
+                                            create::Modal(client.clone(), users_resource),
+                                            delete::Modal(client, users_resource),
                                         )
                                     })
                                 })
