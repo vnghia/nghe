@@ -4,7 +4,8 @@ use nghe_api::user::get::Request;
 
 use super::navbar::Navbar;
 use super::sidebar::Sidebar;
-use crate::components::{Boundary, ClientRedirect, Loading, init};
+use crate::components::{Boundary, ClientRedirect, Loading};
+use crate::flowbite;
 
 pub fn Shell<IV: IntoView + 'static>(
     child: impl Fn() -> IV + Copy + Send + Sync + 'static,
@@ -12,9 +13,9 @@ pub fn Shell<IV: IntoView + 'static>(
     ClientRedirect(move |client| {
         let user = LocalResource::new(move || {
             let client = client.clone();
-            async move { client.json(&Request).await }
+            async move { client.json(&Request { id: None }).await }
         });
-        let node_ref = init::flowbite_suspense();
+        let node_ref = flowbite::init::suspense();
         Suspense(
             component_props_builder(&Suspense)
                 .fallback(Loading)

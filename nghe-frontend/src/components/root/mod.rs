@@ -5,7 +5,7 @@ mod sidebar;
 use leptos::prelude::*;
 
 use crate::client::Client;
-use crate::components::init;
+use crate::flowbite;
 
 pub fn Root<IV: IntoView + 'static>(
     child: impl Fn() -> IV + Copy + Send + Sync + 'static,
@@ -13,7 +13,7 @@ pub fn Root<IV: IntoView + 'static>(
     let location = leptos_router::hooks::use_location();
     Effect::new(move || {
         location.pathname.track();
-        init::flowbite();
+        flowbite::init();
     });
 
     let client = Client::use_client();

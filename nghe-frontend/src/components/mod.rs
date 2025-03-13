@@ -6,7 +6,6 @@ mod client_redirect;
 mod error;
 mod form;
 mod home;
-mod init;
 mod loading;
 mod root;
 mod users;
