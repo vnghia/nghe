@@ -5,6 +5,7 @@ use crate::Error;
 
 pub fn Error<I: Send + Sync + 'static>(
     action: Action<I, Result<(), Error>, SyncStorage>,
+    normal: bool,
 ) -> impl IntoView {
     move || {
         if let Some(Err(error)) = action.value().get() {
@@ -12,10 +13,13 @@ pub fn Error<I: Send + Sync + 'static>(
             Some(
                 html::div()
                     .role("submit-alert")
-                    .class(
+                    .class(if normal {
                         "p-4 text-red-800 border border-red-300 rounded-lg bg-red-50 \
-                         dark:bg-gray-800 dark:text-red-400 dark:border-red-800",
-                    )
+                         dark:bg-gray-800 dark:text-red-400 dark:border-red-800"
+                    } else {
+                        "text-sm p-4 text-red-800 border border-red-300 rounded-lg bg-red-50 \
+                         dark:bg-gray-800 dark:text-red-400 dark:border-red-800"
+                    })
                     .child(error.to_string()),
             )
         } else {

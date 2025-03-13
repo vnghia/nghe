@@ -5,6 +5,7 @@ use leptos::prelude::*;
 use leptos::{ev, html, svg};
 use nghe_api::user::get::Response;
 use nghe_api::user::list::Request;
+use uuid::Uuid;
 
 use crate::components::{Boundary, ClientRedirect, Loading};
 use crate::flowbite;
@@ -66,7 +67,7 @@ fn Head() -> impl IntoView {
         )))
 }
 
-fn Row(user: Response) -> impl IntoView {
+fn Row(user: Response, set_delete_user_id: WriteSignal<Option<Uuid>>) -> impl IntoView {
     html::tr()
         .class(
             "bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 \
@@ -108,22 +109,27 @@ fn Row(user: Response) -> impl IntoView {
                     .attr("data-modal-target", delete::MODAL_ID)
                     .class("font-medium text-red-600 dark:text-red-500 hover:underline ms-3")
                     .child("Delete")
-                    .on(ev::click, |_| {
+                    .on(ev::click, move |_| {
+                        set_delete_user_id(Some(user.id));
                         flowbite::modal::show(delete::MODAL_ID);
                     }),
             )),
         ))
 }
 
-fn Body(users: Vec<Response>) -> impl IntoView {
+fn Body(users: Vec<Response>, set_delete_user_id: WriteSignal<Option<Uuid>>) -> impl IntoView {
     html::tbody().child(For(component_props_builder(&For)
         .each(move || users.clone())
         .key(|user| user.id)
-        .children(Row)
+        .children(move |user| Row(user, set_delete_user_id))
         .build()))
 }
 
-fn Table(node_ref: NodeRef<html::Div>, users: Vec<Response>) -> impl IntoView {
+fn Table(
+    node_ref: NodeRef<html::Div>,
+    users: Vec<Response>,
+    set_delete_user_id: WriteSignal<Option<Uuid>>,
+) -> impl IntoView {
     html::div()
         .node_ref(node_ref)
         .class("m-4 relative overflow-x-auto shadow-md sm:rounded-lg")
@@ -131,7 +137,7 @@ fn Table(node_ref: NodeRef<html::Div>, users: Vec<Response>) -> impl IntoView {
             Global(),
             html::table()
                 .class("w-full text-sm text-left text-gray-500 dark:text-gray-400")
-                .child((Head(), Body(users))),
+                .child((Head(), Body(users, set_delete_user_id))),
         ))
 }
 
@@ -155,10 +161,16 @@ pub fn Users() -> impl IntoView {
                                 let client = client.clone();
                                 Suspend::new(async move {
                                     users_resource.await.map(|users| {
+                                        let (get_delete_user_id, set_delete_user_id) = signal(None);
+
                                         (
-                                            Table(node_ref, users),
+                                            Table(node_ref, users, set_delete_user_id),
                                             create::Modal(client.clone(), users_resource),
-                                            delete::Modal(client, users_resource),
+                                            delete::Modal(
+                                                client,
+                                                users_resource,
+                                                get_delete_user_id,
+                                            ),
                                         )
                                     })
                                 })

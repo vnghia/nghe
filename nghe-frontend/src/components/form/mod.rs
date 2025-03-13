@@ -1,7 +1,9 @@
-pub mod error;
+mod delete;
+mod error;
 pub mod input;
 mod submit;
 
+pub use delete::Delete;
 use leptos::prelude::*;
 use leptos::{html, svg};
 use web_sys::MouseEvent;
@@ -64,7 +66,7 @@ pub fn Form<IV: IntoView, I: Send + Sync + 'static>(
                 html::div().class("space-y-4 md:space-y-6").child((
                     fields(),
                     submit::Submit(button, on_click, action),
-                    error::Error(action),
+                    error::Error(action, true),
                 )),
             )),
         )
