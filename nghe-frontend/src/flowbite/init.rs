@@ -7,12 +7,12 @@ extern "C" {
     fn initializeFlowbite();
 }
 
-pub fn flowbite() {
+pub fn init() {
     initializeFlowbite();
     leptos::logging::debug_warn!("initializeFlowbite called");
 }
 
-pub fn flowbite_suspense<T>() -> NodeRef<T>
+pub fn suspense<T>() -> NodeRef<T>
 where
     T: html::ElementType + 'static,
     T::Output: Clone + wasm_bindgen::JsCast,
@@ -20,7 +20,7 @@ where
     let node_ref = NodeRef::<T>::new();
     Effect::new(move || {
         node_ref.track();
-        flowbite();
+        init();
     });
     node_ref
 }

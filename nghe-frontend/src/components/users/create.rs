@@ -2,19 +2,12 @@ use leptos::html;
 use leptos::prelude::*;
 use nghe_api::user::create::Request;
 use nghe_api::user::get::Response;
-use wasm_bindgen::prelude::*;
 
-use crate::Error;
 use crate::client::Client;
 use crate::components::form;
+use crate::{Error, flowbite};
 
 pub const MODAL_ID: &str = "create-user-modal";
-
-#[wasm_bindgen(inline_js = "export function hideUserCreateModal() { \
-                            FlowbiteInstances.getInstance('Modal', 'create-user-modal').hide(); }")]
-extern "C" {
-    fn hideUserCreateModal();
-}
 
 pub fn Modal(
     client: Client,
@@ -33,7 +26,7 @@ pub fn Modal(
         let request = request.clone();
         async move {
             client.json(&request).await?;
-            hideUserCreateModal();
+            flowbite::modal::hide(MODAL_ID);
             users_resource.refetch();
             Ok(())
         }

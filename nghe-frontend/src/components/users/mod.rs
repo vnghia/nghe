@@ -2,11 +2,12 @@ mod create;
 mod delete;
 
 use leptos::prelude::*;
-use leptos::{html, svg};
+use leptos::{ev, html, svg};
 use nghe_api::user::get::Response;
 use nghe_api::user::list::Request;
 
-use crate::components::{Boundary, ClientRedirect, Loading, init};
+use crate::components::{Boundary, ClientRedirect, Loading};
+use crate::flowbite;
 
 fn Global() -> impl IntoView {
     html::div()
@@ -104,8 +105,12 @@ fn Row(user: Response) -> impl IntoView {
                     .child("Edit"),
                 html::button()
                     .r#type("button")
+                    .attr("data-modal-target", delete::MODAL_ID)
                     .class("font-medium text-red-600 dark:text-red-500 hover:underline ms-3")
-                    .child("Delete"),
+                    .child("Delete")
+                    .on(ev::click, |_| {
+                        flowbite::modal::show(delete::MODAL_ID);
+                    }),
             )),
         ))
 }
@@ -138,9 +143,9 @@ pub fn Users() -> impl IntoView {
             async move { client.json(&Request).await.map(|response| response.users) }
         });
 
-        let node_ref = init::flowbite_suspense();
-        Suspense(
-            component_props_builder(&Suspense)
+        let node_ref = flowbite::init::suspense();
+        Transition(
+            component_props_builder(&Transition)
                 .fallback(Loading)
                 .children(ToChildren::to_children(move || {
                     IntoRender::into_render(move || {
