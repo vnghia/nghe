@@ -1,20 +1,6 @@
 use ::serde::{Deserialize, Deserializer, Serializer};
 use typed_path::Utf8PlatformPathBuf;
 
-pub fn serialize<S>(path: &Utf8PlatformPathBuf, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(path.as_str())
-}
-
-pub fn deserialize<'de, D>(deserializer: D) -> Result<Utf8PlatformPathBuf, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    <String>::deserialize(deserializer).map(Utf8PlatformPathBuf::from)
-}
-
 pub mod option {
     #![allow(clippy::ref_option)]
 

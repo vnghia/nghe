@@ -68,6 +68,7 @@ indexmap = { version = "2.7.1" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.22.2" }
 loole = { version = "0.4.0" }
+memory-serve = { version = "1.0.1" }
 mimalloc = { version = "0.1.43" }
 o2o = { version = "0.5.3", default-features = false, features = ["syn2"] }
 rsmpeg = { version = "0.15.1", default-features = false, features = [
@@ -94,7 +95,6 @@ tower-http = { version = "0.6.2", features = [
   "decompression-br",
   "decompression-gzip",
   "decompression-zstd",
-  "fs",
   "redirect",
   "request-id",
   "trace",
