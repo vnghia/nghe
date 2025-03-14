@@ -16,8 +16,6 @@ pub struct Response {
     pub path: String,
     #[serde(rename = "type")]
     pub ty: filesystem::Type,
-    pub artist_count: u32,
-    pub album_count: u32,
-    pub song_count: u32,
-    pub total_size: u64,
+    pub album_count: u64,
+    pub song_count: u64,
 }
