@@ -2,8 +2,6 @@ use std::net::{IpAddr, SocketAddr};
 
 use educe::Educe;
 use serde::{Deserialize, Serialize};
-use typed_path::Utf8PlatformPathBuf;
-use typed_path::utils::utf8_current_dir;
 
 #[derive(Debug, Serialize, Deserialize, Educe)]
 #[educe(Default)]
@@ -12,15 +10,6 @@ pub struct Server {
     pub host: IpAddr,
     #[educe(Default(expression = 3000))]
     pub port: u16,
-    #[serde(with = "crate::filesystem::path::serde")]
-    #[educe(Default(expression =
-        utf8_current_dir()
-            .unwrap()
-            .join("frontend")
-            .join("dist")
-            .with_platform_encoding()
-    ))]
-    pub frontend_dir: Utf8PlatformPathBuf,
 }
 
 impl Server {
