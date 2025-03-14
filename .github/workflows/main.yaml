@@ -43,6 +43,11 @@ jobs:
         with:
           toolchain: ${{ steps.toolchain.outputs.channel }}
           targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
