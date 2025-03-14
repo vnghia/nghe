@@ -1,3 +1,5 @@
+pub mod stat;
+
 use std::borrow::Cow;
 
 use color_eyre::eyre::OptionExt;
