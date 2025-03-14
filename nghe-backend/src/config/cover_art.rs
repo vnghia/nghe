@@ -15,15 +15,33 @@ pub struct CoverArt {
             utf8_temp_dir()
                 .unwrap()
                 .join("nghe")
-                .join("cache")
                 .join("cover_art")
                 .with_platform_encoding()
         )
     ))]
     pub dir: Option<Utf8PlatformPathBuf>,
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, String>")]
-    #[educe(Default(expression = vec!["cover.jpg".to_owned(), "cover.png".to_owned()]))]
+    #[educe(Default(expression = vec![
+        "cover.jpg".to_owned(), 
+        "cover.jpeg".to_owned(),
+        "cover.png".to_owned(),
+    ]))]
     pub names: Vec<String>,
+    #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
+    #[educe(Default(expression = Some(10)))]
+    pub channel_size: Option<usize>,
+    #[serde(with = "crate::filesystem::path::serde::option")]
+    #[educe(Default(
+        expression = Some(
+            utf8_temp_dir()
+                .unwrap()
+                .join("nghe")
+                .join("cache")
+                .join("cover_art")
+                .with_platform_encoding()
+        )
+    ))]
+    pub cache_dir: Option<Utf8PlatformPathBuf>,
 }
 
 #[cfg(test)]
@@ -38,8 +56,10 @@ mod test {
     impl CoverArt {
         pub fn with_prefix(self, prefix: impl AsRef<Utf8PlatformPath>) -> Self {
             Self {
-                dir: self.dir.map(|_| prefix.as_ref().join("cache").join("cover_art")),
+                dir: self.dir.map(|_| prefix.as_ref().join("cover_art")),
                 names: picture::Format::iter().map(picture::Format::name).collect(),
+                cache_dir: self.cache_dir.map(|_| prefix.as_ref().join("cache").join("cover_art")),
+                ..self
             }
         }
     }
