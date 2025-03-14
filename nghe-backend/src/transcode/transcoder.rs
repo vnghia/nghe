@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 use std::ffi::{CStr, CString};
-use std::fmt::Debug;
 
+use atomic_write_file::AtomicWriteFile;
 use concat_string::concat_string;
+use loole::Receiver;
 use rsmpeg::avcodec::{AVCodec, AVCodecContext};
 use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
 use rsmpeg::avformat::{AVFormatContextInput, AVFormatContextOutput};
@@ -11,8 +12,8 @@ use rsmpeg::error::RsmpegError;
 use rsmpeg::{UnsafeDerefMut, avutil, ffi};
 use tracing::instrument;
 
-use super::Sink;
-use crate::{Error, error};
+use super::{Path, Sink};
+use crate::{Error, config, error};
 
 struct Input {
     context: AVFormatContextInput,
@@ -219,20 +220,32 @@ impl<'graph> Filter<'graph> {
 }
 
 impl Transcoder {
-    #[cfg_attr(not(coverage_nightly), instrument(err(Debug)))]
+    #[cfg_attr(not(coverage_nightly), instrument)]
     pub fn spawn(
-        input: impl Into<String> + Debug,
-        sink: Sink,
+        config: &config::Transcode,
+        path: Path,
+        format: nghe_api::common::format::Transcode,
         bitrate: u32,
         offset: u32,
-    ) -> Result<tokio::task::JoinHandle<Result<(), Error>>, Error> {
-        let mut transcoder = Self::new(&CString::new(input.into())?, sink, bitrate, offset)?;
+    ) -> (Receiver<Vec<u8>>, tokio::task::JoinHandle<Result<(), Error>>) {
+        let (tx, rx) = crate::sync::channel(config.channel_size);
+        let buffer_size = config.buffer_size;
 
         let span = tracing::Span::current();
-        Ok(tokio::task::spawn_blocking(move || {
+        let handle = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
-            transcoder.transcode()
-        }))
+
+            let atomic_file = path.output.map(AtomicWriteFile::open).transpose()?;
+            let file = atomic_file.as_ref().map(|file| file.as_file().try_clone()).transpose()?;
+            let sink = Sink { tx, buffer_size, format, file };
+
+            let mut transcoder = Self::new(&CString::new(path.input)?, sink, bitrate, offset)?;
+            transcoder.transcode()?;
+            atomic_file.map(AtomicWriteFile::commit).transpose()?;
+            Ok(())
+        });
+
+        (rx, handle)
     }
 
     fn new(input: &CStr, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
@@ -291,21 +304,25 @@ impl Transcoder {
 mod test {
     use futures_lite::{StreamExt, stream};
     use nghe_api::common::format;
-    use typed_path::Utf8PlatformPathBuf;
 
     use super::*;
     use crate::config;
 
     impl Transcoder {
         pub async fn spawn_collect(
-            input: impl Into<String> + Debug,
             config: &config::Transcode,
+            input: impl Into<String>,
             format: format::Transcode,
             bitrate: u32,
             offset: u32,
         ) -> Vec<u8> {
-            let (sink, rx) = Sink::new(config, format, None::<Utf8PlatformPathBuf>).await.unwrap();
-            let handle = Transcoder::spawn(input, sink, bitrate, offset).unwrap();
+            let (rx, handle) = Transcoder::spawn(
+                config,
+                Path { input: input.into(), output: None },
+                format,
+                bitrate,
+                offset,
+            );
             let data = rx.into_stream().map(stream::iter).flatten().collect().await;
             handle.await.unwrap().unwrap();
             data
@@ -313,7 +330,7 @@ mod test {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, hearing_test))]
 #[coverage(off)]
 mod tests {
     use nghe_api::common::format;
@@ -323,7 +340,6 @@ mod tests {
     use super::*;
     use crate::config;
 
-    #[cfg(hearing_test)]
     #[rstest]
     #[case(format::Transcode::Opus, 64)]
     #[case(format::Transcode::Mp3, 320)]
@@ -335,7 +351,7 @@ mod tests {
     ) {
         let input = env!("NGHE_HEARING_TEST_INPUT");
         let config = config::Transcode::default();
-        let data = Transcoder::spawn_collect(input, &config, format, bitrate, offset).await;
+        let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
 
         tokio::fs::write(
             Utf8PlatformPath::new(env!("NGHE_HEARING_TEST_OUTPUT"))

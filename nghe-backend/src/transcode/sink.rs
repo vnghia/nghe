@@ -1,49 +1,24 @@
 use std::ffi::CStr;
-use std::fmt::Display;
 use std::io::Write;
 
 use educe::Educe;
-use loole::{Receiver, Sender};
+use loole::Sender;
 use nghe_api::common::format;
 use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
 use rsmpeg::avutil::AVMem;
 use rsmpeg::ffi;
-use typed_path::Utf8PlatformPath;
-
-use super::Lock;
-use crate::{Error, config};
 
 #[derive(Educe)]
 #[educe(Debug)]
 pub struct Sink {
     #[educe(Debug(ignore))]
-    tx: Sender<Vec<u8>>,
-    buffer_size: usize,
-    format: format::Transcode,
-    file: Option<std::fs::File>,
+    pub tx: Sender<Vec<u8>>,
+    pub buffer_size: usize,
+    pub format: format::Transcode,
+    pub file: Option<std::fs::File>,
 }
 
 impl Sink {
-    pub async fn new(
-        config: &config::Transcode,
-        format: format::Transcode,
-        output: Option<impl AsRef<Utf8PlatformPath> + Display + Send + 'static>,
-    ) -> Result<(Self, Receiver<Vec<u8>>), Error> {
-        let (tx, rx) = crate::sync::channel(config.channel_size);
-        // It will fail in two cases:
-        //  - The file already exists because of `create_new`.
-        //  - The lock can not be acquired. In this case, another process is already writing to this
-        //    file.
-        // In both cases, we could start transcoding without writing to a file.
-        let span = tracing::Span::current();
-        let file = tokio::task::spawn_blocking(move || {
-            let _entered = span.enter();
-            output.map(Lock::lock_write).transpose().ok().flatten()
-        })
-        .await?;
-        Ok((Self { tx, buffer_size: config.buffer_size, format, file }, rx))
-    }
-
     pub fn format(&self) -> &'static CStr {
         // TODO: Use ffmpeg format code after https://github.com/larksuite/rsmpeg/pull/196
         match self.format {
@@ -86,21 +61,5 @@ impl From<Sink> for AVIOContextContainer {
             Some(Box::new(move |_, data| sink.write(data))),
             None,
         ))
-    }
-}
-
-#[cfg(test)]
-#[coverage(off)]
-mod test {
-    use super::*;
-    use crate::test::transcode::Status;
-
-    impl Sink {
-        pub fn status(&self, status: Status) -> Status {
-            match status {
-                Status::WithCache if self.file.is_none() => Status::NoCache,
-                _ => status,
-            }
-        }
     }
 }

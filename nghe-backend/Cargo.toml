@@ -30,6 +30,7 @@ nghe_proc_macro = { path = "../nghe-proc-macro" }
 
 alrc = { version = "0.1.0" }
 async-walkdir = { version = "2.1.0" }
+atomic-write-file = { version = "0.2.3" }
 aws-config = { version = "1.5.16", default-features = false, features = [
   "rt-tokio",
   "behavior-version-latest",
