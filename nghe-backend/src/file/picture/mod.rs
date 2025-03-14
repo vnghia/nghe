@@ -38,6 +38,7 @@ use crate::{Error, config, error, filesystem};
 #[cfg_attr(test, owned_into(MimeType))]
 pub enum Format {
     Png,
+    #[strum(serialize = "jpeg", serialize = "jpg")]
     Jpeg,
 }
 
@@ -184,6 +185,7 @@ impl Picture<'static> {
                     .extension()
                     .ok_or_else(|| error::Kind::MissingPathExtension(path.to_path_buf()))?;
                 format
+                    .to_lowercase()
                     .parse()
                     .map_err(|_| error::Kind::UnsupportedPictureFormat(format.to_owned()))?
             };
@@ -354,6 +356,14 @@ mod tests {
     use super::*;
     use crate::test::filesystem::Trait;
     use crate::test::{Mock, mock};
+
+    #[rstest]
+    #[case("png", Format::Png)]
+    #[case("jpeg", Format::Jpeg)]
+    #[case("jpg", Format::Jpeg)]
+    fn test_format(#[case] extension: &str, #[case] format: Format) {
+        assert_eq!(extension.parse::<Format>().unwrap(), format);
+    }
 
     #[rstest]
     #[tokio::test]
