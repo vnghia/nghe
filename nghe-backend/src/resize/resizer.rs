@@ -1,44 +1,37 @@
 use std::io::{Cursor, Write};
 
 use atomic_write_file::AtomicWriteFile;
-use educe::Educe;
 use image::ImageReader;
-use tokio::sync::oneshot::{Receiver, Sender};
 use typed_path::Utf8PlatformPathBuf;
 
 use crate::Error;
+use crate::file::picture;
 
-#[derive(Educe)]
-#[educe(Debug)]
 pub struct Resizer {
-    #[educe(Debug(ignore))]
-    tx: Sender<Vec<u8>>,
     input: Utf8PlatformPathBuf,
     output: Option<AtomicWriteFile>,
     size: u32,
+    format: picture::Format,
 }
 
 impl Resizer {
-    pub fn spawn(
+    pub async fn spawn(
         input: Utf8PlatformPathBuf,
         output: Option<Utf8PlatformPathBuf>,
+        format: picture::Format,
         size: u32,
-    ) -> (Receiver<Vec<u8>>, tokio::task::JoinHandle<Result<(), Error>>) {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-
+    ) -> Result<Vec<u8>, Error> {
         let span = tracing::Span::current();
-        let handle = tokio::task::spawn_blocking(move || {
+        tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
 
             let output = output.map(AtomicWriteFile::open).transpose()?;
-            let resizer = Self { tx, input, output, size };
-            resizer.resize()
-        });
-
-        (rx, handle)
+            Self { input, output, size, format }.resize()
+        })
+        .await?
     }
 
-    pub fn resize(mut self) -> Result<(), Error> {
+    pub fn resize(self) -> Result<Vec<u8>, Error> {
         let image = ImageReader::open(&self.input)?.decode()?.resize(
             self.size,
             self.size,
@@ -46,12 +39,12 @@ impl Resizer {
         );
 
         let mut data: Vec<u8> = Vec::new();
-        image.write_to(&mut Cursor::new(&mut data), image::ImageFormat::WebP)?;
+        image.write_to(&mut Cursor::new(&mut data), self.format.into())?;
 
-        self.output.as_mut().map(|output| output.write_all(&data)).transpose()?;
-        let _ = self.tx.send(data);
-
-        self.output.map(AtomicWriteFile::commit).transpose()?;
-        Ok(())
+        if let Some(mut output) = self.output {
+            output.write_all(&data)?;
+            output.commit()?;
+        }
+        Ok(data)
     }
 }

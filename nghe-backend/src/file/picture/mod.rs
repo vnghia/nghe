@@ -8,6 +8,7 @@ use diesel_async::RunQueryDsl;
 use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format::{self, Trait as _};
+use o2o::o2o;
 use strum::{EnumString, IntoStaticStr};
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 use uuid::Uuid;
@@ -31,12 +32,13 @@ use crate::{Error, config, error, filesystem};
     IntoStaticStr,
     AsExpression,
     FromSqlRow,
+    o2o,
 )]
 #[diesel(sql_type = Text)]
 #[strum(serialize_all = "lowercase")]
-#[cfg_attr(test, derive(fake::Dummy, o2o::o2o, strum::EnumIter))]
+#[owned_into(image::ImageFormat)]
+#[cfg_attr(test, derive(fake::Dummy, strum::EnumIter))]
 #[cfg_attr(test, owned_into(MimeType))]
-#[cfg_attr(test, owned_into(image::ImageFormat))]
 pub enum Format {
     Png,
     #[strum(serialize = "jpeg", serialize = "jpg")]
