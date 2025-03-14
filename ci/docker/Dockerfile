@@ -13,8 +13,6 @@ RUN update-ca-certificates
 
 FROM ${BASE_IMAGE}
 COPY --from=artifact /artifact/nghe /app/nghe
-COPY --from=artifact /artifact/frontend/ /app/frontend/
 COPY --from=artifact /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENV NGHE_SERVER__HOST="::"
-ENV NGHE_SERVER__FRONTEND_DIR="/app/frontend/"
 ENTRYPOINT [ "/app/nghe" ]
