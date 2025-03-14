@@ -2,6 +2,7 @@ use std::ffi::CStr;
 use std::fmt::Display;
 use std::io::Write;
 
+use atomic_write_file::AtomicWriteFile;
 use educe::Educe;
 use loole::{Receiver, Sender};
 use nghe_api::common::format;
@@ -10,7 +11,6 @@ use rsmpeg::avutil::AVMem;
 use rsmpeg::ffi;
 use typed_path::Utf8PlatformPath;
 
-use super::Lock;
 use crate::{Error, config};
 
 #[derive(Educe)]
@@ -20,7 +20,7 @@ pub struct Sink {
     tx: Sender<Vec<u8>>,
     buffer_size: usize,
     format: format::Transcode,
-    file: Option<std::fs::File>,
+    file: Option<AtomicWriteFile>,
 }
 
 impl Sink {
@@ -30,17 +30,12 @@ impl Sink {
         output: Option<impl AsRef<Utf8PlatformPath> + Display + Send + 'static>,
     ) -> Result<(Self, Receiver<Vec<u8>>), Error> {
         let (tx, rx) = crate::sync::channel(config.channel_size);
-        // It will fail in two cases:
-        //  - The file already exists because of `create_new`.
-        //  - The lock can not be acquired. In this case, another process is already writing to this
-        //    file.
-        // In both cases, we could start transcoding without writing to a file.
         let span = tracing::Span::current();
         let file = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
-            output.map(Lock::lock_write).transpose().ok().flatten()
+            output.map(|output| AtomicWriteFile::options().open(output.as_ref())).transpose()
         })
-        .await?;
+        .await??;
         Ok((Self { tx, buffer_size: config.buffer_size, format, file }, rx))
     }
 

@@ -38,28 +38,15 @@ pub async fn handler(
 
     let transcode_config = if let Some(ref cache_dir) = config.cache_dir {
         let output = property.path_create_dir(cache_dir, bitrate.to_string().as_str()).await?;
+        let cache_exists = tokio::fs::try_exists(&output).await?;
 
-        let span = tracing::Span::current();
-        let (can_acquire_lock, output) = tokio::task::spawn_blocking(move || {
-            let _entered = span.enter();
-            (transcode::Lock::lock_read(&output).is_ok(), output)
-        })
-        .await?;
-
-        // If local cache is turned on and we can acquire the read lock, it means that:
-        //  - The file exists.
-        //  - No process is writing to it. The transcoding process is finish.
-        //
-        // In that case, we have two cases:
+        // If the cache exists, it means that the transcoding process is finish. Since we write the
+        // transcoding cache atomically, we are guaranteed that that file is in a complete state and
+        // is usable immediately. In that case, we have two cases:
         //  - If time offset is greater than 0, we can use the transcoded file as transcoder input
         //    so it only needs to activate `atrim` filter.
         //  - Otherwise, we only need to stream the transcoded file from local cache.
-        // If the lock can not be acquired, we have two cases:
-        //  - If time offset is greater than 0, we spawn a transcoding process without writing it
-        //    back to the local cache.
-        //  - Otherwise, we spawn a transcoding process and let the sink tries acquiring the write
-        //    lock for further processing.
-        if can_acquire_lock {
+        if cache_exists {
             if time_offset > 0 {
                 (
                     output.as_str().to_owned(),
@@ -78,6 +65,11 @@ pub async fn handler(
                 .await;
             }
         } else {
+            // If the file does not exist, we have two cases:
+            //  - If time offset is greater than 0, we spawn a transcoding process without writing
+            //    it back to the local cache.
+            //  - Otherwise, we spawn a transcoding process and let the sink writes the transcoded
+            //    chunk to the cache file.
             (
                 filesystem.transcode_input(source_path).await?,
                 if time_offset > 0 { None } else { Some(output) },
@@ -192,18 +184,6 @@ mod tests {
         }
         assert_eq!(transcode_status, &[TranscodeStatus::NoCache, TranscodeStatus::WithCache]);
 
-        // We will have to wait a bit to make sure that the write lock is released.
-        let cache_path = music_folder.filesystem[0]
-            .information
-            .file
-            .replace(format)
-            .path(config.cache_dir.as_ref().unwrap(), bitrate.to_string().as_str());
-        tokio::task::spawn_blocking(move || {
-            transcode::Lock::lock_read_blocking(&cache_path).unwrap();
-        })
-        .await
-        .unwrap();
-
         let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
@@ -257,20 +237,6 @@ mod tests {
         let transcode_status =
             spawn_stream(&mock, 1, user_id, Request { time_offset: None, ..request }).await.1;
         assert_eq!(transcode_status, &[TranscodeStatus::WithCache]);
-
-        // We don't test the response body here because it does not take the same input as above.
-        // However, we want to make sure that the transcode status is equal to `UseCachedOutput`.
-        // We will have to wait a bit to make sure that the write lock is released.
-        let cache_path = music_folder.filesystem[0]
-            .information
-            .file
-            .replace(format)
-            .path(config.cache_dir.as_ref().unwrap(), bitrate.to_string().as_str());
-        tokio::task::spawn_blocking(move || {
-            transcode::Lock::lock_read_blocking(&cache_path).unwrap();
-        })
-        .await
-        .unwrap();
 
         let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
