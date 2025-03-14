@@ -63,7 +63,8 @@ impl TryFrom<&MimeType> for Format {
 }
 
 impl format::Trait for Format {
-    const CACHE_DURATION: std::time::Duration = std::time::Duration::from_days(365);
+    const CACHE_CONTROL: format::CacheControl =
+        format::CacheControl { duration: std::time::Duration::from_days(365), immutable: true };
 
     fn mime(&self) -> &'static str {
         match self {

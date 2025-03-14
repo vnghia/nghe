@@ -97,7 +97,9 @@ impl<F: format::Trait> property::Trait for Property<F> {
     }
 
     fn cache_control() -> CacheControl {
-        CacheControl::new().with_private().with_max_age(F::CACHE_DURATION)
+        let cache_control =
+            CacheControl::new().with_private().with_max_age(F::CACHE_CONTROL.duration);
+        if F::CACHE_CONTROL.immutable { cache_control.with_immutable() } else { cache_control }
     }
 }
 

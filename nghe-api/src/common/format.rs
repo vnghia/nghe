@@ -3,8 +3,14 @@ use std::fmt::Debug;
 use nghe_proc_macro::api_derive;
 use strum::{EnumString, IntoStaticStr};
 
+#[derive(Debug, Clone, Copy)]
+pub struct CacheControl {
+    pub duration: std::time::Duration,
+    pub immutable: bool,
+}
+
 pub trait Trait: Debug + Copy {
-    const CACHE_DURATION: std::time::Duration = std::time::Duration::from_days(1);
+    const CACHE_CONTROL: CacheControl = CacheControl::const_default();
 
     fn mime(&self) -> &'static str;
     fn extension(&self) -> &'static str;
@@ -21,6 +27,12 @@ pub enum Transcode {
     Opus,
     Wav,
     Wma,
+}
+
+impl CacheControl {
+    pub const fn const_default() -> Self {
+        Self { duration: std::time::Duration::from_days(1), immutable: false }
+    }
 }
 
 impl Trait for Transcode {
