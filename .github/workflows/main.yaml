@@ -61,7 +61,7 @@ jobs:
       - name: Build frontend
         working-directory: ${{ github.workspace }}/nghe-frontend
         run: |
-          trunk build --locked ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && '--release --minify' || '' }}
+          trunk build --locked ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && '--release' || '' }}
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

@@ -3,5 +3,14 @@ addresses = ["0.0.0.0"]
 port = 8080
 open = true
 
+[build]
+target = "index.html"
+html_output = "index.html"
+dist = "dist"
+public_url = "/frontend"
+minify = "on_release"
+# TODO: Enable SRI after https://github.com/trunk-rs/trunk/pull/956
+no_sri = true
+
 [[proxy]]
 backend = "http://localhost:3000/rest"

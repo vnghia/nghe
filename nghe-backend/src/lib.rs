@@ -37,13 +37,14 @@ mod test;
 
 use axum::Router;
 use error::Error;
+use memory_serve::MemoryServe;
 use mimalloc::MiMalloc;
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
-use tower_http::services::{Redirect, ServeDir, ServeFile};
+use tower_http::services::Redirect;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -92,8 +93,7 @@ pub async fn build(config: config::Config) -> Router {
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
     let informant = integration::Informant::new(config.integration).await;
 
-    let frontend_router = ServeDir::new(&config.server.frontend_dir)
-        .fallback(ServeFile::new(config.server.frontend_dir.join("index.html")));
+    let frontend_router = MemoryServe::from_env().fallback(Some("/index.html")).into_router();
 
     let backend_middleware = ServiceBuilder::new()
         .layer(RequestDecompressionLayer::new().br(true).gzip(true).zstd(true))
