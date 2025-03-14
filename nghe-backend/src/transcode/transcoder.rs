@@ -330,7 +330,7 @@ mod test {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, hearing_test))]
 #[coverage(off)]
 mod tests {
     use nghe_api::common::format;
@@ -340,7 +340,6 @@ mod tests {
     use super::*;
     use crate::config;
 
-    #[cfg(hearing_test)]
     #[rstest]
     #[case(format::Transcode::Opus, 64)]
     #[case(format::Transcode::Mp3, 320)]
