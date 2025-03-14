@@ -27,9 +27,6 @@ pub struct CoverArt {
         "cover.png".to_owned(),
     ]))]
     pub names: Vec<String>,
-    #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
-    #[educe(Default(expression = Some(10)))]
-    pub channel_size: Option<usize>,
     #[serde(with = "crate::filesystem::path::serde::option")]
     #[educe(Default(
         expression = Some(
@@ -59,7 +56,6 @@ mod test {
                 dir: self.dir.map(|_| prefix.as_ref().join("cover_art")),
                 names: picture::Format::iter().map(picture::Format::name).collect(),
                 cache_dir: self.cache_dir.map(|_| prefix.as_ref().join("cache").join("cover_art")),
-                ..self
             }
         }
     }

@@ -118,15 +118,6 @@ pub enum Kind {
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     EmptyFileEncountered,
 
-    #[error("File is already locked")]
-    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
-    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    FileAlreadyLocked,
-    #[error("File is already exclusively locked")]
-    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
-    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    FileAlreadyExclusivelyLocked,
-
     // Media error
     #[error("Could not found vorbis comments in format {0}")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
@@ -275,6 +266,7 @@ pub enum Kind {
 #[from_owned(std::ffi::NulError)]
 #[from_owned(std::str::Utf8Error)]
 #[from_owned(tracing_subscriber::util::TryInitError)]
+#[from_owned(image::ImageError)]
 pub struct Error {
     pub status_code: StatusCode,
     pub opensubsonic_code: OpensubsonicCode,
