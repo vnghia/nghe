@@ -7,7 +7,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
-use nghe_api::common::format;
+use nghe_api::common::format::{self, Trait as _};
 use strum::{EnumString, IntoStaticStr};
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 use uuid::Uuid;
@@ -41,6 +41,8 @@ pub enum Format {
     Png,
     #[strum(serialize = "jpeg", serialize = "jpg")]
     Jpeg,
+    #[cfg_attr(test, into(MimeType|MimeType::Unknown(@.mime().to_string())))]
+    WebP,
 }
 
 #[derive(Educe)]
@@ -59,6 +61,7 @@ impl TryFrom<&MimeType> for Format {
         match value {
             MimeType::Png => Ok(Self::Png),
             MimeType::Jpeg => Ok(Self::Jpeg),
+            MimeType::Unknown(mime) if mime == Self::WebP.mime() => Ok(Self::WebP),
             _ => error::Kind::UnsupportedPictureFormat(value.as_str().to_owned()).into(),
         }
     }
@@ -72,6 +75,7 @@ impl format::Trait for Format {
         match self {
             Self::Png => "image/png",
             Self::Jpeg => "image/jpeg",
+            Self::WebP => "image/webp",
         }
     }
 
@@ -355,6 +359,7 @@ mod tests {
     #[case("png", Format::Png)]
     #[case("jpeg", Format::Jpeg)]
     #[case("jpg", Format::Jpeg)]
+    #[case("webp", Format::WebP)]
     fn test_format(#[case] extension: &str, #[case] format: Format) {
         assert_eq!(extension.parse::<Format>().unwrap(), format);
     }
