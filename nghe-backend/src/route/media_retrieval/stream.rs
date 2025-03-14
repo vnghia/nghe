@@ -36,7 +36,7 @@ pub async fn handler(
     let property = source.property.replace(format);
     let source_path = source.path.to_path();
 
-    let transcode_config = if let Some(ref cache_dir) = config.cache_dir {
+    let transcode_args = if let Some(ref cache_dir) = config.cache_dir {
         let output = property.path_create_dir(cache_dir, bitrate.to_string().as_str()).await?;
         let cache_exists = tokio::fs::try_exists(&output).await?;
 
@@ -49,8 +49,7 @@ pub async fn handler(
         if cache_exists {
             if time_offset > 0 {
                 (
-                    output.as_str().to_owned(),
-                    None,
+                    transcode::Path { input: output.as_str().to_owned(), output: None },
                     #[cfg(test)]
                     TranscodeStatus::UseCachedOutput,
                 )
@@ -71,34 +70,30 @@ pub async fn handler(
             //  - Otherwise, we spawn a transcoding process and let the sink writes the transcoded
             //    chunk to the cache file.
             (
-                filesystem.transcode_input(source_path).await?,
-                if time_offset > 0 { None } else { Some(output) },
+                transcode::Path {
+                    input: filesystem.transcode_input(source_path).await?,
+                    output: if time_offset > 0 { None } else { Some(output) },
+                },
                 #[cfg(test)]
                 if time_offset > 0 { TranscodeStatus::NoCache } else { TranscodeStatus::WithCache },
             )
         }
     } else {
         (
-            filesystem.transcode_input(source_path).await?,
-            None,
+            transcode::Path { input: filesystem.transcode_input(source_path).await?, output: None },
             #[cfg(test)]
             TranscodeStatus::NoCache,
         )
     };
 
-    let input = transcode_config.0;
-    let output = transcode_config.1;
-
-    let (sink, rx) = transcode::Sink::new(&config, format, output).await?;
-    #[cfg(test)]
-    let transcode_status = sink.status(transcode_config.2);
-    transcode::Transcoder::spawn(input, sink, bitrate, time_offset)?;
+    let (rx, _) =
+        transcode::Transcoder::spawn(&config, transcode_args.0, format, bitrate, time_offset);
 
     binary::Response::from_rx(
         rx,
         format,
         #[cfg(test)]
-        transcode_status,
+        transcode_args.1,
     )
 }
 
@@ -167,7 +162,7 @@ mod tests {
         let transcoded = {
             let path = music_folder.absolute_path(0);
             let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
-            transcode::Transcoder::spawn_collect(&input, config, format, bitrate, 0).await
+            transcode::Transcoder::spawn_collect(config, &input, format, bitrate, 0).await
         };
 
         let request = Request {
@@ -182,7 +177,7 @@ mod tests {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(transcoded, body);
         }
-        assert_eq!(transcode_status, &[TranscodeStatus::NoCache, TranscodeStatus::WithCache]);
+        assert_eq!(transcode_status, &[TranscodeStatus::WithCache, TranscodeStatus::WithCache]);
 
         let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
@@ -217,7 +212,7 @@ mod tests {
         let transcoded = {
             let path = music_folder.absolute_path(0);
             let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
-            transcode::Transcoder::spawn_collect(&input, config, format, bitrate, time_offset).await
+            transcode::Transcoder::spawn_collect(config, &input, format, bitrate, time_offset).await
         };
 
         let request = Request {
