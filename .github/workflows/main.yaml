@@ -88,9 +88,11 @@ jobs:
             runs-on: ubuntu-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
+    needs: [build-frontend]
 
     env:
       CROSS_CONTAINER_OPTS: "--network=host"
+      ASSET_DIR: ${{ github.workspace }}/frontend
 
     services:
       postgres:
@@ -117,6 +119,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Download build artifact for frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: ${{ github.workspace }}
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
         with:
@@ -214,7 +221,7 @@ jobs:
 
   build-docker:
     runs-on: ubuntu-latest
-    needs: [build-frontend, build-linux]
+    needs: [build-linux]
     if: ${{ vars.BUILD_DOCKER != '' }}
 
     env:
@@ -292,8 +299,10 @@ jobs:
           - "13.4"
 
     runs-on: ubuntu-latest
+    needs: [build-frontend]
     env:
       TARGET: x86_64-unknown-freebsd
+      ASSET_DIR: ${{ github.workspace }}/frontend
 
     services:
       postgres:
@@ -363,6 +372,11 @@ jobs:
           sudo docker image prune --all --force
 
       - uses: actions/checkout@v4
+      - name: Download build artifact for frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: ${{ github.workspace }}
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
         with:
@@ -401,7 +415,7 @@ jobs:
         with:
           operating_system: freebsd
           version: ${{ matrix.version }}
-          environment_variables: "CARGO_TERM_COLOR RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN VCPKG_BINARY_SOURCES"
+          environment_variables: "ASSET_DIR CARGO_TERM_COLOR RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN VCPKG_BINARY_SOURCES"
           shell: "bash"
           cpu_count: 4
           image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
@@ -435,9 +449,18 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    needs: [build-frontend]
+
+    env:
+      ASSET_DIR: ${{ github.workspace }}\frontend
 
     steps:
       - uses: actions/checkout@v4
+      - name: Download build artifact for frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: ${{ github.workspace }}
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
         with:
@@ -530,12 +553,19 @@ jobs:
             vcpkg-target: arm64-osx-release
 
     runs-on: ${{ matrix.platform.os }}
+    needs: [build-frontend]
 
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
+      ASSET_DIR: ${{ github.workspace }}/frontend
 
     steps:
       - uses: actions/checkout@v4
+      - name: Download build artifact for frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend
+          path: ${{ github.workspace }}
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
         with:
@@ -617,8 +647,7 @@ jobs:
 
   upload-release:
     runs-on: ubuntu-latest
-    needs:
-      [build-frontend, build-linux, build-freebsd, build-windows, build-macos]
+    needs: [build-linux, build-freebsd, build-windows, build-macos]
     if: ${{ github.event_name == 'release' }}
     permissions:
       contents: write
