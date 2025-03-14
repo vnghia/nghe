@@ -18,4 +18,5 @@ pub struct Response {
     pub ty: filesystem::Type,
     pub album_count: u64,
     pub song_count: u64,
+    pub total_size: u64,
 }

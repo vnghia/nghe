@@ -1,13 +1,14 @@
 use std::borrow::Cow;
 
-use diesel::dsl::{Nullable, count_distinct};
+use diesel::dsl::{count_distinct, sum};
+use diesel::helper_types::sum;
 use diesel::prelude::*;
 use o2o::o2o;
 
 use super::{FilesystemType, music_folders};
 use crate::orm::{albums, songs};
 
-diesel::alias!(songs as songs_total_size: SongsTotalSize);
+diesel::alias!(albums as albums_size: AlbumsSize, songs as songs_size: SongsSize);
 
 #[derive(Debug, Queryable, Selectable, o2o)]
 #[diesel(table_name = music_folders, check_for_backend(crate::orm::Type))]
@@ -21,13 +22,21 @@ pub struct Stat<'a> {
     #[into(~.into())]
     pub ty: FilesystemType,
     #[diesel(select_expression = count_distinct(albums::id.nullable()))]
-    #[diesel(select_expression_type = count_distinct<Nullable<albums::id>>)]
     #[into(~.cast_unsigned())]
     pub album_count: i64,
     #[diesel(select_expression = count_distinct(songs::id.nullable()))]
-    #[diesel(select_expression_type = count_distinct<Nullable<songs::id>>)]
     #[into(~.cast_unsigned())]
     pub song_count: i64,
+    #[diesel(select_expression = songs_size
+        .inner_join(
+            albums_size.on(albums_size.field(albums::id)
+            .eq(songs_size.field(songs::album_id))))
+        .filter(albums_size.field(albums::music_folder_id).eq(music_folders::id))
+        .select(sum(songs_size.field(songs::file_size)))
+        .single_value()
+    )]
+    #[into(~.unwrap_or_default().cast_unsigned())]
+    pub total_size: Option<i64>,
 }
 
 pub mod query {

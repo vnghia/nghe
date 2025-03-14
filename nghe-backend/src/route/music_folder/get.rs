@@ -27,10 +27,13 @@ pub async fn handler(
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
+    use std::num::NonZero;
+
     use fake::{Fake, Faker};
     use rstest::rstest;
 
     use super::*;
+    use crate::file::{self, audio};
     use crate::orm::users;
     use crate::test::{Mock, mock};
 
@@ -50,17 +53,29 @@ mod tests {
         let mut music_folder = mock.music_folder(0).await;
 
         for i in 0..n_album {
-            music_folder
-                .add_audio()
-                .album(Faker.fake())
-                .n_song(n_song[usize::try_from(i).unwrap()].try_into().unwrap())
-                .call()
-                .await;
+            let album: audio::Album = Faker.fake();
+            for _ in 0..n_song[usize::try_from(i).unwrap()] {
+                music_folder
+                    .add_audio()
+                    .album(album.clone())
+                    .file_property(file::Property {
+                        size: NonZero::new((100..1000).fake()).unwrap(),
+                        ..Faker.fake()
+                    })
+                    .call()
+                    .await;
+            }
         }
+
+        let total_size = music_folder
+            .database
+            .iter()
+            .fold(0u64, |size, song| size + u64::from(song.1.information.file.size.get()));
 
         let response =
             handler(mock.database(), user_id, Request { id: music_folder.id() }).await.unwrap();
         assert_eq!(response.album_count, n_album);
         assert_eq!(response.song_count, n_song.iter().sum::<u64>());
+        assert_eq!(response.total_size, total_size);
     }
 }
