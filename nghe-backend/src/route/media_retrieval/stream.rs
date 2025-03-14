@@ -37,7 +37,7 @@ pub async fn handler(
     let source_path = source.path.to_path();
 
     let transcode_args = if let Some(ref cache_dir) = config.cache_dir {
-        let output = property.path_create_dir(cache_dir, bitrate.to_string().as_str()).await?;
+        let output = property.path_create_dir(cache_dir, bitrate.to_string()).await?;
         let cache_exists = tokio::fs::try_exists(&output).await?;
 
         // If the cache exists, it means that the transcoding process is finish. Since we write the
