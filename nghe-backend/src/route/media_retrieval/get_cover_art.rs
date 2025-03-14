@@ -47,9 +47,14 @@ mod tests {
         let picture: picture::Picture = Faker.fake();
         let id = picture.upsert_mock(&mock, None::<&str>).await;
 
-        let binary = handler(mock.database(), None, mock.config.cover_art.clone(), Request { id })
-            .await
-            .unwrap();
+        let binary = handler(
+            mock.database(),
+            None,
+            mock.config.cover_art.clone(),
+            Request { id, size: None },
+        )
+        .await
+        .unwrap();
 
         let (status_code, headers, body) = binary.extract().await;
         let body_len: u64 = body.len().try_into().unwrap();

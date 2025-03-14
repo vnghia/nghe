@@ -5,4 +5,5 @@ use uuid::Uuid;
 #[endpoint(path = "getCoverArt", url_only = true)]
 pub struct Request {
     pub id: Uuid,
+    pub size: Option<u32>,
 }
