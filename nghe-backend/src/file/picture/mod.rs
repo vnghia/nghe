@@ -36,6 +36,7 @@ use crate::{Error, config, error, filesystem};
 #[strum(serialize_all = "lowercase")]
 #[cfg_attr(test, derive(fake::Dummy, o2o::o2o, strum::EnumIter))]
 #[cfg_attr(test, owned_into(MimeType))]
+#[cfg_attr(test, owned_into(image::ImageFormat))]
 pub enum Format {
     Png,
     #[strum(serialize = "jpeg", serialize = "jpg")]
@@ -220,7 +221,7 @@ mod test {
     use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
     use diesel_async::RunQueryDsl;
     use fake::{Dummy, Fake, Faker};
-    use image::{ImageFormat, Rgb, RgbImage};
+    use image::{Rgb, RgbImage};
     use lofty::picture::PictureType;
 
     use super::*;
@@ -240,23 +241,16 @@ mod test {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
             let format: Format = config.fake_with_rng(rng);
 
-            let mut cursor = Cursor::new(vec![]);
+            let mut data = Vec::new();
             RgbImage::from_fn(
                 (100..=200).fake_with_rng(rng),
                 (100..=200).fake_with_rng(rng),
                 |_, _| Rgb::from(Faker.fake_with_rng::<[u8; 3], _>(rng)),
             )
-            .write_to(
-                &mut cursor,
-                match format {
-                    Format::Png => ImageFormat::Png,
-                    Format::Jpeg => ImageFormat::Jpeg,
-                },
-            )
+            .write_to(&mut Cursor::new(&mut data), format.into())
             .unwrap();
-            cursor.set_position(0);
 
-            Self::new(format, cursor.into_inner()).unwrap()
+            Self::new(format, data).unwrap()
         }
     }
 

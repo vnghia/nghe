@@ -22,7 +22,7 @@ pub struct CoverArt {
     pub dir: Option<Utf8PlatformPathBuf>,
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, String>")]
     #[educe(Default(expression = vec![
-        "cover.jpg".to_owned(), 
+        "cover.jpg".to_owned(),
         "cover.jpeg".to_owned(),
         "cover.png".to_owned(),
     ]))]
