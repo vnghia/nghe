@@ -61,10 +61,10 @@ impl Information<'_> {
         dir: Option<&impl AsRef<Utf8PlatformPath>>,
     ) -> Result<Option<Uuid>, Error> {
         Ok(
-            if let Some(ref picture) = self.metadata.picture
+            if let Some(ref image) = self.metadata.image
                 && let Some(dir) = dir
             {
-                Some(picture.upsert(database, dir, None::<&str>).await?)
+                Some(image.upsert(database, dir, None::<&str>).await?)
             } else {
                 None
             },

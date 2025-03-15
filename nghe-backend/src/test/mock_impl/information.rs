@@ -14,10 +14,10 @@ use crate::test::file::audio::dump::Metadata as _;
 use crate::test::filesystem::Trait as _;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mock<'info, 'lyrics, 'picture, 'path> {
+pub struct Mock<'info, 'lyrics, 'image, 'path> {
     pub information: audio::Information<'info>,
     pub external_lyric: Option<lyric::Lyric<'lyrics>>,
-    pub dir_picture: Option<image::Image<'picture>>,
+    pub dir_image: Option<image::Image<'image>>,
     pub relative_path: Cow<'path, str>,
 }
 
@@ -43,10 +43,10 @@ impl Mock<'static, 'static, 'static, 'static> {
         let artists = audio::Artists::query(mock, id).await;
         let genres = audio::Genres::query(mock, id).await;
         let lyrics = lyric::Lyric::query_embedded(mock, id).await;
-        let picture = image::Image::query_song(mock, id).await;
+        let image = image::Image::query_song(mock, id).await;
 
         let external_lyric = lyric::Lyric::query_external(mock, id).await;
-        let dir_picture = image::Image::query_album(mock, album_id).await;
+        let dir_image = image::Image::query_album(mock, album_id).await;
 
         Self {
             information: audio::Information {
@@ -56,13 +56,13 @@ impl Mock<'static, 'static, 'static, 'static> {
                     artists,
                     genres,
                     lyrics,
-                    picture,
+                    image,
                 },
                 property: upsert.data.property.try_into().unwrap(),
                 file: upsert.data.file.try_into().unwrap(),
             },
             external_lyric,
-            dir_picture,
+            dir_image,
             relative_path: upsert.relative_path,
         }
     }
@@ -79,12 +79,12 @@ impl Mock<'static, 'static, 'static, 'static> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         lyrics: Option<Vec<lyric::Lyric<'static>>>,
-        picture: Option<Option<image::Image<'static>>>,
+        image: Option<Option<image::Image<'static>>>,
         format: Option<audio::Format>,
         file_property: Option<file::Property<audio::Format>>,
         property: Option<audio::Property>,
         external_lyric: Option<Option<lyric::Lyric<'static>>>,
-        dir_picture: Option<Option<image::Image<'static>>>,
+        dir_image: Option<Option<image::Image<'static>>>,
         relative_path: Option<Cow<'static, str>>,
     ) -> Self {
         let metadata = metadata.unwrap_or_else(|| audio::Metadata {
@@ -93,7 +93,7 @@ impl Mock<'static, 'static, 'static, 'static> {
             artists: artists.unwrap_or_else(|| Faker.fake()),
             genres: genres.unwrap_or_else(|| Faker.fake()),
             lyrics: lyrics.unwrap_or_else(lyric::Lyric::fake_vec),
-            picture: picture.unwrap_or_else(|| Faker.fake()),
+            image: image.unwrap_or_else(|| Faker.fake()),
         });
         let file = file_property.unwrap_or_else(|| file::Property {
             format: format.unwrap_or_else(|| Faker.fake()),
@@ -102,14 +102,14 @@ impl Mock<'static, 'static, 'static, 'static> {
         let property = property.unwrap_or_else(|| audio::Property::default(file.format));
 
         let external_lyric = external_lyric.unwrap_or_else(|| Faker.fake());
-        let dir_picture = dir_picture.unwrap_or_else(|| Faker.fake());
+        let dir_image = dir_image.unwrap_or_else(|| Faker.fake());
         let relative_path =
             relative_path.map_or_else(|| Faker.fake::<String>().into(), std::convert::Into::into);
 
         Self {
             information: audio::Information { metadata, property, file },
             external_lyric,
-            dir_picture,
+            dir_image,
             relative_path,
         }
     }
@@ -123,10 +123,10 @@ impl Mock<'_, '_, '_, '_> {
     ) -> Uuid {
         let database = music_folder.database();
 
-        let dir_picture_id = if let Some(ref dir) = music_folder.config.cover_art.dir
-            && let Some(ref picture) = self.dir_picture
+        let dir_image_id = if let Some(ref dir) = music_folder.config.cover_art.dir
+            && let Some(ref image) = self.dir_image
         {
-            Some(picture.upsert(database, dir, None::<&str>).await.unwrap())
+            Some(image.upsert(database, dir, None::<&str>).await.unwrap())
         } else {
             None
         };
@@ -136,10 +136,7 @@ impl Mock<'_, '_, '_, '_> {
             .upsert(
                 database,
                 &music_folder.config,
-                albums::Foreign {
-                    music_folder_id: music_folder.id(),
-                    cover_art_id: dir_picture_id,
-                },
+                albums::Foreign { music_folder_id: music_folder.id(), cover_art_id: dir_image_id },
                 self.relative_path.as_str(),
                 song_id,
             )
@@ -191,14 +188,14 @@ impl Mock<'_, '_, '_, '_> {
 
         let cover_art_config = &music_folder.config.cover_art;
         let parent = path.parent().unwrap();
-        let dir_picture = if let Some(picture) =
+        let dir_image = if let Some(image) =
             image::Image::scan_filesystem(filesystem, cover_art_config, parent).await
         {
-            Some(picture)
-        } else if let Some(picture) = self.dir_picture {
-            let path = parent.join(picture.property.format.name());
-            filesystem.write(path.to_path(), &picture.data).await;
-            Some(picture)
+            Some(image)
+        } else if let Some(image) = self.dir_image {
+            let path = parent.join(image.property.format.name());
+            filesystem.write(path.to_path(), &image.data).await;
+            Some(image)
         } else {
             None
         };
@@ -208,7 +205,7 @@ impl Mock<'_, '_, '_, '_> {
                 file: file::Property::new(format, &data).unwrap(),
                 ..self.information
             },
-            dir_picture,
+            dir_image,
             ..self
         }
     }
@@ -217,8 +214,8 @@ impl Mock<'_, '_, '_, '_> {
         Self { external_lyric, ..self }
     }
 
-    pub fn with_dir_picture(self, dir_picture: Option<image::Image<'static>>) -> Self {
-        Self { dir_picture, ..self }
+    pub fn with_dir_image(self, dir_image: Option<image::Image<'static>>) -> Self {
+        Self { dir_image, ..self }
     }
 }
 

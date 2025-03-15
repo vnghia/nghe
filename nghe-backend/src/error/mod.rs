@@ -180,11 +180,11 @@ pub enum Kind {
     InvalidId3v2FrameIdConfigType,
 
     // Image error
-    #[error("Missing picture format")]
+    #[error("Missing image format")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     MissingImageFormat,
-    #[error("Unsupported picture format {0}")]
+    #[error("Unsupported image format {0}")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     UnsupportedImageFormat(String),

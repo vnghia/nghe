@@ -124,9 +124,9 @@ impl dump::Metadata for VorbisComments {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self {
-        if let Some(picture) = picture {
-            self.insert_picture(picture.into(), None).unwrap();
+    fn dump_image(&mut self, image: Option<Image<'_>>) -> &mut Self {
+        if let Some(image) = image {
+            self.insert_picture(image.into(), None).unwrap();
         }
         self
     }

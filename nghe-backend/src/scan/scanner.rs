@@ -158,16 +158,16 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             .map_err(Error::from)
     }
 
-    async fn update_dir_picture(
+    async fn update_dir_image(
         &self,
         song_id: Uuid,
-        dir_picture_id: Option<Uuid>,
+        dir_image_id: Option<Uuid>,
     ) -> Result<(), Error> {
         diesel::update(albums::table)
             .filter(albums::id.nullable().eq(
                 songs::table.filter(songs::id.eq(song_id)).select(songs::album_id).single_value(),
             ))
-            .set(albums::cover_art_id.eq(dir_picture_id))
+            .set(albums::cover_art_id.eq(dir_image_id))
             .execute(&mut self.database.get().await?)
             .await?;
         Ok(())
@@ -198,11 +198,11 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         started_at: time::OffsetDateTime,
         song_id: Uuid,
         song_path: Utf8TypedPath<'_>,
-        dir_picture_id: Option<Uuid>,
+        dir_image_id: Option<Uuid>,
     ) -> Result<(), Error> {
         // We also need to set album cover_art_id and external lyrics since it might be
         // added or removed after the previous scan.
-        self.update_dir_picture(song_id, dir_picture_id).await?;
+        self.update_dir_image(song_id, dir_image_id).await?;
         self.update_external_lyric(started_at, song_id, song_path).await?;
         Ok(())
     }
@@ -249,18 +249,18 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
         let absolute_path = entry.path.to_path();
         let file = File::new(entry.format, self.filesystem.read(absolute_path).await?)?;
-        let dir_picture_id = image::Image::scan(
+        let dir_image_id = image::Image::scan(
             &self.database,
             &self.filesystem,
             &self.config.cover_art,
-            self.full.dir_picture,
+            self.full.dir_image,
             entry
                 .path
                 .parent()
                 .ok_or_else(|| error::Kind::MissingPathParent(entry.path.clone()))?,
         )
         .await?;
-        tracing::trace!(?dir_picture_id);
+        tracing::trace!(?dir_image_id);
 
         let relative_path = self.relative_path(entry)?;
         let relative_path = relative_path.as_str();
@@ -274,8 +274,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 // `song_id` can be None if there are more than two duplicated files in the same
                 // music folder.
 
-                self.update_external(started_at, song_path.id, absolute_path, dir_picture_id)
-                    .await?;
+                self.update_external(started_at, song_path.id, absolute_path, dir_image_id).await?;
                 tracing::debug!("already scanned");
                 return Ok(song_path.id);
             } else if let Some(song_id) = song_id {
@@ -308,13 +307,8 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                             .execute(&mut database.get().await?)
                             .await?;
 
-                        self.update_external(
-                            started_at,
-                            song_path.id,
-                            absolute_path,
-                            dir_picture_id,
-                        )
-                        .await?;
+                        self.update_external(started_at, song_path.id, absolute_path, dir_image_id)
+                            .await?;
                         tracing::debug!("stale last_modified");
                         return Ok(song_path.id);
                     }
@@ -341,8 +335,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                     .execute(&mut database.get().await?)
                     .await?;
 
-                self.update_external(started_at, song_path.id, absolute_path, dir_picture_id)
-                    .await?;
+                self.update_external(started_at, song_path.id, absolute_path, dir_image_id).await?;
                 tracing::warn!(
                     old = %song_path.relative_path, new = %relative_path, "renamed duplication"
                 );
@@ -362,7 +355,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
                 &self.config,
                 albums::Foreign {
                     music_folder_id: self.music_folder.id,
-                    cover_art_id: dir_picture_id,
+                    cover_art_id: dir_image_id,
                 },
                 relative_path,
                 song_id,
@@ -541,7 +534,7 @@ mod tests {
             };
 
             let (database_audio, filesystem_audio) = if same_album {
-                (database_audio.with_dir_picture(None), filesystem_audio.with_dir_picture(None))
+                (database_audio.with_dir_image(None), filesystem_audio.with_dir_image(None))
             } else {
                 (database_audio, filesystem_audio)
             };
@@ -612,7 +605,7 @@ mod tests {
             let (database_audio, audio) = if same_dir {
                 (database_audio, audio)
             } else {
-                (database_audio.with_dir_picture(None), audio.with_dir_picture(None))
+                (database_audio.with_dir_image(None), audio.with_dir_image(None))
             };
             assert_eq!(database_audio, audio);
         }
@@ -640,34 +633,34 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_scan_dir_picture(#[future(awt)] mock: Mock) {
+    async fn test_scan_dir_image(#[future(awt)] mock: Mock) {
         let mut music_folder = mock.music_folder(0).await;
         music_folder
             .add_audio_filesystem::<&str>()
             .n_song(10)
             .depth(0)
-            .recompute_dir_picture(false)
+            .recompute_dir_image(false)
             .call()
             .await;
 
-        // All pictures are the same. However, the picture will only be the same from the first
-        // file that has a picture so we have to filter out none before checking.
-        let dir_pictures: Vec<_> = music_folder
+        // All images are the same. However, the image will only be the same from the first
+        // file that has a image so we have to filter out none before checking.
+        let dir_images: Vec<_> = music_folder
             .filesystem
             .values()
-            .filter_map(|information| information.dir_picture.clone())
+            .filter_map(|information| information.dir_image.clone())
             .collect();
-        assert!(dir_pictures.windows(2).all(|window| window[0] == window[1]));
+        assert!(dir_images.windows(2).all(|window| window[0] == window[1]));
 
-        // On the other hand, data queried from database should have all the same picture
-        // regardless if the very first file have a picture or not. So we use `map` instead of
+        // On the other hand, data queried from database should have all the same image
+        // regardless if the very first file have a image or not. So we use `map` instead of
         // `filter_map` here.
-        let database_dir_pictures: Vec<_> = music_folder
+        let database_dir_images: Vec<_> = music_folder
             .query_filesystem()
             .await
             .values()
-            .map(|information| information.dir_picture.clone())
+            .map(|information| information.dir_image.clone())
             .collect();
-        assert!(database_dir_pictures.windows(2).all(|window| window[0] == window[1]));
+        assert!(database_dir_images.windows(2).all(|window| window[0] == window[1]));
     }
 }

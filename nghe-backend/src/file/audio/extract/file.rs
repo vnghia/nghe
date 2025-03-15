@@ -44,8 +44,8 @@ default impl<'a, T: Tag<'a>> Metadata<'a> for T {
         self.tag()?.lyrics(config)
     }
 
-    fn picture(&'a self) -> Result<Option<Image<'a>>, Error> {
-        self.tag()?.picture()
+    fn image(&'a self) -> Result<Option<Image<'a>>, Error> {
+        self.tag()?.image()
     }
 }
 
@@ -58,7 +58,7 @@ impl<'a> Tag<'a> for FlacFile {
 }
 
 impl<'a> Metadata<'a> for FlacFile {
-    fn picture(&'a self) -> Result<Option<Image<'a>>, Error> {
+    fn image(&'a self) -> Result<Option<Image<'a>>, Error> {
         Image::extrat_ogg_picture_storage(self)
     }
 }

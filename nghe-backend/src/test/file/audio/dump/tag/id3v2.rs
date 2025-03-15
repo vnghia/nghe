@@ -147,9 +147,9 @@ impl dump::Metadata for Id3v2Tag {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self {
-        if let Some(picture) = picture {
-            self.insert_picture(picture.into());
+    fn dump_image(&mut self, image: Option<Image<'_>>) -> &mut Self {
+        if let Some(image) = image {
+            self.insert_picture(image.into());
         }
         self
     }

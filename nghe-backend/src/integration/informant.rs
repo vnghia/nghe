@@ -36,7 +36,7 @@ impl Informant {
         self.spotify.is_some() || self.lastfm.is_some()
     }
 
-    async fn upsert_artist_picture(
+    async fn upsert_artist_image(
         &self,
         database: &Database,
         full: bool,
@@ -47,12 +47,11 @@ impl Informant {
             if let Some(dir) = dir
                 && let Some(url) = url.as_ref()
             {
-                if !full && let Some(picture_id) = image::Image::query_source(database, url).await?
-                {
-                    Some(picture_id)
+                if !full && let Some(image_id) = image::Image::query_source(database, url).await? {
+                    Some(image_id)
                 } else {
-                    let picture = image::Image::fetch(&self.reqwest, url).await?;
-                    Some(picture.upsert(database, dir, Some(url)).await?)
+                    let image = image::Image::fetch(&self.reqwest, url).await?;
+                    Some(image.upsert(database, dir, Some(url)).await?)
                 }
             } else {
                 None
@@ -70,8 +69,8 @@ impl Informant {
         lastfm: Option<&lastfm::model::artist::Full>,
     ) -> Result<(), Error> {
         let spotify = if let Some(spotify) = spotify {
-            let picture_id = self
-                .upsert_artist_picture(
+            let image_id = self
+                .upsert_artist_image(
                     database,
                     full,
                     config.dir.as_ref(),
@@ -80,7 +79,7 @@ impl Informant {
                 .await?;
             artist_informations::Spotify {
                 id: Some(spotify.id.id().into()),
-                cover_art_id: picture_id,
+                cover_art_id: image_id,
             }
         } else {
             artist_informations::Spotify::default()
@@ -268,7 +267,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_upsert_artist_picture(
+    async fn test_upsert_artist_image(
         #[future(awt)]
         #[with(0, 1, None, true)]
         mock: Mock,
@@ -286,15 +285,15 @@ mod tests {
             .unwrap();
 
         let cover_art_id = data.spotify.cover_art_id.unwrap();
-        let picture_path = file::Property::query_cover_art(mock.database(), cover_art_id)
+        let image_path = file::Property::query_cover_art(mock.database(), cover_art_id)
             .await
             .unwrap()
-            .picture_path(config.dir.as_ref().unwrap());
-        assert!(tokio::fs::try_exists(&picture_path).await.unwrap());
-        tokio::fs::remove_file(&picture_path).await.unwrap();
+            .image_path(config.dir.as_ref().unwrap());
+        assert!(tokio::fs::try_exists(&image_path).await.unwrap());
+        tokio::fs::remove_file(&image_path).await.unwrap();
 
         mock.informant.search_and_upsert_artists(mock.database(), config, full).await.unwrap();
-        assert_eq!(tokio::fs::try_exists(&picture_path).await.unwrap(), full);
+        assert_eq!(tokio::fs::try_exists(&image_path).await.unwrap(), full);
     }
 
     #[rstest]

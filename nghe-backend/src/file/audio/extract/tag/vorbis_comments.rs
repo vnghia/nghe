@@ -127,7 +127,7 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
             .try_collect()
     }
 
-    fn picture(&'a self) -> Result<Option<Image<'a>>, Error> {
+    fn image(&'a self) -> Result<Option<Image<'a>>, Error> {
         Image::extrat_ogg_picture_storage(self)
     }
 }

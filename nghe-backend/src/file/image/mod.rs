@@ -96,7 +96,7 @@ impl super::Property<Format> {
             .try_into()
     }
 
-    pub fn picture_path(&self, base: impl AsRef<Utf8PlatformPath>) -> Utf8PlatformPathBuf {
+    pub fn image_path(&self, base: impl AsRef<Utf8PlatformPath>) -> Utf8PlatformPathBuf {
         self.path(base, Image::FILENAME)
     }
 }
@@ -114,7 +114,7 @@ impl<'d> TryFrom<&'d LoftyPicture> for Image<'d> {
 
 impl<'d> Image<'d> {
     pub const FILENAME: &'static str = "cover_art";
-    pub const TEST_DESCRIPTION: &'static str = "nghe-picture-test-description";
+    pub const TEST_DESCRIPTION: &'static str = "nghe-image-test-description";
 
     fn new(format: Format, data: impl Into<Cow<'d, [u8]>>) -> Result<Self, Error> {
         let data = data.into();
@@ -170,10 +170,10 @@ impl<'d> Image<'d> {
             for name in &config.names {
                 let path = dir.join(name);
                 let path = path.to_path();
-                if !full && let Some(picture_id) = Self::query_source(database, path).await? {
-                    return Ok(Some(picture_id));
-                } else if let Some(picture) = Image::load(filesystem, path).await? {
-                    return Ok(Some(picture.upsert(database, art_dir, Some(path)).await?));
+                if !full && let Some(image_id) = Self::query_source(database, path).await? {
+                    return Ok(Some(image_id));
+                } else if let Some(image) = Image::load(filesystem, path).await? {
+                    return Ok(Some(image.upsert(database, art_dir, Some(path)).await?));
                 }
             }
         }
@@ -336,10 +336,10 @@ mod test {
             dir: Utf8TypedPath<'_>,
         ) -> Option<Self> {
             for name in &config.names {
-                if let Some(picture) =
+                if let Some(image) =
                     Self::load(&filesystem.main(), dir.join(name).to_path()).await.unwrap()
                 {
-                    return Some(picture);
+                    return Some(image);
                 }
             }
             None
@@ -380,12 +380,12 @@ mod tests {
         let path = filesystem.prefix().join(format.name());
         let path = path.to_path();
 
-        let picture = Image { data: fake::vec![u8; 100].into(), ..Faker.fake() };
-        let picture_id = picture.upsert_mock(&mock, Some(&path)).await;
-        filesystem.write(path, &picture.data).await;
+        let image = Image { data: fake::vec![u8; 100].into(), ..Faker.fake() };
+        let image_id = image.upsert_mock(&mock, Some(&path)).await;
+        filesystem.write(path, &image.data).await;
         filesystem.write(path, &fake::vec![u8; 100]).await;
 
-        let scanned_picture_id = Image::scan(
+        let scanned_image_id = Image::scan(
             mock.database(),
             &filesystem.main(),
             &mock.config.cover_art,
@@ -395,8 +395,8 @@ mod tests {
         .await
         .unwrap()
         .unwrap();
-        // Full mode will take a newly created picture from the filesystem so we will have a
+        // Full mode will take a newly created image from the filesystem so we will have a
         // different id than the current one.
-        assert_eq!(scanned_picture_id != picture_id, full);
+        assert_eq!(scanned_image_id != image_id, full);
     }
 }

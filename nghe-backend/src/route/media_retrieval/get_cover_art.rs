@@ -115,8 +115,8 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_handler(#[future(awt)] mock: Mock) {
-        let picture: image::Image = Faker.fake();
-        let id = picture.upsert_mock(&mock, None::<&str>).await;
+        let image: image::Image = Faker.fake();
+        let id = image.upsert_mock(&mock, None::<&str>).await;
 
         let binary = handler(
             mock.database(),
@@ -138,15 +138,15 @@ mod tests {
             file::Property::<image::Format>::cache_control()
         );
 
-        let local_bytes: &[u8] = picture.data.as_ref();
+        let local_bytes: &[u8] = image.data.as_ref();
         assert_eq!(body, local_bytes);
     }
 
     #[rstest]
     #[tokio::test]
     async fn test_resize(#[future(awt)] mock: Mock) {
-        let picture: image::Image = Faker.fake();
-        let id = picture.upsert_mock(&mock, None::<&str>).await;
+        let image: image::Image = Faker.fake();
+        let id = image.upsert_mock(&mock, None::<&str>).await;
 
         let size = 50;
         let request = Request { id, size: Some(size) };
