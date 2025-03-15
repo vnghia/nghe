@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::config::parsing::id3v2::frame;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 use crate::{Error, config, error};
 
 fn get_text<'a>(tag: &'a Id3v2Tag, frame_id: &'a frame::Id) -> Result<Option<&'a str>, Error> {

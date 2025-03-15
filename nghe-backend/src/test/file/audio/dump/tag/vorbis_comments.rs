@@ -7,7 +7,7 @@ use crate::config;
 use crate::file::audio::position::Position;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 use crate::test::file::audio::dump;
 
 impl Date {

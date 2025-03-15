@@ -3,7 +3,7 @@ pub use nghe_api::media_retrieval::get_cover_art::Request;
 use nghe_proc_macro::handler;
 
 use crate::database::Database;
-use crate::file::{self, picture};
+use crate::file::{self, image};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 #[cfg(test)]
@@ -17,11 +17,11 @@ pub async fn handler(
     #[handler(header)] range: Option<Range>,
     request: Request,
 ) -> Result<binary::Response, Error> {
-    const FORMAT: picture::Format = picture::Format::WebP;
+    const FORMAT: image::Format = image::Format::WebP;
 
     let dir = &config.dir.ok_or_else(|| error::Kind::MissingCoverArtDirectoryConfig)?;
     let property = file::Property::query_cover_art(database, request.id).await?;
-    let input = property.path(dir, picture::Picture::FILENAME);
+    let input = property.path(dir, image::Picture::FILENAME);
     let offset = range.map(|range| range.to_offset(property.size.into())).transpose()?;
 
     if let Some(size) = request.size {
@@ -75,11 +75,11 @@ pub async fn handler(
 mod tests {
     use std::io::Cursor;
 
+    use ::image::ImageReader;
     use axum::http::StatusCode;
     use axum_extra::headers::{CacheControl, ContentLength, HeaderMapExt};
     use binary::property::Trait as _;
     use fake::{Fake, Faker};
-    use image::ImageReader;
     use itertools::Itertools;
     use rstest::rstest;
 
@@ -115,7 +115,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_handler(#[future(awt)] mock: Mock) {
-        let picture: picture::Picture = Faker.fake();
+        let picture: image::Picture = Faker.fake();
         let id = picture.upsert_mock(&mock, None::<&str>).await;
 
         let binary = handler(
@@ -135,7 +135,7 @@ mod tests {
         assert_eq!(headers.typed_get::<ContentLength>().unwrap().0, body_len);
         assert_eq!(
             headers.typed_get::<CacheControl>().unwrap(),
-            file::Property::<picture::Format>::cache_control()
+            file::Property::<image::Format>::cache_control()
         );
 
         let local_bytes: &[u8] = picture.data.as_ref();
@@ -145,7 +145,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_resize(#[future(awt)] mock: Mock) {
-        let picture: picture::Picture = Faker.fake();
+        let picture: image::Picture = Faker.fake();
         let id = picture.upsert_mock(&mock, None::<&str>).await;
 
         let size = 50;

@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use super::{lastfm, spotify};
 use crate::database::Database;
-use crate::file::picture;
+use crate::file::image;
 use crate::orm::upsert::Update;
 use crate::orm::{artist_informations, artists};
 use crate::{Error, config};
@@ -48,11 +48,11 @@ impl Informant {
                 && let Some(url) = url.as_ref()
             {
                 if !full
-                    && let Some(picture_id) = picture::Picture::query_source(database, url).await?
+                    && let Some(picture_id) = image::Picture::query_source(database, url).await?
                 {
                     Some(picture_id)
                 } else {
-                    let picture = picture::Picture::fetch(&self.reqwest, url).await?;
+                    let picture = image::Picture::fetch(&self.reqwest, url).await?;
                     Some(picture.upsert(database, dir, Some(url)).await?)
                 }
             } else {

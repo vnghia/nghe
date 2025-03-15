@@ -11,7 +11,7 @@ use crate::config::parsing::id3v2::frame;
 use crate::file::audio::position::Position;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 use crate::test::file::audio::dump;
 
 fn write_text(tag: &mut Id3v2Tag, frame_id: frame::Id, text: String) {

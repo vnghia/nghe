@@ -6,7 +6,7 @@ use isolang::Language;
 use crate::config;
 use crate::file::audio::{self, Album, Artists, File, Genres, NameDateMbz, TrackDisc};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 
 pub trait Metadata {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self;

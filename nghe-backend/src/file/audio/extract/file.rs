@@ -7,7 +7,7 @@ use lofty::ogg::VorbisComments;
 use super::{Metadata, Property};
 use crate::file::audio::{self, Album, Artists, Genres, NameDateMbz, TrackDisc};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 use crate::{Error, config, error};
 
 trait Tag<'a> {

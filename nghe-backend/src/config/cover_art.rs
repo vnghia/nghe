@@ -49,13 +49,13 @@ mod test {
     use typed_path::Utf8PlatformPath;
 
     use super::*;
-    use crate::file::picture;
+    use crate::file::image;
 
     impl CoverArt {
         pub fn with_prefix(self, prefix: impl AsRef<Utf8PlatformPath>) -> Self {
             Self {
                 dir: self.dir.map(|_| prefix.as_ref().join("cover_art")),
-                names: picture::Format::iter().map(picture::Format::name).collect(),
+                names: image::Format::iter().map(image::Format::name).collect(),
                 cache_dir: self.cache_dir.map(|_| prefix.as_ref().join("cache").join("cover_art")),
             }
         }

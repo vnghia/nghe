@@ -7,7 +7,7 @@ use o2o::o2o;
 
 use super::{Genres, artist, name_date_mbz, position};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 use crate::orm::songs;
 use crate::{Error, error};
 

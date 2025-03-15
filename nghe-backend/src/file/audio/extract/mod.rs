@@ -5,7 +5,7 @@ use isolang::Language;
 
 use super::{Album, Artists, File, Genres, NameDateMbz, TrackDisc};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 use crate::{Error, config};
 
 pub trait Metadata<'a> {

@@ -10,13 +10,13 @@ use diesel::sql_types::Text;
 use diesel_derives::AsChangeset;
 use o2o::o2o;
 
-use crate::file::{self, picture};
+use crate::file::{self, image};
 pub use crate::schema::cover_arts::{self, *};
 use crate::{Error, error};
 
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
-#[from_owned(file::Property<picture::Format>)]
-#[owned_try_into(file::Property<picture::Format>, Error)]
+#[from_owned(file::Property<image::Format>)]
+#[owned_try_into(file::Property<image::Format>, Error)]
 #[diesel(table_name = cover_arts, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Property {
@@ -30,7 +30,7 @@ pub struct Property {
     )?)]
     #[diesel(column_name = file_size)]
     pub size: i32,
-    pub format: picture::Format,
+    pub format: image::Format,
 }
 
 #[derive(Debug, Insertable, AsChangeset)]
@@ -67,14 +67,14 @@ mod upsert {
     }
 }
 
-impl ToSql<Text, super::Type> for picture::Format {
+impl ToSql<Text, super::Type> for image::Format {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, super::Type>) -> serialize::Result {
         <str as ToSql<Text, super::Type>>::to_sql(self.into(), out)
     }
 }
 
-impl FromSql<Text, super::Type> for picture::Format {
+impl FromSql<Text, super::Type> for image::Format {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
-        Ok(picture::Format::from_str(core::str::from_utf8(bytes.as_bytes())?)?)
+        Ok(image::Format::from_str(core::str::from_utf8(bytes.as_bytes())?)?)
     }
 }

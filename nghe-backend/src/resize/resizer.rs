@@ -1,24 +1,24 @@
 use std::io::{Cursor, Write};
 
+use ::image::ImageReader;
 use atomic_write_file::AtomicWriteFile;
-use image::ImageReader;
 use typed_path::Utf8PlatformPathBuf;
 
 use crate::Error;
-use crate::file::picture;
+use crate::file::image;
 
 pub struct Resizer {
     input: Utf8PlatformPathBuf,
     output: Option<AtomicWriteFile>,
     size: u32,
-    format: picture::Format,
+    format: image::Format,
 }
 
 impl Resizer {
     pub async fn spawn(
         input: Utf8PlatformPathBuf,
         output: Option<Utf8PlatformPathBuf>,
-        format: picture::Format,
+        format: image::Format,
         size: u32,
     ) -> Result<Vec<u8>, Error> {
         let span = tracing::Span::current();
@@ -35,7 +35,7 @@ impl Resizer {
         let image = ImageReader::open(&self.input)?.decode()?.resize(
             self.size,
             self.size,
-            image::imageops::FilterType::Triangle,
+            ::image::imageops::FilterType::Triangle,
         );
 
         let mut data: Vec<u8> = Vec::new();

@@ -125,7 +125,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::file::{audio, picture};
+    use crate::file::{audio, image};
     use crate::test::{Mock, mock};
 
     #[rstest]
@@ -139,7 +139,7 @@ mod tests {
     ) {
         let music_folder_id = mock.music_folder_id(0).await;
         let cover_art_id = if cover_art {
-            Some(Faker.fake::<picture::Picture>().upsert_mock(&mock, None::<&str>).await)
+            Some(Faker.fake::<image::Picture>().upsert_mock(&mock, None::<&str>).await)
         } else {
             None
         };
@@ -155,7 +155,7 @@ mod tests {
 
         if update_album {
             let update_cover_art_id = if update_cover_art {
-                Some(Faker.fake::<picture::Picture>().upsert_mock(&mock, None::<&str>).await)
+                Some(Faker.fake::<image::Picture>().upsert_mock(&mock, None::<&str>).await)
             } else {
                 None
             };

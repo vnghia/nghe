@@ -7,7 +7,7 @@ use super::Metadata;
 use crate::config;
 use crate::file::audio::{Album, Artists, Genres, NameDateMbz, TrackDisc};
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
+use crate::file::image::Picture;
 
 trait TagMut {
     type Tag: Metadata;

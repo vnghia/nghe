@@ -7,8 +7,8 @@ use lofty::ogg::{OggPictureStorage, VorbisComments};
 use uuid::Uuid;
 
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
+use crate::file::image::Picture;
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
 use crate::{Error, config, error};
 
 impl Date {

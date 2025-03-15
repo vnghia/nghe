@@ -80,7 +80,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::file::picture;
+    use crate::file::image;
 
     #[rstest]
     #[case("Micheal Learns To Rock")]

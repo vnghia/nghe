@@ -7,7 +7,7 @@ use fake::{Fake, Faker};
 use uuid::Uuid;
 
 use super::music_folder;
-use crate::file::{self, audio, lyric, picture};
+use crate::file::{self, audio, image, lyric};
 use crate::orm::{albums, lyrics, songs};
 use crate::test::assets;
 use crate::test::file::audio::dump::Metadata as _;
@@ -17,7 +17,7 @@ use crate::test::filesystem::Trait as _;
 pub struct Mock<'info, 'lyrics, 'picture, 'path> {
     pub information: audio::Information<'info>,
     pub external_lyric: Option<lyric::Lyric<'lyrics>>,
-    pub dir_picture: Option<picture::Picture<'picture>>,
+    pub dir_picture: Option<image::Picture<'picture>>,
     pub relative_path: Cow<'path, str>,
 }
 
@@ -43,10 +43,10 @@ impl Mock<'static, 'static, 'static, 'static> {
         let artists = audio::Artists::query(mock, id).await;
         let genres = audio::Genres::query(mock, id).await;
         let lyrics = lyric::Lyric::query_embedded(mock, id).await;
-        let picture = picture::Picture::query_song(mock, id).await;
+        let picture = image::Picture::query_song(mock, id).await;
 
         let external_lyric = lyric::Lyric::query_external(mock, id).await;
-        let dir_picture = picture::Picture::query_album(mock, album_id).await;
+        let dir_picture = image::Picture::query_album(mock, album_id).await;
 
         Self {
             information: audio::Information {
@@ -79,12 +79,12 @@ impl Mock<'static, 'static, 'static, 'static> {
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
         lyrics: Option<Vec<lyric::Lyric<'static>>>,
-        picture: Option<Option<picture::Picture<'static>>>,
+        picture: Option<Option<image::Picture<'static>>>,
         format: Option<audio::Format>,
         file_property: Option<file::Property<audio::Format>>,
         property: Option<audio::Property>,
         external_lyric: Option<Option<lyric::Lyric<'static>>>,
-        dir_picture: Option<Option<picture::Picture<'static>>>,
+        dir_picture: Option<Option<image::Picture<'static>>>,
         relative_path: Option<Cow<'static, str>>,
     ) -> Self {
         let metadata = metadata.unwrap_or_else(|| audio::Metadata {
@@ -192,7 +192,7 @@ impl Mock<'_, '_, '_, '_> {
         let cover_art_config = &music_folder.config.cover_art;
         let parent = path.parent().unwrap();
         let dir_picture = if let Some(picture) =
-            picture::Picture::scan_filesystem(filesystem, cover_art_config, parent).await
+            image::Picture::scan_filesystem(filesystem, cover_art_config, parent).await
         {
             Some(picture)
         } else if let Some(picture) = self.dir_picture {
@@ -217,7 +217,7 @@ impl Mock<'_, '_, '_, '_> {
         Self { external_lyric, ..self }
     }
 
-    pub fn with_dir_picture(self, dir_picture: Option<picture::Picture<'static>>) -> Self {
+    pub fn with_dir_picture(self, dir_picture: Option<image::Picture<'static>>) -> Self {
         Self { dir_picture, ..self }
     }
 }
