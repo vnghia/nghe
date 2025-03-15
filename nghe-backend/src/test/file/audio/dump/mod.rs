@@ -5,8 +5,8 @@ use isolang::Language;
 
 use crate::config;
 use crate::file::audio::{self, Album, Artists, File, Genres, NameDateMbz, TrackDisc};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::image::Picture;
 
 pub trait Metadata {
     fn dump_song(&mut self, config: &config::Parsing, song: NameDateMbz<'_>) -> &mut Self;
@@ -16,7 +16,7 @@ pub trait Metadata {
     fn dump_languages(&mut self, config: &config::Parsing, languages: Vec<Language>) -> &mut Self;
     fn dump_genres(&mut self, config: &config::Parsing, genres: Genres<'_>) -> &mut Self;
     fn dump_lyrics(&mut self, config: &config::Parsing, lyrics: Vec<Lyric<'_>>) -> &mut Self;
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self;
+    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self;
 
     fn dump_metadata(
         &mut self,
@@ -121,7 +121,7 @@ impl Metadata for File {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self {
         match self {
             File::Flac { audio, .. } => {
                 audio.dump_picture(picture);

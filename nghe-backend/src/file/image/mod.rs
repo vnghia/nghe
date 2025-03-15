@@ -50,7 +50,7 @@ pub enum Format {
 #[derive(Educe)]
 #[educe(Debug)]
 #[cfg_attr(test, derive(Clone, PartialEq, Eq))]
-pub struct Picture<'d> {
+pub struct Image<'d> {
     pub property: Property<Format>,
     #[educe(Debug(ignore))]
     pub data: Cow<'d, [u8]>,
@@ -64,7 +64,7 @@ impl TryFrom<&MimeType> for Format {
             MimeType::Png => Ok(Self::Png),
             MimeType::Jpeg => Ok(Self::Jpeg),
             MimeType::Unknown(mime) if mime == Self::WebP.mime() => Ok(Self::WebP),
-            _ => error::Kind::UnsupportedPictureFormat(value.as_str().to_owned()).into(),
+            _ => error::Kind::UnsupportedImageFormat(value.as_str().to_owned()).into(),
         }
     }
 }
@@ -97,22 +97,22 @@ impl super::Property<Format> {
     }
 
     pub fn picture_path(&self, base: impl AsRef<Utf8PlatformPath>) -> Utf8PlatformPathBuf {
-        self.path(base, Picture::FILENAME)
+        self.path(base, Image::FILENAME)
     }
 }
 
-impl<'d> TryFrom<&'d LoftyPicture> for Picture<'d> {
+impl<'d> TryFrom<&'d LoftyPicture> for Image<'d> {
     type Error = Error;
 
     fn try_from(value: &'d LoftyPicture) -> Result<Self, Self::Error> {
-        Picture::new(
-            value.mime_type().ok_or_else(|| error::Kind::MissingPictureFormat)?.try_into()?,
+        Image::new(
+            value.mime_type().ok_or_else(|| error::Kind::MissingImageFormat)?.try_into()?,
             value.data(),
         )
     }
 }
 
-impl<'d> Picture<'d> {
+impl<'d> Image<'d> {
     pub const FILENAME: &'static str = "cover_art";
     pub const TEST_DESCRIPTION: &'static str = "nghe-picture-test-description";
 
@@ -172,7 +172,7 @@ impl<'d> Picture<'d> {
                 let path = path.to_path();
                 if !full && let Some(picture_id) = Self::query_source(database, path).await? {
                     return Ok(Some(picture_id));
-                } else if let Some(picture) = Picture::load(filesystem, path).await? {
+                } else if let Some(picture) = Image::load(filesystem, path).await? {
                     return Ok(Some(picture.upsert(database, art_dir, Some(path)).await?));
                 }
             }
@@ -181,7 +181,7 @@ impl<'d> Picture<'d> {
     }
 }
 
-impl Picture<'static> {
+impl Image<'static> {
     pub async fn load(
         filesystem: &filesystem::Impl<'_>,
         path: Utf8TypedPath<'_>,
@@ -194,10 +194,10 @@ impl Picture<'static> {
                 format
                     .to_lowercase()
                     .parse()
-                    .map_err(|_| error::Kind::UnsupportedPictureFormat(format.to_owned()))?
+                    .map_err(|_| error::Kind::UnsupportedImageFormat(format.to_owned()))?
             };
             let data = filesystem.read(path).await?;
-            return Ok(Some(Picture::new(format, data)?));
+            return Ok(Some(Image::new(format, data)?));
         }
         Ok(None)
     }
@@ -207,14 +207,14 @@ impl Picture<'static> {
         let content_type = response
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
-            .ok_or_else(|| error::Kind::MissingPictureFormat)?
+            .ok_or_else(|| error::Kind::MissingImageFormat)?
             .to_str()?;
         let format = content_type
             .split_once('/')
             .and_then(|(ty, subtype)| if ty == "image" { subtype.parse().ok() } else { None })
-            .ok_or_else(|| error::Kind::UnsupportedPictureFormat(content_type.to_owned()))?;
+            .ok_or_else(|| error::Kind::UnsupportedImageFormat(content_type.to_owned()))?;
         let data = response.bytes().await?;
-        Picture::new(format, data.to_vec())
+        Image::new(format, data.to_vec())
     }
 }
 
@@ -243,7 +243,7 @@ mod test {
         }
     }
 
-    impl Dummy<Faker> for Picture<'_> {
+    impl Dummy<Faker> for Image<'_> {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
             let format: Format = config.fake_with_rng(rng);
 
@@ -260,18 +260,18 @@ mod test {
         }
     }
 
-    impl From<Picture<'_>> for LoftyPicture {
-        fn from(value: Picture<'_>) -> Self {
+    impl From<Image<'_>> for LoftyPicture {
+        fn from(value: Image<'_>) -> Self {
             Self::new_unchecked(
                 PictureType::Other,
                 Some(value.property.format.into()),
-                Some(Picture::TEST_DESCRIPTION.to_owned()),
+                Some(Image::TEST_DESCRIPTION.to_owned()),
                 value.data.into_owned(),
             )
         }
     }
 
-    impl Picture<'_> {
+    impl Image<'_> {
         pub async fn upsert_mock(&self, mock: &Mock, source: Option<impl AsRef<str>>) -> Uuid {
             self.upsert(mock.database(), mock.config.cover_art.dir.as_ref().unwrap(), source)
                 .await
@@ -329,7 +329,7 @@ mod test {
         }
     }
 
-    impl Picture<'static> {
+    impl Image<'static> {
         pub async fn scan_filesystem(
             filesystem: &filesystem::Impl<'_>,
             config: &config::CoverArt,
@@ -380,12 +380,12 @@ mod tests {
         let path = filesystem.prefix().join(format.name());
         let path = path.to_path();
 
-        let picture = Picture { data: fake::vec![u8; 100].into(), ..Faker.fake() };
+        let picture = Image { data: fake::vec![u8; 100].into(), ..Faker.fake() };
         let picture_id = picture.upsert_mock(&mock, Some(&path)).await;
         filesystem.write(path, &picture.data).await;
         filesystem.write(path, &fake::vec![u8; 100]).await;
 
-        let scanned_picture_id = Picture::scan(
+        let scanned_picture_id = Image::scan(
             mock.database(),
             &filesystem.main(),
             &mock.config.cover_art,

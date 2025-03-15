@@ -47,12 +47,11 @@ impl Informant {
             if let Some(dir) = dir
                 && let Some(url) = url.as_ref()
             {
-                if !full
-                    && let Some(picture_id) = image::Picture::query_source(database, url).await?
+                if !full && let Some(picture_id) = image::Image::query_source(database, url).await?
                 {
                     Some(picture_id)
                 } else {
-                    let picture = image::Picture::fetch(&self.reqwest, url).await?;
+                    let picture = image::Image::fetch(&self.reqwest, url).await?;
                     Some(picture.upsert(database, dir, Some(url)).await?)
                 }
             } else {

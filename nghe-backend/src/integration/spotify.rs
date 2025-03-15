@@ -88,7 +88,7 @@ mod tests {
     async fn test_search_artist(#[case] name: &str) {
         let client = Client::new(config::integration::Spotify::from_env()).await.unwrap();
         let artist = client.search_artist(name).await.unwrap().unwrap();
-        picture::Picture::fetch(&reqwest::Client::default(), artist.image_url.unwrap())
+        picture::Image::fetch(&reqwest::Client::default(), artist.image_url.unwrap())
             .await
             .unwrap();
     }

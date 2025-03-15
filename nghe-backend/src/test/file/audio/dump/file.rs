@@ -6,8 +6,8 @@ use lofty::ogg::{OggPictureStorage as _, VorbisComments};
 use super::Metadata;
 use crate::config;
 use crate::file::audio::{Album, Artists, Genres, NameDateMbz, TrackDisc};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::image::Picture;
 
 trait TagMut {
     type Tag: Metadata;
@@ -54,7 +54,7 @@ default impl<T: TagMut> Metadata for T {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self {
         self.tag_mut().dump_picture(picture);
         self
     }
@@ -68,7 +68,7 @@ impl TagMut for FlacFile {
 }
 
 impl Metadata for FlacFile {
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self {
         if let Some(picture) = picture {
             self.insert_picture(picture.into(), None).unwrap();
         }

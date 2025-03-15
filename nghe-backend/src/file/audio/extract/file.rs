@@ -6,8 +6,8 @@ use lofty::ogg::VorbisComments;
 
 use super::{Metadata, Property};
 use crate::file::audio::{self, Album, Artists, Genres, NameDateMbz, TrackDisc};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::image::Picture;
 use crate::{Error, config, error};
 
 trait Tag<'a> {
@@ -44,7 +44,7 @@ default impl<'a, T: Tag<'a>> Metadata<'a> for T {
         self.tag()?.lyrics(config)
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
+    fn picture(&'a self) -> Result<Option<Image<'a>>, Error> {
         self.tag()?.picture()
     }
 }
@@ -58,8 +58,8 @@ impl<'a> Tag<'a> for FlacFile {
 }
 
 impl<'a> Metadata<'a> for FlacFile {
-    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
-        Picture::extrat_ogg_picture_storage(self)
+    fn picture(&'a self) -> Result<Option<Image<'a>>, Error> {
+        Image::extrat_ogg_picture_storage(self)
     }
 }
 

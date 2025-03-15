@@ -218,7 +218,7 @@ mod test {
         let mut music_folder = mock.music_folder(0).await;
 
         let (picture, picture_id) = if has_picture {
-            let picture: image::Picture = Faker.fake();
+            let picture: image::Image = Faker.fake();
             let picture_id = picture.upsert_mock(&mock, None::<&str>).await;
             (Some(picture), Some(picture_id))
         } else {
@@ -226,7 +226,7 @@ mod test {
         };
 
         let (dir_picture, dir_picture_id) = if has_dir_picture {
-            let dir_picture: image::Picture = Faker.fake();
+            let dir_picture: image::Image = Faker.fake();
             let dir_picture_id = dir_picture
                 .upsert_mock(
                     &mock,

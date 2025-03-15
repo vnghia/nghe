@@ -10,8 +10,8 @@ use crate::config;
 use crate::config::parsing::id3v2::frame;
 use crate::file::audio::position::Position;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::image::Picture;
 use crate::test::file::audio::dump;
 
 fn write_text(tag: &mut Id3v2Tag, frame_id: frame::Id, text: String) {
@@ -147,7 +147,7 @@ impl dump::Metadata for Id3v2Tag {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self {
         if let Some(picture) = picture {
             self.insert_picture(picture.into());
         }

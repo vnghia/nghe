@@ -6,8 +6,8 @@ use itertools::Itertools;
 use o2o::o2o;
 
 use super::{Genres, artist, name_date_mbz, position};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::image::Picture;
 use crate::orm::songs;
 use crate::{Error, error};
 
@@ -43,7 +43,7 @@ pub struct Metadata<'a> {
     pub genres: Genres<'a>,
     #[cfg_attr(test, dummy(expr = "Lyric::fake_vec()"))]
     pub lyrics: Vec<Lyric<'a>>,
-    pub picture: Option<Picture<'a>>,
+    pub picture: Option<Image<'a>>,
 }
 
 #[cfg(test)]

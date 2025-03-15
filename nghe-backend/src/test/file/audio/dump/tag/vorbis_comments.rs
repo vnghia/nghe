@@ -1,13 +1,13 @@
 use indexmap::IndexSet;
 use isolang::Language;
-use lofty::ogg::{OggPictureStorage, VorbisComments};
+use lofty::ogg::{OggPictureStorage as _, VorbisComments};
 use uuid::Uuid;
 
 use crate::config;
 use crate::file::audio::position::Position;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::image::Picture;
 use crate::test::file::audio::dump;
 
 impl Date {
@@ -124,7 +124,7 @@ impl dump::Metadata for VorbisComments {
         self
     }
 
-    fn dump_picture(&mut self, picture: Option<Picture<'_>>) -> &mut Self {
+    fn dump_picture(&mut self, picture: Option<Image<'_>>) -> &mut Self {
         if let Some(picture) = picture {
             self.insert_picture(picture.into(), None).unwrap();
         }

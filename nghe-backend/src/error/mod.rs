@@ -179,15 +179,15 @@ pub enum Kind {
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     InvalidId3v2FrameIdConfigType,
 
-    // Picture error
+    // Image error
     #[error("Missing picture format")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    MissingPictureFormat,
+    MissingImageFormat,
     #[error("Unsupported picture format {0}")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    UnsupportedPictureFormat(String),
+    UnsupportedImageFormat(String),
 
     #[error("Missing cover art directory config")]
     #[into(StatusCode| StatusCode::NOT_FOUND)]

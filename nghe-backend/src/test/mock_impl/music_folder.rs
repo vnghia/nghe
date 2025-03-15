@@ -105,10 +105,10 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<image::Picture<'static>>>,
+        picture: Option<Option<image::Image<'static>>>,
         file_property: Option<file::Property<audio::Format>>,
         external_lyric: Option<Option<lyric::Lyric<'static>>>,
-        dir_picture: Option<Option<image::Picture<'static>>>,
+        dir_picture: Option<Option<image::Image<'static>>>,
         relative_path: Option<Cow<'static, str>>,
         song_id: Option<Uuid>,
         #[builder(default = 1)] n_song: usize,
@@ -145,9 +145,9 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<image::Picture<'static>>>,
+        picture: Option<Option<image::Image<'static>>>,
         external_lyric: Option<Option<lyric::Lyric<'static>>>,
-        dir_picture: Option<Option<image::Picture<'static>>>,
+        dir_picture: Option<Option<image::Image<'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
         #[builder(default)] full: scan::start::Full,
@@ -194,7 +194,7 @@ impl<'a> Mock<'a> {
                 .into_iter()
                 .into_group_map_by(|value| value.0.parent().unwrap().to_path_buf());
             for (parent, files) in group {
-                let dir_picture = image::Picture::scan_filesystem(
+                let dir_picture = image::Image::scan_filesystem(
                     &self.to_impl(),
                     &self.config.cover_art,
                     self.path().join(parent).to_path(),

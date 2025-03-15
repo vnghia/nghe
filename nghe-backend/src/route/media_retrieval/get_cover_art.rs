@@ -21,7 +21,7 @@ pub async fn handler(
 
     let dir = &config.dir.ok_or_else(|| error::Kind::MissingCoverArtDirectoryConfig)?;
     let property = file::Property::query_cover_art(database, request.id).await?;
-    let input = property.path(dir, image::Picture::FILENAME);
+    let input = property.path(dir, image::Image::FILENAME);
     let offset = range.map(|range| range.to_offset(property.size.into())).transpose()?;
 
     if let Some(size) = request.size {
@@ -115,7 +115,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_handler(#[future(awt)] mock: Mock) {
-        let picture: image::Picture = Faker.fake();
+        let picture: image::Image = Faker.fake();
         let id = picture.upsert_mock(&mock, None::<&str>).await;
 
         let binary = handler(
@@ -145,7 +145,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_resize(#[future(awt)] mock: Mock) {
-        let picture: image::Picture = Faker.fake();
+        let picture: image::Image = Faker.fake();
         let id = picture.upsert_mock(&mock, None::<&str>).await;
 
         let size = 50;

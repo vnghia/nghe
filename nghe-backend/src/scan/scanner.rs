@@ -15,7 +15,7 @@ use typed_path::Utf8TypedPath;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::file::{self, File, audio, lyric, image};
+use crate::file::{self, File, audio, image, lyric};
 use crate::filesystem::{self, Entry, Filesystem, Trait, entry};
 use crate::integration::Informant;
 use crate::orm::{albums, music_folders, songs};
@@ -249,7 +249,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
         let absolute_path = entry.path.to_path();
         let file = File::new(entry.format, self.filesystem.read(absolute_path).await?)?;
-        let dir_picture_id = image::Picture::scan(
+        let dir_picture_id = image::Image::scan(
             &self.database,
             &self.filesystem,
             &self.config.cover_art,
