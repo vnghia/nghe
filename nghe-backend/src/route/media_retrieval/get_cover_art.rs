@@ -7,7 +7,7 @@ use crate::file::{self, picture};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 #[cfg(test)]
-use crate::test::transcode::Status as TranscodeStatus;
+use crate::test::binary::Status as BinaryStatus;
 use crate::{Error, config, error, resize};
 
 #[handler]
@@ -37,7 +37,7 @@ pub async fn handler(
                     FORMAT,
                     offset,
                     #[cfg(test)]
-                    TranscodeStatus::ServeCachedOutput,
+                    BinaryStatus::ServeCachedOutput,
                 )
                 .await;
             }
@@ -47,8 +47,8 @@ pub async fn handler(
         };
 
         #[cfg(test)]
-        let transcode_status =
-            if output.is_some() { TranscodeStatus::WithCache } else { TranscodeStatus::NoCache };
+        let binary_status =
+            if output.is_some() { BinaryStatus::WithCache } else { BinaryStatus::NoCache };
 
         let data = resize::Resizer::spawn(input, output, FORMAT, size).await?;
         binary::Response::from_memory(
@@ -56,7 +56,7 @@ pub async fn handler(
             data,
             offset,
             #[cfg(test)]
-            transcode_status,
+            binary_status,
         )
     } else {
         binary::Response::from_path_property(
