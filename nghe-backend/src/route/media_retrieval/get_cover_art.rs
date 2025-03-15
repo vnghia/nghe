@@ -8,7 +8,7 @@ use crate::http::binary;
 use crate::http::header::ToOffset;
 #[cfg(test)]
 use crate::test::binary::Status as BinaryStatus;
-use crate::{Error, config, error, resize};
+use crate::{Error, config, error};
 
 #[handler]
 pub async fn handler(
@@ -50,7 +50,7 @@ pub async fn handler(
         let binary_status =
             if output.is_some() { BinaryStatus::WithCache } else { BinaryStatus::NoCache };
 
-        let data = resize::Resizer::spawn(input, output, FORMAT, size).await?;
+        let data = image::Resizer::spawn(input, output, FORMAT, size).await?;
         binary::Response::from_memory(
             FORMAT,
             data,

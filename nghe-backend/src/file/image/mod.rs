@@ -1,3 +1,5 @@
+mod resize;
+
 use std::borrow::Cow;
 
 use diesel::sql_types::Text;
@@ -9,6 +11,7 @@ use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
 use nghe_api::common::format::{self, Trait as _};
 use o2o::o2o;
+pub use resize::Resizer;
 use strum::{EnumString, IntoStaticStr};
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 use uuid::Uuid;

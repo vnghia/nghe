@@ -24,13 +24,11 @@ mod http;
 mod integration;
 pub mod migration;
 mod orm;
-mod resize;
 mod route;
 mod scan;
 mod schema;
 mod sync;
 mod time;
-mod transcode;
 
 #[cfg(test)]
 #[coverage(off)]

@@ -5,12 +5,13 @@ use uuid::Uuid;
 
 use super::download;
 use crate::database::Database;
+use crate::file::audio::transcode;
 use crate::filesystem::{Filesystem, Trait};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 #[cfg(test)]
 use crate::test::binary::Status as BinaryStatus;
-use crate::{Error, config, transcode};
+use crate::{Error, config};
 
 #[handler]
 pub async fn handler(
