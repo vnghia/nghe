@@ -6,7 +6,9 @@ use crate::database::Database;
 use crate::file::{self, picture};
 use crate::http::binary;
 use crate::http::header::ToOffset;
-use crate::{Error, config, error};
+#[cfg(test)]
+use crate::test::transcode::Status as TranscodeStatus;
+use crate::{Error, config, error, resize};
 
 #[handler]
 pub async fn handler(
@@ -15,17 +17,57 @@ pub async fn handler(
     config: config::CoverArt,
     request: Request,
 ) -> Result<binary::Response, Error> {
+    const FORMAT: picture::Format = picture::Format::WebP;
+
     let dir = &config.dir.ok_or_else(|| error::Kind::MissingCoverArtDirectoryConfig)?;
     let property = file::Property::query_cover_art(database, request.id).await?;
+    let input = property.path(dir, picture::Picture::FILENAME);
     let offset = range.map(|range| range.to_offset(property.size.into())).transpose()?;
-    binary::Response::from_path_property(
-        property.path(dir, picture::Picture::FILENAME),
-        &property,
-        offset,
+
+    if let Some(size) = request.size {
+        let output = if let Some(cache_dir) = config.cache_dir {
+            let output =
+                property.replace(FORMAT).path_create_dir(cache_dir, size.to_string()).await?;
+            let cache_exists = tokio::fs::try_exists(&output).await?;
+
+            // Similar logics in the stream handler applies here.
+            if cache_exists {
+                return binary::Response::from_path(
+                    output,
+                    FORMAT,
+                    offset,
+                    #[cfg(test)]
+                    TranscodeStatus::ServeCachedOutput,
+                )
+                .await;
+            }
+            Some(output)
+        } else {
+            None
+        };
+
         #[cfg(test)]
-        None,
-    )
-    .await
+        let transcode_status =
+            if output.is_some() { TranscodeStatus::WithCache } else { TranscodeStatus::NoCache };
+
+        let data = resize::Resizer::spawn(input, output, FORMAT, size).await?;
+        binary::Response::from_memory(
+            FORMAT,
+            data,
+            offset,
+            #[cfg(test)]
+            transcode_status,
+        )
+    } else {
+        binary::Response::from_path_property(
+            &input,
+            &property,
+            offset,
+            #[cfg(test)]
+            None,
+        )
+        .await
+    }
 }
 
 #[cfg(test)]

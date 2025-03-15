@@ -164,6 +164,23 @@ impl Response {
             transcode_status,
         )
     }
+
+    pub fn from_memory(
+        format: impl format::Trait,
+        data: Vec<u8>,
+        offset: impl Into<Option<u64>>,
+        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
+    ) -> Result<Self, Error> {
+        let size = NonZero::new(u64::try_from(data.len())?)
+            .ok_or_else(|| error::Kind::EmptyFileEncountered)?;
+        Self::new(
+            axum::body::Body::from(data),
+            &file::PropertySize { size, format },
+            offset,
+            #[cfg(test)]
+            transcode_status,
+        )
+    }
 }
 
 impl IntoResponse for Response {
