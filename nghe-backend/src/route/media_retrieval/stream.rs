@@ -108,7 +108,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
-    use crate::test::binary::{Header as BinaryHeader, Status as BinaryStatus};
+    use crate::test::binary::Header as BinaryHeader;
     use crate::test::{Mock, mock};
 
     async fn spawn_stream(
@@ -175,14 +175,14 @@ mod tests {
         let (responses, binary_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
-            assert_eq!(transcoded, body);
+            assert_eq!(body, transcoded);
         }
         assert_eq!(binary_status, &[BinaryStatus::WithCache, BinaryStatus::WithCache]);
 
         let (responses, binary_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
-            assert_eq!(transcoded, body);
+            assert_eq!(body, transcoded);
         }
         assert_eq!(
             binary_status,

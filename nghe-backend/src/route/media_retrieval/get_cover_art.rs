@@ -13,8 +13,8 @@ use crate::{Error, config, error, resize};
 #[handler]
 pub async fn handler(
     database: &Database,
-    #[handler(header)] range: Option<Range>,
     config: config::CoverArt,
+    #[handler(header)] range: Option<Range>,
     request: Request,
 ) -> Result<binary::Response, Error> {
     const FORMAT: picture::Format = picture::Format::WebP;
@@ -73,15 +73,44 @@ pub async fn handler(
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
+    use std::io::Cursor;
+
     use axum::http::StatusCode;
     use axum_extra::headers::{CacheControl, ContentLength, HeaderMapExt};
     use binary::property::Trait as _;
     use fake::{Fake, Faker};
+    use image::ImageReader;
+    use itertools::Itertools;
     use rstest::rstest;
 
     use super::*;
     use crate::file;
+    use crate::test::binary::Header as BinaryHeader;
     use crate::test::{Mock, mock};
+
+    async fn spawn_resize(
+        mock: &Mock,
+        n_task: usize,
+        request: Request,
+    ) -> (Vec<(StatusCode, Vec<u8>)>, Vec<BinaryStatus>) {
+        let mut stream_set = tokio::task::JoinSet::new();
+        for _ in 0..n_task {
+            let database = mock.database().clone();
+            let config = mock.config.cover_art.clone();
+            stream_set.spawn(async move {
+                handler(&database, config, None, request).await.unwrap().extract().await
+            });
+        }
+        let (responses, binary_status): (Vec<_>, Vec<_>) = stream_set
+            .join_all()
+            .await
+            .into_iter()
+            .map(|(status, headers, body)| {
+                ((status, body), headers.typed_get::<BinaryHeader>().unwrap().0)
+            })
+            .unzip();
+        (responses, binary_status.into_iter().sorted().collect())
+    }
 
     #[rstest]
     #[tokio::test]
@@ -91,8 +120,8 @@ mod tests {
 
         let binary = handler(
             mock.database(),
-            None,
             mock.config.cover_art.clone(),
+            None,
             Request { id, size: None },
         )
         .await
@@ -111,5 +140,36 @@ mod tests {
 
         let local_bytes: &[u8] = picture.data.as_ref();
         assert_eq!(body, local_bytes);
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_resize(#[future(awt)] mock: Mock) {
+        let picture: picture::Picture = Faker.fake();
+        let id = picture.upsert_mock(&mock, None::<&str>).await;
+
+        let size = 50;
+        let request = Request { id, size: Some(size) };
+
+        let (responses, binary_status) = spawn_resize(&mock, 1, request).await;
+        for (status, body) in responses {
+            assert_eq!(status, StatusCode::OK);
+            assert!(
+                ImageReader::new(Cursor::new(body)).with_guessed_format().unwrap().decode().is_ok()
+            );
+        }
+        assert_eq!(binary_status, &[BinaryStatus::WithCache]);
+
+        let (responses, binary_status) = spawn_resize(&mock, 2, request).await;
+        for (status, body) in responses {
+            assert_eq!(status, StatusCode::OK);
+            assert!(
+                ImageReader::new(Cursor::new(body)).with_guessed_format().unwrap().decode().is_ok()
+            );
+        }
+        assert_eq!(
+            binary_status,
+            &[BinaryStatus::ServeCachedOutput, BinaryStatus::ServeCachedOutput]
+        );
     }
 }
