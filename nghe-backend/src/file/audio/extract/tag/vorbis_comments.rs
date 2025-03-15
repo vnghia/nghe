@@ -7,8 +7,8 @@ use lofty::ogg::{OggPictureStorage, VorbisComments};
 use uuid::Uuid;
 
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
 use crate::{Error, config, error};
 
 impl Date {
@@ -56,7 +56,7 @@ impl<'a> Artist<'a> {
     }
 }
 
-impl<'a> Picture<'a> {
+impl<'a> Image<'a> {
     pub fn extrat_ogg_picture_storage(
         tag: &'a impl OggPictureStorage,
     ) -> Result<Option<Self>, Error> {
@@ -65,7 +65,7 @@ impl<'a> Picture<'a> {
             if !cfg!(test)
                 || picture
                     .description()
-                    .is_some_and(|description| description == Picture::TEST_DESCRIPTION)
+                    .is_some_and(|description| description == Image::TEST_DESCRIPTION)
             {
                 Some(picture.try_into())
             } else {
@@ -127,7 +127,7 @@ impl<'a> extract::Metadata<'a> for VorbisComments {
             .try_collect()
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
-        Picture::extrat_ogg_picture_storage(self)
+    fn image(&'a self) -> Result<Option<Image<'a>>, Error> {
+        Image::extrat_ogg_picture_storage(self)
     }
 }

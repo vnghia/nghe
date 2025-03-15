@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use super::Information;
 use crate::database::Database;
-use crate::file::{self, File, audio, lyric, picture};
+use crate::file::{self, File, audio, image, lyric};
 use crate::filesystem::Trait as _;
 use crate::orm::{albums, music_folders, songs};
 use crate::scan::scanner;
@@ -105,10 +105,10 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static>>>,
+        image: Option<Option<image::Image<'static>>>,
         file_property: Option<file::Property<audio::Format>>,
         external_lyric: Option<Option<lyric::Lyric<'static>>>,
-        dir_picture: Option<Option<picture::Picture<'static>>>,
+        dir_image: Option<Option<image::Image<'static>>>,
         relative_path: Option<Cow<'static, str>>,
         song_id: Option<Uuid>,
         #[builder(default = 1)] n_song: usize,
@@ -119,10 +119,10 @@ impl<'a> Mock<'a> {
             .maybe_album(album)
             .maybe_artists(artists)
             .maybe_genres(genres)
-            .maybe_picture(picture)
+            .maybe_image(image)
             .maybe_file_property(file_property)
             .maybe_external_lyric(external_lyric)
-            .maybe_dir_picture(dir_picture)
+            .maybe_dir_image(dir_image)
             .maybe_relative_path(relative_path);
 
         for _ in 0..n_song {
@@ -145,13 +145,13 @@ impl<'a> Mock<'a> {
         album: Option<audio::Album<'static>>,
         artists: Option<audio::Artists<'static>>,
         genres: Option<audio::Genres<'static>>,
-        picture: Option<Option<picture::Picture<'static>>>,
+        image: Option<Option<image::Image<'static>>>,
         external_lyric: Option<Option<lyric::Lyric<'static>>>,
-        dir_picture: Option<Option<picture::Picture<'static>>>,
+        dir_image: Option<Option<image::Image<'static>>>,
         #[builder(default = 1)] n_song: usize,
         #[builder(default = true)] scan: bool,
         #[builder(default)] full: scan::start::Full,
-        #[builder(default = true)] recompute_dir_picture: bool,
+        #[builder(default = true)] recompute_dir_image: bool,
     ) -> &mut Self {
         let builder = Information::builder()
             .maybe_metadata(metadata)
@@ -159,9 +159,9 @@ impl<'a> Mock<'a> {
             .maybe_album(album)
             .maybe_artists(artists)
             .maybe_genres(genres)
-            .maybe_picture(picture)
+            .maybe_image(image)
             .maybe_external_lyric(external_lyric)
-            .maybe_dir_picture(dir_picture);
+            .maybe_dir_image(dir_image);
 
         for _ in 0..n_song {
             let relative_path = if let Some(ref path) = path {
@@ -187,22 +187,21 @@ impl<'a> Mock<'a> {
             self.scan(full).run().await.unwrap();
         }
 
-        if recompute_dir_picture {
+        if recompute_dir_image {
             let group = self
                 .filesystem
                 .clone()
                 .into_iter()
                 .into_group_map_by(|value| value.0.parent().unwrap().to_path_buf());
             for (parent, files) in group {
-                let dir_picture = picture::Picture::scan_filesystem(
+                let dir_image = image::Image::scan_filesystem(
                     &self.to_impl(),
                     &self.config.cover_art,
                     self.path().join(parent).to_path(),
                 )
                 .await;
                 for (path, information) in files {
-                    let information =
-                        Information { dir_picture: dir_picture.clone(), ..information };
+                    let information = Information { dir_image: dir_image.clone(), ..information };
                     self.filesystem.insert(path, information);
                 }
             }

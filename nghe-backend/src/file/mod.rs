@@ -1,6 +1,6 @@
 pub mod audio;
+pub mod image;
 pub mod lyric;
-pub mod picture;
 
 use std::num::{NonZero, NonZeroU32, NonZeroU64};
 
@@ -73,11 +73,11 @@ impl<F: format::Trait> Property<F> {
     pub async fn path_create_dir(
         &self,
         base: impl AsRef<Utf8PlatformPath>,
-        name: &str,
+        name: impl AsRef<str>,
     ) -> Result<Utf8PlatformPathBuf, Error> {
         let path = self.path_dir(base);
         tokio::fs::create_dir_all(&path).await?;
-        Ok(path.join(name).with_extension(self.format.extension()))
+        Ok(path.join(name.as_ref()).with_extension(self.format.extension()))
     }
 }
 

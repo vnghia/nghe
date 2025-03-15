@@ -2,7 +2,7 @@ use axum::http::{HeaderName, HeaderValue};
 use axum_extra::headers;
 use strum::{EnumString, IntoStaticStr};
 
-static TRANSCODE_STATUS: HeaderName = HeaderName::from_static("x-transcode-status");
+static BINARY_STATUS: HeaderName = HeaderName::from_static("x-binary-status");
 
 #[derive(Debug, Clone, Copy, EnumString, IntoStaticStr, PartialEq, Eq, PartialOrd, Ord)]
 #[strum(serialize_all = "lowercase")]
@@ -17,7 +17,7 @@ pub struct Header(pub Status);
 
 impl headers::Header for Header {
     fn name() -> &'static HeaderName {
-        &TRANSCODE_STATUS
+        &BINARY_STATUS
     }
 
     fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>

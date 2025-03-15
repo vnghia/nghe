@@ -110,35 +110,35 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::file::{audio, picture};
+    use crate::file::{audio, image};
     use crate::test::{Mock, mock};
 
     #[rstest]
     #[tokio::test]
     async fn test_query_cover_art(
         #[future(awt)] mock: Mock,
-        #[values(true, false)] has_picture: bool,
-        #[values(true, false)] has_dir_picture: bool,
+        #[values(true, false)] has_image: bool,
+        #[values(true, false)] has_dir_image: bool,
     ) {
         let mut music_folder = mock.music_folder(0).await;
 
-        let (picture, picture_id) = if has_picture {
-            let picture: picture::Picture = Faker.fake();
-            let picture_id = picture.upsert_mock(&mock, None::<&str>).await;
-            (Some(picture), Some(picture_id))
+        let (image, image_id) = if has_image {
+            let image: image::Image = Faker.fake();
+            let image_id = image.upsert_mock(&mock, None::<&str>).await;
+            (Some(image), Some(image_id))
         } else {
             (None, None)
         };
 
-        let (dir_picture, dir_picture_id) = if has_dir_picture {
-            let dir_picture: picture::Picture = Faker.fake();
-            let dir_picture_id = dir_picture
+        let (dir_image, dir_image_id) = if has_dir_image {
+            let dir_image: image::Image = Faker.fake();
+            let dir_image_id = dir_image
                 .upsert_mock(
                     &mock,
-                    Some(music_folder.path().join(dir_picture.property.format.name()).to_string()),
+                    Some(music_folder.path().join(dir_image.property.format.name()).to_string()),
                 )
                 .await;
-            (Some(dir_picture), Some(dir_picture_id))
+            (Some(dir_image), Some(dir_image_id))
         } else {
             (None, None)
         };
@@ -148,8 +148,8 @@ mod tests {
         music_folder
             .add_audio_filesystem::<&str>()
             .album(album.clone())
-            .picture(picture)
-            .dir_picture(dir_picture)
+            .image(image)
+            .dir_image(dir_image)
             .depth(0)
             .n_song(10)
             .call()
@@ -159,10 +159,10 @@ mod tests {
             .get_result(&mut mock.get().await)
             .await
             .unwrap();
-        if has_dir_picture {
-            assert_eq!(album.cover_art, dir_picture_id);
-        } else if has_picture {
-            assert_eq!(album.cover_art, picture_id);
+        if has_dir_image {
+            assert_eq!(album.cover_art, dir_image_id);
+        } else if has_image {
+            assert_eq!(album.cover_art, image_id);
         } else {
             assert!(album.cover_art.is_none());
         }

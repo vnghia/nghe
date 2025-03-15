@@ -5,12 +5,13 @@ use uuid::Uuid;
 
 use super::download;
 use crate::database::Database;
+use crate::file::audio::transcode;
 use crate::filesystem::{Filesystem, Trait};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 #[cfg(test)]
-use crate::test::transcode::Status as TranscodeStatus;
-use crate::{Error, config, transcode};
+use crate::test::binary::Status as BinaryStatus;
+use crate::{Error, config};
 
 #[handler]
 pub async fn handler(
@@ -37,7 +38,7 @@ pub async fn handler(
     let source_path = source.path.to_path();
 
     let transcode_args = if let Some(ref cache_dir) = config.cache_dir {
-        let output = property.path_create_dir(cache_dir, bitrate.to_string().as_str()).await?;
+        let output = property.path_create_dir(cache_dir, bitrate.to_string()).await?;
         let cache_exists = tokio::fs::try_exists(&output).await?;
 
         // If the cache exists, it means that the transcoding process is finish. Since we write the
@@ -51,7 +52,7 @@ pub async fn handler(
                 (
                     transcode::Path { input: output.as_str().to_owned(), output: None },
                     #[cfg(test)]
-                    TranscodeStatus::UseCachedOutput,
+                    BinaryStatus::UseCachedOutput,
                 )
             } else {
                 return binary::Response::from_path(
@@ -59,7 +60,7 @@ pub async fn handler(
                     format,
                     size_offset,
                     #[cfg(test)]
-                    TranscodeStatus::ServeCachedOutput,
+                    BinaryStatus::ServeCachedOutput,
                 )
                 .await;
             }
@@ -75,14 +76,14 @@ pub async fn handler(
                     output: if time_offset > 0 { None } else { Some(output) },
                 },
                 #[cfg(test)]
-                if time_offset > 0 { TranscodeStatus::NoCache } else { TranscodeStatus::WithCache },
+                if time_offset > 0 { BinaryStatus::NoCache } else { BinaryStatus::WithCache },
             )
         }
     } else {
         (
             transcode::Path { input: filesystem.transcode_input(source_path).await?, output: None },
             #[cfg(test)]
-            TranscodeStatus::NoCache,
+            BinaryStatus::NoCache,
         )
     };
 
@@ -108,7 +109,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
-    use crate::test::transcode::{Header as TranscodeHeader, Status as TranscodeStatus};
+    use crate::test::binary::Header as BinaryHeader;
     use crate::test::{Mock, mock};
 
     async fn spawn_stream(
@@ -116,7 +117,7 @@ mod tests {
         n_task: usize,
         user_id: Uuid,
         request: Request,
-    ) -> (Vec<(StatusCode, Vec<u8>)>, Vec<TranscodeStatus>) {
+    ) -> (Vec<(StatusCode, Vec<u8>)>, Vec<BinaryStatus>) {
         let mut stream_set = tokio::task::JoinSet::new();
         for _ in 0..n_task {
             let database = mock.database().clone();
@@ -130,15 +131,15 @@ mod tests {
                     .await
             });
         }
-        let (responses, transcode_status): (Vec<_>, Vec<_>) = stream_set
+        let (responses, binary_status): (Vec<_>, Vec<_>) = stream_set
             .join_all()
             .await
             .into_iter()
             .map(|(status, headers, body)| {
-                ((status, body), headers.typed_get::<TranscodeHeader>().unwrap().0)
+                ((status, body), headers.typed_get::<BinaryHeader>().unwrap().0)
             })
             .unzip();
-        (responses, transcode_status.into_iter().sorted().collect())
+        (responses, binary_status.into_iter().sorted().collect())
     }
 
     #[rstest]
@@ -172,21 +173,21 @@ mod tests {
             time_offset: None,
         };
 
-        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        let (responses, binary_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
-            assert_eq!(transcoded, body);
+            assert_eq!(body, transcoded);
         }
-        assert_eq!(transcode_status, &[TranscodeStatus::WithCache, TranscodeStatus::WithCache]);
+        assert_eq!(binary_status, &[BinaryStatus::WithCache, BinaryStatus::WithCache]);
 
-        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        let (responses, binary_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
-            assert_eq!(transcoded, body);
+            assert_eq!(body, transcoded);
         }
         assert_eq!(
-            transcode_status,
-            &[TranscodeStatus::ServeCachedOutput, TranscodeStatus::ServeCachedOutput]
+            binary_status,
+            &[BinaryStatus::ServeCachedOutput, BinaryStatus::ServeCachedOutput]
         );
     }
 
@@ -222,25 +223,22 @@ mod tests {
             time_offset: Some(time_offset),
         };
 
-        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        let (responses, binary_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(transcoded, body);
         }
-        assert_eq!(transcode_status, &[TranscodeStatus::NoCache, TranscodeStatus::NoCache]);
+        assert_eq!(binary_status, &[BinaryStatus::NoCache, BinaryStatus::NoCache]);
 
-        let transcode_status =
+        let binary_status =
             spawn_stream(&mock, 1, user_id, Request { time_offset: None, ..request }).await.1;
-        assert_eq!(transcode_status, &[TranscodeStatus::WithCache]);
+        assert_eq!(binary_status, &[BinaryStatus::WithCache]);
 
-        let (responses, transcode_status) = spawn_stream(&mock, 2, user_id, request).await;
+        let (responses, binary_status) = spawn_stream(&mock, 2, user_id, request).await;
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
             assert!(!body.is_empty());
         }
-        assert_eq!(
-            transcode_status,
-            &[TranscodeStatus::UseCachedOutput, TranscodeStatus::UseCachedOutput]
-        );
+        assert_eq!(binary_status, &[BinaryStatus::UseCachedOutput, BinaryStatus::UseCachedOutput]);
     }
 }

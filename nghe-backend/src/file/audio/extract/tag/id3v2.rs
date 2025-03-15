@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use crate::config::parsing::id3v2::frame;
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
+use crate::file::image::Image;
 use crate::file::lyric::Lyric;
-use crate::file::picture::Picture;
 use crate::{Error, config, error};
 
 fn get_text<'a>(tag: &'a Id3v2Tag, frame_id: &'a frame::Id) -> Result<Option<&'a str>, Error> {
@@ -155,14 +155,14 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
             .try_collect()
     }
 
-    fn picture(&'a self) -> Result<Option<Picture<'a>>, Error> {
+    fn image(&'a self) -> Result<Option<Image<'a>>, Error> {
         let mut iter = self.into_iter();
         iter.find_map(|frame| {
             if let Frame::Picture(AttachedPictureFrame { picture, .. }) = frame
                 && (!cfg!(test)
                     || picture
                         .description()
-                        .is_some_and(|description| description == Picture::TEST_DESCRIPTION))
+                        .is_some_and(|description| description == Image::TEST_DESCRIPTION))
             {
                 Some(picture.try_into())
             } else {

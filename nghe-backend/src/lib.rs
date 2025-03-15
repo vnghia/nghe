@@ -29,7 +29,6 @@ mod scan;
 mod schema;
 mod sync;
 mod time;
-mod transcode;
 
 #[cfg(test)]
 #[coverage(off)]

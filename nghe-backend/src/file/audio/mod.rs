@@ -8,6 +8,7 @@ mod metadata;
 mod name_date_mbz;
 pub mod position;
 mod property;
+pub mod transcode;
 
 use std::io::Cursor;
 

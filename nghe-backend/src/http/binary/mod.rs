@@ -19,7 +19,7 @@ use tokio_util::io::ReaderStream;
 use typed_path::Utf8PlatformPath;
 
 #[cfg(test)]
-use crate::test::transcode;
+use crate::test::binary;
 use crate::{Error, error, file};
 
 struct RxStream(RecvStream<Vec<u8>>);
@@ -59,7 +59,7 @@ impl Response {
         body: Body,
         property: &P,
         offset: impl Into<Option<u64>>,
-        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
+        #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
         let mut header = HeaderMap::new();
 
@@ -89,8 +89,8 @@ impl Response {
         header.typed_insert(P::cache_control());
 
         #[cfg(test)]
-        if let Some(transcode_status) = transcode_status.into() {
-            header.typed_insert(transcode::Header(transcode_status));
+        if let Some(binary_status) = binary_status.into() {
+            header.typed_insert(binary::Header(binary_status));
         }
 
         Ok(Self { status, header, body })
@@ -100,7 +100,7 @@ impl Response {
         path: impl AsRef<Utf8PlatformPath>,
         format: impl format::Trait,
         offset: impl Into<Option<u64>> + Copy,
-        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
+        #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
         let mut file = tokio::fs::File::open(path.as_ref()).await?;
         let size = NonZero::new(file.seek(SeekFrom::End(0)).await?)
@@ -111,7 +111,7 @@ impl Response {
             &file::PropertySize { size, format },
             offset,
             #[cfg(test)]
-            transcode_status,
+            binary_status,
         )
     }
 
@@ -119,7 +119,7 @@ impl Response {
         path: impl AsRef<Utf8PlatformPath>,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>> + Copy,
-        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
+        #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
         let mut file = tokio::fs::File::open(path.as_ref()).await?;
         if let Some(offset) = offset.into()
@@ -132,7 +132,7 @@ impl Response {
             property,
             offset,
             #[cfg(test)]
-            transcode_status,
+            binary_status,
         )
     }
 
@@ -140,28 +140,45 @@ impl Response {
         reader: impl AsyncRead + Send + 'static,
         property: &impl property::Trait,
         offset: impl Into<Option<u64>>,
-        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
+        #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
         Self::new(
             Body::from_stream(ReaderStream::new(reader)),
             property,
             offset,
             #[cfg(test)]
-            transcode_status,
+            binary_status,
         )
     }
 
     pub fn from_rx(
         rx: Receiver<Vec<u8>>,
         property: format::Transcode,
-        #[cfg(test)] transcode_status: impl Into<Option<transcode::Status>>,
+        #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
         Self::new(
             RxStream::new(rx).into(),
             &property,
             None,
             #[cfg(test)]
-            transcode_status,
+            binary_status,
+        )
+    }
+
+    pub fn from_memory(
+        format: impl format::Trait,
+        data: Vec<u8>,
+        offset: impl Into<Option<u64>>,
+        #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
+    ) -> Result<Self, Error> {
+        let size = NonZero::new(u64::try_from(data.len())?)
+            .ok_or_else(|| error::Kind::EmptyFileEncountered)?;
+        Self::new(
+            axum::body::Body::from(data),
+            &file::PropertySize { size, format },
+            offset,
+            #[cfg(test)]
+            binary_status,
         )
     }
 }
