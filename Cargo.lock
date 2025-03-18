@@ -959,15 +959,6 @@ dependencies = [
 
 [[package]]
 name = "codee"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d3ad3122b0001c7f140cf4d605ef9a9e2c24d96ab0b4fb4347b76de2425f445"
-dependencies = [
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "codee"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f18d705321923b1a9358e3fc3c57c3b50171196827fc7f5f10b053242aca627"
@@ -2728,7 +2719,7 @@ checksum = "e612389629007497d1e90deecf5bddd790e59e32358546fa7beaf88a68d2067b"
 dependencies = [
  "cfg-if",
  "chrono",
- "codee 0.3.0",
+ "codee",
  "default-struct-builder",
  "js-sys",
  "lazy_static",
@@ -2853,7 +2844,7 @@ checksum = "4fee9ed4526484b17561bc8ce1532c613e37be2c01788fed3d1c4104db674dd9"
 dependencies = [
  "any_spawner",
  "base64 0.22.1",
- "codee 0.3.0",
+ "codee",
  "futures",
  "hydration_context",
  "or_poisoned",
@@ -3315,7 +3306,7 @@ dependencies = [
 name = "nghe_frontend"
 version = "0.10.6"
 dependencies = [
- "codee 0.2.0",
+ "codee",
  "concat-string",
  "console_error_panic_hook",
  "gloo-net",
