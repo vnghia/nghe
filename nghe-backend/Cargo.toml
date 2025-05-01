@@ -127,7 +127,7 @@ tempfile = { version = "3.17.1" }
 diesel = { version = "2.2.7", features = ["postgres"] }
 
 [build-dependencies]
-built = { version = "0.7.7" }
+built = { version = "0.8.0" }
 
 [package.metadata.vcpkg]
 dependencies = [
