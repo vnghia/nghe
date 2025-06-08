@@ -80,6 +80,7 @@ o2o = { version = "0.5.3", default-features = false, features = ["syn2"] }
 rsmpeg = { version = "0.15.1", default-features = false, features = [
   "ffmpeg7",
   "link_system_ffmpeg",
+  "link_vcpkg_ffmpeg",
 ] }
 rspotify = { version = "0.14.0", default-features = false, features = [
   "client-reqwest",
