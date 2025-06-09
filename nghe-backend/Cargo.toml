@@ -53,7 +53,7 @@ axum = { version = "0.8.4", default-features = false, features = [
 axum-extra = { version = "0.10.1", features = ["typed-header"] }
 diesel = { version = "2.2.10", features = ["time", "uuid"] }
 # TODO: remove this when diesel is released
-diesel_derives = { git = "https://github.com/diesel-rs/diesel", rev = "683148898a2e74d4b4a361a2abd1503d3931f70f" }
+diesel_derives = { git = "https://github.com/diesel-rs/diesel", rev = "7629365ffbad24019ab3d126433d4c26c7c13c79" }
 diesel-async = { version = "0.5.2", features = [
   "postgres",
   "deadpool",
