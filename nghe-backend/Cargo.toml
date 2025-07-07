@@ -82,7 +82,7 @@ rsmpeg = { version = "0.15.2", default-features = false, features = [
   "link_system_ffmpeg",
   "link_vcpkg_ffmpeg",
 ] }
-rspotify = { version = "0.14.0", default-features = false, features = [
+rspotify = { version = "0.15.0", default-features = false, features = [
   "client-reqwest",
   "reqwest-native-tls",
 ] }
