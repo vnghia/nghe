@@ -33,7 +33,6 @@ PKG_CONFIG_PATH_aarch64-unknown-linux-musl = { value = "target/vcpkg/installed/a
 
 PKG_CONFIG_PATH_x86_64-unknown-freebsd = { value = "target/vcpkg/installed/x64-freebsd-release/lib/pkgconfig", relative = true }
 
-PKG_CONFIG_PATH_x86_64-apple-darwin = { value = "target/vcpkg/installed/x64-osx-release/lib/pkgconfig", relative = true }
 PKG_CONFIG_PATH_aarch64-apple-darwin = { value = "target/vcpkg/installed/arm64-osx-release/lib/pkgconfig", relative = true }
 
 OPENSSL_STATIC = { value = "true" }

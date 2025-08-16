@@ -147,7 +147,6 @@ aarch64-unknown-linux-musl = { triplet = "arm64-linux-musl-release" }
 
 x86_64-unknown-freebsd = { triplet = "x64-freebsd-release" }
 
-x86_64-apple-darwin = { triplet = "x64-osx-release" }
 aarch64-apple-darwin = { triplet = "arm64-osx-release" }
 
 x86_64-pc-windows-msvc = { triplet = "x64-windows-static-release" }
