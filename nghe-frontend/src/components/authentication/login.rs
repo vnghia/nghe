@@ -22,7 +22,7 @@ pub fn Login() -> impl IntoView {
             let (password_error, set_password_error) = signal(Option::default());
             let (client_error, set_client_error) = signal(Option::default());
 
-            let login_action = Action::<_, _, SyncStorage>::new_unsync(move |request: &Request| {
+            let login_action = Action::<_, _>::new_unsync(move |request: &Request| {
                 let request = request.clone();
                 async move {
                     let api_key = Client::json_no_auth(&request).await?.api_key.api_key;

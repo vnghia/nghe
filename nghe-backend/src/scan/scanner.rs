@@ -87,7 +87,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         }
     }
 
-    fn path(&self) -> Utf8TypedPath {
+    fn path(&self) -> Utf8TypedPath<'_> {
         self.filesystem.path().from_str(&self.music_folder.data.path)
     }
 

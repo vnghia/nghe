@@ -9,7 +9,7 @@ pub fn Delete<I: Send + Sync + 'static>(
     title: &'static str,
     modal_id: &'static str,
     on_click: impl Fn(MouseEvent) + 'static,
-    action: Action<I, Result<(), Error>, SyncStorage>,
+    action: Action<I, Result<(), Error>>,
 ) -> impl IntoView {
     html::div().class("relative bg-white rounded-lg shadow-sm dark:bg-gray-700").child(
         html::div().class("p-4 md:p-5 text-center space-y-3 md:space-y-4").child((

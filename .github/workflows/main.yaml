@@ -554,11 +554,8 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - target: x86_64-apple-darwin
-            os: macos-13
-            vcpkg-target: x64-osx-release
           - target: aarch64-apple-darwin
-            os: macos-14
+            os: macos-latest
             vcpkg-target: arm64-osx-release
 
     runs-on: ${{ matrix.platform.os }}
@@ -672,4 +669,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
-          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.2.zip artifact/amd64-freebsd-13.4.zip artifact/amd64-darwin.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip
+          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.2.zip artifact/amd64-freebsd-13.4.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip

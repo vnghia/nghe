@@ -15,7 +15,7 @@ pub fn Modal(
     users_resource: LocalResource<Result<Vec<Response>, Error>>,
     get_delete_user_id: ReadSignal<Option<Uuid>>,
 ) -> impl IntoView {
-    let delete_action = Action::<_, _, SyncStorage>::new_unsync(move |request: &Request| {
+    let delete_action = Action::<_, _>::new_unsync(move |request: &Request| {
         let client = client.clone();
         let request = *request;
         async move {

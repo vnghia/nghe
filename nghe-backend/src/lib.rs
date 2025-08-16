@@ -5,7 +5,6 @@
 #![feature(duration_constructors)]
 #![feature(if_let_guard)]
 #![feature(iterator_try_collect)]
-#![feature(let_chains)]
 #![feature(proc_macro_hygiene)]
 #![feature(specialization)]
 #![feature(stmt_expr_attributes)]
