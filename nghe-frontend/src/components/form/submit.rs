@@ -8,7 +8,7 @@ use crate::Error;
 pub fn Submit<I: Send + Sync + 'static>(
     button: &'static str,
     on_click: impl Fn(MouseEvent) + 'static,
-    action: Action<I, Result<(), Error>, SyncStorage>,
+    action: Action<I, Result<(), Error>>,
 ) -> impl IntoView {
     let action_pending = move || action.pending().get();
     html::button()

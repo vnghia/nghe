@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use crate::Error;
 
 pub fn Error<I: Send + Sync + 'static>(
-    action: Action<I, Result<(), Error>, SyncStorage>,
+    action: Action<I, Result<(), Error>>,
     normal: bool,
 ) -> impl IntoView {
     move || {

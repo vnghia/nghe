@@ -293,13 +293,14 @@ impl Handler {
     }
 
     fn tracing_attribute(&self) -> syn::Attribute {
-        let source_path = proc_macro::Span::call_site().source_file().path();
-        // TODO: Remove this after https://github.com/rust-lang/rust-analyzer/issues/15950.
-        let tracing_name = if source_path.as_os_str().is_empty() {
-            "handler".to_owned()
-        } else {
-            source_path.file_stem().unwrap().to_str().unwrap().to_string()
-        };
+        let source_path = std::path::PathBuf::from(&proc_macro::Span::call_site().file());
+        let tracing_name = source_path.file_stem().unwrap().to_str().unwrap().to_string();
+        // // TODO: Remove this after https://github.com/rust-lang/rust-analyzer/issues/15950.
+        // let tracing_name = if source_path.as_os_str().is_empty() {
+        //     "handler".to_owned()
+        // } else {
+        //     source_path.file_stem().unwrap().to_str().unwrap().to_string()
+        // };
 
         let skip_debugs: Punctuated<&syn::Ident, syn::Token![,]> =
             self.args.value.iter().filter_map(Arg::to_skip_debug).collect();

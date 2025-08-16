@@ -22,7 +22,7 @@ pub fn Setup() -> impl IntoView {
             let (email_error, set_email_error) = signal(Option::default());
             let (password_error, set_password_error) = signal(Option::default());
 
-            let setup_action = Action::<_, _, SyncStorage>::new_unsync(|request: &Request| {
+            let setup_action = Action::<_, _>::new_unsync(|request: &Request| {
                 let request = request.clone();
                 async move {
                     Client::json_no_auth(&request).await?;

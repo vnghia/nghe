@@ -1,6 +1,5 @@
 #![allow(clippy::too_many_lines)]
 #![feature(iterator_try_collect)]
-#![feature(let_chains)]
 #![feature(if_let_guard)]
 #![feature(proc_macro_span)]
 

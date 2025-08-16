@@ -21,7 +21,7 @@ pub fn Modal(
     let (email_error, set_email_error) = signal(Option::default());
     let (password_error, set_password_error) = signal(Option::default());
 
-    let create_action = Action::<_, _, SyncStorage>::new_unsync(move |request: &Request| {
+    let create_action = Action::<_, _>::new_unsync(move |request: &Request| {
         let client = client.clone();
         let request = request.clone();
         async move {
