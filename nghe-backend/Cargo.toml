@@ -77,7 +77,7 @@ loole = { version = "0.4.1" }
 memory-serve = { version = "1.2.1" }
 mimalloc = { version = "0.1.46" }
 o2o = { version = "0.5.4", default-features = false, features = ["syn2"] }
-rsmpeg = { version = "0.15.2", default-features = false, features = [
+rsmpeg = { version = "0.18.0", default-features = false, features = [
   "ffmpeg7",
   "link_system_ffmpeg",
   "link_vcpkg_ffmpeg",
