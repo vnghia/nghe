@@ -44,7 +44,7 @@ pub struct Transcoder {
 
 impl Input {
     fn new(input: &CStr) -> Result<Self, Error> {
-        let context = AVFormatContextInput::open(input, None, &mut None)?;
+        let context = AVFormatContextInput::builder().url(input).open()?;
         let (index, codec) = context
             .find_best_stream(ffi::AVMEDIA_TYPE_AUDIO)?
             .ok_or_else(|| error::Kind::MissingAudioTrack)?;
@@ -62,7 +62,10 @@ impl Input {
 
 impl Output {
     fn new(sink: Sink, bitrate: u32, decoder: &AVCodecContext) -> Result<Self, Error> {
-        let mut context = AVFormatContextOutput::create(sink.format(), Some(sink.into()))?;
+        let mut context = AVFormatContextOutput::builder()
+            .filename(sink.format())
+            .io_context(sink.into())
+            .build()?;
 
         if cfg!(test) {
             // Set bitexact for deterministic transcoding output.
