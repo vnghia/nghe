@@ -70,7 +70,7 @@ jobs:
         run: |
           trunk build --locked ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && '--release' || '' }}
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend
           path: ${{ github.workspace }}/nghe-frontend/dist/
@@ -124,7 +124,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download build artifact for frontend
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend
           path: ${{ github.workspace }}/frontend/
@@ -217,7 +217,7 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
@@ -234,7 +234,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download build artifact for docker
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: ${{ github.workspace }}/artifact/
       - name: Set up Docker Buildx
@@ -356,7 +356,7 @@ jobs:
 
       - uses: actions/checkout@v5
       - name: Download build artifact for frontend
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend
           path: ${{ github.workspace }}/frontend/
@@ -424,7 +424,7 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
           path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
@@ -440,7 +440,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download build artifact for frontend
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend
           path: ${{ github.workspace }}/frontend/
@@ -517,7 +517,7 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: amd64-windows
           path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe_backend.exe
@@ -542,7 +542,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download build artifact for frontend
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend
           path: ${{ github.workspace }}/frontend/
@@ -619,7 +619,7 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
@@ -635,7 +635,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download build artifact for release
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: ${{ github.workspace }}/artifact/
       - name: Upload artifact
