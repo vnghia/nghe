@@ -1,5 +1,5 @@
 use nghe_proc_macro::api_derive;
-use serde_with::{TimestampMilliSeconds, serde_as};
+use serde_with::TimestampMilliSeconds;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
