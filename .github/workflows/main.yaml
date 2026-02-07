@@ -61,7 +61,7 @@ jobs:
           npm ci
           npm run build
       - name: Install trunk
-        uses: taiki-e/cache-cargo-install-action@v2
+        uses: taiki-e/cache-cargo-install-action@v3
         with:
           tool: trunk
           locked: false
@@ -175,7 +175,7 @@ jobs:
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
       - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v2
+        uses: taiki-e/cache-cargo-install-action@v3
         with:
           tool: cargo-vcpkg
       - name: Build vcpkg dependencies
@@ -184,7 +184,7 @@ jobs:
 
       - name: Install cross
         if: ${{ matrix.platform.command == 'cross' }}
-        uses: taiki-e/cache-cargo-install-action@v2
+        uses: taiki-e/cache-cargo-install-action@v3
         with:
           tool: cross
           git: https://github.com/cross-rs/cross
@@ -488,7 +488,7 @@ jobs:
           curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
 
       - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v2
+        uses: taiki-e/cache-cargo-install-action@v3
         with:
           tool: cargo-vcpkg
       - name: Build vcpkg dependencies
@@ -591,7 +591,7 @@ jobs:
       - name: Install vcpkg build deps
         run: brew install nasm
       - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v2
+        uses: taiki-e/cache-cargo-install-action@v3
         with:
           tool: cargo-vcpkg
       - name: Build vcpkg dependencies
