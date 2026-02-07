@@ -17,13 +17,11 @@ env:
   COLORBT_SHOW_HIDDEN: 1
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
-  AWS_ACCESS_KEY_ID: minioadmin
-  AWS_SECRET_ACCESS_KEY: minioadmin
+  AWS_ACCESS_KEY_ID: key
+  AWS_SECRET_ACCESS_KEY: key
   AWS_REGION: us-east-1
-  AWS_ENDPOINT_URL: http://localhost:9000
+  AWS_ENDPOINT_URL: http://localhost:9090
   AWS_USE_PATH_STYLE_ENDPOINT: true
-  MINIO_ROOT_USER: minioadmin
-  MINIO_ROOT_PASSWORD: minioadmin
 
 jobs:
   coverage:
@@ -43,12 +41,9 @@ jobs:
         ports:
           - 5432:5432
       s3:
-        image: bitnami/minio:2025.7.23
-        env:
-          MINIO_ROOT_USER: ${{ env.MINIO_ROOT_USER }}
-          MINIO_ROOT_PASSWORD: ${{ env.MINIO_ROOT_PASSWORD }}
+        image: adobe/s3mock:latest
         ports:
-          - 9000:9000
+          - 9090:9090
 
     steps:
       - uses: actions/checkout@v5
