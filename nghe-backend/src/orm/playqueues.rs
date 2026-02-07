@@ -2,7 +2,6 @@ use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
-use diesel_derives::AsChangeset;
 use o2o::o2o;
 use uuid::Uuid;
 

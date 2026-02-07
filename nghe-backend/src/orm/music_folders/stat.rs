@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use diesel::dsl::{count_distinct, sum};
+use diesel::helper_types::sum;
 use diesel::prelude::*;
 use o2o::o2o;
 

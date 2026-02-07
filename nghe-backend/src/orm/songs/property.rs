@@ -5,7 +5,6 @@ use diesel::pg::PgValue;
 use diesel::prelude::*;
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Float;
-use diesel_derives::AsChangeset;
 use o2o::o2o;
 
 use super::songs;

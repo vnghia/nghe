@@ -7,7 +7,6 @@ use diesel::pg::PgValue;
 use diesel::prelude::*;
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Text;
-use diesel_derives::AsChangeset;
 use o2o::o2o;
 
 use crate::file::{self, image};

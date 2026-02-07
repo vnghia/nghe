@@ -1,5 +1,4 @@
 use diesel::prelude::*;
-use diesel_derives::AsChangeset;
 use time::OffsetDateTime;
 use uuid::Uuid;
 

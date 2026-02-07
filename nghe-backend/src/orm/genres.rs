@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
 use diesel::prelude::*;
-use diesel_derives::AsChangeset;
 
 pub use crate::schema::genres::{self, *};
 

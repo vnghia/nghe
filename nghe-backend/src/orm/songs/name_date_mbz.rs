@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
 use diesel::prelude::*;
-use diesel_derives::AsChangeset;
 use uuid::Uuid;
 
 use super::{date, songs};
