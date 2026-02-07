@@ -3,7 +3,6 @@
 use std::borrow::Cow;
 
 use diesel::prelude::*;
-use diesel_derives::AsChangeset;
 use o2o::o2o;
 
 pub use crate::schema::playlists::{self, *};

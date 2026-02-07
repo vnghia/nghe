@@ -25,6 +25,7 @@ impl Artists {
 
 mod query {
     use diesel::dsl::{AsSelect, auto_type, min, not};
+    use diesel::helper_types::min;
     use diesel::{ExpressionMethods, PgSortExpressionMethods, QueryDsl, SelectableHelper};
 
     use super::*;

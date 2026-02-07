@@ -1,5 +1,4 @@
 use diesel::prelude::*;
-use diesel_derives::AsChangeset;
 use uuid::Uuid;
 
 pub use crate::schema::songs_album_artists::{self, *};
