@@ -52,11 +52,11 @@ impl Drop for Mock {
 
         let raw_statement =
             concat_string!("DROP DATABASE IF EXISTS \"", &self.name, "\" WITH (FORCE);");
-        if let Err::<_, color_eyre::Report>(e) = try {
-            let mut conn = PgConnection::establish(&self.url)?;
-            diesel::RunQueryDsl::execute(diesel::sql_query(&raw_statement), &mut conn)?;
-        } {
-            println!("Could not drop temporary database because of {:?}", &e);
+        if let Ok(mut conn) = PgConnection::establish(&self.url)
+            && diesel::RunQueryDsl::execute(diesel::sql_query(&raw_statement), &mut conn).is_ok()
+        {
+        } else {
+            println!("Could not drop temporary database");
             println!("Please drop the database manually with '{}'", &raw_statement);
         }
     }
