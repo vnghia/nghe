@@ -391,7 +391,7 @@ jobs:
           docker restart postgres
 
       - name: Build and test
-        uses: cross-platform-actions/action@v0.29.0
+        uses: cross-platform-actions/action@v0.32.0
         env:
           DATABASE_URL: "postgres://postgres:postgres@10.0.2.2:5432/postgres"
           AWS_ENDPOINT_URL: "http://10.0.2.2:9000"
