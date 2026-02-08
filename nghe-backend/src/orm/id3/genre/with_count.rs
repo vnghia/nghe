@@ -1,4 +1,4 @@
-use diesel::dsl::count_distinct;
+use diesel::dsl::count;
 use diesel::prelude::*;
 use nghe_api::id3;
 use o2o::o2o;
@@ -12,10 +12,10 @@ use crate::orm::{albums, genres, songs};
 pub struct WithCount {
     pub value: String,
     #[into(~.try_into()?)]
-    #[diesel(select_expression = count_distinct(songs::id))]
+    #[diesel(select_expression = count(songs::id).aggregate_distinct())]
     pub song_count: i64,
     #[into(~.try_into()?)]
-    #[diesel(select_expression = count_distinct(albums::id))]
+    #[diesel(select_expression = count(albums::id).aggregate_distinct())]
     pub album_count: i64,
 }
 

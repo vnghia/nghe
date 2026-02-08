@@ -3,7 +3,7 @@
 pub mod full;
 pub mod required;
 
-use diesel::dsl::{count_distinct, sql};
+use diesel::dsl::{count, sql};
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
@@ -26,9 +26,9 @@ pub struct Artist {
     #[diesel(select_expression = sql("any_value(artist_informations.cover_art_id) cover_art_id"))]
     #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Uuid>>)]
     pub cover_art: Option<Uuid>,
-    #[diesel(select_expression = count_distinct(songs::id.nullable()))]
+    #[diesel(select_expression = count(songs::id.nullable()).aggregate_distinct())]
     pub song_count: i64,
-    #[diesel(select_expression = count_distinct(albums::id.nullable()))]
+    #[diesel(select_expression = count(albums::id.nullable()).aggregate_distinct())]
     pub album_count: i64,
     #[diesel(select_expression = sql("any_value(star_artists.created_at) starred"))]
     #[diesel(select_expression_type = SqlLiteral<sql_types::Nullable<sql_types::Timestamptz>>)]
