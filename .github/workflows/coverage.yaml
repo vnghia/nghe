@@ -46,7 +46,7 @@ jobs:
           - 9090:9090
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v8
         with:

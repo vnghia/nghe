@@ -76,7 +76,7 @@ jobs:
           - 9090:9090
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v8
         with:
@@ -181,7 +181,7 @@ jobs:
       DOCKER_BUILD_RECORD_UPLOAD: false
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Download build artifact for docker
         uses: actions/download-artifact@v7
         with:
@@ -247,7 +247,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v8
         with:
@@ -342,7 +342,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v8
         with:
@@ -430,7 +430,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Download build artifact for release
         uses: actions/download-artifact@v7
         with:
