@@ -188,10 +188,16 @@ impl<'graph> Filter<'graph> {
         let mut source =
             graph.filter.create_filter_context(&source_ref, c"in", Some(&source_arg))?;
 
-        let mut sink = graph.filter.create_filter_context(&sink_ref, c"out", None)?;
-        sink.opt_set_bin(c"sample_rates", &encoder.sample_rate)?;
-        sink.opt_set_bin(c"sample_fmts", &encoder.sample_fmt)?;
-        sink.opt_set(c"ch_layouts", &encoder.ch_layout().describe()?)?;
+        let sink_arg = concat_string!(
+            "samplerates=",
+            encoder.sample_rate.to_string(),
+            ":sample_formats=",
+            encoder.sample_fmt.to_string(),
+            ":channel_layouts=",
+            encoder.ch_layout().describe()?.to_str()?
+        );
+        let sink_arg = CString::new(sink_arg)?;
+        let mut sink = graph.filter.create_filter_context(&sink_ref, c"out", Some(&sink_arg))?;
 
         // Yes. The output name is in.
         let outputs = AVFilterInOut::new(c"in", &mut source, 0);
