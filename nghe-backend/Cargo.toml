@@ -75,7 +75,7 @@ loole = { version = "0.4.1" }
 mimalloc = { version = "0.1.46" }
 o2o = { version = "0.5.4", default-features = false, features = ["syn2"] }
 rsmpeg = { version = "0.18.0", default-features = false, features = [
-  "ffmpeg7",
+  "ffmpeg8",
   "link_system_ffmpeg",
   "link_vcpkg_ffmpeg",
 ] }
@@ -132,7 +132,7 @@ dependencies = [
   "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis,openssl]",
 ]
 git = "https://github.com/microsoft/vcpkg"
-rev = "2025.01.13"
+rev = "2026.01.16"
 overlay-triplets-path = "vcpkg/triplets/"
 
 [package.metadata.vcpkg.target]
