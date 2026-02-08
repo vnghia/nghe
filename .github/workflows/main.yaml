@@ -294,142 +294,6 @@ jobs:
           push: true
           tags: ${{ steps.meta-musl.outputs.tags }}
 
-  build-freebsd:
-    strategy:
-      fail-fast: false
-      matrix:
-        version:
-          - "14.2"
-          - "13.4"
-
-    runs-on: ubuntu-latest
-    needs: [build-frontend]
-    env:
-      TARGET: x86_64-unknown-freebsd
-      ASSET_DIR: ${{ github.workspace }}/frontend
-
-    services: *services
-
-    steps:
-      - name: Remove unused packages
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache
-          sudo rm -rf /usr/local/share/edge_driver
-          sudo rm -rf /usr/local/share/gecko_driver
-          sudo rm -rf /usr/local/share/chromium
-          sudo rm -rf /usr/local/share/chromedriver-linux64
-          sudo rm -rf /usr/local/share/vcpkg
-          sudo rm -rf /usr/local/lib/python*
-          sudo rm -rf /usr/local/lib/node_modules
-          sudo rm -rf /usr/local/julia*
-          sudo rm -rf /usr/share/vim
-          sudo rm -rf /usr/share/postgresql
-          sudo rm -rf /usr/share/man
-          sudo rm -rf /usr/share/apache-maven-*
-          sudo rm -rf /usr/share/R
-          sudo rm -rf /usr/share/alsa
-          sudo rm -rf /usr/share/miniconda
-          sudo rm -rf /usr/share/grub
-          sudo rm -rf /usr/share/gradle-*
-          sudo rm -rf /usr/share/locale
-          sudo rm -rf /usr/share/texinfo
-          sudo rm -rf /usr/share/kotlinc
-          sudo rm -rf /usr/share/swift
-          sudo rm -rf /usr/share/doc
-          sudo rm -rf /usr/share/az_9.3.0
-          sudo rm -rf /usr/share/sbt
-          sudo rm -rf /usr/share/ri
-          sudo rm -rf /usr/share/icons
-          sudo rm -rf /usr/share/java
-          sudo rm -rf /usr/share/fonts
-          sudo rm -rf /usr/lib/google-cloud-sdk
-          sudo rm -rf /usr/lib/jvm
-          sudo rm -rf /usr/lib/mono
-          sudo rm -rf /usr/lib/R
-          sudo rm -rf /usr/lib/postgresql
-          sudo rm -rf /usr/lib/heroku
-          sudo rm -rf /usr/lib/gcc
-          sudo docker image prune --all --force
-
-      - uses: actions/checkout@v5
-      - name: Download build artifact for frontend
-        uses: actions/download-artifact@v7
-        with:
-          name: frontend
-          path: ${{ github.workspace }}/frontend/
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v8
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - name: Extract build information
-        id: build
-        run: |
-          echo "env=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-          echo "target=${TARGET}" >> "$GITHUB_OUTPUT"
-          echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
-          echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-      - name: Extract rust toolchain
-        id: toolchain
-        run: |
-          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ steps.toolchain.outputs.channel }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ steps.build.outputs.target }}-${{ matrix.version }}-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Increase postgres max connection
-        run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-          docker restart postgres
-
-      - name: Build and test
-        uses: cross-platform-actions/action@v0.29.0
-        env:
-          DATABASE_URL: "postgres://postgres:postgres@10.0.2.2:5432/postgres"
-          AWS_ENDPOINT_URL: "http://10.0.2.2:9000"
-        with:
-          operating_system: freebsd
-          version: ${{ matrix.version }}
-          environment_variables: "ASSET_DIR CARGO_TERM_COLOR RUST_LOG COLORBT_SHOW_HIDDEN DATABASE_URL AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_ENDPOINT_URL AWS_USE_PATH_STYLE_ENDPOINT ACTIONS_CACHE_URL ACTIONS_RUNTIME_TOKEN VCPKG_BINARY_SOURCES"
-          shell: "bash"
-          cpu_count: 4
-          image_url: https://github.com/vnghia/nghe-freebsd-builder/releases/download/v0.0.13/freebsd-${{ matrix.version }}-x86-64.qcow2
-          run: |
-            sudo chown -R $(id -u):$(id -g) /root/
-            export CARGO_HOME="/root/.cargo"
-            export PATH="$CARGO_HOME/bin/:$PATH"
-
-            cargo install cargo-vcpkg
-            cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ steps.build.outputs.target }}
-
-            curl -LsSf https://get.nexte.st/latest/freebsd | tar zxf - -C $CARGO_HOME/bin/
-
-            cargo build --locked --target ${{ steps.build.outputs.target }} --profile ${{ steps.build.outputs.profile }} --package nghe_backend
-            cargo nextest run --locked --target ${{ steps.build.outputs.target }} --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
-      - name: Upload test report to Codecov
-        if: success() || failure()
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: target/nextest/ci/junit.xml
-          disable_search: true
-          report_type: "test_results"
-          fail_ci_if_error: true
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: amd64-${{ steps.build.outputs.env }}-${{ matrix.version }}
-          path: ${{ github.workspace }}/target/${{ steps.build.outputs.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
-          retention-days: 1
-
   build-windows:
     runs-on: windows-latest
     needs: [build-frontend]
@@ -627,7 +491,7 @@ jobs:
 
   upload-release:
     runs-on: ubuntu-latest
-    needs: [build-linux, build-freebsd, build-windows, build-macos]
+    needs: [build-linux, build-windows, build-macos]
     if: ${{ github.event_name == 'release' }}
     permissions:
       contents: write
@@ -643,4 +507,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
-          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/amd64-freebsd-14.2.zip artifact/amd64-freebsd-13.4.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip
+          gh release upload ${{ github.ref_name }} artifact/amd64-gnu.zip artifact/arm64-gnu.zip artifact/amd64-musl.zip artifact/arm64-musl.zip artifact/arm64-darwin.zip artifact/amd64-windows.zip
