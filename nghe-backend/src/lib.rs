@@ -35,7 +35,6 @@ mod test;
 
 use axum::Router;
 use error::Error;
-use memory_serve::MemoryServe;
 use mimalloc::MiMalloc;
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
@@ -91,8 +90,6 @@ pub async fn build(config: config::Config) -> Router {
         filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
     let informant = integration::Informant::new(config.integration).await;
 
-    let frontend_router = MemoryServe::from_env().fallback(Some("/index.html")).into_router();
-
     let backend_middleware = ServiceBuilder::new()
         .layer(RequestDecompressionLayer::new().br(true).gzip(true).zstd(true))
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
@@ -137,10 +134,7 @@ pub async fn build(config: config::Config) -> Router {
         .with_state(database::Database::new(&config.database))
         .layer(backend_middleware);
 
-    Router::new()
-        .nest_service(nghe_api::common::FRONTEND_PREFIX, frontend_router)
-        .nest(nghe_api::common::BACKEND_PREFIX, backend_router)
-        .fallback_service(Redirect::<axum::body::Body>::permanent(
-            nghe_api::common::FRONTEND_PREFIX.parse().unwrap(),
-        ))
+    Router::new().nest(nghe_api::common::BACKEND_PREFIX, backend_router).fallback_service(
+        Redirect::<axum::body::Body>::permanent(nghe_api::common::FRONTEND_PREFIX.parse().unwrap()),
+    )
 }
