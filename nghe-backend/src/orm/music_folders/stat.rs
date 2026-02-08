@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use diesel::dsl::{count_distinct, sum};
+use diesel::dsl::{count, sum};
 use diesel::helper_types::sum;
 use diesel::prelude::*;
 use o2o::o2o;
@@ -21,10 +21,10 @@ pub struct Stat<'a> {
     #[diesel(column_name = fs_type)]
     #[into(~.into())]
     pub ty: FilesystemType,
-    #[diesel(select_expression = count_distinct(albums::id.nullable()))]
+    #[diesel(select_expression = count(albums::id.nullable()).aggregate_distinct())]
     #[into(~.cast_unsigned())]
     pub album_count: i64,
-    #[diesel(select_expression = count_distinct(songs::id.nullable()))]
+    #[diesel(select_expression = count(songs::id.nullable()).aggregate_distinct())]
     #[into(~.cast_unsigned())]
     pub song_count: i64,
     #[diesel(select_expression = songs_size
