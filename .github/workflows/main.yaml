@@ -32,50 +32,6 @@ env:
   POSTGRES_VERSION: 17
 
 jobs:
-  build-frontend:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v5
-      - name: Extract rust toolchain
-        id: toolchain
-        run: |
-          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ steps.toolchain.outputs.channel }}
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: "npm"
-          cache-dependency-path: ${{ github.workspace }}/nghe-frontend/package-lock.json
-      - name: Build tailwindcss
-        working-directory: ${{ github.workspace }}/nghe-frontend
-        run: |
-          npm ci
-          npm run build
-      - name: Install trunk
-        uses: taiki-e/cache-cargo-install-action@v3
-        with:
-          tool: trunk
-          locked: false
-      - name: Build frontend
-        working-directory: ${{ github.workspace }}/nghe-frontend
-        run: |
-          trunk build --locked ${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && '--release' || '' }}
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: frontend
-          path: ${{ github.workspace }}/nghe-frontend/dist/
-          retention-days: 1
-
   build-linux:
     strategy:
       fail-fast: false
@@ -95,11 +51,9 @@ jobs:
             runs-on: ubuntu-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
-    needs: [build-frontend]
 
     env:
       CROSS_CONTAINER_OPTS: "--network=host"
-      ASSET_DIR: ${{ github.workspace }}/frontend
 
     services: &services
       postgres:
@@ -123,11 +77,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - name: Download build artifact for frontend
-        uses: actions/download-artifact@v7
-        with:
-          name: frontend
-          path: ${{ github.workspace }}/frontend/
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v8
         with:
@@ -296,18 +245,9 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
-    needs: [build-frontend]
-
-    env:
-      ASSET_DIR: ${{ github.workspace }}\frontend
 
     steps:
       - uses: actions/checkout@v5
-      - name: Download build artifact for frontend
-        uses: actions/download-artifact@v7
-        with:
-          name: frontend
-          path: ${{ github.workspace }}/frontend/
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v8
         with:
@@ -397,19 +337,12 @@ jobs:
             vcpkg-target: arm64-osx-release
 
     runs-on: ${{ matrix.platform.os }}
-    needs: [build-frontend]
 
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
-      ASSET_DIR: ${{ github.workspace }}/frontend
 
     steps:
       - uses: actions/checkout@v5
-      - name: Download build artifact for frontend
-        uses: actions/download-artifact@v7
-        with:
-          name: frontend
-          path: ${{ github.workspace }}/frontend/
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v8
         with:
