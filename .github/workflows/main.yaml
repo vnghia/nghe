@@ -24,12 +24,14 @@ env:
   COLORBT_SHOW_HIDDEN: 1
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
-  AWS_ACCESS_KEY_ID: key
-  AWS_SECRET_ACCESS_KEY: key
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
   AWS_REGION: us-east-1
   AWS_ENDPOINT_URL: http://localhost:9090
   AWS_USE_PATH_STYLE_ENDPOINT: true
   POSTGRES_VERSION: 17
+  MINIO_ROOT_USER: minioadmin
+  MINIO_ROOT_PASSWORD: minioadmin
 
 jobs:
   build-linux:
@@ -304,7 +306,7 @@ jobs:
 
       - name: Build and test
         run: |
-          .\minio.exe server data &
+          .\minio.exe server --address=':9090' data &
           cargo build --locked --target x86_64-pc-windows-msvc --profile ${{ steps.build.outputs.profile }} --package nghe_backend
           cargo nextest run --locked --target x86_64-pc-windows-msvc --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
@@ -382,8 +384,8 @@ jobs:
           pg_ctl restart
       - name: Install and setup minio
         run: |
-          brew install minio/stable/minio
-          minio server data &
+          brew install minio
+          minio server --address=':9090' data &
 
       - name: Install vcpkg build deps
         run: brew install nasm
