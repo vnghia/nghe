@@ -11,13 +11,7 @@ use typed_path::utils::utf8_temp_dir;
 pub struct CoverArt {
     #[serde(with = "crate::filesystem::path::serde::option")]
     #[educe(Default(
-        expression = Some(
-            utf8_temp_dir()
-                .unwrap()
-                .join("nghe")
-                .join("cover_art")
-                .with_platform_encoding()
-        )
+        expression = Some(utf8_temp_dir().unwrap().join("nghe").join("cover_art"))
     ))]
     pub dir: Option<Utf8PlatformPathBuf>,
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, String>")]

@@ -15,14 +15,7 @@ pub struct Transcode {
     pub channel_size: Option<usize>,
     #[serde(with = "crate::filesystem::path::serde::option")]
     #[educe(Default(
-        expression = Some(
-            utf8_temp_dir()
-                .unwrap()
-                .join("nghe")
-                .join("cache")
-                .join("transcode")
-                .with_platform_encoding()
-        )
+        expression = Some(utf8_temp_dir().unwrap().join("nghe").join("cache").join("transcode"))
     ))]
     pub cache_dir: Option<Utf8PlatformPathBuf>,
 }
