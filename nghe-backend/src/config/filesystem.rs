@@ -32,14 +32,20 @@ pub struct S3 {
         std::env::var("AWS_ACCESS_KEY_ID").is_ok() && std::env::var("AWS_SECRET_ACCESS_KEY").is_ok()
     ))]
     pub enable: bool,
+    #[educe(Default(expression =
+        std::env::var("AWS_ENDPOINT_URL").unwrap_or("https://s3.us-east-1.amazonaws.com".to_owned())
+    ))]
+    pub endpoint_url: String,
+    #[educe(Default(expression = std::env::var("AWS_REGION").unwrap_or("us-east-1".to_owned())))]
+    pub region: String,
     #[educe(Default(expression = std::env::var("AWS_USE_PATH_STYLE_ENDPOINT").is_ok()))]
     pub use_path_style_endpoint: bool,
+    #[educe(Default(expression = 1))]
+    pub max_attempts: u32,
+    #[educe(Default(expression = 5))]
+    pub timeout: u64,
     #[educe(Default(expression = 15))]
     pub presigned_duration: u64,
-    #[educe(Default(expression = 0))]
-    pub stalled_stream_grace_preriod: u64,
-    #[educe(Default(expression = 5))]
-    pub connect_timeout: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

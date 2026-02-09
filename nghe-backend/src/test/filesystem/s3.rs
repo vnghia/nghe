@@ -1,8 +1,5 @@
 use std::borrow::Cow;
 
-use aws_sdk_s3::Client;
-use aws_sdk_s3::error::SdkError;
-use aws_sdk_s3::operation::create_bucket::CreateBucketError;
 use concat_string::concat_string;
 use fake::{Fake, Faker};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
@@ -23,15 +20,14 @@ impl Mock {
         let bucket =
             prefix.map_or_else(|| Faker.fake::<String>().to_lowercase().into(), Cow::Borrowed);
 
-        let result = filesystem.client().create_bucket().bucket(bucket.clone()).send().await;
-        if result.is_err() {
-            if let Err(SdkError::ServiceError(error)) =
-                filesystem.client().create_bucket().bucket(bucket.clone()).send().await
-                && let CreateBucketError::BucketAlreadyOwnedByYou(_) = error.err()
-            {
-            } else {
-                panic!("Could not create bucket {bucket}")
-            }
+        if filesystem.client().buckets().head(bucket.clone()).send().await.is_err() {
+            filesystem
+                .client()
+                .buckets()
+                .create(bucket.clone())
+                .send()
+                .await
+                .expect("Could not create bucket {bucket}");
         }
 
         let bucket = path::S3::from_string(concat_string!("/", bucket));
@@ -39,7 +35,7 @@ impl Mock {
         Self { bucket, filesystem }
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> &::s3::Client {
         self.filesystem.client()
     }
 }
@@ -98,19 +94,12 @@ impl super::Trait for Mock {
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {
         let path = self.absolutize(path);
         let s3::Path { bucket, key } = s3::Filesystem::split(path.to_path()).unwrap();
-        self.client()
-            .put_object()
-            .bucket(bucket)
-            .key(key)
-            .body(aws_sdk_s3::primitives::ByteStream::from(data.to_vec()))
-            .send()
-            .await
-            .unwrap();
+        self.client().objects().put(bucket, key).body_bytes(data.to_owned()).send().await.unwrap();
     }
 
     async fn delete(&self, path: Utf8TypedPath<'_>) {
         let path = self.absolutize(path);
         let s3::Path { bucket, key } = s3::Filesystem::split(path.to_path()).unwrap();
-        self.client().delete_object().bucket(bucket).key(key).send().await.unwrap();
+        self.client().objects().delete(bucket, key).send().await.unwrap();
     }
 }

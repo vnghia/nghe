@@ -16,7 +16,7 @@ pub struct Mock {
 
 impl Mock {
     pub async fn new(prefix: Option<&str>, config: &super::Config) -> Self {
-        let filesystem = Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
+        let filesystem = Filesystem::new(&config.filesystem.tls, &config.filesystem.s3);
         let local = local::Mock::new(filesystem.local());
         let s3 = s3::Mock::new(prefix, filesystem.s3()).await;
 
