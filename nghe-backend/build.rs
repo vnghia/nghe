@@ -20,7 +20,7 @@ fn main() {
         println!("cargo::rustc-cfg=lastfm_env");
     }
 
-    if std::var::env("CARGO_CFG_WINDOWS").is_ok() {
+    if std::env::var("CARGO_CFG_WINDOWS").is_ok() {
         println!("cargo:rustc-link-lib=advapi32");
     }
 }
