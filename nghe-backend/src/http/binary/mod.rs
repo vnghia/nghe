@@ -151,6 +151,21 @@ impl Response {
         )
     }
 
+    pub fn from_body(
+        body: Body,
+        property: &impl property::Trait,
+        offset: impl Into<Option<u64>>,
+        #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
+    ) -> Result<Self, Error> {
+        Self::new(
+            body,
+            property,
+            offset,
+            #[cfg(test)]
+            binary_status,
+        )
+    }
+
     pub fn from_rx(
         rx: Receiver<Vec<u8>>,
         property: format::Transcode,

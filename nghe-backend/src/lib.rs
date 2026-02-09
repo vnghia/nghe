@@ -86,8 +86,7 @@ pub fn init_tracing(log: &config::Log) -> Result<(), Error> {
 
 #[coverage(off)]
 pub async fn build(config: config::Config) -> Router {
-    let filesystem =
-        filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
+    let filesystem = filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3);
     let informant = integration::Informant::new(config.integration).await;
 
     let backend_middleware = ServiceBuilder::new()

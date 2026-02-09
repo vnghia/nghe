@@ -20,9 +20,9 @@ pub struct Filesystem {
 }
 
 impl Filesystem {
-    pub async fn new(tls: &config::filesystem::Tls, s3: &config::filesystem::S3) -> Self {
+    pub fn new(tls: &config::filesystem::Tls, s3: &config::filesystem::S3) -> Self {
         let local = local::Filesystem;
-        let s3 = if s3.enable { Some(s3::Filesystem::new(tls, s3).await) } else { None };
+        let s3 = if s3.enable { Some(s3::Filesystem::new(tls, s3)) } else { None };
         Self { local, s3 }
     }
 

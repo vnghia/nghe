@@ -1,15 +1,7 @@
 use std::time::Duration;
 
-use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
-use aws_config::timeout::TimeoutConfig;
-use aws_sdk_s3::Client;
-use aws_sdk_s3::presigning::PresigningConfig;
-use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
-use aws_sdk_s3::types::Object;
-use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
-use concat_string::concat_string;
-use hyper::client::HttpConnector;
-use hyper_tls::HttpsConnector;
+use educe::Educe;
+use s3::Client;
 use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
@@ -17,9 +9,10 @@ use super::{entry, path};
 use crate::file::{self, audio};
 use crate::http::binary;
 use crate::{Error, config, error};
-
-#[derive(Debug, Clone)]
+#[derive(Clone, Educe)]
+#[educe(Debug)]
 pub struct Filesystem {
+    #[educe(Debug(ignore))]
     client: Client,
     presigned_duration: Duration,
 }
@@ -31,39 +24,23 @@ pub struct Path<'b, 'k> {
 }
 
 impl Filesystem {
-    pub async fn new(tls: &config::filesystem::Tls, s3: &config::filesystem::S3) -> Self {
-        let mut http_connector = HttpConnector::new();
-        http_connector.enforce_http(false);
-
-        let tls_connector = hyper_tls::native_tls::TlsConnector::builder()
-            .danger_accept_invalid_certs(tls.accept_invalid_certs)
-            .danger_accept_invalid_hostnames(tls.accept_invalid_hostnames)
-            .build()
-            .expect("Could not build tls connector");
-
-        let config_loader = aws_config::from_env()
-            .stalled_stream_protection(if s3.stalled_stream_grace_preriod > 0 {
-                StalledStreamProtectionConfig::enabled()
-                    .grace_period(Duration::from_secs(s3.stalled_stream_grace_preriod))
-                    .build()
+    pub fn new(_tls: &config::filesystem::Tls, s3: &config::filesystem::S3) -> Self {
+        let client = Client::builder(&s3.endpoint_url)
+            .expect("Could not initialize s3 client builder")
+            .region(&s3.region)
+            .addressing_style(if s3.use_path_style_endpoint {
+                s3::AddressingStyle::Path
             } else {
-                StalledStreamProtectionConfig::disabled()
+                s3::AddressingStyle::VirtualHosted
             })
-            .http_client(
-                HyperClientBuilder::new()
-                    .build(HttpsConnector::from((http_connector, tls_connector.into()))),
-            );
-
-        let client = Client::from_conf(
-            aws_sdk_s3::config::Builder::from(&config_loader.load().await)
-                .force_path_style(s3.use_path_style_endpoint)
-                .timeout_config(
-                    TimeoutConfig::builder()
-                        .connect_timeout(Duration::from_secs(s3.connect_timeout))
-                        .build(),
-                )
-                .build(),
-        );
+            .max_attempts(s3.max_attempts)
+            .timeout(Duration::from_secs(s3.timeout))
+            .auth(
+                s3::Auth::from_env()
+                    .expect("Could not initialize aws authentication from environment variable"),
+            )
+            .build()
+            .expect("Could not build s3 client");
 
         Self { client, presigned_duration: Duration::from_mins(s3.presigned_duration) }
     }
@@ -98,7 +75,7 @@ impl Filesystem {
 impl super::Trait for Filesystem {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
-        self.client.list_objects_v2().bucket(bucket).prefix(key).max_keys(1).send().await?;
+        self.client.objects().list_v2(bucket).prefix(key).max_keys(1).send().await?;
         Ok(())
     }
 
@@ -109,17 +86,12 @@ impl super::Trait for Filesystem {
     ) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(prefix)?;
         let prefix = key;
-        let mut steam =
-            self.client.list_objects_v2().bucket(bucket).prefix(prefix).into_paginator().send();
+        let mut pager = self.client.objects().list_v2(bucket).prefix(prefix).pager();
         let bucket = path::S3::from_str("/").join(bucket);
 
-        while let Some(output) = steam.try_next().await? {
-            if let Some(contents) = output.contents {
-                for content in contents {
-                    if let Some(key) = content.key() {
-                        sender.send(bucket.join(key), &content).await?;
-                    }
-                }
+        while let Some(output) = pager.next_page().await? {
+            for content in output.contents {
+                sender.send(bucket.join(&content.key), &content).await?;
             }
         }
 
@@ -128,7 +100,7 @@ impl super::Trait for Filesystem {
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
         let Path { bucket, key } = Self::split(path)?;
-        let result = self.client.head_object().bucket(bucket).key(key).send().await;
+        let result = self.client.objects().head(bucket, key).send().await;
         if let Err(error) = result {
             let error: Error = error.into();
             if error.status_code == axum::http::StatusCode::NOT_FOUND {
@@ -143,17 +115,7 @@ impl super::Trait for Filesystem {
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         let Path { bucket, key } = Self::split(path)?;
-        self.client
-            .get_object()
-            .bucket(bucket)
-            .key(key)
-            .send()
-            .await?
-            .body
-            .collect()
-            .await
-            .map(AggregatedBytes::to_vec)
-            .map_err(Error::from)
+        Ok(self.client.objects().get(bucket, key).send().await?.bytes().await?.into())
     }
 
     async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
@@ -167,18 +129,17 @@ impl super::Trait for Filesystem {
     ) -> Result<binary::Response, Error> {
         let path = source.path.to_path();
         let Path { bucket, key } = Self::split(path)?;
-        let reader = self
+        let stream = self
             .client
-            .get_object()
-            .bucket(bucket)
-            .key(key)
-            .set_range(offset.map(|offset| concat_string!("bytes=", offset.to_string(), "-")))
+            .objects()
+            .get(bucket, key)
+            .range_bytes(offset.unwrap_or(0), source.property.size.get().into())
             .send()
-            .await?
-            .body
-            .into_async_read();
-        binary::Response::from_async_read(
-            reader,
+            .await
+            .map_err(Error::from)?
+            .body;
+        binary::Response::from_body(
+            axum::body::Body::from_stream(stream),
             &source.property,
             offset,
             #[cfg(test)]
@@ -190,26 +151,30 @@ impl super::Trait for Filesystem {
         let Path { bucket, key } = Self::split(path)?;
         Ok(self
             .client
-            .get_object()
-            .bucket(bucket)
-            .key(key)
-            .presigned(PresigningConfig::expires_in(self.presigned_duration)?)
-            .await?
-            .uri()
-            .to_owned())
+            .objects()
+            .presign_get(bucket, key)
+            .expires_in(self.presigned_duration)
+            .build()?
+            .url
+            .into())
     }
 }
 
-impl entry::Metadata for Object {
+impl entry::Metadata for s3::types::Object {
     fn size(&self) -> Result<usize, Error> {
-        Ok(self.size().ok_or_else(|| error::Kind::MissingFileSize)?.try_into()?)
+        Ok(self.size.try_into()?)
     }
 
     fn last_modified(&self) -> Result<Option<OffsetDateTime>, Error> {
         Ok(self
-            .last_modified()
-            .map(DateTime::as_nanos)
-            .map(OffsetDateTime::from_unix_timestamp_nanos)
+            .last_modified
+            .as_deref()
+            .map(|timestamp| {
+                OffsetDateTime::parse(
+                    timestamp,
+                    &time::format_description::well_known::Iso8601::DEFAULT,
+                )
+            })
             .transpose()?)
     }
 }
