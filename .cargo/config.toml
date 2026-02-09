@@ -6,6 +6,8 @@ rustflags = [
   "-C",
   "target-feature=+crt-static",
   "-C",
+  "link-arg=Advapi32.lib",
+  "-C",
   "link-arg=Mfplat.lib",
   "-C",
   "link-arg=Strmiids.lib",

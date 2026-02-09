@@ -382,7 +382,7 @@ jobs:
           pg_ctl restart
       - name: Install and setup minio
         run: |
-          brew install minio/stable/minio
+          brew install minio
           minio server data &
 
       - name: Install vcpkg build deps
