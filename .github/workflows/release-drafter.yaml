@@ -11,12 +11,21 @@ permissions:
   contents: read
 
 jobs:
-  update_release_draft:
+  update-release-draft:
     permissions:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v6
+        id: release-drafter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get new version
+        if: |
+          github.head_ref == 'main' && startsWith(github.event.head_commit.message, 'chore: release new version')
+        id: new-verison
+        run: |
+          TAG=$(echo "${{ github.event.head_commit.message }}" | sed -E 's|^chore: release new version (.+)$|\1|')
+          echo "::set-output name=tag::$TAG"
+      - run: gh release edit ${{ steps.release-drafter.outputs.tag_name }} --draft=false --tag=v${{ steps.new-version.outputs.tag }} --title=v${{ steps.new-version.outputs.tag }}
