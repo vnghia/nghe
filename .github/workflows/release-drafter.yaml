@@ -32,5 +32,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           publish: ${{ steps.new-version.outputs.match != '' }}
-          name: ${{ steps.new-version.outputs.group1 }}
-          tag: ${{ steps.new-version.outputs.group1 }}
+          name: v${{ steps.new-version.outputs.group1 }}
+          tag: v${{ steps.new-version.outputs.group1 }}
