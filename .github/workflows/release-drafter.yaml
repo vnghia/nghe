@@ -24,7 +24,7 @@ jobs:
         with:
           text: ${{ github.event.head_commit.message }}
           regex: '^chore: release new version (\d+\.\d+\.\d+).*$'
-      - name: Release a new version
+      - name: Release new version
         uses: release-drafter/release-drafter@v6
         id: release-drafter
         env:
