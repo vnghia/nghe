@@ -1,0 +1,7 @@
+[workspace]
+git_only = true
+pr_branch_prefix = "release-plz-"
+pr_labels = ["release"]
+publish = false
+release_always = false
+semver_check = false
