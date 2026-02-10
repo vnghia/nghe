@@ -17,19 +17,19 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: release-drafter/release-drafter@v6
+      - name: Get new version
+        if: github.ref_name == 'main'
+        uses: actions-ecosystem/action-regex-match@v2
+        id: new-version
+        with:
+          text: ${{ github.event.head_commit.message }}
+          regex: '^chore: release new version (\d+\.\d+\.\d+).*$'
+      - name: Release a new version
+        uses: release-drafter/release-drafter@v6
         id: release-drafter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get new version
-        if: |
-          github.head_ref == 'main' && startsWith(github.event.head_commit.message, 'chore: release new version')
-        id: new-verison
-        run: |
-          TAG=$(echo "${{ github.event.head_commit.message }}" | sed -E 's|^chore: release new version (.+)$|\1|')
-          echo "::set-output name=tag::$TAG"
-      - run: gh release edit ${{ steps.release-drafter.outputs.tag_name }} --draft=false --tag=v${{ steps.new-version.outputs.tag }} --title=v${{ steps.new-version.outputs.tag }}
-        if: |
-          github.head_ref == 'main' && startsWith(github.event.head_commit.message, 'chore: release new version')
-        env:
-          GH_TOKEN: ${{ github.token }}
+        with:
+          publish: ${{ steps.new-version.outputs.match != '' }}
+          name: ${{ steps.new-version.outputs.group1 }}
+          tag: ${{ steps.new-version.outputs.group1 }}
