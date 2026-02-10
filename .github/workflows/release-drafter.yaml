@@ -29,3 +29,7 @@ jobs:
           TAG=$(echo "${{ github.event.head_commit.message }}" | sed -E 's|^chore: release new version (.+)$|\1|')
           echo "::set-output name=tag::$TAG"
       - run: gh release edit ${{ steps.release-drafter.outputs.tag_name }} --draft=false --tag=v${{ steps.new-version.outputs.tag }} --title=v${{ steps.new-version.outputs.tag }}
+        if: |
+          github.head_ref == 'main' && startsWith(github.event.head_commit.message, 'chore: release new version')
+        env:
+          GH_TOKEN: ${{ github.token }}
