@@ -22,7 +22,6 @@ env:
   RUST_BACKTRACE: full
   RUST_LOG: nghe_backend=trace
   COLORBT_SHOW_HIDDEN: 1
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
   AWS_ACCESS_KEY_ID: minioadmin
   AWS_SECRET_ACCESS_KEY: minioadmin
@@ -125,13 +124,10 @@ jobs:
 
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v3
-        with:
-          tool: cargo-vcpkg
       - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
 
       - name: Install cross
         if: ${{ matrix.platform.command == 'cross' }}
@@ -293,13 +289,10 @@ jobs:
         run: |
           curl https://dl.min.io/server/minio/release/windows-amd64/minio.exe --output minio.exe
 
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v3
-        with:
-          tool: cargo-vcpkg
       - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --manifest-path nghe-backend\Cargo.toml --target x86_64-pc-windows-msvc
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
@@ -389,13 +382,10 @@ jobs:
 
       - name: Install vcpkg build deps
         run: brew install nasm
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v3
-        with:
-          tool: cargo-vcpkg
       - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ matrix.platform.target }}
+        uses: lukka/run-vcpkg@v11
+        with:
+          runVcpkgInstall: true
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
