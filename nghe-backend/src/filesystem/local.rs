@@ -3,7 +3,11 @@ use std::fs::Metadata;
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
 use time::OffsetDateTime;
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
 use typed_path::{Utf8PlatformPathBuf, Utf8TypedPath};
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 
 use super::{entry, path};
 use crate::file::{self, audio};
@@ -50,7 +54,7 @@ impl super::Trait for Filesystem {
             error::Kind::InvalidTypedPathPlatform(path.to_path_buf()).into()
         } else if !path.is_absolute() {
             error::Kind::InvalidAbsolutePath(path.to_path_buf()).into()
-        } else if !tokio::fs::metadata(path.as_str()).await?.is_dir() {
+        } else if !fs::metadata(path.as_str()).await?.is_dir() {
             error::Kind::InvalidDirectoryPath(path.to_path_buf()).into()
         } else {
             Ok(())
@@ -88,15 +92,15 @@ impl super::Trait for Filesystem {
     }
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
-        tokio::fs::try_exists(path.as_str()).await.map_err(Error::from)
+        Ok(fs::exists(path.as_str()).await)
     }
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
-        tokio::fs::read(path.as_str()).await.map_err(Error::from)
+        fs::read(path.as_str()).await.map_err(Error::from)
     }
 
     async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        tokio::fs::read_to_string(path.as_str()).await.map_err(Error::from)
+        fs::read_to_string(path.as_str()).await.map_err(Error::from)
     }
 
     async fn read_to_binary(

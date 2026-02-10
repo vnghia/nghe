@@ -4,6 +4,10 @@ use std::io::{Cursor, Write};
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use fake::{Fake, Faker};
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 use uuid::Uuid;
 
 use super::music_folder;
@@ -165,7 +169,7 @@ impl Mock<'_, '_, '_, '_> {
         let path = path.to_path();
 
         let format = self.information.file.format;
-        let data = tokio::fs::read(assets::path(format).as_str()).await.unwrap();
+        let data = fs::read(assets::path(format).as_str()).await.unwrap();
         let mut asset = Cursor::new(data.clone());
         let mut file =
             file::File::new(format, data).unwrap().audio(music_folder.config.lofty).unwrap();

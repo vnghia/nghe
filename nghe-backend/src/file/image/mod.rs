@@ -13,7 +13,11 @@ use nghe_api::common::format::{self, Trait as _};
 use o2o::o2o;
 pub use resize::Resizer;
 use strum::{EnumString, IntoStaticStr};
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 use uuid::Uuid;
 
 use super::Property;
@@ -129,8 +133,8 @@ impl<'d> Image<'d> {
         let path = self.property.path_create_dir(dir, Self::FILENAME).await?;
         // Path already contains information about hash, size and format so we don't need to worry
         // about stale data.
-        if !tokio::fs::try_exists(&path).await? {
-            tokio::fs::write(path, &self.data).await?;
+        if !fs::exists(&path).await {
+            fs::write(path, &self.data).await?;
         }
         Ok(())
     }
@@ -287,7 +291,7 @@ mod test {
         ) -> Self {
             let property: file::Property<Format> = property.try_into().unwrap();
             let path = property.path(dir, Self::FILENAME);
-            let data = tokio::fs::read(path).await.unwrap();
+            let data = fs::read(path).await.unwrap();
             Self { property, data: data.into() }
         }
 

@@ -213,6 +213,10 @@ mod query {
 #[coverage(off)]
 mod tests {
     use rstest::rstest;
+    #[cfg(not(target_os = "linux"))]
+    use tokio::fs;
+    #[cfg(target_os = "linux")]
+    use uring_file::fs;
 
     use super::*;
     use crate::file;
@@ -289,11 +293,11 @@ mod tests {
             .await
             .unwrap()
             .image_path(config.dir.as_ref().unwrap());
-        assert!(tokio::fs::try_exists(&image_path).await.unwrap());
-        tokio::fs::remove_file(&image_path).await.unwrap();
+        assert!(fs::exists(&image_path).await);
+        fs::remove_file(&image_path).await.unwrap();
 
         mock.informant.search_and_upsert_artists(mock.database(), config, full).await.unwrap();
-        assert_eq!(tokio::fs::try_exists(&image_path).await.unwrap(), full);
+        assert_eq!(fs::exists(&image_path).await, full);
     }
 
     #[rstest]

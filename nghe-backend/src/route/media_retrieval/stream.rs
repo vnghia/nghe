@@ -1,6 +1,10 @@
 use axum_extra::headers::Range;
 pub use nghe_api::media_retrieval::stream::{Format, Request};
 use nghe_proc_macro::handler;
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 use uuid::Uuid;
 
 use super::download;
@@ -39,7 +43,7 @@ pub async fn handler(
 
     let transcode_args = if let Some(ref cache_dir) = config.cache_dir {
         let output = property.path_create_dir(cache_dir, bitrate.to_string()).await?;
-        let cache_exists = tokio::fs::try_exists(&output).await?;
+        let cache_exists = fs::exists(&output).await;
 
         // If the cache exists, it means that the transcoding process is finish. Since we write the
         // transcoding cache atomically, we are guaranteed that that file is in a complete state and

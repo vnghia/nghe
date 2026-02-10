@@ -14,9 +14,13 @@ use futures_lite::{Stream, StreamExt};
 use loole::{Receiver, RecvStream};
 use nghe_api::common::format;
 pub use source::Source;
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use tokio_util::io::ReaderStream;
 use typed_path::Utf8PlatformPath;
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 
 #[cfg(test)]
 use crate::test::binary;
@@ -102,7 +106,7 @@ impl Response {
         offset: impl Into<Option<u64>> + Copy,
         #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
-        let mut file = tokio::fs::File::open(path.as_ref()).await?;
+        let mut file = fs::open(path.as_ref()).await?;
         let size = NonZero::new(file.seek(SeekFrom::End(0)).await?)
             .ok_or_else(|| error::Kind::EmptyFileEncountered)?;
         file.seek(SeekFrom::Start(offset.into().unwrap_or(0))).await?;
@@ -121,7 +125,7 @@ impl Response {
         offset: impl Into<Option<u64>> + Copy,
         #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
-        let mut file = tokio::fs::File::open(path.as_ref()).await?;
+        let mut file = fs::open(path.as_ref()).await?;
         if let Some(offset) = offset.into()
             && offset > 0
         {

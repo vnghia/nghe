@@ -1,5 +1,9 @@
 use rspotify::clients::BaseClient;
 use rspotify::model::{ArtistId, SearchResult, SearchType};
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 
 use crate::{Error, config, error};
 
@@ -19,7 +23,7 @@ impl Client {
             tracing::info!("spotify integration enabled");
             let creds = rspotify::Credentials { id, secret: config.secret };
             let config = if let Some(token_path) = config.token_path {
-                tokio::fs::create_dir_all(
+                fs::create_dir_all(
                     token_path.parent().expect("Could not get parent directory for spotify token"),
                 )
                 .await

@@ -1,6 +1,10 @@
 use axum_extra::headers::Range;
 pub use nghe_api::media_retrieval::get_cover_art::Request;
 use nghe_proc_macro::handler;
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 
 use crate::database::Database;
 use crate::file::{self, image};
@@ -28,7 +32,7 @@ pub async fn handler(
         let output = if let Some(cache_dir) = config.cache_dir {
             let output =
                 property.replace(FORMAT).path_create_dir(cache_dir, size.to_string()).await?;
-            let cache_exists = tokio::fs::try_exists(&output).await?;
+            let cache_exists = fs::exists(&output).await;
 
             // Similar logics in the stream handler applies here.
             if cache_exists {

@@ -6,7 +6,11 @@ use std::num::{NonZero, NonZeroU32, NonZeroU64};
 
 use axum_extra::headers::{CacheControl, ETag};
 use nghe_api::common::format;
+#[cfg(not(target_os = "linux"))]
+use tokio::fs;
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf};
+#[cfg(target_os = "linux")]
+use uring_file::fs;
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::http::binary::property;
@@ -76,7 +80,7 @@ impl<F: format::Trait> Property<F> {
         name: impl AsRef<str>,
     ) -> Result<Utf8PlatformPathBuf, Error> {
         let path = self.path_dir(base);
-        tokio::fs::create_dir_all(&path).await?;
+        fs::create_dir_all(&path).await?;
         Ok(path.join(name.as_ref()).with_extension(self.format.extension()))
     }
 }

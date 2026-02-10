@@ -344,7 +344,11 @@ mod test {
 mod tests {
     use nghe_api::common::format;
     use rstest::rstest;
+    #[cfg(not(target_os = "linux"))]
+    use tokio::fs;
     use typed_path::Utf8PlatformPath;
+    #[cfg(target_os = "linux")]
+    use uring_file::fs;
 
     use super::*;
     use crate::config;
@@ -362,7 +366,7 @@ mod tests {
         let config = config::Transcode::default();
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
 
-        tokio::fs::write(
+        fs::write(
             Utf8PlatformPath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
                 .with_extension(format.as_ref()),
