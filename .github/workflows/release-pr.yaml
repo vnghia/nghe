@@ -38,5 +38,5 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           title: &title |
-            chore: bump version to ${{ steps.cargo-version.outputs.result }}
+            chore: release new version ${{ steps.cargo-version.outputs.result }}
           commit-message: *title
