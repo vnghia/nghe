@@ -42,7 +42,7 @@ runs:
         VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/vcpkg
         USERNAME: ${{ github.actor }}
         FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
-        MONO_PREFIX: ${{ (runner.os == 'Linux' && runner.arch != 'X64' && '') || 'mono' }}
+        MONO_PREFIX: ${{ (runner.os != 'Linux' || runner.arch == 'X64' && 'mono') || null }}
       run: |
         ${{ env.MONO_PREFIX }} `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
           sources add \
