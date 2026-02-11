@@ -15,6 +15,7 @@ env:
   RUST_BACKTRACE: full
   RUST_LOG: nghe_backend=trace
   COLORBT_SHOW_HIDDEN: 1
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
   AWS_ACCESS_KEY_ID: key
   AWS_SECRET_ACCESS_KEY: key
@@ -72,10 +73,13 @@ jobs:
 
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm
-      - name: Build vcpkg dependencies
-        uses: lukka/run-vcpkg@v11
+      - name: Install cargo-vcpkg
+        uses: taiki-e/cache-cargo-install-action@v3
         with:
-          runVcpkgInstall: true
+          tool: cargo-vcpkg
+      - name: Build vcpkg dependencies
+        run: |
+          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target x86_64-unknown-linux-gnu
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
