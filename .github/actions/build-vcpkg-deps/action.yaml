@@ -25,12 +25,14 @@ runs:
         repository: "microsoft/vcpkg"
         ref: ${{ steps.vcpkg-info.outputs.tag }}
         path: ${{ inputs.vcpkg-root }}
-    - name: Bootstrap vcpkg
+    - name: Bootstrap vcpkg Unix
+      if: runner.os != "Windows"
       shell: bash
       run: ${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.sh
-    - name: Add vcpkg cache
+    - name: Add vcpkg cache Unix
+      if: runner.os != "Windows"
       shell: bash
-      env:
+      env: &env
         VCPKG_EXE: ${{ env.VCPKG_ROOT }}/vcpkg
         USERNAME: ${{ github.actor }}
         FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
@@ -44,6 +46,25 @@ runs:
           -Password "${{ secrets.GITHUB_TOKEN }}"
         mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -Source "${{ env.FEED_URL }}"
+    - name: Bootstrap vcpkg Windows
+      if: runner.os == "Windows"
+      shell: pwsh
+      run: ${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.bat
+    - name: Add vcpkg cache Windows
+      if: runner.os == "Windows"
+      shell: bash
+      env: *env
+      run: |
+        .$(${{ env.VCPKG_EXE }} fetch nuget) `
+          sources add `
+          -Source "${{ env.FEED_URL }}" `
+          -StorePasswordInClearText `
+          -Name GitHubPackages `
+          -UserName "${{ env.USERNAME }}" `
+          -Password "${{ secrets.GITHUB_TOKEN }}"
+        .$(${{ env.VCPKG_EXE }} fetch nuget) `
+          setapikey "${{ secrets.GITHUB_TOKEN }}" `
           -Source "${{ env.FEED_URL }}"
     - name: Build vcpkg dependencies
       shell: bash

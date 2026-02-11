@@ -6,9 +6,9 @@ runs:
     - name: Install yq on ${{ runner.os }}
       shell: bash
       run: |
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          sudo apt-get --assume-yes install yq
-        elif [ "$RUNNER_OS" == "Windows" ]; then
+        if [ "${RUNNER_OS}" == "Linux" ]; then
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${RUNNER_ARCH} -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+        elif [ "${RUNNER_OS}" == "Windows" ]; then
           choco install yq
         else
           brew install yq
