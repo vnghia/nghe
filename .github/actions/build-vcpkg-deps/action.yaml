@@ -1,10 +1,6 @@
 name: "Build vcpkg dependencies"
 description: "Build vcpkg dependencies"
 inputs:
-  vcpkg-binary:
-    description: "Vcpkg binary"
-    required: true
-    default: "vcpkg"
   rust-target:
     description: "Cargo target triplet"
     required: true
@@ -55,7 +51,7 @@ runs:
       run: ${{ steps.vcpkg-info.outputs.root }}/bootstrap-vcpkg.bat
     - name: Add vcpkg cache Windows
       if: runner.os == 'Windows'
-      shell: bash
+      shell: pwsh
       env:
         VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/${{ inputs.vcpkg-binary }}
         USERNAME: ${{ github.actor }}
