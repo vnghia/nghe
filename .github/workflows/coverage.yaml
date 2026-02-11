@@ -64,8 +64,6 @@ jobs:
           docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
           docker restart postgres
 
-      - name: Install vcpkg build deps
-        run: sudo apt-get --assume-yes install nasm mono-complete
       - name: Build vcpkg deps
         uses: ./.github/actions/build-vcpkg-deps
         with:
