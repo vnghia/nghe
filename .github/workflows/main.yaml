@@ -79,7 +79,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/install-yq
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
       - name: Extract build information
         id: build
         env:
@@ -90,17 +92,12 @@ jobs:
           echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
           echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
           echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-      - name: Extract rust toolchain
-        id: toolchain
-        run: |
-          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@master
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: ${{ steps.toolchain.outputs.channel }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+
       - name: Increase postgres max connection
         run: |
           docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
@@ -243,24 +240,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/install-yq
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
       - name: Extract build information
         id: build
         run: |
           echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> $env:GITHUB_OUTPUT
           echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> $env:GITHUB_OUTPUT
-      - name: Extract rust toolchain
-        id: toolchain
-        shell: bash
-        run: |
-          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@master
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: ${{ steps.toolchain.outputs.channel }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: x86_64-pc-windows-msvc-${{ steps.build.outputs.profile }}
 
       - name: Install and setup postgres
         run: |
@@ -331,7 +323,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/install-yq
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
       - name: Extract build information
         id: build
         env:
@@ -341,17 +335,11 @@ jobs:
           echo "docker-arch=${{ startsWith(matrix.platform.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
           echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
           echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
-      - name: Extract rust toolchain
-        id: toolchain
-        run: |
-          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@master
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
         with:
-          toolchain: ${{ steps.toolchain.outputs.channel }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
 
       - name: Install and setup postgres
         run: |

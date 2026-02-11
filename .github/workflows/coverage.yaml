@@ -50,18 +50,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - name: Extract rust toolchain
-        id: toolchain
-        uses: mikefarah/yq@master
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
         with:
-          cmd: yq '.toolchain.channel' rust-toolchain.toml
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ steps.toolchain.outputs.result }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: coverage
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: coverage
+
       - uses: cargo-bins/cargo-binstall@main
       - name: Increase postgres max connection
         run: |

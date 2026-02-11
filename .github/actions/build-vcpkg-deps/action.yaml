@@ -14,16 +14,16 @@ runs:
       uses: taiki-e/cache-cargo-install-action@v3
       with:
         tool: cargo-vcpkg
-    - name: Get vcpkg tag
-      id: vcpkg-tag
-      uses: mikefarah/yq@master
-      with:
-        cmd: yq '.package.metadata.vcpkg.rev' nghe-backend/Cargo.toml
+    - name: Get vcpkg info
+      shell: bash
+      id: vcpkg-info
+      run: |
+        echo "tag=$(yq '.package.metadata.vcpkg.rev' nghe-backend/Cargo.toml)" >> "$GITHUB_OUTPUT"
     - name: Download vcpkg
       uses: actions/checkout@v6
       with:
         repository: "microsoft/vcpkg"
-        ref: ${{ steps.vcpkg-tag.outputs.result }}
+        ref: ${{ steps.vcpkg-info.outputs.tag }}
         path: ${{ inputs.vcpkg-root }}
     - name: Bootstrap vcpkg
       shell: bash
