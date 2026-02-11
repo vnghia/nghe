@@ -79,7 +79,7 @@ jobs:
       - name: Download vcpkg
         uses: actions/checkout@v6
         with:
-          repository: "https://github.com/microsoft/vcpkg"
+          repository: "microsoft/vcpkg"
           ref: ${{ steps.vcpkg-tag.outputs.result }}
           path: "target/vcpkg"
       - name: Build vcpkg dependencies
