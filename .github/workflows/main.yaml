@@ -191,7 +191,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            name=ghcr.io/${{ github.repository }}-gnu
+            name=ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=pr
             type=semver,pattern={{version}}
@@ -202,7 +202,7 @@ jobs:
           context: .
           file: ci/docker/Dockerfile
           build-args: |
-            BASE_IMAGE=debian:12.8-slim
+            BASE_IMAGE=debian:13-slim
             TARGET_ENV=gnu
           platforms: linux/amd64,linux/arm64
           push: true
@@ -214,7 +214,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            name=ghcr.io/${{ github.repository }}-musl
+            name=ghcr.io/${{ github.repository }}
+          flavor: |
+            suffix=-scratch,onlatest=true
           tags: |
             type=ref,event=pr
             type=semver,pattern={{version}}
@@ -225,7 +227,7 @@ jobs:
           context: .
           file: ci/docker/Dockerfile
           build-args: |
-            BASE_IMAGE=alpine:3.21.0
+            BASE_IMAGE=scratch
             TARGET_ENV=musl
           platforms: linux/amd64,linux/arm64
           push: true
