@@ -1,9 +1,10 @@
 name: "Build vcpkg dependencies"
 description: "Build vcpkg dependencies"
 inputs:
-  vcpkg-root:
-    description: "Root vcpkg folder"
+  vcpkg-binary:
+    description: "Vcpkg binary"
     required: true
+    default: "vcpkg"
   rust-target:
     description: "Cargo target triplet"
     required: true
@@ -19,6 +20,7 @@ runs:
       id: vcpkg-info
       run: |
         echo "tag=$(yq '.package.metadata.vcpkg.rev' nghe-backend/Cargo.toml)" >> "$GITHUB_OUTPUT"
+        echo "root=${{ github.workspace }}/$(yq '.env.VCPKG_ROOT.value' .cargo/config.toml)" >> "$GITHUB_OUTPUT"
     - name: Download vcpkg
       uses: actions/checkout@v6
       with:
@@ -28,12 +30,12 @@ runs:
     - name: Bootstrap vcpkg Unix
       if: runner.os != "Windows"
       shell: bash
-      run: ${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.sh
+      run: ${{ steps.vcpkg-info.outputs.root }}/bootstrap-vcpkg.sh
     - name: Add vcpkg cache Unix
       if: runner.os != "Windows"
       shell: bash
-      env: &env
-        VCPKG_EXE: ${{ env.VCPKG_ROOT }}/vcpkg
+      env:
+        VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/${{ inputs.vcpkg-binary }}
         USERNAME: ${{ github.actor }}
         FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
       run: |
@@ -50,11 +52,14 @@ runs:
     - name: Bootstrap vcpkg Windows
       if: runner.os == "Windows"
       shell: pwsh
-      run: ${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.bat
+      run: ${{ steps.vcpkg-info.outputs.root }}/bootstrap-vcpkg.bat
     - name: Add vcpkg cache Windows
       if: runner.os == "Windows"
       shell: bash
-      env: *env
+      env:
+        VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/${{ inputs.vcpkg-binary }}
+        USERNAME: ${{ github.actor }}
+        FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
       run: |
         .$(${{ env.VCPKG_EXE }} fetch nuget) `
           sources add `

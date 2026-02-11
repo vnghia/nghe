@@ -31,7 +31,6 @@ env:
   POSTGRES_VERSION: 17
   MINIO_ROOT_USER: minioadmin
   MINIO_ROOT_PASSWORD: minioadmin
-  VCPKG_ROOT: ${{ github.workspace }}/target/vcpkg
 
 jobs:
   build-linux:
@@ -120,7 +119,6 @@ jobs:
       - name: Build vcpkg deps
         uses: ./.github/actions/build-vcpkg-deps
         with:
-          vcpkg-root: ${{ env.VCPKG_ROOT }}
           rust-target: ${{ matrix.platform.target }}
 
       - name: Install cross
@@ -276,7 +274,6 @@ jobs:
       - name: Build vcpkg deps
         uses: ./.github/actions/build-vcpkg-deps
         with:
-          vcpkg-root: ${{ env.VCPKG_ROOT }}
           rust-target: x86_64-pc-windows-msvc
 
       - name: Install cargo-nextest
@@ -361,7 +358,6 @@ jobs:
       - name: Build vcpkg deps
         uses: ./.github/actions/build-vcpkg-deps
         with:
-          vcpkg-root: ${{ env.VCPKG_ROOT }}
           rust-target: ${{ matrix.platform.target }}
 
       - name: Install cargo-nextest
