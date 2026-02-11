@@ -71,42 +71,11 @@ jobs:
 
       - name: Install vcpkg build deps
         run: sudo apt-get --assume-yes install nasm mono-complete
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v3
+      - name: Build vcpkg deps
+        uses: ./.github/actions/build-vcpkg-deps
         with:
-          tool: cargo-vcpkg
-      - name: Get vcpkg tag
-        id: vcpkg-tag
-        uses: mikefarah/yq@master
-        with:
-          cmd: yq '.package.metadata.vcpkg.rev' nghe-backend/Cargo.toml
-      - name: Download vcpkg
-        uses: actions/checkout@v6
-        with:
-          repository: "microsoft/vcpkg"
-          ref: ${{ steps.vcpkg-tag.outputs.result }}
-          path: ${{ env.VCPKG_ROOT }}
-      - name: Bootstrap vcpkg
-        run: ${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.sh
-      - name: Add vcpkg cache
-        env:
-          VCPKG_EXE: ${{ env.VCPKG_ROOT }}/vcpkg
-          USERNAME: ${{ github.actor }}
-          FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
-        run: |
-          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
-            sources add \
-            -Source "${{ env.FEED_URL }}" \
-            -StorePasswordInClearText \
-            -Name GitHubPackages \
-            -UserName "${{ env.USERNAME }}" \
-            -Password "${{ secrets.GITHUB_TOKEN }}"
-          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
-            setapikey "${{ secrets.GITHUB_TOKEN }}" \
-            -Source "${{ env.FEED_URL }}"
-      - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target x86_64-unknown-linux-gnu
+          vcpkg-root: ${{ env.VCPKG_ROOT }}
+          rust-target: x86_64-unknown-linux-gnu
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov

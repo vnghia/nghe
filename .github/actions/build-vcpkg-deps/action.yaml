@@ -1,0 +1,51 @@
+name: "Build vcpkg dependencies"
+description: "Build vcpkg dependencies"
+inputs:
+  vcpkg-root:
+    description: "Root vcpkg folder"
+    required: true
+  rust-target:
+    description: "Cargo target triplet"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install cargo-vcpkg
+      uses: taiki-e/cache-cargo-install-action@v3
+      with:
+        tool: cargo-vcpkg
+    - name: Get vcpkg tag
+      id: vcpkg-tag
+      uses: mikefarah/yq@master
+      with:
+        cmd: yq '.package.metadata.vcpkg.rev' nghe-backend/Cargo.toml
+    - name: Download vcpkg
+      uses: actions/checkout@v6
+      with:
+        repository: "microsoft/vcpkg"
+        ref: ${{ steps.vcpkg-tag.outputs.result }}
+        path: ${{ inputs.vcpkg-root }}
+    - name: Bootstrap vcpkg
+      shell: bash
+      run: ${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.sh
+    - name: Add vcpkg cache
+      shell: bash
+      env:
+        VCPKG_EXE: ${{ env.VCPKG_ROOT }}/vcpkg
+        USERNAME: ${{ github.actor }}
+        FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
+      run: |
+        mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+          sources add \
+          -Source "${{ env.FEED_URL }}" \
+          -StorePasswordInClearText \
+          -Name GitHubPackages \
+          -UserName "${{ env.USERNAME }}" \
+          -Password "${{ secrets.GITHUB_TOKEN }}"
+        mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -Source "${{ env.FEED_URL }}"
+    - name: Build vcpkg dependencies
+      shell: bash
+      run: |
+        cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ inputs.rust-target }}
