@@ -21,6 +21,10 @@ env:
   AWS_REGION: us-east-1
   AWS_ENDPOINT_URL: http://localhost:9090
   AWS_USE_PATH_STYLE_ENDPOINT: true
+  VCPKG_ROOT: ${{ github.workspace }}/target/vcpkg
+
+permissions:
+  packages: write
 
 jobs:
   coverage:
@@ -81,7 +85,25 @@ jobs:
         with:
           repository: "microsoft/vcpkg"
           ref: ${{ steps.vcpkg-tag.outputs.result }}
-          path: "target/vcpkg"
+          path: ${{ env.VCPKG_ROOT }}
+      - name: Bootstrap vcpkg
+        run: ${{ env.VCPKG_ROOT }}/bootstrap-vcpkg.sh
+      - name: Add vcpkg cache
+        env:
+          VCPKG_EXE: ${{ env.VCPKG_ROOT }}/vcpkg
+          USERNAME: ${{ github.actor }}
+          FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
+        run: |
+          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+            sources add \
+            -Source "${{ env.FEED_URL }}" \
+            -StorePasswordInClearText \
+            -Name GitHubPackages \
+            -UserName "${{ env.USERNAME }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
+            setapikey "${{ secrets.GITHUB_TOKEN }}" \
+            -Source "${{ env.FEED_URL }}"
       - name: Build vcpkg dependencies
         run: |
           cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target x86_64-unknown-linux-gnu
