@@ -26,7 +26,7 @@ runs:
       with:
         repository: "microsoft/vcpkg"
         ref: ${{ steps.vcpkg-info.outputs.tag }}
-        path: ${{ inputs.vcpkg-root }}
+        path: ${{ steps.vcpkg-info.outputs.root }}
     - name: Bootstrap vcpkg Unix
       if: runner.os != 'Windows'
       shell: bash
