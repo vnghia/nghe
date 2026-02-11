@@ -70,7 +70,7 @@ jobs:
           docker restart postgres
 
       - name: Install vcpkg build deps
-        run: sudo apt-get --assume-yes install nasm
+        run: sudo apt-get --assume-yes install nasm mono-complete
       - name: Install cargo-vcpkg
         uses: taiki-e/cache-cargo-install-action@v3
         with:
