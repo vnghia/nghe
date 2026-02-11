@@ -10,6 +10,5 @@ runs:
           sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${{ runner.arch == 'X64' && 'amd64' || 'arm64' }} -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
         elif [ "${{ runner.os }}" == "Windows" ]; then
           choco install yq
-        else
-          brew install yq
         fi
+        yq --version
