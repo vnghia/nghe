@@ -28,11 +28,11 @@ runs:
         ref: ${{ steps.vcpkg-info.outputs.tag }}
         path: ${{ inputs.vcpkg-root }}
     - name: Bootstrap vcpkg Unix
-      if: runner.os != "Windows"
+      if: runner.os != 'Windows'
       shell: bash
       run: ${{ steps.vcpkg-info.outputs.root }}/bootstrap-vcpkg.sh
     - name: Add vcpkg cache Unix
-      if: runner.os != "Windows"
+      if: runner.os != 'Windows'
       shell: bash
       env:
         VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/${{ inputs.vcpkg-binary }}
@@ -50,11 +50,11 @@ runs:
           setapikey "${{ secrets.GITHUB_TOKEN }}" \
           -Source "${{ env.FEED_URL }}"
     - name: Bootstrap vcpkg Windows
-      if: runner.os == "Windows"
+      if: runner.os == 'Windows'
       shell: pwsh
       run: ${{ steps.vcpkg-info.outputs.root }}/bootstrap-vcpkg.bat
     - name: Add vcpkg cache Windows
-      if: runner.os == "Windows"
+      if: runner.os == 'Windows'
       shell: bash
       env:
         VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/${{ inputs.vcpkg-binary }}
