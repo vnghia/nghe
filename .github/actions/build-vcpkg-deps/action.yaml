@@ -16,8 +16,6 @@ runs:
       run: |
         if [ "${{ runner.os }}" == "Linux" ]; then
           sudo apt-get --assume-yes install nasm mono-complete
-          sudo curl -o /usr/local/bin/nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
-          echo 'alias nuget="mono /usr/local/bin/nuget.exe"' >> ~/.bash_profile
         elif [ "${{ runner.os }}" == "macOS" ]; then
           brew install nasm mono nuget
         fi
@@ -45,6 +43,7 @@ runs:
         USERNAME: ${{ github.actor }}
         FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
         VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.actor }}/index.json,readwrite"
+        VCPKG_FORCE_DOWNLOADED_BINARIES: ${{ runner.os == 'Linux' && runner.arch == 'Arm64' }}
       run: |
         mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
           sources add \
@@ -83,5 +82,6 @@ runs:
       shell: bash
       env:
         VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.actor }}/index.json,readwrite"
+        VCPKG_FORCE_DOWNLOADED_BINARIES: ${{ runner.os == 'Linux' && runner.arch == 'Arm64' }}
       run: |
         cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ inputs.rust-target }}
