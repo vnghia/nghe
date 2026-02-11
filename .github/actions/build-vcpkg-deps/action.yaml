@@ -31,7 +31,7 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       env:
-        VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/${{ inputs.vcpkg-binary }}
+        VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/vcpkg
         USERNAME: ${{ github.actor }}
         FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
       run: |
@@ -53,7 +53,7 @@ runs:
       if: runner.os == 'Windows'
       shell: pwsh
       env:
-        VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/${{ inputs.vcpkg-binary }}
+        VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/vcpkg
         USERNAME: ${{ github.actor }}
         FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
       run: |
