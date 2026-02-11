@@ -1,0 +1,14 @@
+name: "Install yq"
+description: "Install yq"
+runs:
+  using: "composite"
+  steps:
+    - name: Install yq on ${{ runner.os }}
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${{ runner.arch == 'X64' && 'amd64' || 'arm64' }} -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+        elif [ "${{ runner.os }}" == "Windows" ]; then
+          choco install yq
+        fi
+        yq --version

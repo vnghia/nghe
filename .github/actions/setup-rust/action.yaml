@@ -1,0 +1,21 @@
+name: "Setup rust environment"
+description: "Setup rust environment"
+inputs:
+  cache-key:
+    description: "Rust cache key"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Extract rust toolchain
+      shell: bash
+      id: toolchain
+      run: |
+        echo "channel=$(yq '.toolchain.channel' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ steps.toolchain.outputs.channel }}
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ inputs.cache-key }}
+        save-if: ${{ github.ref == 'refs/heads/main' }}

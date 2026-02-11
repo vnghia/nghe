@@ -15,13 +15,15 @@ env:
   RUST_BACKTRACE: full
   RUST_LOG: nghe_backend=trace
   COLORBT_SHOW_HIDDEN: 1
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
   AWS_ACCESS_KEY_ID: key
   AWS_SECRET_ACCESS_KEY: key
   AWS_REGION: us-east-1
   AWS_ENDPOINT_URL: http://localhost:9090
   AWS_USE_PATH_STYLE_ENDPOINT: true
+
+permissions:
+  packages: write
 
 jobs:
   coverage:
@@ -47,23 +49,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v8
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
         with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-      - name: Extract rust toolchain
-        id: toolchain
-        run: |
-          echo "channel=$(grep channel rust-toolchain.toml | awk -F' = ' '{printf $2}' | tr -d '\"')" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ steps.toolchain.outputs.channel }}
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: coverage
-          save-if: ${{ github.ref == 'refs/heads/main' }}
+          cache-key: coverage
+
       - uses: cargo-bins/cargo-binstall@main
       - name: Increase postgres max connection
         run: |
@@ -72,14 +65,11 @@ jobs:
           docker restart postgres
 
       - name: Install vcpkg build deps
-        run: sudo apt-get --assume-yes install nasm
-      - name: Install cargo-vcpkg
-        uses: taiki-e/cache-cargo-install-action@v3
+        run: sudo apt-get --assume-yes install nasm mono-complete
+      - name: Build vcpkg deps
+        uses: ./.github/actions/build-vcpkg-deps
         with:
-          tool: cargo-vcpkg
-      - name: Build vcpkg dependencies
-        run: |
-          cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target x86_64-unknown-linux-gnu
+          rust-target: x86_64-unknown-linux-gnu
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
