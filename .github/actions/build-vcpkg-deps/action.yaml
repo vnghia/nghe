@@ -11,6 +11,14 @@ runs:
       uses: taiki-e/cache-cargo-install-action@v3
       with:
         tool: cargo-vcpkg
+    - name: Install vcpkg build deps
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" == "Linux" ]; then
+          sudo apt-get --assume-yes install nasm mono-complete
+        elif [ "${{ runner.os }}" == "Macos" ]; then
+          brew install nasm mono
+        fi
     - name: Get vcpkg info
       shell: bash
       id: vcpkg-info

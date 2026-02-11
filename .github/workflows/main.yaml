@@ -114,8 +114,6 @@ jobs:
           ${{ steps.build.outputs.arch }}-linux-musl-pkg-config --version
         if: ${{ steps.build.outputs.env == 'musl' }}
 
-      - name: Install vcpkg build deps
-        run: sudo apt-get --assume-yes install nasm mono-complete
       - name: Build vcpkg deps
         uses: ./.github/actions/build-vcpkg-deps
         with:
@@ -353,8 +351,6 @@ jobs:
           brew install minio
           minio server --address=':9090' data &
 
-      - name: Install vcpkg build deps
-        run: brew install nasm mono
       - name: Build vcpkg deps
         uses: ./.github/actions/build-vcpkg-deps
         with:
