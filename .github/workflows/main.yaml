@@ -105,7 +105,7 @@ jobs:
 
       - name: Setup musl environment
         run: |
-          wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/${{ steps.build.outputs.arch }}-linux-musl-cross.linux.tgz -O - | tar -xz
+          wget -c https://github.com/musl-cc/musl.cc/releases/download/v0.0.1/${{ steps.build.outputs.arch }}-linux-musl-cross.tgz -O - | tar -xz
           sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-g++ /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-g++
           sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc
           ${{ steps.build.outputs.arch }}-linux-musl-gcc --version
@@ -125,7 +125,7 @@ jobs:
         with:
           tool: cross
           git: https://github.com/cross-rs/cross
-          rev: c7dee4d008475ce1c140773cbcd6078f4b86c2aa
+          rev: 19bc73f2775a0683a991910a21c6368aaaa858f8
           locked: false
 
       - name: Install cargo-nextest
