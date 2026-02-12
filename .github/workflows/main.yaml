@@ -105,7 +105,7 @@ jobs:
 
       - name: Setup musl environment
         run: |
-          wget -c https://github.com/xmake-mirror/musl.cc/releases/download/20210202/${{ steps.build.outputs.arch }}-linux-musl-cross.linux.tgz -O - | tar -xz
+          wget -c https://github.com/musl-cc/musl.cc/releases/tag/v0.0.1/${{ steps.build.outputs.arch }}-linux-musl-cross.tgz -O - | tar -xz
           sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-g++ /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-g++
           sudo ln -s ${{ github.workspace }}/${{ steps.build.outputs.arch }}-linux-musl-cross/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc /usr/bin/${{ steps.build.outputs.arch }}-linux-musl-gcc
           ${{ steps.build.outputs.arch }}-linux-musl-gcc --version
