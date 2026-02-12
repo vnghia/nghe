@@ -40,9 +40,9 @@ runs:
       shell: bash
       env:
         VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/vcpkg
-        USERNAME: ${{ github.actor }}
-        FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
-        VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.actor }}/index.json,readwrite"
+        USERNAME: ${{ github.repository_owner }}
+        FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
         VCPKG_FORCE_DOWNLOADED_BINARIES: ${{ runner.os == 'Linux' && runner.arch == 'Arm64' }}
       run: |
         mono `${{ env.VCPKG_EXE }} fetch nuget | tail -n 1` \
@@ -64,9 +64,9 @@ runs:
       shell: pwsh
       env:
         VCPKG_EXE: ${{ steps.vcpkg-info.outputs.root }}/vcpkg
-        USERNAME: ${{ github.actor }}
-        FEED_URL: https://nuget.pkg.github.com/${{ github.actor }}/index.json
-        VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.actor }}/index.json,readwrite"
+        USERNAME: ${{ github.repository_owner }}
+        FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
       run: |
         .$(${{ env.VCPKG_EXE }} fetch nuget) `
           sources add `
@@ -81,7 +81,7 @@ runs:
     - name: Build vcpkg dependencies
       shell: bash
       env:
-        VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.actor }}/index.json,readwrite"
+        VCPKG_BINARY_SOURCES: "clear;nuget,https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json,readwrite"
         VCPKG_FORCE_DOWNLOADED_BINARIES: ${{ runner.os == 'Linux' && runner.arch == 'Arm64' }}
       run: |
         cargo vcpkg --verbose build --manifest-path nghe-backend/Cargo.toml --target ${{ inputs.rust-target }}
