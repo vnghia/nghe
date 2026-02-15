@@ -164,7 +164,7 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
                         .description()
                         .is_some_and(|description| description == Image::TEST_DESCRIPTION))
             {
-                Some(picture.try_into())
+                Some(picture.as_ref().try_into())
             } else {
                 None
             }

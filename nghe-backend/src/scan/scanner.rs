@@ -379,11 +379,11 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 
         while let Ok(entry) = rx.recv_async().await {
             let permit = permit.clone().acquire_owned().await?;
-            let scan = self.clone().into_owned();
+            let scanner = self.clone().into_owned();
             join_set.spawn(
                 async move {
                     let _guard = permit;
-                    scan.one(&entry, started_at).await
+                    scanner.one(&entry, started_at).await
                 }
                 .instrument(span.clone()),
             );
