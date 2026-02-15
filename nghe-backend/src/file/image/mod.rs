@@ -265,12 +265,11 @@ mod test {
 
     impl From<Image<'_>> for LoftyPicture {
         fn from(value: Image<'_>) -> Self {
-            Self::new_unchecked(
-                PictureType::Other,
-                Some(value.property.format.into()),
-                Some(Image::TEST_DESCRIPTION.to_owned()),
-                value.data.into_owned(),
-            )
+            Self::unchecked(value.data.into_owned())
+                .pic_type(PictureType::Other)
+                .mime_type(value.property.format.into())
+                .description(Image::TEST_DESCRIPTION.to_owned())
+                .build()
         }
     }
 

@@ -56,7 +56,7 @@ image = { version = "0.25.6", default-features = false, features = [
 ] }
 indexmap = { version = "2.9.0" }
 libaes = { version = "0.7.0" }
-lofty = { version = "0.22.4" }
+lofty = { version = "0.23.0" }
 loole = { version = "0.4.1" }
 mimalloc = { version = "0.1.48", features = ["v3"] }
 o2o = { version = "0.5.4", default-features = false, features = ["syn2"] }

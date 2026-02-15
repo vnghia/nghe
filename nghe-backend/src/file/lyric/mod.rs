@@ -411,7 +411,7 @@ mod test {
                             .map(|(duration, text)| (duration, text.into_owned()))
                             .collect(),
                     )
-                    .as_bytes()
+                    .as_bytes(lofty::config::WriteOptions::default())
                     .unwrap(),
                 )
                 .into(),
