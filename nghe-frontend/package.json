@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.0-beta.8",
-    "flowbite": "^3.0.0-beta.1",
+    "flowbite": "^4.0.0",
     "tailwindcss": "^4.0.0-beta.8"
   },
   "devDependencies": {
