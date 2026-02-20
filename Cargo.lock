@@ -605,9 +605,9 @@ dependencies = [
 
 [[package]]
 name = "codee"
-version = "0.3.2"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd8bbfdadf2f8999c6e404697bc08016dce4a3d77dec465b36c9a0652fdb3327"
+checksum = "a9dbbdc4b4d349732bc6690de10a9de952bd39ba6a065c586e26600b6b0b91f5"
 dependencies = [
  "serde",
  "serde_json",
@@ -2235,9 +2235,9 @@ dependencies = [
 
 [[package]]
 name = "leptos-use"
-version = "0.16.2"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6eac17e7d306b4ad67158aba97c1490884ba304add4321069cb63fe0834c3b1"
+checksum = "e652389aa67f810bab687dd32566346a1d0dc4d25b44370d952ffc2ca4c627c0"
 dependencies = [
  "cfg-if",
  "codee",
