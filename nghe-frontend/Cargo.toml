@@ -19,7 +19,7 @@ gloo-net = { version = "0.6.0", default-features = false, features = [
 ] }
 leptos = { version = "0.8.0", features = ["csr", "nightly"] }
 leptos_router = { version = "0.8.0", features = ["nightly"] }
-leptos-use = { version = "0.16.0", default-features = false, features = [
+leptos-use = { version = "0.18.0", default-features = false, features = [
     "storage",
 ] }
 wasm-bindgen = { version = "0.2.100" }
