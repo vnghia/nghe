@@ -154,7 +154,7 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
       - name: Upload build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
@@ -171,7 +171,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Download build artifact for docker
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: ${{ github.workspace }}/artifact/
       - name: Set up Docker Buildx
@@ -298,7 +298,7 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
       - name: Upload build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: amd64-windows
           path: ${{ github.workspace }}\target\x86_64-pc-windows-msvc\${{ steps.build.outputs.output-dir }}\nghe_backend.exe
@@ -379,7 +379,7 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
       - name: Upload build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
@@ -395,7 +395,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Download build artifact for release
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: ${{ github.workspace }}/artifact/
       - name: Upload artifact
