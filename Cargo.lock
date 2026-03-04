@@ -1846,7 +1846,7 @@ dependencies = [
  "libc",
  "percent-encoding",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.0",
  "tokio",
  "tower-service",
  "tracing",
@@ -3570,9 +3570,9 @@ dependencies = [
 
 [[package]]
 name = "reqx"
-version = "0.1.22"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46737d2301408e032e0bd92a7a86f6bfc7dbfd463331706d700d2bb834a946c6"
+checksum = "a4a6d3964f3d773058383afa7b0c0dd3be016c34ae0627bc8bb2762176346819"
 dependencies = [
  "brotli 8.0.2",
  "bytes",
@@ -3837,9 +3837,9 @@ checksum = "6ea1a2d0a644769cc99faa24c3ad26b379b786fe7c36fd3c546254801650e6dd"
 
 [[package]]
 name = "s3"
-version = "0.1.17"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "633988046bf7a816ff14a2b4429fdd48ea906d6d993bd1cb609a5863bf72385c"
+checksum = "d33fd9b0a63f8ef0e52de5dec36f084e5c71edbb836eac78f5052c3f303535c7"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -4413,7 +4413,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "82a72c767771b47409d2345987fda8628641887d5466101319899796367354a0"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.1",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
