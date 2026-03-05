@@ -188,7 +188,7 @@ jobs:
       # GNU
       - name: Extract metadata for Docker gnu
         id: meta-gnu
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             name=ghcr.io/${{ github.repository }}
@@ -211,7 +211,7 @@ jobs:
       # Musl
       - name: Extract metadata for Docker musl
         id: meta-musl
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             name=ghcr.io/${{ github.repository }}
