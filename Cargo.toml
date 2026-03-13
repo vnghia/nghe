@@ -38,7 +38,7 @@ isolang = { version = "2.4.0", default-features = false, features = ["serde"] }
 itertools = { version = "0.14.0" }
 rand = { version = "0.9.0" }
 serde = { version = "1.0.218", features = ["derive"] }
-serde_html_form = { version = "0.2.7" }
+serde_html_form = { version = "0.4.0" }
 serde_with = { version = "3.12.0", features = ["time_0_3"] }
 strum = { version = "0.27.0", features = ["derive"] }
 time = { version = "0.3.37", features = ["serde-human-readable", "macros"] }
