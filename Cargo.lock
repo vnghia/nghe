@@ -3605,9 +3605,9 @@ dependencies = [
 
 [[package]]
 name = "reqx"
-version = "0.1.26"
+version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "715b831693462db38707d562d3fce8de22b8ad0bf45f9da522328f01ed2c2275"
+checksum = "0a12032538346e10d36cdd72222430958f3fbab34f53d923da45f10077546066"
 dependencies = [
  "brotli 8.0.2",
  "bytes",
@@ -3872,9 +3872,9 @@ checksum = "6ea1a2d0a644769cc99faa24c3ad26b379b786fe7c36fd3c546254801650e6dd"
 
 [[package]]
 name = "s3"
-version = "0.1.21"
+version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce3d2be7cf19dc5c58d039aa8405eb21d7feacefbc84f7d9277303b6831e9fd8"
+checksum = "aa2abc6d29eb1c7a2249314924c3d97898ff7bf961d5bb673ce57254a8c51cf9"
 dependencies = [
  "base64 0.22.1",
  "bytes",
