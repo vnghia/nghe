@@ -2738,7 +2738,7 @@ dependencies = [
  "nghe_api",
  "nghe_proc_macro",
  "o2o",
- "rand 0.9.2",
+ "rand 0.10.0",
  "reqwest",
  "rsmpeg",
  "rspotify",
