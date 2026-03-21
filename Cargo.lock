@@ -2739,7 +2739,7 @@ dependencies = [
  "nghe_proc_macro",
  "o2o",
  "rand 0.10.0",
- "reqwest",
+ "reqwest 0.13.2",
  "rsmpeg",
  "rspotify",
  "rstest",
@@ -3539,6 +3539,42 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "futures-core",
+ "http",
+ "http-body",
+ "http-body-util",
+ "hyper",
+ "hyper-tls",
+ "hyper-util",
+ "js-sys",
+ "log",
+ "native-tls",
+ "percent-encoding",
+ "pin-project-lite",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "sync_wrapper",
+ "tokio",
+ "tokio-native-tls",
+ "tower",
+ "tower-http",
+ "tower-service",
+ "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "reqwest"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab3f43e3283ab1488b624b44b0e988d0acea0b3214e694730a055cb6b2efa801"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "futures-core",
  "h2",
  "http",
  "http-body",
@@ -3555,7 +3591,6 @@ dependencies = [
  "rustls-pki-types",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "sync_wrapper",
  "tokio",
  "tokio-native-tls",
@@ -3662,7 +3697,7 @@ dependencies = [
  "async-trait",
  "log",
  "maybe-async",
- "reqwest",
+ "reqwest 0.12.23",
  "serde_json",
  "thiserror 2.0.18",
 ]
