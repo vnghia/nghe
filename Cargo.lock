@@ -4037,15 +4037,15 @@ dependencies = [
 
 [[package]]
 name = "serde_html_form"
-version = "0.2.7"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d2de91cf02bbc07cde38891769ccd5d4f073d22a40683aa4bc7a95781aaa2c4"
+checksum = "8f0346d7a342ab90f405cfc08f25d15075f944f42fcabbc5eac923829fa6d228"
 dependencies = [
  "form_urlencoded",
  "indexmap 2.13.0",
  "itoa",
- "ryu",
- "serde",
+ "serde_core",
+ "zmij",
 ]
 
 [[package]]
