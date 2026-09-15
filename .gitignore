@@ -145,4 +145,7 @@ $RECYCLE.BIN/
 # Hearing test output
 hearing-test-output/
 
+# Nix
+result
+
 # End of https://www.toptal.com/developers/gitignore/api/c++,rust,linux,macos,windows,rust-analyzer,visualstudiocode,direnv

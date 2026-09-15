@@ -77,6 +77,23 @@
               }
             );
 
+            libogg = pkgs.libogg.overrideAttrs (
+              finalAttrs: previousAttrs: {
+                cmakeFlags = previousAttrs.cmakeFlags ++ [
+                  "-DBUILD_SHARED_LIBS=OFF"
+                ];
+              }
+            );
+
+            libvorbis = (pkgs.libvorbis.override { inherit libogg; }).overrideAttrs (
+              finalAttrs: previousAttrs: {
+                configureFlags = [
+                  "--disable-shared"
+                  "--enable-static"
+                ];
+              }
+            );
+
             ffmpeg =
               (pkgs.ffmpeg.override {
                 version = "8.0.3";
@@ -115,21 +132,20 @@
                 buildSwscale = true;
 
                 withOptimisations = true;
+                withStripping = true;
 
                 inherit lame;
                 inherit libopus;
                 inherit soxr;
+                inherit libvorbis;
               }).overrideAttrs
                 (
                   finalAttrs: previousAttrs: {
-                    postPatch = previousAttrs.postPatch + ''
-                      substituteInPlace configure \
-                        --replace-fail \
-                          'require libsoxr soxr.h soxr_create -lsoxr' \
-                          'require libsoxr soxr.h soxr_create -lsoxr $libm_extralibs'
-                    '';
                     configureFlags = previousAttrs.configureFlags ++ [
                       "--enable-openssl"
+                      "--pkg-config-flags=--static"
+                      "--extra-libs=-logg"
+                      "--extra-libs=-lm"
                     ];
                     buildInputs = previousAttrs.buildInputs ++ [
                       openssl
@@ -138,7 +154,7 @@
                 );
           };
         in
-        {
+        rec {
           packages = static;
 
           devShells.default =
@@ -160,17 +176,13 @@
                 pkg-config
 
                 # native
-                stdenv.cc
-
-                static.openssl
-
                 clang
                 llvmPackages.libclang
-                static.ffmpeg
 
                 # test
                 postgresql.lib
-              ];
+              ]
+              ++ (pkgs.lib.attrValues packages);
             };
         };
     };
