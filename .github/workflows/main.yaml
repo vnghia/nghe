@@ -38,13 +38,13 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-          - shell: default
+          - target: x86_64-unknown-linux-gnu
             runs-on: ubuntu-latest
-          - shell: musl
+          - target: x86_64-unknown-linux-musl
             runs-on: ubuntu-latest
-          - shell: default
+          - target: aarch64-unknown-linux-gnu
             runs-on: ubuntu-24.04-arm
-          - shell: musl
+          - target: aarch64-unknown-linux-musl
             runs-on: ubuntu-24.04-arm
 
     runs-on: ${{ matrix.platform.runs-on }}
@@ -71,12 +71,32 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - uses: cachix/install-nix-action@v25
+
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
+      - name: Extract build information
+        id: build
+        uses: ./.github/actions/extra-build-information
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+
+      - name: Increase postgres max connection
+        run: |
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+          docker restart postgres
+
+      - uses: cachix/install-nix-action@v31
         with:
           nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v14
+      - uses: cachix/cachix-action@v17
         with:
           name: nghe
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
       - name: Build
-        run: nix develop .#${{ matrix.platform.shell }} --accept-flake-config --command cargo build --package nghe_backend
+        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo build --package nghe_backend

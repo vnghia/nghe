@@ -295,6 +295,7 @@
           }
           // (lib.mapAttrs (target: _: mkDevShell { inherit target; }) rustTargetMap)
           // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+            gnu = mkDevShell { };
             musl = mkDevShell { target = muslTargetMap.${system}; };
           });
         };
