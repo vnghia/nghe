@@ -99,7 +99,13 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Build
-        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo build --package nghe_backend
+        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo build --locked --package nghe_backend
+      - name: Test
+        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
+        env:
+          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
+          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
+          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_SECRET || '' }}
 
   build-macos:
     strategy:
@@ -153,4 +159,10 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Build
-        run: nix develop .#default --accept-flake-config --command cargo build --package nghe_backend
+        run: nix develop .#default --accept-flake-config --command cargo build --locked --package nghe_backend
+      - name: Test
+        run: nix develop .#default --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
+        env:
+          LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
+          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
+          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_SECRET || '' }}
