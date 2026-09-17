@@ -79,4 +79,4 @@ jobs:
           name: nghe
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
       - name: Build
-        run: nix develop .#${{ matrix.platform.shell }} --accept-flake-config --command "cargo build --package nghe_backend"
+        run: nix develop .#${{ matrix.platform.shell }} --accept-flake-config --command cargo build --package nghe_backend
