@@ -260,8 +260,8 @@
 
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${rustTarget}-"}cc";
 
-              cargoNextest = hostPkgs.cargo-nextest.override { inherit rustPlatform; };
-              cargoLlvmCov = hostPkgs.cargo-llvm-cov.override { inherit rustPlatform; };
+              cargoNextest = pkgs.cargo-nextest;
+              cargoLlvmCov = pkgs.cargo-llvm-cov;
             in
             with hostPkgs;
             pkgs.mkShellNoCC {
