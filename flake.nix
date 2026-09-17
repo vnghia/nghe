@@ -54,7 +54,7 @@
             "musl64" = "x86_64-unknown-linux-musl";
             "aarch64-multiplatform-musl" = "aarch64-unknown-linux-musl";
           };
-          
+
           muslTargetMap = {
             "x86_64-linux" = "musl64";
             "aarch64-linux" = "aarch64-multiplatform-musl";
@@ -67,6 +67,7 @@
             }:
             let
               hostLib = hostPkgs.lib;
+              hostStdenv = hostPkgs.stdenv;
 
               disableTarget = if static then "shared" else "static";
               enableTarget = if static then "static" else "shared";
@@ -190,10 +191,30 @@
                   curlSupport = false;
                   gssSupport = false;
                   nlsSupport = false;
+
+                  inherit openssl;
                 }).overrideAttrs
                   (
                     finalAttrs: previousAttrs: {
                       dontDisableStatic = static;
+                      postPatch =
+                        previousAttrs.postPatch
+                        + hostLib.optionalString (static && !hostStdenv.hostPlatform.isStatic) ''
+                          substituteInPlace src/interfaces/libpq/Makefile \
+                            --replace-fail "all: all-lib libpq-refs-stamp" "all: all-lib"
+                          substituteInPlace src/Makefile.shlib \
+                            --replace-fail "all-lib: all-shared-lib" "all-lib: all-static-lib" \
+                            --replace-fail "install-lib: install-lib-shared" "install-lib: install-lib-static"
+                        '';
+                      postInstall =
+                        if (static || hostStdenv.hostPlatform.isStatic) then
+                          ''
+                            touch $out/empty
+                            substituteInPlace $out/lib/pkgconfig/libpq.pc \
+                              --replace-fail "$out" "$dev"
+                          ''
+                        else
+                          previousAttrs.postInstall;
                     }
                   );
             };
@@ -242,9 +263,13 @@
                 "CC_${rustShoutTarget}" = ccBin;
 
                 # native
+                PKG_CONFIG_ALL_STATIC = if static then "1" else null;
+
                 OPENSSL_INCLUDE_DIR = "${nativeDeps.openssl.dev}/include";
                 OPENSSL_LIB_DIR = "${nativeDeps.openssl.out}/lib";
                 OPENSSL_STATIC = if static then "1" else "0";
+
+                PQ_LIB_STATIC = if static then "1" else null;
               };
 
               packages = [
@@ -265,7 +290,9 @@
             default = mkDevShell { };
           }
           // (lib.mapAttrs (target: _: mkDevShell { inherit target; }) rustTargetMap)
-          // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {musl = mkDevShell {target = muslTargetMap.${system};};});
+          // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+            musl = mkDevShell { target = muslTargetMap.${system}; };
+          });
         };
     };
 }

@@ -108,11 +108,9 @@ url = { workspace = true }
 
 nghe_api = { path = "../nghe-api", features = ["test"] }
 
+diesel = { version = "2.3.6", features = ["postgres"] }
 http-body-util = { version = "0.1.3" }
 tempfile = { version = "3.20.0" }
-
-[target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
-diesel = { version = "2.3.6", features = ["postgres"] }
 
 [build-dependencies]
 built = { version = "0.8.0" }
