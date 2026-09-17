@@ -26,11 +26,9 @@ runs:
     - name: Extract build information
       id: build
       shell: bash
-      env:
-        TARGET: ${{ inputs.target }}
       run: |
-        echo "vendor=${TARGET##*-}" >> "$GITHUB_OUTPUT"
-        echo "arch=$(echo $TARGET | cut -d '-' -f1)" >> "$GITHUB_OUTPUT"
+        echo "vendor=$(echo "${{ inputs.target }}" | cut -d '-' -f4)" >> "$GITHUB_OUTPUT"
+        echo "arch=$(echo "${{ inputs.target }}" | cut -d '-' -f1)" >> "$GITHUB_OUTPUT"
         echo "docker-arch=${{ startsWith(inputs.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
         echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
         echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
