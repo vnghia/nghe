@@ -286,8 +286,7 @@
 
                 # native
                 stdenv.cc
-                llvmPackages.libclang.lib
-                rustPlatform.bindgenHook
+                (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
               ]
               ++ (hostLib.optional coverage cargoLlvmCov)
               ++ (hostLib.attrValues nativeDeps)
