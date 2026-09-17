@@ -241,15 +241,25 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Generate code coverage
-        run: nix develop .#coverage --accept-flake-config --command cargo tarpaulin --locked --workspace --exclude nghe_frontend --engine llvm --out xml
+        run: nix develop .#coverage --accept-flake-config --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
           SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
+      - name: Upload test report to Codecov
+        if: success() || failure()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: codecov.json
           disable_search: true
           report_type: "coverage"
           fail_ci_if_error: true

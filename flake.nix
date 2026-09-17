@@ -256,10 +256,7 @@
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${rustTarget}-"}cc";
 
               cargoNextest = hostPkgs.cargo-nextest.override { inherit rustPlatform; };
-              cargoTarpaulin = hostPkgs.cargo-tarpaulin.override {
-                inherit rustPlatform;
-                openssl = nativeDeps.openssl;
-              };
+              cargoLlvmCov = hostPkgs.cargo-llvm-cov.override { inherit rustPlatform; };
             in
             with hostPkgs;
             pkgs.mkShellNoCC {
@@ -292,7 +289,7 @@
                 llvmPackages.libclang.lib
                 rustPlatform.bindgenHook
               ]
-              ++ (hostLib.optional coverage cargoTarpaulin)
+              ++ (hostLib.optional coverage cargoLlvmCov)
               ++ (hostLib.attrValues nativeDeps)
               ++ hostLib.optional stdenv.hostPlatform.isLinux autoPatchelfHook
               ++
