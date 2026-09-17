@@ -77,7 +77,7 @@ jobs:
 
       - name: Extract build information
         id: build
-        uses: ./.github/actions/extra-build-information
+        uses: ./.github/actions/extract-build-information
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
