@@ -113,8 +113,6 @@ jobs:
         run: nix develop .#${{ steps.build.outputs.vendor }} --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
-          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
-          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_SECRET || '' }}
       - name: Upload test report to Codecov
         if: success() || failure()
         uses: codecov/codecov-action@v7
@@ -191,8 +189,6 @@ jobs:
         run: nix develop .#default --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
-          SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
-          SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_SECRET || '' }}
       - name: Upload test report to Codecov
         if: success() || failure()
         uses: codecov/codecov-action@v7
@@ -244,8 +240,6 @@ jobs:
         run: nix develop .#coverage --accept-flake-config --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
-          SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
-          SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
       - name: Upload test report to Codecov
         if: success() || failure()
         uses: codecov/codecov-action@v5
