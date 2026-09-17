@@ -294,7 +294,10 @@
               ]
               ++ (hostLib.optional coverage cargoTarpaulin)
               ++ (hostLib.attrValues nativeDeps)
-              ++ hostLib.optional stdenv.hostPlatform.isLinux pkgs.autoPatchelfHook;
+              ++ hostLib.optional stdenv.hostPlatform.isLinux autoPatchelfHook
+              ++
+                hostLib.optional stdenv.hostPlatform.isDarwin
+                  (if static then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv;
             };
         in
         {
