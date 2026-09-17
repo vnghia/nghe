@@ -78,6 +78,8 @@ jobs:
       - name: Extract build information
         id: build
         uses: ./.github/actions/extract-build-information
+        with:
+          target: ${{ matrix.platform.target }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -145,6 +147,8 @@ jobs:
       - name: Extract build information
         id: build
         uses: ./.github/actions/extract-build-information
+        with:
+          target: ${{ matrix.platform.target }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust

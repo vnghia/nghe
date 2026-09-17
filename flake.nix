@@ -263,6 +263,8 @@
             in
             with hostPkgs;
             pkgs.mkShellNoCC {
+              dontAddExtraLibs = true;
+
               env = {
                 # cargo
                 CARGO_BUILD_TARGET = rustTarget;
