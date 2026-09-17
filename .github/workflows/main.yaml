@@ -203,6 +203,50 @@ jobs:
           report_type: "test_results"
           fail_ci_if_error: true
 
+  build-freebsd:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: x86_64-unknown-freebsd
+            runs-on: ubuntu-latest
+
+    runs-on: ${{ matrix.platform.runs-on }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
+      - name: Extract build information
+        id: build
+        uses: ./.github/actions/extract-build-information
+        with:
+          target: ${{ matrix.platform.target }}
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: cachix/cachix-action@v17
+        with:
+          name: nghe
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - name: Build
+        run: nix develop .#freebsd --accept-flake-config --command cargo build --locked --package nghe_backend
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-freebsd
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
+
   build-coverage:
     strategy:
       fail-fast: false

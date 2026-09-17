@@ -53,6 +53,7 @@
             "musl64" = "x86_64-unknown-linux-musl";
             "aarch64-multiplatform-musl" = "aarch64-unknown-linux-musl";
             "aarch64-darwin" = "aarch64-apple-darwin";
+            "x86_64-freebsd" = "x86_64-unknown-freebsd";
           };
 
           muslTargetMap = {
