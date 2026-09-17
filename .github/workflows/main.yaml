@@ -33,7 +33,7 @@ env:
   MINIO_ROOT_PASSWORD: minioadmin
 
 jobs:
-  build:
+  build-linux:
     strategy:
       fail-fast: false
       matrix:
@@ -100,3 +100,57 @@ jobs:
 
       - name: Build
         run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo build --package nghe_backend
+
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: aarch64-apple-darwin
+            runs-on: macos-latest
+
+    runs-on: ${{ matrix.platform.runs-on }}
+
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
+      - name: Extract build information
+        id: build
+        uses: ./.github/actions/extract-build-information
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+
+      - name: Install and setup postgres
+        run: |
+          brew install postgresql@${{ env.POSTGRES_VERSION }}
+          brew link postgresql@${{ env.POSTGRES_VERSION }}
+          export PGDATA="$RUNNER_TEMP/pgdata"
+          initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
+          pg_ctl start
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
+          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
+          pg_ctl restart
+      - name: Install and setup minio
+        run: |
+          brew install minio
+          minio server --address=':9090' data &
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: cachix/cachix-action@v17
+        with:
+          name: nghe
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - name: Build
+        run: nix develop .#default --accept-flake-config --command cargo build --package nghe_backend
