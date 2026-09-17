@@ -44,7 +44,7 @@
         let
           toolchain = inputs.fenix.packages.${system}.fromToolchainFile {
             file = ./rust-toolchain.toml;
-            sha256 = "sha256-wBCNU5N9ftXKTMzvUW3xolIXmK5Z/93SdAxK1sMRDxQ=";
+            sha256 = "sha256-9LY9sgDes2oSCyeuCFFAY37gSvElSJEwh5kiXlr76L8=";
           };
 
           rustTargetMap = {
