@@ -253,6 +253,8 @@
               };
 
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${rustTarget}-"}cc";
+
+              cargoNextest = hostPkgs.cargo-nextest.override { inherit rustPlatform; };
             in
             with hostPkgs;
             pkgs.mkShellNoCC {
@@ -274,6 +276,8 @@
 
               packages = [
                 toolchain
+                cargoNextest
+
                 pkg-config
 
                 # native
