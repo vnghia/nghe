@@ -99,16 +99,16 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Build
-        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo build --locked --package nghe_backend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --accept-flake-config --command cargo build --locked --package nghe_backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.vendor }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
 
       - name: Test
-        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
@@ -179,7 +179,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.vendor }}
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
           retention-days: 1
 
@@ -217,14 +217,10 @@ jobs:
       - name: Install yq
         uses: ./.github/actions/install-yq
 
-      - name: Extract build information
-        id: build
-        uses: ./.github/actions/extract-build-information
-
       - name: Setup rust
         uses: ./.github/actions/setup-rust
         with:
-          cache-key: coverage-${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+          cache-key: coverage
 
       - name: Increase postgres max connection
         run: |
@@ -241,7 +237,7 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Generate code coverage
-        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo tarpaulin --locked --workspace --exclude nghe_frontend --engine llvm --out xml
+        run: nix develop .#coverage --accept-flake-config --command cargo tarpaulin --locked --workspace --exclude nghe_frontend --engine llvm --out xml
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
           SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}

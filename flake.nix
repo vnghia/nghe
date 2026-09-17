@@ -223,6 +223,7 @@
             {
               target ? system,
               static ? true,
+              coverage ? false,
             }:
             let
               isCross = target != system;
@@ -255,6 +256,10 @@
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${rustTarget}-"}cc";
 
               cargoNextest = hostPkgs.cargo-nextest.override { inherit rustPlatform; };
+              cargoTarpaulin = hostPkgs.cargo-tarpaulin.override {
+                inherit rustPlatform;
+                openssl = nativeDeps.openssl;
+              };
             in
             with hostPkgs;
             pkgs.mkShellNoCC {
@@ -285,6 +290,7 @@
                 llvmPackages.libclang.lib
                 rustPlatform.bindgenHook
               ]
+              ++ (hostLib.optional coverage cargoTarpaulin)
               ++ (hostLib.attrValues nativeDeps)
               ++ hostLib.optional stdenv.hostPlatform.isLinux pkgs.autoPatchelfHook;
             };
@@ -297,6 +303,7 @@
           // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             gnu = mkDevShell { };
             musl = mkDevShell { target = muslTargetMap.${system}; };
+            coverage = mkDevShell { coverage = true; };
           });
         };
     };
