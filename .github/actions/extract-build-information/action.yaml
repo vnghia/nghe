@@ -8,6 +8,7 @@ runs:
   using: "composite"
   steps:
     - name: Extract build information
+      shell: bash
       env:
         TARGET: ${{ inputs.target }}
       run: |
