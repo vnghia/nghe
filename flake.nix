@@ -61,6 +61,10 @@
             "aarch64-linux" = "aarch64-multiplatform-musl";
           };
 
+          freebsdTargetMap = {
+            "x86_64-linux" = "x86_64-freebsd";
+          };
+
           mkNativeDeps =
             {
               hostPkgs,
@@ -305,6 +309,7 @@
           // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             gnu = mkDevShell { };
             musl = mkDevShell { target = muslTargetMap.${system}; };
+            freebsd = mkDevShell { target = freebsdTargetMap.${system}; };
             coverage = mkDevShell { coverage = true; };
           });
         };
