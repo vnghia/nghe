@@ -53,6 +53,8 @@ rstest = { version = "0.26.0" }
 thiserror = { version = "2.0.11" }
 url = { version = "2.5.4" }
 
+built = { version = "0.8.1" }
+
 # Dev
 serde_json = { version = "1.0.139" }
 fake = { version = "5.0.0", features = ["derive", "uuid", "time"] }

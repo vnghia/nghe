@@ -1,0 +1,34 @@
+name: "Extract build information"
+description: "Extract build information"
+inputs:
+  target:
+    description: "Rust target"
+    required: true
+outputs:
+  vendor:
+    description: "vendor"
+    value: ${{ steps.build.outputs.vendor }}
+  arch:
+    description: "arch"
+    value: ${{ steps.build.outputs.arch }}
+  docker-arch:
+    description: "docker-arch"
+    value: ${{ steps.build.outputs.docker-arch }}
+  profile:
+    description: "profile"
+    value: ${{ steps.build.outputs.profile }}
+  output-dir:
+    description: "output-dir"
+    value: ${{ steps.build.outputs.output-dir }}
+runs:
+  using: "composite"
+  steps:
+    - name: Extract build information
+      id: build
+      shell: bash
+      run: |
+        echo "vendor=$(echo "${{ inputs.target }}" | cut -d '-' -f4)" >> "$GITHUB_OUTPUT"
+        echo "arch=$(echo "${{ inputs.target }}" | cut -d '-' -f1)" >> "$GITHUB_OUTPUT"
+        echo "docker-arch=${{ startsWith(inputs.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
+        echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+        echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"

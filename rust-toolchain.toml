@@ -1,2 +1,14 @@
 [toolchain]
-channel = "nightly-2026-02-07"
+channel = "nightly-2026-05-01"
+profile = "minimal"
+components = ["rustfmt", "clippy", "llvm-tools-preview"]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+    "aarch64-unknown-linux-musl",
+
+    "aarch64-apple-darwin",
+
+    "x86_64-unknown-freebsd",
+]

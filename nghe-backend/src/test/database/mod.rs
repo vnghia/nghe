@@ -44,7 +44,6 @@ impl Mock {
     }
 }
 
-#[cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))]
 impl Drop for Mock {
     fn drop(&mut self) {
         use diesel::Connection;

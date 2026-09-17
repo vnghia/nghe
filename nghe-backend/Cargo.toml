@@ -63,7 +63,6 @@ o2o = { version = "0.5.4", default-features = false, features = ["syn2"] }
 rsmpeg = { version = "0.18.0", default-features = false, features = [
   "ffmpeg8",
   "link_system_ffmpeg",
-  "link_vcpkg_ffmpeg",
 ] }
 rspotify = { version = "0.15.0", default-features = false, features = [
   "client-reqwest",
@@ -108,32 +107,9 @@ url = { workspace = true }
 
 nghe_api = { path = "../nghe-api", features = ["test"] }
 
+diesel = { version = "2.3.6", features = ["postgres"] }
 http-body-util = { version = "0.1.3" }
 tempfile = { version = "3.20.0" }
 
-[target.'cfg(not(any(target_env = "musl", all(target_arch = "aarch64", target_os = "linux"))))'.dev-dependencies]
-diesel = { version = "2.3.6", features = ["postgres"] }
-
 [build-dependencies]
-built = { version = "0.8.0" }
-
-[package.metadata.vcpkg]
-dependencies = [
-  "ffmpeg[avcodec,avfilter,avformat,avresample,mp3lame,opus,soxr,swresample,vorbis,openssl]",
-]
-git = "https://github.com/microsoft/vcpkg"
-rev = "2026.01.16"
-overlay-triplets-path = "vcpkg/triplets/"
-
-[package.metadata.vcpkg.target]
-x86_64-unknown-linux-gnu = { triplet = "x64-linux-release" }
-aarch64-unknown-linux-gnu = { triplet = "arm64-linux-release" }
-
-x86_64-unknown-linux-musl = { triplet = "x64-linux-musl-release" }
-aarch64-unknown-linux-musl = { triplet = "arm64-linux-musl-release" }
-
-x86_64-unknown-freebsd = { triplet = "x64-freebsd-release" }
-
-aarch64-apple-darwin = { triplet = "arm64-osx-release" }
-
-x86_64-pc-windows-msvc = { triplet = "x64-windows-static-release" }
+built = { workspace = true }
