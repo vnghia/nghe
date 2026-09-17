@@ -39,6 +39,7 @@
         {
           system,
           pkgs,
+          lib,
           ...
         }:
         let
@@ -51,6 +52,12 @@
             "x86_64-linux" = "x86_64-unknown-linux-gnu";
             "aarch64-linux" = "aarch64-unknown-linux-gnu";
             "musl64" = "x86_64-unknown-linux-musl";
+            "aarch64-multiplatform-musl" = "aarch64-unknown-linux-musl";
+          };
+          
+          muslTargetMap = {
+            "x86_64-linux" = "musl64";
+            "aarch64-linux" = "aarch64-multiplatform-musl";
           };
 
           mkNativeDeps =
@@ -257,7 +264,8 @@
           devShells = {
             default = mkDevShell { };
           }
-          // (pkgs.lib.mapAttrs (target: _: mkDevShell { inherit target; }) rustTargetMap);
+          // (lib.mapAttrs (target: _: mkDevShell { inherit target; }) rustTargetMap)
+          // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {musl = mkDevShell {target = muslTargetMap.${system};};});
         };
     };
 }
