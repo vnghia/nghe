@@ -1,9 +1,5 @@
 name: Main
 
-permissions:
-  contents: read
-  packages: write
-
 on:
   push:
     branches: ["main"]
@@ -16,6 +12,10 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -197,4 +197,59 @@ jobs:
           files: target/nextest/ci/junit.xml
           disable_search: true
           report_type: "test_results"
+          fail_ci_if_error: true
+
+  build-coverage:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - target: x86_64-unknown-linux-gnu
+            runs-on: ubuntu-latest
+
+    runs-on: ${{ matrix.platform.runs-on }}
+
+    services: *services
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install yq
+        uses: ./.github/actions/install-yq
+
+      - name: Extract build information
+        id: build
+        uses: ./.github/actions/extract-build-information
+
+      - name: Setup rust
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: coverage-${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
+
+      - name: Increase postgres max connection
+        run: |
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
+          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
+          docker restart postgres
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - uses: cachix/cachix-action@v17
+        with:
+          name: nghe
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - name: Generate code coverage
+        run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo tarpaulin --locked --workspace --exclude nghe_frontend --engine llvm --out xml
+        env:
+          LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
+          SPOTIFY_ID: ${{ secrets.SPOTIFY_ID }}
+          SPOTIFY_SECRET: ${{ secrets.SPOTIFY_SECRET }}
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          disable_search: true
+          report_type: "coverage"
           fail_ci_if_error: true
