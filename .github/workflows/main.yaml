@@ -100,12 +100,28 @@ jobs:
 
       - name: Build
         run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo build --locked --package nghe_backend
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
+
       - name: Test
         run: nix develop .#${{ steps.build.outputs.env }} --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_ID || '' }}
           SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.SPOTIFY_SECRET || '' }}
+      - name: Upload test report to Codecov
+        if: success() || failure()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
 
   build-macos:
     strategy:
@@ -160,9 +176,25 @@ jobs:
 
       - name: Build
         run: nix develop .#default --accept-flake-config --command cargo build --locked --package nghe_backend
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.env }}
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe_backend
+          retention-days: 1
+
       - name: Test
         run: nix develop .#default --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe_frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
           SPOTIFY_ID: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_ID || '' }}
           SPOTIFY_SECRET: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.SPOTIFY_SECRET || '' }}
+      - name: Upload test report to Codecov
+        if: success() || failure()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/nextest/ci/junit.xml
+          disable_search: true
+          report_type: "test_results"
+          fail_ci_if_error: true
