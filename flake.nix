@@ -31,7 +31,6 @@
       systems = [
         "x86_64-linux"
         "aarch64-linux"
-        "x86_64-darwin"
         "aarch64-darwin"
       ];
 
@@ -53,6 +52,7 @@
             "aarch64-linux" = "aarch64-unknown-linux-gnu";
             "musl64" = "x86_64-unknown-linux-musl";
             "aarch64-multiplatform-musl" = "aarch64-unknown-linux-musl";
+            "aarch64-darwin" = "aarch64-apple-darwin";
           };
 
           muslTargetMap = {
