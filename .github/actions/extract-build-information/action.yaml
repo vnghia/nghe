@@ -4,10 +4,27 @@ inputs:
   target:
     description: "Rust target"
     required: true
+outputs:
+  env:
+    description: "env"
+    value: ${{ steps.build.outputs.env }}
+  arch:
+    description: "arch"
+    value: ${{ steps.build.outputs.arch }}
+  docker-arch:
+    description: "docker-arch"
+    value: ${{ steps.build.outputs.docker-arch }}
+  profile:
+    description: "profile"
+    value: ${{ steps.build.outputs.profile }}
+  output-dir:
+    description: "output-dir"
+    value: ${{ steps.build.outputs.output-dir }}
 runs:
   using: "composite"
   steps:
     - name: Extract build information
+      id: build
       shell: bash
       env:
         TARGET: ${{ inputs.target }}
