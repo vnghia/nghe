@@ -290,9 +290,10 @@
                 pkg-config
 
                 # native
+                pkgs.stdenv.cc
                 stdenv.cc
-                llvmPackages.libclang.lib
-                rustPlatform.bindgenHook
+                pkgs.llvmPackages.libclang.lib
+                (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
               ]
               ++ (hostLib.optional coverage cargoLlvmCov)
               ++ (hostLib.attrValues nativeDeps)
