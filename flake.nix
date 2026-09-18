@@ -48,29 +48,29 @@
           };
 
           muslTargetMap = {
-            "x86_64-linux" = "musl64";
-            "aarch64-linux" = "aarch64-multiplatform-musl";
+            "x86_64-linux" = "x86_64-unknown-linux-musl";
+            "aarch64-linux" = "aarch64-unknown-linux-musl";
           };
 
           freebsdTargetMap = {
-            "x86_64-linux" = "x86_64-freebsd";
+            "x86_64-linux" = "x86_64-unknown-freebsd";
           };
 
           mkNativeDeps =
             {
               hostPkgs,
-              static ? true,
+              withStatic ? true,
             }:
             let
               hostLib = hostPkgs.lib;
               hostStdenv = hostPkgs.stdenv;
 
-              disableTarget = if static then "shared" else "static";
-              enableTarget = if static then "static" else "shared";
-              sharedLibs = if static then "OFF" else "ON";
+              disableTarget = if withStatic then "shared" else "static";
+              enableTarget = if withStatic then "static" else "shared";
+              sharedLibs = if withStatic then "OFF" else "ON";
             in
             rec {
-              openssl = hostPkgs.openssl.override { inherit static; };
+              openssl = hostPkgs.openssl.override { static = withStatic; };
 
               lame =
                 (hostPkgs.lame.override {
@@ -125,8 +125,6 @@
                 (hostPkgs.ffmpeg.override {
                   version = "8.0.3";
 
-                  ffmpegVariant = "headless";
-
                   withHeadlessDeps = false;
                   withSmallDeps = false;
                   withFullDeps = false;
@@ -141,8 +139,6 @@
                   withMultithread = true;
                   withNetwork = true;
                   withPixelutils = true;
-                  withStatic = static;
-                  withShared = !static;
                   withPic = true;
                   withThumb = false;
 
@@ -161,6 +157,9 @@
                   withOptimisations = true;
                   withStripping = true;
 
+                  inherit withStatic;
+                  withShared = !withStatic;
+
                   inherit lame;
                   inherit libopus;
                   inherit soxr;
@@ -174,7 +173,7 @@
                           "--enable-openssl"
                           "--extra-libs=-lm"
                         ]
-                        ++ (hostLib.optional static "--pkg-config-flags=--static");
+                        ++ (hostLib.optional withStatic "--pkg-config-flags=--static");
                       buildInputs = previousAttrs.buildInputs ++ [
                         openssl
                       ];
@@ -192,10 +191,10 @@
                 }).overrideAttrs
                   (
                     finalAttrs: previousAttrs: {
-                      dontDisableStatic = static;
+                      dontDisableStatic = withStatic;
                       postPatch =
                         previousAttrs.postPatch
-                        + hostLib.optionalString (static && !hostStdenv.hostPlatform.isStatic) ''
+                        + hostLib.optionalString (withStatic && !hostStdenv.hostPlatform.isStatic) ''
                           substituteInPlace src/interfaces/libpq/Makefile \
                             --replace-fail "all: all-lib libpq-refs-stamp" "all: all-lib"
                           substituteInPlace src/Makefile.shlib \
@@ -203,7 +202,7 @@
                             --replace-fail "install-lib: install-lib-shared" "install-lib: install-lib-static"
                         '';
                       postInstall =
-                        if (static || hostStdenv.hostPlatform.isStatic) then
+                        if (withStatic || hostStdenv.hostPlatform.isStatic) then
                           ''
                             touch $out/empty
                             substituteInPlace $out/lib/pkgconfig/libpq.pc \
@@ -217,21 +216,19 @@
 
           mkDevShell =
             {
-              target ? system,
-              static ? true,
-              coverage ? false,
+              crossSystem ? null,
+              withStatic ? true,
+              withCoverage ? false,
             }:
             let
-              isCross = target != system;
+              isCross = crossSystem != null;
               hostPkgs =
                 if isCross then
                   import nixpkgs {
                     localSystem = {
                       inherit system;
                     };
-                    crossSystem = {
-                      system = pkgs.pkgsCross.${target}.stdenv.hostPlatform.config;
-                    };
+                    inherit crossSystem;
                   }
                 else
                   pkgs;
@@ -246,7 +243,7 @@
 
               nativeDeps = mkNativeDeps {
                 inherit hostPkgs;
-                inherit static;
+                inherit withStatic;
               };
 
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${rustTarget}-"}cc";
@@ -265,13 +262,13 @@
                 "CC_${rustShoutTarget}" = ccBin;
 
                 # native
-                PKG_CONFIG_ALL_STATIC = if static then "1" else null;
+                PKG_CONFIG_ALL_STATIC = if withStatic then "1" else null;
 
                 OPENSSL_INCLUDE_DIR = "${nativeDeps.openssl.dev}/include";
                 OPENSSL_LIB_DIR = "${nativeDeps.openssl.out}/lib";
-                OPENSSL_STATIC = if static then "1" else "0";
+                OPENSSL_STATIC = if withStatic then "1" else "0";
 
-                PQ_LIB_STATIC = if static then "1" else null;
+                PQ_LIB_STATIC = if withStatic then "1" else null;
               };
 
               packages = [
@@ -286,12 +283,12 @@
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
               ]
-              ++ (hostLib.optional coverage cargoLlvmCov)
+              ++ (hostLib.optional withCoverage cargoLlvmCov)
               ++ (hostLib.attrValues nativeDeps)
               ++ hostLib.optional stdenv.hostPlatform.isLinux autoPatchelfHook
               ++
                 hostLib.optional stdenv.hostPlatform.isDarwin
-                  (if static then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv;
+                  (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv;
             };
         in
         {
@@ -300,9 +297,18 @@
           }
           // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             gnu = mkDevShell { };
-            musl = mkDevShell { target = muslTargetMap.${system}; };
-            freebsd = mkDevShell { target = freebsdTargetMap.${system}; };
-            coverage = mkDevShell { coverage = true; };
+            musl = mkDevShell {
+              crossSystem = {
+                config = muslTargetMap.${system};
+                isStatic = true;
+              };
+            };
+            freebsd = mkDevShell {
+              crossSystem = {
+                config = freebsdTargetMap.${system};
+              };
+            };
+            coverage = mkDevShell { withCoverage = true; };
           });
         };
     };
