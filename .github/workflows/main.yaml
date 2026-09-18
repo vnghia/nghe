@@ -70,7 +70,7 @@ jobs:
           - 9090:9090
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install yq
         uses: ./.github/actions/install-yq
@@ -137,7 +137,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install yq
         uses: ./.github/actions/install-yq
@@ -210,7 +210,7 @@ jobs:
     runs-on: ${{ matrix.platform.runs-on }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install yq
         uses: ./.github/actions/install-yq
@@ -256,7 +256,7 @@ jobs:
     services: *services
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install yq
         uses: ./.github/actions/install-yq
