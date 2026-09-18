@@ -1,5 +1,5 @@
 [package]
-name = "nghe_frontend"
+name = "nghe-frontend"
 version = { workspace = true }
 edition = { workspace = true }
 
@@ -24,5 +24,5 @@ leptos-use = { version = "0.16.0", default-features = false, features = [
 ] }
 wasm-bindgen = { version = "0.2.100" }
 
-nghe_api = { path = "../nghe-api" }
+nghe-api = { path = "../nghe-api" }
 web-sys = "0.3.77"

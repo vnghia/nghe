@@ -3,13 +3,11 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(coverage_attribute)]
 #![feature(duration_constructors)]
-#![feature(if_let_guard)]
 #![feature(iterator_try_collect)]
 #![feature(proc_macro_hygiene)]
 #![feature(specialization)]
 #![feature(stmt_expr_attributes)]
 #![feature(str_as_str)]
-#![feature(try_blocks)]
 
 #[coverage(off)]
 pub mod config;
