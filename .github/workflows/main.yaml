@@ -286,7 +286,7 @@ jobs:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
       - name: Upload test report to Codecov
         if: success() || failure()
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: target/nextest/ci/junit.xml
