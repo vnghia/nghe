@@ -13,7 +13,7 @@ uuid = { workspace = true }
 
 codee = { version = "0.3.0" }
 console_error_panic_hook = { version = "0.1.7" }
-gloo-net = { version = "0.6.0", default-features = false, features = [
+gloo-net = { version = "0.7.0", default-features = false, features = [
     "http",
     "json",
 ] }
