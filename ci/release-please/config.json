@@ -1,0 +1,29 @@
+{
+    "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+    "packages": {
+        ".": {
+            "release-type": "simple",
+            "include-v-in-tag": true,
+            "include-component-in-tag": false,
+            "changelog-path": "CHANGELOG.md",
+            "bump-minor-pre-major": true,
+            "bump-patch-for-minor-pre-major": false,
+            "extra-files": [
+                {
+                    "type": "toml",
+                    "path": "Cargo.toml",
+                    "jsonpath": "$.workspace.package.version"
+                },
+                {
+                    "type": "generic",
+                    "path": "Cargo.toml"
+                },
+                {
+                    "type": "toml",
+                    "path": "Cargo.lock",
+                    "jsonpath": "$.package[?(!@.source)].version"
+                }
+            ]
+        }
+    }
+}
