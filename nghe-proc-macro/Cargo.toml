@@ -1,5 +1,5 @@
 [package]
-name = "nghe_proc_macro"
+name = "nghe-proc-macro"
 version = { workspace = true }
 edition = { workspace = true }
 

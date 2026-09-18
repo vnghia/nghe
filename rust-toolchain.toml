@@ -1,7 +1,16 @@
 [toolchain]
 channel = "nightly-2026-05-01"
 profile = "minimal"
-components = ["rustfmt", "clippy", "llvm-tools-preview"]
+components = [
+    "rustfmt",
+    "clippy",
+
+    # rust-analyzer,
+    "rust-src",
+
+    # coverage
+    "llvm-tools-preview",
+]
 targets = [
     "x86_64-unknown-linux-gnu",
     "aarch64-unknown-linux-gnu",

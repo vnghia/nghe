@@ -1,5 +1,5 @@
 [package]
-name = "nghe_api"
+name = "nghe-api"
 version = { workspace = true }
 edition = { workspace = true }
 
@@ -18,7 +18,7 @@ uuid = { workspace = true }
 
 fake = { workspace = true, optional = true }
 
-nghe_proc_macro = { path = "../nghe-proc-macro" }
+nghe-proc-macro = { path = "../nghe-proc-macro" }
 
 num-traits = { version = "0.2.19" }
 paste = { version = "1.0.15" }

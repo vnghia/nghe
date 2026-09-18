@@ -3757,7 +3757,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60993920e071b0c9b66f14e2b32740a4e27ffc82854dcd72035887f336a09a28"
 
 [[package]]
-name = "nghe_api"
+name = "nghe-api"
 version = "0.11.0"
 dependencies = [
  "bon",
@@ -3766,7 +3766,7 @@ dependencies = [
  "fake",
  "faster-hex",
  "md5",
- "nghe_proc_macro",
+ "nghe-proc-macro",
  "num-traits",
  "paste",
  "rstest",
@@ -3780,7 +3780,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nghe_backend"
+name = "nghe-backend"
 version = "0.11.0"
 dependencies = [
  "alrc",
@@ -3811,8 +3811,8 @@ dependencies = [
  "lofty",
  "loole",
  "mimalloc",
- "nghe_api",
- "nghe_proc_macro",
+ "nghe-api",
+ "nghe-proc-macro",
  "o2o",
  "rand 0.10.0",
  "reqwest 0.13.2",
@@ -3843,7 +3843,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nghe_frontend"
+name = "nghe-frontend"
 version = "0.11.0"
 dependencies = [
  "codee",
@@ -3853,7 +3853,7 @@ dependencies = [
  "leptos",
  "leptos-use",
  "leptos_router",
- "nghe_api",
+ "nghe-api",
  "thiserror 2.0.18",
  "uuid",
  "wasm-bindgen",
@@ -3861,7 +3861,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nghe_proc_macro"
+name = "nghe-proc-macro"
 version = "0.11.0"
 dependencies = [
  "bon",
