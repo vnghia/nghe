@@ -288,7 +288,7 @@
               ++ hostLib.optional stdenv.hostPlatform.isLinux autoPatchelfHook
               ++
                 hostLib.optional stdenv.hostPlatform.isDarwin
-                  (if static then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv;
+                  (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv;
             };
         in
         {
