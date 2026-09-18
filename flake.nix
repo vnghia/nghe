@@ -47,15 +47,6 @@
             sha256 = "sha256-6pbof85hshggBqgZz41qx0zHVi5LxtYKukEH/8uljVI=";
           };
 
-          rustTargetMap = {
-            "x86_64-linux" = "x86_64-unknown-linux-gnu";
-            "aarch64-linux" = "aarch64-unknown-linux-gnu";
-            "musl64" = "x86_64-unknown-linux-musl";
-            "aarch64-multiplatform-musl" = "aarch64-unknown-linux-musl";
-            "aarch64-darwin" = "aarch64-apple-darwin";
-            "x86_64-freebsd" = "x86_64-unknown-freebsd";
-          };
-
           muslTargetMap = {
             "x86_64-linux" = "musl64";
             "aarch64-linux" = "aarch64-multiplatform-musl";
@@ -246,7 +237,7 @@
                   pkgs;
               hostLib = hostPkgs.lib;
 
-              rustTarget = rustTargetMap.${target};
+              rustTarget = hostPkgs.stdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
               rustPlatform = hostPkgs.makeRustPlatform {
                 cargo = toolchain;
@@ -307,7 +298,6 @@
           devShells = {
             default = mkDevShell { };
           }
-          // (lib.mapAttrs (target: _: mkDevShell { inherit target; }) rustTargetMap)
           // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
             gnu = mkDevShell { };
             musl = mkDevShell { target = muslTargetMap.${system}; };
