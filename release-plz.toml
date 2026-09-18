@@ -9,16 +9,16 @@ release_always = false
 semver_check = false
 
 [[package]]
-name = "nghe_api"
+name = "nghe-api"
 
 [[package]]
-name = "nghe_proc_macro"
+name = "nghe-proc-macro"
 
 [[package]]
-name = "nghe_frontend"
+name = "nghe-frontend"
 
 [[package]]
-name = "nghe_backend"
+name = "nghe-backend"
 git_tag_name = "v{{ version }}"
 git_tag_enable = true
 git_release_enable = true
