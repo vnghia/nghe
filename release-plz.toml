@@ -1,24 +1,28 @@
 [workspace]
 git_only = true
-git_release_enable = false
-git_tag_enable = false
+git_tag_name = "v{{ version }}"
+git_tag_enable = true
+git_release_enable = true
+
 pr_branch_prefix = "release-plz-"
 pr_labels = ["release"]
+
 publish = false
 release_always = false
 semver_check = false
 
 [[package]]
 name = "nghe-api"
+version_group = "nghe"
 
 [[package]]
 name = "nghe-proc-macro"
+version_group = "nghe"
 
 [[package]]
 name = "nghe-frontend"
+version_group = "nghe"
 
 [[package]]
 name = "nghe-backend"
-git_tag_name = "v{{ version }}"
-git_tag_enable = true
-git_release_enable = true
+version_group = "nghe"
