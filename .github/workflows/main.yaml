@@ -69,7 +69,7 @@ jobs:
           retention-days: 1
 
       - name: Run test services
-        run: podman compose -f ci/docker/docker-compose.test.yaml up -d
+        run: nix develop --command podman compose -f ci/docker/docker-compose.test.yaml up -d
       - name: Test
         run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
@@ -130,7 +130,7 @@ jobs:
           retention-days: 1
 
       - name: Run test services
-        run: podman compose -f ci/docker/docker-compose.test.yaml up -d
+        run: nix develop --command podman compose -f ci/docker/docker-compose.test.yaml up -d
       - name: Test
         run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
@@ -215,7 +215,7 @@ jobs:
           devshell: coverage
 
       - name: Run test services
-        run: podman compose -f ci/docker/docker-compose.test.yaml up -d
+        run: nix develop --command podman compose -f ci/docker/docker-compose.test.yaml up -d
       - name: Generate code coverage
         run: nix develop .#coverage --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
         env:
