@@ -275,13 +275,13 @@
                 POSTGRES_USER = "postgres";
                 POSTGRES_PASSWORD = "postgres";
                 POSTGRES_DATABASE = "postgres";
-                POSTGRES_PORT = 5432;
+                POSTGRES_PORT = "5432";
                 DATABASE_URL = "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DATABASE}";
 
                 AWS_ACCESS_KEY_ID = "key";
                 AWS_SECRET_ACCESS_KEY = "key";
                 AWS_REGION = "us-east-1";
-                AWS_PORT = 9090;
+                AWS_PORT = "9090";
                 AWS_USE_PATH_STYLE_ENDPOINT = "true";
                 AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
               };
