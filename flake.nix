@@ -233,6 +233,7 @@
                 else
                   pkgs;
               hostLib = hostPkgs.lib;
+              hostTarget = hostPkgs.stdenv.hostPlatform.config;
 
               rustTarget = hostPkgs.stdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
@@ -246,7 +247,7 @@
                 inherit withStatic;
               };
 
-              ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${rustTarget}-"}cc";
+              ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
 
               cargoNextest = pkgs.cargo-nextest;
               cargoLlvmCov = pkgs.cargo-llvm-cov;
