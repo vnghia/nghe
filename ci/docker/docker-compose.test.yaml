@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:17
+    command: -N 1000 -B 2048MB
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DATABASE
+    ports:
+      - ${POSTGRES_PORT}:5432
+  s3:
+    image: adobe/s3mock:latest
+    ports:
+      - ${AWS_PORT}:9090
