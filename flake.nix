@@ -297,17 +297,27 @@
                 stdenv.cc
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
-
-                # test
-                pkgs.podman
-                pkgs.podman-compose
               ]
               ++ (hostLib.optional withCoverage cargoLlvmCov)
               ++ (hostLib.attrValues nativeDeps)
               ++ hostLib.optional stdenv.hostPlatform.isLinux autoPatchelfHook
               ++
                 hostLib.optional stdenv.hostPlatform.isDarwin
-                  (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv;
+                  (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
+              ++ (
+                # for running test services
+                if pkgs.stdenv.isLinux then
+                  [
+                    pkgs.docker
+                    pkgs.docker-compose
+                  ]
+                else if pkgs.stdenv.isDarwin then
+                  [
+                    pkgs.lima
+                  ]
+                else
+                  null
+              );
             };
         in
         {
