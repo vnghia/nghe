@@ -92,16 +92,14 @@ jobs:
           docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
           docker restart postgres
 
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: ${{ steps.build.outputs.vendor }}
 
       - name: Build
-        run: nix develop .#${{ steps.build.outputs.vendor }} --accept-flake-config --command cargo build --locked --package nghe-backend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --package nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -110,7 +108,7 @@ jobs:
           retention-days: 1
 
       - name: Test
-        run: nix develop .#${{ steps.build.outputs.vendor }} --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
@@ -168,16 +166,14 @@ jobs:
           brew install minio
           minio server --address=':9090' data &
 
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: default
 
       - name: Build
-        run: nix develop .#default --accept-flake-config --command cargo build --locked --package nghe-backend
+        run: nix develop .#default --command cargo build --locked --package nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -186,7 +182,7 @@ jobs:
           retention-days: 1
 
       - name: Test
-        run: nix develop .#default --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+        run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
@@ -226,16 +222,14 @@ jobs:
         with:
           cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
 
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: freebsd
 
       - name: Build
-        run: nix develop .#freebsd --accept-flake-config --command cargo build --locked --package nghe-backend
+        run: nix develop .#freebsd --command cargo build --locked --package nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -272,16 +266,14 @@ jobs:
           docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
           docker restart postgres
 
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: coverage
 
       - name: Generate code coverage
-        run: nix develop .#coverage --accept-flake-config --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
+        run: nix develop .#coverage --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
       - name: Upload test report to Codecov

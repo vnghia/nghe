@@ -283,6 +283,10 @@
                 stdenv.cc
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
+
+                # test
+                pkgs.podman
+                pkgs.podman-compose
               ]
               ++ (hostLib.optional withCoverage cargoLlvmCov)
               ++ (hostLib.attrValues nativeDeps)
