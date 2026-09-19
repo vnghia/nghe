@@ -18,15 +18,6 @@ env:
   RUST_BACKTRACE: full
   RUST_LOG: nghe-backend=trace
   COLORBT_SHOW_HIDDEN: 1
-  DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
-  AWS_ACCESS_KEY_ID: minioadmin
-  AWS_SECRET_ACCESS_KEY: minioadmin
-  AWS_REGION: us-east-1
-  AWS_ENDPOINT_URL: http://localhost:9090
-  AWS_USE_PATH_STYLE_ENDPOINT: true
-  POSTGRES_VERSION: 17
-  MINIO_ROOT_USER: minioadmin
-  MINIO_ROOT_PASSWORD: minioadmin
 
 jobs:
   build-linux:
@@ -45,26 +36,6 @@ jobs:
 
     runs-on: ${{ matrix.platform.runs-on }}
 
-    services: &services
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST_AUTH_METHOD: md5
-          POSTGRES_INITDB_ARGS: --auth-host=md5
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --name postgres
-        ports:
-          - 5432:5432
-      s3:
-        image: adobe/s3mock:latest
-        ports:
-          - 9090:9090
-
     steps:
       - uses: actions/checkout@v7
 
@@ -82,12 +53,6 @@ jobs:
         with:
           cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
 
-      - name: Increase postgres max connection
-        run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-          docker restart postgres
-
       - name: Setup nix
         uses: ./.github/actions/setup-nix
         with:
@@ -103,6 +68,8 @@ jobs:
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
           retention-days: 1
 
+      - name: Run test services
+        run: podman compose -f ci/docker/docker-compose.test.yaml -d
       - name: Test
         run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
@@ -147,21 +114,6 @@ jobs:
         with:
           cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
 
-      - name: Install and setup postgres
-        run: |
-          brew install postgresql@${{ env.POSTGRES_VERSION }}
-          brew link postgresql@${{ env.POSTGRES_VERSION }}
-          export PGDATA="$RUNNER_TEMP/pgdata"
-          initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
-          pg_ctl start
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-          pg_ctl restart
-      - name: Install and setup minio
-        run: |
-          brew install minio
-          minio server --address=':9090' data &
-
       - name: Setup nix
         uses: ./.github/actions/setup-nix
         with:
@@ -177,6 +129,8 @@ jobs:
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
           retention-days: 1
 
+      - name: Run test services
+        run: podman compose -f ci/docker/docker-compose.test.yaml -d
       - name: Test
         run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
@@ -243,8 +197,6 @@ jobs:
 
     runs-on: ${{ matrix.platform.runs-on }}
 
-    services: *services
-
     steps:
       - uses: actions/checkout@v7
 
@@ -256,18 +208,14 @@ jobs:
         with:
           cache-key: coverage
 
-      - name: Increase postgres max connection
-        run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-          docker restart postgres
-
       - name: Setup nix
         uses: ./.github/actions/setup-nix
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           devshell: coverage
 
+      - name: Run test services
+        run: podman compose -f ci/docker/docker-compose.test.yaml -d
       - name: Generate code coverage
         run: nix develop .#coverage --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
         env:
