@@ -26,7 +26,7 @@ jobs:
           regex: '^chore: release new version (\d+\.\d+\.\d+).*$'
           flags: s
       - name: Release new version
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@v7
         id: release-drafter
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_DRAFTER_GITHUB_TOKEN }}
