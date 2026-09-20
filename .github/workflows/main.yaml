@@ -132,6 +132,7 @@ jobs:
       - name: Run test services
         run: |
           nix develop --command limactl create default
+          nix develop --command limactl start default
           nix develop --command lima nerdctl compose -f ci/docker/docker-compose.test.yaml up -d
       - name: Test
         run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
