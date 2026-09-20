@@ -75,7 +75,8 @@ impl Filesystem {
 impl super::Trait for Filesystem {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
-        self.client.objects().list_v2(bucket).prefix(key)?.max_keys(1)?.send().await?;
+        let request = self.client.objects().list_v2(bucket);
+        (if key.is_empty() { request } else { request.prefix(key)? }).max_keys(1)?.send().await?;
         Ok(())
     }
 
@@ -85,8 +86,8 @@ impl super::Trait for Filesystem {
         prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(prefix)?;
-        let prefix = key;
-        let mut pager = self.client.objects().list_v2(bucket).prefix(prefix)?.pager();
+        let request = self.client.objects().list_v2(bucket);
+        let mut pager = (if key.is_empty() { request } else { request.prefix(key)? }).pager();
         let bucket = path::S3::from_str("/").join(bucket);
 
         while let Some(output) = pager.next_page().await? {
