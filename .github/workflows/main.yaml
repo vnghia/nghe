@@ -62,7 +62,7 @@ jobs:
       - name: Build
         run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --package nghe-backend
       - name: Patch ELF
-        if: ${{ steps.build.outputs.env != 'musl' }}
+        if: ${{ steps.build.outputs.vendor != 'musl' }}
         run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
