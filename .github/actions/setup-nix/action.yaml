@@ -1,0 +1,23 @@
+name: "Setup nix environment"
+description: "Setup nix environment"
+inputs:
+  cache-auth-token:
+    description: "Cache auth token"
+    required: true
+  devshell:
+    description: "Devshell"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: "accept-flake-config = true"
+    - uses: cachix/cachix-action@v17
+      with:
+        name: nghe
+        authToken: ${{ inputs.cache-auth-token }}
+    - name: Build devshell
+      shell: bash
+      run: nix develop .#${{ inputs.devshell }} --command true

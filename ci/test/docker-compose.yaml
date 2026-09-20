@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:17
+    command: -N 1000 -B 2048MB
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DATABASE
+    ports:
+      - ${POSTGRES_PORT}:5432
+  s3:
+    image: chrislusf/seaweedfs:4.47
+    command:
+      - mini
+      - -dir=/data
+      - -s3.port=${AWS_PORT}
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+    ports:
+      - ${AWS_PORT}:${AWS_PORT}

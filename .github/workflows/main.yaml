@@ -13,24 +13,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-  packages: write
-
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
   RUST_LOG: nghe-backend=trace
   COLORBT_SHOW_HIDDEN: 1
-  DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
-  AWS_ACCESS_KEY_ID: minioadmin
-  AWS_SECRET_ACCESS_KEY: minioadmin
-  AWS_REGION: us-east-1
-  AWS_ENDPOINT_URL: http://localhost:9090
-  AWS_USE_PATH_STYLE_ENDPOINT: true
-  POSTGRES_VERSION: 17
-  MINIO_ROOT_USER: minioadmin
-  MINIO_ROOT_PASSWORD: minioadmin
 
 jobs:
   build-linux:
@@ -49,26 +36,6 @@ jobs:
 
     runs-on: ${{ matrix.platform.runs-on }}
 
-    services: &services
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST_AUTH_METHOD: md5
-          POSTGRES_INITDB_ARGS: --auth-host=md5
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --name postgres
-        ports:
-          - 5432:5432
-      s3:
-        image: adobe/s3mock:latest
-        ports:
-          - 9090:9090
-
     steps:
       - uses: actions/checkout@v7
 
@@ -86,22 +53,17 @@ jobs:
         with:
           cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
 
-      - name: Increase postgres max connection
-        run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-          docker restart postgres
-
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: ${{ steps.build.outputs.vendor }}
 
       - name: Build
-        run: nix develop .#${{ steps.build.outputs.vendor }} --accept-flake-config --command cargo build --locked --package nghe-backend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --package nghe-backend
+      - name: Patch ELF
+        if: ${{ steps.build.outputs.vendor != 'musl' }}
+        run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -109,8 +71,10 @@ jobs:
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
           retention-days: 1
 
+      - name: Run test services
+        run: nix develop --command docker compose -f ci/test/docker-compose.yaml up -d
       - name: Test
-        run: nix develop .#${{ steps.build.outputs.vendor }} --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
@@ -153,31 +117,14 @@ jobs:
         with:
           cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
 
-      - name: Install and setup postgres
-        run: |
-          brew install postgresql@${{ env.POSTGRES_VERSION }}
-          brew link postgresql@${{ env.POSTGRES_VERSION }}
-          export PGDATA="$RUNNER_TEMP/pgdata"
-          initdb --username=postgres --encoding="UTF-8" --locale="en_US.UTF-8" --pwfile=<(echo postgres)
-          pg_ctl start
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'"
-          psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'"
-          pg_ctl restart
-      - name: Install and setup minio
-        run: |
-          brew install minio
-          minio server --address=':9090' data &
-
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: default
 
       - name: Build
-        run: nix develop .#default --accept-flake-config --command cargo build --locked --package nghe-backend
+        run: nix develop .#default --command cargo build --locked --package nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -185,8 +132,14 @@ jobs:
           path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
           retention-days: 1
 
+      - name: Run test services
+        run: |
+          nix develop --command bash -c 'initdb --username=${POSTGRES_USER} --pwfile=<(echo ${POSTGRES_PASSWORD}) --pgdata=${RUNNER_TEMP}/postgres --encoding="UTF-8" --locale="en_US.UTF-8" --set "max_connections = 1000" --set "shared_buffers = 2048MB"'
+          nix develop --command bash -c 'pg_ctl start --pgdata=${RUNNER_TEMP}/postgres'
+
+          nix develop --command bash -c 'weed mini -dir=${RUNNER_TEMP}/weed -s3.port=${AWS_PORT} &'
       - name: Test
-        run: nix develop .#default --accept-flake-config --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+        run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
@@ -226,16 +179,14 @@ jobs:
         with:
           cache-key: ${{ matrix.platform.target }}-${{ steps.build.outputs.profile }}
 
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: freebsd
 
       - name: Build
-        run: nix develop .#freebsd --accept-flake-config --command cargo build --locked --package nghe-backend
+        run: nix develop .#freebsd --command cargo build --locked --package nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -252,8 +203,7 @@ jobs:
             runs-on: ubuntu-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
-
-    services: *services
+    if: ${{ github.event_name != 'release' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -266,22 +216,16 @@ jobs:
         with:
           cache-key: coverage
 
-      - name: Increase postgres max connection
-        run: |
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET max_connections = '1000'";
-          docker exec postgres psql -U postgres -d postgres -c "ALTER SYSTEM SET shared_buffers = '2048MB'";
-          docker restart postgres
-
-      - uses: cachix/install-nix-action@v31
+      - name: Setup nix
+        uses: ./.github/actions/setup-nix
         with:
-          nix_path: nixpkgs=channel:nixos-unstable
-      - uses: cachix/cachix-action@v17
-        with:
-          name: nghe
-          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          devshell: coverage
 
+      - name: Run test services
+        run: nix develop --command docker compose -f ci/test/docker-compose.yaml up -d
       - name: Generate code coverage
-        run: nix develop .#coverage --accept-flake-config --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
+        run: nix develop .#coverage --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
       - name: Upload test report to Codecov
@@ -301,3 +245,108 @@ jobs:
           disable_search: true
           report_type: "coverage"
           fail_ci_if_error: true
+
+  build-docker:
+    runs-on: ubuntu-latest
+    if: ${{ vars.BUILD_DOCKER != '' }}
+
+    needs: [build-linux]
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download build artifact for docker
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ github.workspace }}/artifact/
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      # GNU
+      - name: Extract metadata for Docker gnu
+        id: meta-gnu
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push gnu
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: |
+            BASE_IMAGE=debian:13-slim
+            TARGET_ENV=gnu
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-gnu.outputs.tags }}
+
+      # Musl
+      - name: Extract metadata for Docker musl
+        id: meta-musl
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository }}
+          flavor: |
+            suffix=-scratch,onlatest=true
+          tags: |
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push musl
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: |
+            BASE_IMAGE=scratch
+            TARGET_ENV=musl
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-musl.outputs.tags }}
+
+  upload-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'release' }}
+
+    needs: [build-linux, build-macos, build-freebsd]
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ github.workspace }}/artifact/
+      - name: Upload release artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
+          gh release upload ${{ github.ref_name }} \
+            artifact/amd64-gnu.zip \
+            artifact/amd64-musl.zip \
+            artifact/arm64-gnu.zip \
+            artifact/arm64-musl.zip \
+            artifact/arm64-darwin.zip \
+            artifact/amd64-freebsd.zip
