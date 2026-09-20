@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.2](https://github.com/vnghia/nghe/compare/v0.12.1...v0.12.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** macos build artifact name ([#1112](https://github.com/vnghia/nghe/issues/1112)) ([7dcae03](https://github.com/vnghia/nghe/commit/7dcae03bf1b1cc2b90ae14ca7c084c96fa562e2f))
+
 ## [0.12.1](https://github.com/vnghia/nghe/compare/v0.12.0...v0.12.1) (2026-09-20)
 
 
