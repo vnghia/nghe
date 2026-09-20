@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.1](https://github.com/vnghia/nghe/compare/v0.12.0...v0.12.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** build with correct profile ([#1110](https://github.com/vnghia/nghe/issues/1110)) ([8c4ee2a](https://github.com/vnghia/nghe/commit/8c4ee2a91b2cd92efcb096335f94ab23d4954930))
+
 ## [0.12.0](https://github.com/vnghia/nghe/compare/v0.11.0...v0.12.0) (2026-09-20)
 
 
