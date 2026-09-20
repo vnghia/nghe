@@ -131,10 +131,10 @@ jobs:
 
       - name: Run test services
         run: |
-          nix develop --command initdb --username=${POSTGRES_USER} --pwfile=<(echo ${POSTGRES_PASSWORD}) --pgdata=${RUNNER_TEMP}/postgres --encoding="UTF-8" --locale="en_US.UTF-8" --set "max_connections = 1000" --set "shared_buffers = 2048MB"
-          nix develop --command pg_ctl start --pgdata=${RUNNER_TEMP}/postgres
+          nix develop --command bash -c 'initdb --username=${POSTGRES_USER} --pwfile=<(echo ${POSTGRES_PASSWORD}) --pgdata=${RUNNER_TEMP}/postgres --encoding="UTF-8" --locale="en_US.UTF-8" --set "max_connections = 1000" --set "shared_buffers = 2048MB"'
+          nix develop --command bash -c 'pg_ctl start --pgdata=${RUNNER_TEMP}/postgres'
 
-          nix develop --command weed mini -dir=${RUNNER_TEMP}/weed -s3.port=${AWS_PORT} &
+          nix develop --command bash -c 'weed mini -dir=${RUNNER_TEMP}/weed -s3.port=${AWS_PORT} &'
       - name: Test
         run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
