@@ -278,8 +278,8 @@
                 POSTGRES_PORT = "5432";
                 DATABASE_URL = "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DATABASE}";
 
-                AWS_ACCESS_KEY_ID = "key";
-                AWS_SECRET_ACCESS_KEY = "key";
+                AWS_ACCESS_KEY_ID = "key-id";
+                AWS_SECRET_ACCESS_KEY = "access-key";
                 AWS_REGION = "us-east-1";
                 AWS_PORT = "9090";
                 AWS_USE_PATH_STYLE_ENDPOINT = "true";
@@ -313,7 +313,8 @@
                   ]
                 else if pkgs.stdenv.isDarwin then
                   [
-                    pkgs.lima
+                    pkgs.postgresql
+                    pkgs.seaweedfs
                   ]
                 else
                   null

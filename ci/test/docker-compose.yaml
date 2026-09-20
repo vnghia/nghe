@@ -9,6 +9,13 @@ services:
     ports:
       - ${POSTGRES_PORT}:5432
   s3:
-    image: adobe/s3mock:latest
+    image: chrislusf/seaweedfs:4.47
+    command:
+      - mini
+      - -dir=/data
+      - -s3.port=${AWS_PORT}
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
     ports:
-      - ${AWS_PORT}:9090
+      - ${AWS_PORT}:${AWS_PORT}
