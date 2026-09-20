@@ -293,7 +293,7 @@ jobs:
           context: .
           file: ci/docker/Dockerfile
           build-args: |
-            BASE_IMAGE=gcr.io/distroless/base-nossl-debian13:latest
+            BASE_IMAGE=debian:13-slim
             TARGET_ENV=gnu
           platforms: linux/amd64,linux/arm64
           push: true
