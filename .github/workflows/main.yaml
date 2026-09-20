@@ -61,6 +61,9 @@ jobs:
 
       - name: Build
         run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --package nghe-backend
+      - name: Patch ELF
+        if: ${{ steps.build.outputs.env != 'musl' }}
+        run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -200,6 +203,7 @@ jobs:
             runs-on: ubuntu-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
+    if: ${{ github.event_name != 'release' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -241,3 +245,104 @@ jobs:
           disable_search: true
           report_type: "coverage"
           fail_ci_if_error: true
+
+  build-docker:
+    runs-on: ubuntu-latest
+    if: ${{ vars.BUILD_DOCKER != '' }}
+
+    needs: [build-linux]
+
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: false
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download build artifact for docker
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ github.workspace }}/artifact/
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      # GNU
+      - name: Extract metadata for Docker gnu
+        id: meta-gnu
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push gnu
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: |
+            BASE_IMAGE=gcr.io/distroless/base-nossl-debian13:latest
+            TARGET_ENV=gnu
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-gnu.outputs.tags }}
+
+      # Musl
+      - name: Extract metadata for Docker musl
+        id: meta-musl
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            name=ghcr.io/${{ github.repository }}
+          flavor: |
+            suffix=-scratch,onlatest=true
+          tags: |
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=raw,value=develop,enable={{is_default_branch}}
+      - name: Build and push musl
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ci/docker/Dockerfile
+          build-args: |
+            BASE_IMAGE=scratch
+            TARGET_ENV=musl
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-musl.outputs.tags }}
+
+  upload-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'release' }}
+
+    needs: [build-linux, build-macos, build-freebsd]
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ github.workspace }}/artifact/
+      - name: Upload release artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
+          gh release upload ${{ github.ref_name }} \
+            artifact/amd64-gnu.zip \
+            artifact/amd64-musl.zip \
+            artifact/arm64-gnu.zip \
+            artifact/arm64-musl.zip \
+            artifact/arm64-darwin.zip \
+            artifact/amd64-freebsd.zip
