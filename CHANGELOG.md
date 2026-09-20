@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.3](https://github.com/vnghia/nghe/compare/v0.12.2...v0.12.3) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** upload-release need git ([#1114](https://github.com/vnghia/nghe/issues/1114)) ([d5a9a31](https://github.com/vnghia/nghe/commit/d5a9a313485445d58441661954cefa3e940b64a1))
+
 ## [0.12.2](https://github.com/vnghia/nghe/compare/v0.12.1...v0.12.2) (2026-09-20)
 
 
