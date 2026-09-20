@@ -1,4 +1,4 @@
 [profile.ci]
 fail-fast = false
-retries = { backoff = "fixed", count = 3, delay = "1s", jitter = true }
+retries = { backoff = "fixed", count = 5, delay = "1s", jitter = true }
 junit = { path = "junit.xml" }
