@@ -1,6 +1,7 @@
 use indexmap::IndexSet;
 use isolang::Language;
-use lofty::ogg::{OggPictureStorage as _, VorbisComments};
+use lofty::ogg::OggPictureStorage as _;
+use lofty::ogg::tag::VorbisComments;
 use uuid::Uuid;
 
 use crate::config;
