@@ -43,9 +43,9 @@ pub struct S3 {
     #[educe(Default(expression = 1))]
     pub max_attempts: u32,
     #[educe(Default(expression = 5))]
-    pub timeout: u64,
+    pub timeout: u32,
     #[educe(Default(expression = 15))]
-    pub presigned_duration: u64,
+    pub presigned_duration: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]

@@ -229,7 +229,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                 )],
                 OffsetDateTime => #[serde(with = "crate::time::serde")],
                 Option<OffsetDateTime> => #[serde(with = "crate::time::serde::option")],
-                time::Duration => #[serde(with = "crate::time::duration::serde")],
+                time::SignedDuration => #[serde(with = "crate::time::signed_duration::serde")],
             )]
         }
     } else {

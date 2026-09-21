@@ -1,11 +1,11 @@
-use super::Duration;
+use super::SignedDuration;
 
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(educe::Educe, fake::Dummy))]
 #[cfg_attr(test, educe(PartialEq, Eq))]
 pub struct Property {
     #[cfg_attr(test, educe(PartialEq(ignore)))]
-    pub duration: Duration,
+    pub duration: SignedDuration,
     #[cfg_attr(test, dummy(faker = "32000..640000"))]
     pub bitrate: u32,
     pub bit_depth: Option<u8>,
@@ -24,14 +24,14 @@ mod test {
         pub fn default(ty: audio::Format) -> Self {
             match ty {
                 audio::Format::Flac => Self {
-                    duration: Duration::default(),
+                    duration: SignedDuration::default(),
                     bitrate: 585,
                     bit_depth: Some(24),
                     sample_rate: 32000,
                     channel_count: 2,
                 },
                 audio::Format::Mpeg => Self {
-                    duration: Duration::default(),
+                    duration: SignedDuration::default(),
                     bitrate: 206,
                     bit_depth: None,
                     sample_rate: 44100,

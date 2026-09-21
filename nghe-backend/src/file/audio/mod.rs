@@ -1,6 +1,5 @@
 mod artist;
 mod date;
-pub mod duration;
 mod extract;
 mod genre;
 mod information;
@@ -8,6 +7,7 @@ mod metadata;
 mod name_date_mbz;
 pub mod position;
 mod property;
+pub mod signed_duration;
 pub mod transcode;
 
 use std::io::Cursor;
@@ -16,7 +16,6 @@ pub use artist::{Artist, Artists};
 pub use date::Date;
 use diesel::sql_types::Text;
 use diesel::{AsExpression, FromSqlRow};
-pub use duration::Duration;
 use extract::{Metadata as _, Property as _};
 pub use genre::Genres;
 pub use information::Information;
@@ -29,6 +28,7 @@ pub use name_date_mbz::{Album, NameDateMbz};
 use nghe_api::common::format;
 pub use position::TrackDisc;
 pub use property::Property;
+pub use signed_duration::SignedDuration;
 use strum::{EnumString, IntoStaticStr};
 
 use crate::{Error, config};

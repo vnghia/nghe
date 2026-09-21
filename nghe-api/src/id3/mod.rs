@@ -30,14 +30,14 @@ mod tests {
 
     #[api_derive]
     pub struct Test {
-        duration: time::Duration,
+        duration: time::SignedDuration,
     }
 
     #[rstest]
-    #[case(time::Duration::seconds_f32(1.5), 2)]
-    #[case(time::Duration::seconds_f32(2.1), 3)]
-    #[case(time::Duration::seconds_f32(10.0), 10)]
-    fn test_serialize_duration(#[case] duration: time::Duration, #[case] result: i64) {
+    #[case(time::SignedDuration::seconds_f32(1.5), 2)]
+    #[case(time::SignedDuration::seconds_f32(2.1), 3)]
+    #[case(time::SignedDuration::seconds_f32(10.0), 10)]
+    fn test_serialize_duration(#[case] duration: time::SignedDuration, #[case] result: i64) {
         assert_eq!(
             serde_json::to_string(&Test { duration }).unwrap(),
             serde_json::to_string(&json!({

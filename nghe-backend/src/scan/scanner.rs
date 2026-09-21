@@ -405,8 +405,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
             )
             .await?;
 
-        let latency: std::time::Duration =
-            (time::OffsetDateTime::now_utc() - started_at).try_into()?;
+        let latency: time::SignedDuration = time::OffsetDateTime::now_utc() - started_at;
         tracing::info!(took = ?latency);
         Ok(())
     }

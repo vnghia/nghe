@@ -32,7 +32,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
-    use crate::file::audio::duration::Trait as _;
+    use crate::file::audio::signed_duration::Trait as _;
     use crate::test::{Mock, mock};
 
     #[rstest]

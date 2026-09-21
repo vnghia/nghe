@@ -16,7 +16,7 @@ use crate::{Error, error};
 #[diesel(table_name = songs, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
 pub struct Property {
-    pub duration: audio::Duration,
+    pub duration: audio::SignedDuration,
     #[map(~ as _)]
     pub bitrate: i32,
     #[from(~.map(i16::from))]
@@ -48,13 +48,13 @@ pub struct File {
     pub format: audio::Format,
 }
 
-impl ToSql<Float, crate::orm::Type> for audio::Duration {
+impl ToSql<Float, crate::orm::Type> for audio::SignedDuration {
     fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, crate::orm::Type>) -> serialize::Result {
         <f32 as ToSql<Float, crate::orm::Type>>::to_sql(&(*self).into(), &mut out.reborrow())
     }
 }
 
-impl FromSql<Float, crate::orm::Type> for audio::Duration {
+impl FromSql<Float, crate::orm::Type> for audio::SignedDuration {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         Ok(<f32 as FromSql<Float, crate::orm::Type>>::from_sql(bytes)?.into())
     }

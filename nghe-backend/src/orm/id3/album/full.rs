@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::{Album, artists};
 use crate::database::Database;
-use crate::file::audio::duration::Trait as _;
+use crate::file::audio::signed_duration::Trait as _;
 use crate::orm::id3::song;
 use crate::orm::songs;
 use crate::{Error, error};

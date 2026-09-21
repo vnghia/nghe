@@ -25,7 +25,7 @@ pub struct Song {
     pub size: u32,
     pub content_type: Cow<'static, str>,
     pub suffix: Cow<'static, str>,
-    pub duration: time::Duration,
+    pub duration: time::SignedDuration,
     pub bit_rate: u32,
     pub bit_depth: Option<u8>,
     pub sampling_rate: u32,
