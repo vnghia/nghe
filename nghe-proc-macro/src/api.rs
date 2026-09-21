@@ -17,19 +17,20 @@ struct Endpoint {
     same_crate: bool,
 }
 
-#[derive(Debug, deluxe::ParseMetaItem)]
+#[derive(Debug, darling::FromMeta)]
+#[darling(derive_syn_parse)]
 struct Derive {
-    #[deluxe(default = true)]
+    #[darling(default = || true)]
     request: bool,
-    #[deluxe(default = true)]
+    #[darling(default = || true)]
     response: bool,
-    #[deluxe(default = true)]
+    #[darling(default = || true)]
     debug: bool,
-    #[deluxe(default = true)]
+    #[darling(default = || true)]
     serde_apply: bool,
-    #[deluxe(default = false)]
+    #[darling(default = || false)]
     serde_as: bool,
-    #[deluxe(default = false)]
+    #[darling(default = || false)]
     fake: bool,
 }
 
@@ -184,7 +185,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 }
 
 pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
-    let args: Derive = deluxe::parse2(args)?;
+    let args: Derive = syn::parse2(args)?;
     let input: syn::DeriveInput = syn::parse2(item)?;
 
     let ident = input.ident.to_string();
