@@ -1,19 +1,20 @@
 use concat_string::concat_string;
+use darling::FromAttributes;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Error, parse_quote, parse_str};
 
 use crate::endpoint::Attribute;
 
-#[derive(Debug, deluxe::ExtractAttributes)]
-#[deluxe(attributes(endpoint))]
+#[derive(Debug, darling::FromAttributes)]
+#[darling(attributes(endpoint))]
 struct Endpoint {
     path: String,
-    #[deluxe(flatten)]
+    #[darling(flatten)]
     attribute: Attribute,
-    #[deluxe(default = false)]
+    #[darling(default = || false)]
     url_only: bool,
-    #[deluxe(default = true)]
+    #[darling(default = || true)]
     same_crate: bool,
 }
 
@@ -35,9 +36,9 @@ struct Derive {
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
-    let mut input: syn::ItemStruct = syn::parse2(item)?;
+    let input: syn::ItemStruct = syn::parse2(item)?;
     let Endpoint { path, attribute, url_only, same_crate } =
-        deluxe::extract_attributes(&mut input)?;
+        Endpoint::from_attributes(&input.attrs)?;
 
     let ident = &input.ident;
     if ident != "Request" {
