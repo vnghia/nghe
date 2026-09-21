@@ -27,8 +27,8 @@ pub struct Short {
     pub album_id: Uuid,
 }
 
-impl audio::duration::Trait for Short {
-    fn duration(&self) -> audio::Duration {
+impl audio::signed_duration::Trait for Short {
+    fn duration(&self) -> audio::SignedDuration {
         self.song.duration()
     }
 }

@@ -17,7 +17,7 @@ pub struct Durations {
         filter (where songs.id is not null) song_id_durations"
     ))]
     #[diesel(select_expression_type = SqlLiteral::<sql_types::Nullable<sql_types::Array<SqlType>>>)]
-    pub value: Option<Vec<audio::Duration>>,
+    pub value: Option<Vec<audio::SignedDuration>>,
 }
 
 impl Durations {
@@ -26,15 +26,15 @@ impl Durations {
     }
 }
 
-impl FromSql<SqlType, crate::orm::Type> for audio::Duration {
+impl FromSql<SqlType, crate::orm::Type> for audio::SignedDuration {
     fn from_sql(bytes: PgValue) -> deserialize::Result<Self> {
         let (_, value): (Uuid, f32) = FromSql::<SqlType, crate::orm::Type>::from_sql(bytes)?;
         Ok(value.into())
     }
 }
 
-impl audio::duration::Trait for Durations {
-    fn duration(&self) -> audio::Duration {
+impl audio::signed_duration::Trait for Durations {
+    fn duration(&self) -> audio::SignedDuration {
         self.value.as_ref().map(Vec::duration).unwrap_or_default()
     }
 }

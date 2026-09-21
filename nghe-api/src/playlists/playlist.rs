@@ -15,7 +15,7 @@ pub struct Playlist {
     pub comment: Option<String>,
     pub public: bool,
     pub song_count: u16,
-    pub duration: time::Duration,
+    pub duration: time::SignedDuration,
     pub created: OffsetDateTime,
     pub changed: OffsetDateTime,
 }

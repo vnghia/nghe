@@ -6,7 +6,7 @@ use nghe_api::id3::builder::album as builder;
 
 use super::Album;
 use crate::Error;
-use crate::file::audio::duration::Trait as _;
+use crate::file::audio::signed_duration::Trait as _;
 use crate::orm::id3::song;
 
 #[derive(Debug, Queryable, Selectable)]

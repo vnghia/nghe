@@ -14,7 +14,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::file::audio;
-use crate::file::audio::duration::Trait as _;
+use crate::file::audio::signed_duration::Trait as _;
 use crate::orm::songs;
 use crate::{Error, error};
 
@@ -89,8 +89,8 @@ pub type BuilderSet = builder::SetStarred<
     >,
 >;
 
-impl audio::duration::Trait for Song {
-    fn duration(&self) -> audio::Duration {
+impl audio::signed_duration::Trait for Song {
+    fn duration(&self) -> audio::SignedDuration {
         self.property.duration.duration()
     }
 }

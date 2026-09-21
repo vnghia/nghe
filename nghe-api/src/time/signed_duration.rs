@@ -1,9 +1,9 @@
 pub mod serde {
     use ::serde::{Deserialize, Deserializer, Serializer, de, ser};
     use num_traits::ToPrimitive;
-    use time::Duration;
+    use time::SignedDuration;
 
-    pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(duration: &SignedDuration, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -16,11 +16,11 @@ pub mod serde {
         )
     }
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<SignedDuration, D::Error>
     where
         D: Deserializer<'de>,
     {
-        Ok(Duration::seconds_f32(
+        Ok(SignedDuration::seconds_f32(
             <u32>::deserialize(deserializer)?
                 .to_f32()
                 .ok_or_else(|| de::Error::custom("Could not deserialize duration from integer"))?,

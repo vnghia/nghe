@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use educe::Educe;
 use s3::Client;
 use time::OffsetDateTime;
@@ -14,7 +12,7 @@ use crate::{Error, config, error};
 pub struct Filesystem {
     #[educe(Debug(ignore))]
     client: Client,
-    presigned_duration: Duration,
+    presigned_duration: std::time::Duration,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,7 +32,7 @@ impl Filesystem {
                 s3::AddressingStyle::VirtualHosted
             })
             .max_attempts(s3.max_attempts)
-            .timeout(Duration::from_secs(s3.timeout))
+            .timeout(std::time::Duration::from_secs(s3.timeout.into()))
             .auth(
                 s3::Auth::from_env()
                     .expect("Could not initialize aws authentication from environment variable"),
@@ -42,7 +40,10 @@ impl Filesystem {
             .build()
             .expect("Could not build s3 client");
 
-        Self { client, presigned_duration: Duration::from_mins(s3.presigned_duration) }
+        Self {
+            client,
+            presigned_duration: std::time::Duration::from_mins(s3.presigned_duration.into()),
+        }
     }
 
     pub fn split<'b, 'k, 'p: 'b + 'k>(

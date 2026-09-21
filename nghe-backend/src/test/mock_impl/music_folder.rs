@@ -319,12 +319,12 @@ impl<'a> Mock<'a> {
 }
 
 mod duration {
-    use audio::duration::Trait;
+    use audio::signed_duration::Trait;
 
     use super::*;
 
     impl Trait for IndexMap<Uuid, Information<'static, 'static, 'static, 'static>> {
-        fn duration(&self) -> audio::Duration {
+        fn duration(&self) -> audio::SignedDuration {
             self.values().map(|information| information.information.property.duration).sum()
         }
     }

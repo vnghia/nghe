@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::Playlist;
 use crate::Error;
 use crate::database::Database;
-use crate::file::audio::duration::Trait as _;
+use crate::file::audio::signed_duration::Trait as _;
 use crate::orm::id3::song;
 use crate::orm::{playlists_songs, songs};
 
