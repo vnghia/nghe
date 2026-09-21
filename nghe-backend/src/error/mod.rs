@@ -256,7 +256,10 @@ pub enum Kind {
 #[from_owned(time::error::ComponentRange)]
 #[from_owned(time::error::ConversionRange)]
 #[from_owned(time::error::Parse)]
-#[from_owned(lofty::error::LoftyError)]
+#[from_owned(lofty::error::FileParseError)]
+#[from_owned(lofty::error::TagParseError)]
+// TODO: remove this after https://github.com/Serial-ATA/lofty-rs/issues/728
+#[from_owned(lofty::id3::v2::error::FrameParseError)]
 #[from_owned(reqwest::header::ToStrError)]
 #[from_owned(typed_path::StripPrefixError)]
 #[from_owned(tokio::task::JoinError)]

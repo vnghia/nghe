@@ -2,7 +2,7 @@ use lofty::file::AudioFile;
 use lofty::flac::FlacFile;
 use lofty::id3::v2::Id3v2Tag;
 use lofty::mpeg::MpegFile;
-use lofty::ogg::VorbisComments;
+use lofty::ogg::tag::VorbisComments;
 
 use super::{Metadata, Property};
 use crate::file::audio::{self, Album, Artists, Genres, NameDateMbz, TrackDisc};

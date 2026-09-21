@@ -1,7 +1,8 @@
 use lofty::flac::FlacFile;
 use lofty::id3::v2::Id3v2Tag;
 use lofty::mpeg::MpegFile;
-use lofty::ogg::{OggPictureStorage as _, VorbisComments};
+use lofty::ogg::OggPictureStorage as _;
+use lofty::ogg::tag::VorbisComments;
 
 use super::Metadata;
 use crate::config;

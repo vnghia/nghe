@@ -113,7 +113,7 @@ mod test {
 
     use lofty::config::WriteOptions;
     use lofty::id3::v2::Id3v2Tag;
-    use lofty::ogg::VorbisComments;
+    use lofty::ogg::tag::VorbisComments;
 
     use super::*;
 

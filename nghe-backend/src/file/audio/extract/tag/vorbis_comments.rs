@@ -3,7 +3,8 @@ use std::str::FromStr;
 use indexmap::IndexSet;
 use isolang::Language;
 use itertools::Itertools;
-use lofty::ogg::{OggPictureStorage, VorbisComments};
+use lofty::ogg::OggPictureStorage;
+use lofty::ogg::tag::VorbisComments;
 use uuid::Uuid;
 
 use crate::file::audio::{Album, Artist, Artists, Date, Genres, NameDateMbz, TrackDisc, extract};
