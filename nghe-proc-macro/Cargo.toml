@@ -14,8 +14,7 @@ bon = { workspace = true }
 concat-string = { workspace = true }
 convert_case = { workspace = true }
 
-darling = { version = "0.23.0" }
-deluxe = { version = "0.5.0" }
+darling = { version = "0.24.1" }
 proc-macro2 = { version = "1.0.95" }
 quote = { version = "1.0.40" }
-syn = { version = "2.0.101", features = ["fold", "full"] }
+syn = { version = "3.0.6", features = ["fold", "full"] }

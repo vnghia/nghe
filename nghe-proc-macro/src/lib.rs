@@ -7,6 +7,7 @@ mod api;
 mod backend;
 mod endpoint;
 mod orm;
+mod utils;
 
 trait IntoTokenStream {
     fn into_token_stream(self) -> TokenStream;
