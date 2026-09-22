@@ -1,5 +1,4 @@
 use concat_string::concat_string;
-use darling::FromAttributes;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Error, parse_quote, parse_str};
@@ -38,7 +37,7 @@ struct Derive {
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemStruct = syn::parse2(item)?;
     let Endpoint { path, attribute, url_only, same_crate } =
-        Endpoint::from_attributes(&input.attrs)?;
+        darling::FromAttributes::from_attributes(&input.attrs)?;
 
     let ident = &input.ident;
     if ident != "Request" {
