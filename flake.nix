@@ -249,6 +249,7 @@
 
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
 
+              cargoExpand = pkgs.cargo-expand;
               cargoNextest = pkgs.cargo-nextest;
               cargoLlvmCov = pkgs.cargo-llvm-cov;
             in
@@ -288,6 +289,7 @@
 
               packages = [
                 toolchain
+                cargoExpand
                 cargoNextest
 
                 pkg-config

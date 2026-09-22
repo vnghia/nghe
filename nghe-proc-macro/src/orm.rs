@@ -3,13 +3,14 @@ use quote::quote;
 use syn::fold::Fold;
 use syn::{Error, parse_quote};
 
-#[derive(Debug, deluxe::ParseMetaItem)]
+#[derive(Debug, darling::FromMeta)]
+#[darling(derive_syn_parse)]
 struct CheckMusicFolder {
-    #[deluxe(default = parse_quote!(request.music_folder_ids.as_ref()))]
+    #[darling(default = || parse_quote!(request.music_folder_ids.as_ref()))]
     input: syn::Expr,
-    #[deluxe(default = parse_quote!(with_user_id))]
+    #[darling(default = || parse_quote!(with_user_id))]
     user_id: syn::Ident,
-    #[deluxe(default = parse_quote!(with_music_folder))]
+    #[darling(default = || parse_quote!(with_music_folder))]
     music_folder: syn::Ident,
 }
 
@@ -37,8 +38,8 @@ impl Fold for CheckMusicFolder {
 }
 
 pub fn check_music_folder(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error> {
+    let mut args: CheckMusicFolder = syn::parse2(args)?;
     let check_user_id: syn::Expr = syn::parse2(item)?;
-    let mut args: CheckMusicFolder = deluxe::parse2(args)?;
     let check_music_folder: syn::Expr = args.fold_expr(check_user_id.clone());
 
     let input = args.input;

@@ -1,9 +1,9 @@
-#[derive(Debug, deluxe::ParseMetaItem, bon::Builder)]
+#[derive(Debug, darling::FromMeta, bon::Builder)]
 pub struct Attribute {
-    #[deluxe(default = false)]
+    #[darling(default = || false)]
     #[builder(default = false)]
     internal: bool,
-    #[deluxe(default = false)]
+    #[darling(default = || false)]
     #[builder(default = false)]
     json: bool,
 }

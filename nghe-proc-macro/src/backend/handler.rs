@@ -1,3 +1,4 @@
+use darling::FromAttributes;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::punctuated::Punctuated;
@@ -6,19 +7,20 @@ use syn::{Error, parse_quote};
 
 use crate::endpoint::Attribute;
 
-#[derive(Debug, deluxe::ParseMetaItem)]
+#[derive(Debug, darling::FromMeta)]
+#[darling(derive_syn_parse)]
 struct Config {
     role: Option<syn::Ident>,
-    #[deluxe(flatten)]
+    #[darling(flatten)]
     attribute: Attribute,
-    #[deluxe(default = true)]
+    #[darling(default = || true)]
     need_auth: bool,
 }
 
-#[derive(Debug, deluxe::ExtractAttributes)]
-#[deluxe(attributes(handler))]
+#[derive(Debug, FromAttributes)]
+#[darling(attributes(handler), forward_attrs)]
 struct ArgConfig {
-    #[deluxe(default = false)]
+    #[darling(default = || false)]
     header: bool,
 }
 
@@ -50,9 +52,10 @@ pub struct Handler {
 impl Arg {
     fn new(arg: &mut syn::FnArg) -> Result<Self, Error> {
         if let syn::FnArg::Typed(arg) = arg
-            && let config = deluxe::extract_attributes::<_, ArgConfig>(arg)?
+            && let config = ArgConfig::from_attributes(&arg.attrs)?
             && let syn::Pat::Ident(pat) = arg.pat.as_ref()
         {
+            arg.attrs.clear();
             match pat.ident.to_string().as_str() {
                 "database" => Ok(Self::Database { ident: pat.ident.clone(), use_database: true }),
                 "user_id" => Ok(Self::User(parse_quote!(id))),
@@ -170,7 +173,7 @@ impl Handler {
             ));
         }
 
-        let config = deluxe::parse2(attr)?;
+        let config = syn::parse2(attr)?;
         let args = Args::new(&mut item.sig.inputs)?;
         let is_result_binary = Self::is_result_binary(&item.sig.output);
 

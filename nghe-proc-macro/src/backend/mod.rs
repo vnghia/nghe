@@ -1,6 +1,9 @@
 mod handler;
 
+use std::ops::Deref;
+
 use convert_case::{Case, Casing};
+use darling::FromMeta;
 pub use handler::Handler;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
@@ -8,29 +11,32 @@ use syn::spanned::Spanned;
 use syn::{Error, parse_quote};
 
 use crate::endpoint::Attribute;
+use crate::utils::vec::SynVec;
 
-#[derive(Debug, deluxe::ParseMetaItem)]
+#[derive(Debug, darling::FromMeta)]
+#[darling(derive_syn_parse)]
 struct BuildRouter {
-    modules: Vec<syn::Meta>,
-    #[deluxe(default = false)]
+    modules: SynVec<syn::Meta>,
+    #[darling(default = || false)]
     filesystem: bool,
-    #[deluxe(default = vec![])]
-    extensions: Vec<syn::Path>,
+    #[darling(default)]
+    extensions: SynVec<syn::Path>,
 }
 
 pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
-    let input = deluxe::parse2::<BuildRouter>(item)?;
+    let input: BuildRouter = syn::parse2(item)?;
     let endpoints: Vec<_> = input
         .modules
-        .into_iter()
+        .deref()
+        .iter()
         .map(|meta| {
             let module = meta
                 .path()
                 .get_ident()
                 .ok_or_else(|| Error::new(meta.span(), "Meta path ident is missing"))?
                 .to_owned();
-            let attribute = if let syn::Meta::List(syn::MetaList { ref tokens, .. }) = meta {
-                deluxe::parse2(tokens.clone())?
+            let attribute = if let syn::Meta::List(_) = meta {
+                Attribute::from_meta(meta)?
             } else {
                 Attribute::builder().build()
             };
@@ -82,7 +88,7 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         router_layers.push(parse_quote!(layer(axum::Extension(filesystem))));
     }
 
-    for extension in input.extensions {
+    for extension in &*input.extensions {
         let arg = extension
             .segments
             .iter()
