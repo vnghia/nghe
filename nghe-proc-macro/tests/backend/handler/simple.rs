@@ -1,0 +1,11 @@
+use nghe_proc_macro::handler;
+
+#[handler]
+pub async fn handler(
+    database: &Database,
+    user_id: Uuid,
+    request: Request,
+) -> Result<Response, Error> {
+    let content = "function body should be kept";
+    Ok(Response { a: true, b: 1, c: "c" })
+}
