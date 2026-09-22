@@ -18,3 +18,6 @@ darling = { version = "0.24.1" }
 proc-macro2 = { version = "1.0.95" }
 quote = { version = "1.0.40" }
 syn = { version = "3.0.6", features = ["fold", "full"] }
+
+[dev-dependencies]
+macrotest = { version = "1.2.1" }
