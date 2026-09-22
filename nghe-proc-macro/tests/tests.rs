@@ -7,3 +7,8 @@ pub fn api() {
 pub fn backend() {
     macrotest::expand("tests/backend/**/*.rs");
 }
+
+#[test]
+pub fn orm() {
+    macrotest::expand("tests/orm/**/*.rs");
+}
