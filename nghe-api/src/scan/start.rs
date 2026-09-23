@@ -15,7 +15,7 @@ pub struct Full {
 }
 
 #[api_derive]
-#[endpoint(path = "startScan", internal = true)]
+#[endpoint(path = "startScan")]
 pub struct Request {
     pub music_folder_id: Uuid,
     #[serde(default)]

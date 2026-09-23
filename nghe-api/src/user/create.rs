@@ -5,7 +5,7 @@ use super::Role;
 
 #[api_derive(fake = true)]
 #[derive(Clone)]
-#[endpoint(path = "createUser", internal = true)]
+#[endpoint(path = "createUser")]
 pub struct Request {
     pub username: String,
     pub password: String,

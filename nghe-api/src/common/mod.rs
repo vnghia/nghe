@@ -3,7 +3,6 @@ pub mod format;
 pub mod typed_uuid;
 
 use nghe_proc_macro::api_derive;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize, Serializer};
 
 use super::constant;
@@ -34,38 +33,20 @@ pub struct SubsonicResponse<B> {
     root: RootResponse<B>,
 }
 
-pub trait FormURL {
-    const URL_FORM: &'static str;
-    const URL_FORM_VIEW: &'static str;
+pub trait EndpointURL {
+    const URL: &'static str;
+    const URL_VIEW: &'static str;
 }
 
-pub trait FormRequest<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: FormURL + Deserialize<'de> {
+pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: EndpointURL + Deserialize<'de> {
     type AuthForm: auth::form::Trait<'u, 'c, 's, 'p, 'de, Self> + Send;
 }
 
-pub trait FormEndpoint: for<'form> FormRequest<'form, 'form, 'form, 'form, 'form> {
+pub trait Endpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {
     type Response: Serialize;
 }
 
-pub trait BinaryURL {
-    const URL_BINARY: &'static str;
-}
-
-pub trait BinaryRequest = BinaryURL + Serialize + DeserializeOwned;
-
-pub trait BinaryEndpoint: BinaryRequest {
-    type Response: Serialize + DeserializeOwned;
-}
-
-pub trait JsonURL {
-    const URL_JSON: &'static str;
-}
-
-pub trait JsonRequest = JsonURL + Serialize + DeserializeOwned;
-
-pub trait JsonEndpoint: JsonRequest {
-    type Response: Serialize + DeserializeOwned;
-}
+pub trait BinaryEndpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {}
 
 impl<B> SubsonicResponse<B> {
     pub fn new(body: B) -> Self {
