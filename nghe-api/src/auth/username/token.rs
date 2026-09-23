@@ -4,9 +4,9 @@ use std::borrow::Cow;
 use fake::{Fake, Faker};
 use nghe_proc_macro::api_derive;
 
-#[api_derive(request = false, response = false, fake = true)]
+#[api_derive(fake = true)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct Token([u8; 16]);
+pub struct Token(#[serde(with = "faster_hex::nopfx_ignorecase::array")] [u8; 16]);
 
 #[api_derive(fake = true)]
 #[derive(Clone)]
@@ -17,33 +17,6 @@ pub struct Auth<'s> {
     pub salt: Cow<'s, str>,
     #[serde(rename = "t")]
     pub token: Token,
-}
-
-mod serde {
-    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
-
-    use super::Token;
-
-    impl Serialize for Token {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            faster_hex::nopfx_ignorecase::serialize(self.0, serializer)
-        }
-    }
-
-    impl<'de> Deserialize<'de> for Token {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            let data: Vec<u8> = faster_hex::nopfx_ignorecase::deserialize(deserializer)?;
-            Ok(Token(data.try_into().map_err(|_| {
-                de::Error::custom("Could not convert vector to array of length 16")
-            })?))
-        }
-    }
 }
 
 #[cfg(any(test, feature = "backend"))]
