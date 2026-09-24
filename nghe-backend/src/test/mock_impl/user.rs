@@ -5,7 +5,7 @@ use image::EncodableLayout;
 use nghe_api::auth;
 use uuid::Uuid;
 
-use crate::http::extract::auth::header::{BaiscAuthorization, BearerAuthorization};
+use crate::http::extract::auth::header::{BasicAuthorization, BearerAuthorization};
 use crate::orm::users;
 use crate::route::key;
 
@@ -46,25 +46,15 @@ impl<'a> Mock<'a> {
     }
 
     pub async fn api_key(&self) -> auth::ApiKey {
-        key::create::handler(
-            self.mock.database(),
-            key::create::Request {
-                username: self.username(),
-                password: self.password(),
-                client: Faker.fake::<String>(),
-            },
-        )
-        .await
-        .unwrap()
-        .api_key
+        key::create::handler(self.mock.database(), self.id()).await.unwrap().api_key
     }
 
     pub async fn auth_bearer(&self) -> BearerAuthorization {
         BearerAuthorization::bearer(&self.api_key().await.api_key.to_string()).unwrap()
     }
 
-    pub fn auth_basic(&self) -> BaiscAuthorization {
-        BaiscAuthorization::basic(&self.username(), &self.password())
+    pub fn auth_basic(&self) -> BasicAuthorization {
+        BasicAuthorization::basic(&self.username(), &self.password())
     }
 
     // use_token: None -> use ApiKey

@@ -1,6 +1,6 @@
 use nghe_proc_macro::handler;
 
-#[handler(internal = true)]
+#[handler(role = admin)]
 pub async fn handler(
     database: &Database,
     user_id: Uuid,

@@ -1,6 +1,6 @@
 use nghe_proc_macro::handler;
 
-#[handler(internal = true)]
+#[handler]
 pub async fn handler(
     database: &Database,
     #[handler(header)] range: Option<Range>,

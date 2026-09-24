@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::Role;
 
 #[api_derive(fake = true)]
-#[endpoint(path = "updateUserRole", internal = true)]
+#[endpoint(path = "updateUserRole")]
 pub struct Request {
     pub id: Uuid,
     pub role: Role,

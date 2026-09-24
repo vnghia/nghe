@@ -7,7 +7,7 @@ use crate::Error;
 use crate::database::Database;
 use crate::orm::users;
 
-#[handler(role = admin, internal = true)]
+#[handler(role = admin)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
     let Request { id, role } = request;
     diesel::update(users::table)

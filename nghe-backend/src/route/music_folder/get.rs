@@ -8,7 +8,7 @@ use crate::database::Database;
 use crate::error::Error;
 use crate::orm::{music_folders, user_music_folder_permissions};
 
-#[handler(internal = true)]
+#[handler]
 pub async fn handler(
     database: &Database,
     user_id: Uuid,

@@ -9,7 +9,7 @@ use crate::database::Database;
 use crate::orm::users;
 use crate::{Error, error};
 
-#[handler(need_auth = false, internal = true)]
+#[handler(need_auth = false)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
     if users::table.count().first::<i64>(&mut database.get().await?).await? > 0 {
         error::Kind::Forbidden.into()

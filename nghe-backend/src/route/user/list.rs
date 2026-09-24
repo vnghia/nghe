@@ -7,7 +7,7 @@ use crate::Error;
 use crate::database::Database;
 use crate::orm::users;
 
-#[handler(role = admin, internal = true)]
+#[handler(role = admin)]
 pub async fn handler(database: &Database) -> Result<Response, Error> {
     Ok(Response {
         users: users::table

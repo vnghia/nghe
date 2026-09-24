@@ -3,24 +3,21 @@ mod handler;
 use std::ops::Deref;
 
 use convert_case::{Case, Casing};
-use darling::FromMeta;
 pub use handler::Handler;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::spanned::Spanned;
 use syn::{Error, parse_quote};
 
-use crate::endpoint::Attribute;
-use crate::utils::vec::SynVec;
+use crate::utils;
 
 #[derive(Debug, darling::FromMeta)]
 #[darling(derive_syn_parse)]
 struct BuildRouter {
-    modules: SynVec<syn::Meta>,
+    modules: utils::syn::Vec<syn::Ident>,
     #[darling(default = || false)]
     filesystem: bool,
     #[darling(default)]
-    extensions: SynVec<syn::Path>,
+    extensions: utils::syn::Vec<syn::Path>,
 }
 
 pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
@@ -29,49 +26,23 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
         .modules
         .deref()
         .iter()
-        .map(|meta| {
-            let module = meta
-                .path()
-                .get_ident()
-                .ok_or_else(|| Error::new(meta.span(), "Meta path ident is missing"))?
-                .to_owned();
-            let attribute = if let syn::Meta::List(_) = meta {
-                Attribute::from_meta(meta)?
-            } else {
-                Attribute::builder().build()
-            };
-
+        .map(|module| {
             let mut routers = vec![];
 
-            if attribute.form() {
-                let form_handler = quote! { #module::form_handler };
-
-                let request = quote! { <#module::Request as nghe_api::common::FormURL> };
-                routers.push(quote! {
-                    route(
-                        #request::URL_FORM,
-                        axum::routing::get(#form_handler).post(#form_handler)
-                    )
-                });
-                routers.push(quote! {
-                    route(
-                        #request::URL_FORM_VIEW,
-                        axum::routing::get(#form_handler).post(#form_handler)
-                    )
-                });
-            }
-
-            if attribute.json() {
-                let json_handler = quote! { #module::json_handler };
-
-                let request = quote! { <#module::Request as nghe_api::common::JsonURL> };
-                routers.push(quote! {
-                    route(
-                        #request::URL_JSON,
-                        axum::routing::post(#json_handler)
-                    )
-                });
-            }
+            let request_handler = quote! { #module::request_handler };
+            let request = quote! { <#module::Request as nghe_api::common::EndpointURL> };
+            routers.push(quote! {
+                route(
+                    #request::URL,
+                    axum::routing::any(#request_handler)
+                )
+            });
+            routers.push(quote! {
+                route(
+                    #request::URL_VIEW,
+                    axum::routing::any(#request_handler)
+                )
+            });
 
             Ok::<_, Error>(routers)
         })

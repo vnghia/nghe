@@ -9,13 +9,13 @@ mod update_role;
 
 nghe_proc_macro::build_router! {
     modules = [
-        create(internal = true),
-        delete(internal = true),
-        get(internal = true),
-        list(internal = true),
-        setup(internal = true),
-        update(internal = true),
-        update_password(internal = true),
-        update_role(internal = true),
+        create,
+        delete,
+        get,
+        list,
+        setup,
+        update,
+        update_password,
+        update_role,
     ],
 }

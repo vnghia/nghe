@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::common::filesystem;
 
 #[api_derive(fake = true)]
-#[endpoint(path = "getMusicFolder", internal = true)]
+#[endpoint(path = "getMusicFolder")]
 pub struct Request {
     pub id: Uuid,
 }

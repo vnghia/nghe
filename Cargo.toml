@@ -39,6 +39,7 @@ itertools = { version = "0.15.0" }
 rand = { version = "0.10.0" }
 serde = { version = "1.0.218", features = ["derive"] }
 serde_html_form = { version = "0.2.7" }
+serde_json = { version = "1.0.139" }
 serde_with = { version = "3.12.0", features = ["time_0_3"] }
 strum = { version = "0.28.0", features = ["derive"] }
 time = { version = "0.3.37", features = ["serde-human-readable", "macros"] }
@@ -56,7 +57,6 @@ url = { version = "2.5.4" }
 built = { version = "0.8.1" }
 
 # Dev
-serde_json = { version = "1.0.139" }
 fake = { version = "5.0.0", features = ["derive", "uuid", "time"] }
 
 [profile.dev.package.backtrace]

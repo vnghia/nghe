@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::Permission;
 
 #[api_derive]
-#[endpoint(path = "updatePermission", internal = true)]
+#[endpoint(path = "updatePermission")]
 pub struct Request {
     pub user_id: Option<Uuid>,
     pub music_folder_id: Option<Uuid>,
