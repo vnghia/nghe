@@ -7,7 +7,15 @@ use crate::database::Database;
 use crate::orm::users;
 use crate::{Error, error};
 
+#[derive(Debug)]
+pub enum Type {
+    FORM,
+    JSON,
+}
+
+#[derive(Debug)]
 pub struct AuthenticatedRequest<R> {
+    pub ty: Type,
     pub user: users::Authenticated,
     pub request: R,
 }
@@ -50,6 +58,7 @@ where
             let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
             if content_type == headers::ContentType::json() {
                 return Ok(Self {
+                    ty: Type::JSON,
                     user,
                     request: serde_json::from_slice(&body).map_err(error::Kind::from)?,
                 });

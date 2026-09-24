@@ -17,18 +17,21 @@ pub async fn handler(
 }
 #[coverage(off)]
 #[axum::debug_handler]
-pub async fn form_handler(
+#[automatically_derived]
+pub async fn request_handler(
     axum::extract::State(database): axum::extract::State<crate::database::Database>,
     axum::extract::Extension(filesystem): axum::extract::Extension<Filesystem>,
     range: Option<axum_extra::TypedHeader<Range>>,
-    user: crate::http::extract::auth::Form<Request>,
+    authenticated_request: crate::http::extract::auth::request::AuthenticatedRequest<
+        Request,
+    >,
 ) -> Result<crate::http::binary::Response, crate::Error> {
     handler(
             &database,
             &filesystem,
             range.map(|header| header.0),
-            user.user.id,
-            user.request,
+            authenticated_request.user.id,
+            authenticated_request.request,
         )
         .await
 }

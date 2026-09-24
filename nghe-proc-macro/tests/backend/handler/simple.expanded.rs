@@ -10,17 +10,26 @@ pub async fn handler(
 }
 #[coverage(off)]
 #[axum::debug_handler]
-pub async fn form_handler(
+#[automatically_derived]
+pub async fn request_handler(
     axum::extract::State(database): axum::extract::State<crate::database::Database>,
-    user: crate::http::extract::auth::Form<Request>,
+    authenticated_request: crate::http::extract::auth::request::AuthenticatedRequest<
+        Request,
+    >,
 ) -> Result<
-    axum::Json<
-        nghe_api::common::SubsonicResponse<
-            <Request as nghe_api::common::FormEndpoint>::Response,
-        >,
+    crate::http::serializable::Response<
+        <Request as nghe_api::common::Endpoint>::Response,
     >,
     crate::Error,
 > {
-    let response = handler(&database, user.user.id, user.request).await?;
-    Ok(axum::Json(nghe_api::common::SubsonicResponse::new(response)))
+    let body = handler(
+            &database,
+            authenticated_request.user.id,
+            authenticated_request.request,
+        )
+        .await?;
+    Ok(crate::http::serializable::Response {
+        ty: authenticated_request.ty,
+        body,
+    })
 }

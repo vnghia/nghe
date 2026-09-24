@@ -11,21 +11,28 @@ pub async fn handler(
 }
 #[coverage(off)]
 #[axum::debug_handler]
-pub async fn json_handler(
+#[automatically_derived]
+pub async fn request_handler(
     axum::extract::State(database): axum::extract::State<crate::database::Database>,
     range: Option<axum_extra::TypedHeader<Range>>,
-    user: crate::http::extract::auth::Header<Request>,
-    axum::Json(request): axum::Json<Request>,
+    authenticated_request: crate::http::extract::auth::request::AuthenticatedRequest<
+        Request,
+    >,
 ) -> Result<
-    axum::Json<<Request as nghe_api::common::JsonEndpoint>::Response>,
+    crate::http::serializable::Response<
+        <Request as nghe_api::common::Endpoint>::Response,
+    >,
     crate::Error,
 > {
-    let response = handler(
+    let body = handler(
             &database,
             range.map(|header| header.0),
-            user.user.id,
-            request,
+            authenticated_request.user.id,
+            authenticated_request.request,
         )
         .await?;
-    Ok(axum::Json(response))
+    Ok(crate::http::serializable::Response {
+        ty: authenticated_request.ty,
+        body,
+    })
 }

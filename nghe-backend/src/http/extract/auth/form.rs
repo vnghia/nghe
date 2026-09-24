@@ -2,7 +2,7 @@ use nghe_api::auth;
 use nghe_api::auth::form::Trait;
 
 use super::Authentication;
-use super::request::AuthenticatedRequest;
+use super::request::{AuthenticatedRequest, Type};
 use crate::database::Database;
 use crate::orm::users;
 use crate::{Error, error};
@@ -24,6 +24,7 @@ where
         let auth_form: R::AuthForm =
             serde_html_form::from_bytes(form.as_ref()).map_err(error::Kind::from)?;
         return Ok(Self {
+            ty: Type::FORM,
             user: auth_form.auth().authenticated(database).await?,
             request: auth_form.request(),
         });

@@ -35,6 +35,7 @@ atomic-write-file = { version = "0.3.0" }
 axum = { version = "0.8.4", default-features = false, features = [
   "http1",
   "http2",
+  "json",
   "macros",
   "tokio",
 ] }

@@ -5,14 +5,10 @@ use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::{Error, parse_quote};
 
-use crate::endpoint::Attribute;
-
 #[derive(Debug, darling::FromMeta)]
 #[darling(derive_syn_parse)]
 struct Config {
     role: Option<syn::Ident>,
-    #[darling(flatten)]
-    attribute: Attribute,
     #[darling(default = || true)]
     need_auth: bool,
 }
@@ -36,7 +32,6 @@ enum Arg {
 #[derive(Debug)]
 struct Args {
     value: Vec<Arg>,
-    use_user: bool,
     use_request: bool,
 }
 
@@ -123,7 +118,10 @@ impl Arg {
         }
     }
 
-    fn to_arg_expr(&self) -> (Option<syn::FnArg>, Option<syn::Expr>) {
+    fn to_arg_expr(
+        &self,
+        authenticated_request_ident: &syn::Ident,
+    ) -> (Option<syn::FnArg>, Option<syn::Expr>) {
         match self {
             Arg::Database { ident, use_database } => (
                 Some(parse_quote! {
@@ -131,7 +129,9 @@ impl Arg {
                 }),
                 if *use_database { Some(parse_quote!(&#ident)) } else { None },
             ),
-            Arg::User(ident) => (None, Some(parse_quote!(user.user.#ident))),
+            Arg::User(ident) => {
+                (None, Some(parse_quote!(#authenticated_request_ident.user.#ident)))
+            }
             Arg::Request => (None, None),
             Arg::Extension { ident, ty, reference, .. } => (
                 Some(
@@ -156,9 +156,8 @@ impl Args {
             // Need for authentication or setup.
             value.push(Arg::Database { ident: format_ident!("_database"), use_database: false });
         }
-        let use_user = value.iter().any(|arg| matches!(arg, Arg::User(_)));
         let use_request = value.iter().any(|arg| matches!(arg, Arg::Request));
-        Ok(Self { value, use_user, use_request })
+        Ok(Self { value, use_request })
     }
 }
 
@@ -181,78 +180,31 @@ impl Handler {
     }
 
     pub fn build(&self) -> TokenStream {
-        let user_ident =
-            if self.config.role.is_some() || self.args.use_user || self.args.use_request {
-                format_ident!("user")
-            } else {
-                format_ident!("_user")
-            };
+        let authenticated_request_ident = format_ident!("authenticated_request");
 
-        let form_handler = if self.config.attribute.form() {
+        let request_handler = {
             let mut additional_args = vec![];
             let mut additional_exprs = vec![];
 
             if self.config.need_auth {
-                additional_args
-                    .push(parse_quote!(#user_ident: crate::http::extract::auth::Form<Request>));
+                additional_args.push(parse_quote!(
+                    #authenticated_request_ident:
+                    crate::http::extract::auth::request::AuthenticatedRequest<
+                        Request
+                    >
+                ));
             }
             if self.args.use_request {
-                additional_exprs.push(parse_quote!(user.request));
+                additional_exprs.push(parse_quote!(#authenticated_request_ident.request));
             }
 
             Some(self.handler(
-                "form",
+                "request",
                 self.ident(),
+                &authenticated_request_ident,
                 additional_args,
                 additional_exprs,
-                &parse_quote! {
-                    Result<
-                        axum::Json<
-                            nghe_api::common::SubsonicResponse<
-                                <Request as nghe_api::common::FormEndpoint>::Response
-                            >
-                        >,
-                        crate::Error
-                    >
-                },
-                &parse_quote! {
-                    axum::Json(nghe_api::common::SubsonicResponse::new(response))
-                },
             ))
-        } else {
-            None
-        };
-
-        let json_handler = if self.config.attribute.json() {
-            let mut additional_args = vec![];
-            let mut additional_exprs = vec![];
-
-            if self.config.need_auth {
-                additional_args
-                    .push(parse_quote!(#user_ident: crate::http::extract::auth::Header<Request>));
-            }
-            if self.args.use_request {
-                additional_args.push(parse_quote!(axum::Json(request): axum::Json<Request>));
-                additional_exprs.push(parse_quote!(request));
-            }
-
-            Some(self.handler(
-                "json",
-                self.ident(),
-                additional_args,
-                additional_exprs,
-                &parse_quote! {
-                    Result<
-                        axum::Json<
-                            <Request as nghe_api::common::JsonEndpoint>::Response
-                        >,
-                        crate::Error
-                    >
-                },
-                &parse_quote!(axum::Json(response)),
-            ))
-        } else {
-            None
         };
 
         let handler = &self.item;
@@ -261,8 +213,7 @@ impl Handler {
             #tracing_attribute
             #handler
 
-            #form_handler
-            #json_handler
+            #request_handler
         }
     }
 
@@ -318,11 +269,13 @@ impl Handler {
         parse_quote!(#[cfg_attr(not(coverage_nightly), tracing::instrument(#tracing_args))])
     }
 
-    fn authorization(&self) -> Option<syn::Expr> {
+    fn authorization(&self, authenticated_request_ident: &syn::Ident) -> Option<syn::Expr> {
         if let Some(role) = self.config.role.as_ref() {
             let method_ident = format_ident!("check_{role}");
             Some(parse_quote! {
-                crate::orm::users::Role::#method_ident(&database, user.user.id).await?
+                crate::orm::users::Role::#method_ident(
+                    &database, #authenticated_request_ident.user.id
+                ).await?
             })
         } else {
             None
@@ -333,20 +286,23 @@ impl Handler {
         &self,
         prefix: &'static str,
         handler_ident: &syn::Ident,
+        authenticated_request_ident: &syn::Ident,
         additional_args: Vec<syn::FnArg>,
         additional_exprs: Vec<syn::Expr>,
-        result: &syn::Type,
-        response: &syn::Expr,
     ) -> syn::ItemFn {
         let ident = format_ident!("{prefix}_handler");
-        let (args, exprs): (Vec<_>, Vec<_>) =
-            self.args.value.iter().map(Arg::to_arg_expr).collect();
+        let (args, exprs): (Vec<_>, Vec<_>) = self
+            .args
+            .value
+            .iter()
+            .map(|item| item.to_arg_expr(authenticated_request_ident))
+            .collect();
         let args: Punctuated<syn::FnArg, syn::Token![,]> =
             args.into_iter().flatten().chain(additional_args).collect();
         let exprs: Punctuated<syn::Expr, syn::Token![,]> =
             exprs.into_iter().flatten().chain(additional_exprs).collect();
 
-        let authorization = self.authorization();
+        let authorization = self.authorization(authenticated_request_ident);
 
         let asyncness = self.item.sig.asyncness.map(|_| quote!(.await));
         let tryness = self.is_result_binary.map(|_| quote!(?));
@@ -355,6 +311,7 @@ impl Handler {
             parse_quote! {
                 #[coverage(off)]
                 #[axum::debug_handler]
+                #[automatically_derived]
                 pub async fn #ident(#args) -> Result<crate::http::binary::Response, crate::Error> {
                     #authorization;
                     #handler_ident(#exprs)#asyncness
@@ -364,12 +321,21 @@ impl Handler {
             parse_quote! {
                 #[coverage(off)]
                 #[axum::debug_handler]
-                pub async fn #ident(#args) -> #result {
+                #[automatically_derived]
+                pub async fn #ident(#args) -> Result<
+                    crate::http::serializable::Response<
+                        <Request as nghe_api::common::Endpoint>::Response
+                    >,
+                    crate::Error
+                > {
                     #authorization;
-                    let response = #handler_ident(#exprs)
+                    let body = #handler_ident(#exprs)
                         #asyncness
                         #tryness;
-                    Ok(#response)
+                    Ok(crate::http::serializable::Response {
+                        ty: #authenticated_request_ident.ty,
+                        body,
+                    })
                 }
             }
         }
