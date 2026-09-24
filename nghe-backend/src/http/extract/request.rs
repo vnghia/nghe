@@ -135,7 +135,7 @@ mod tests {
     use rstest::rstest;
     use uuid::Uuid;
 
-    use super::super::auth::header::{BaiscAuthorization, BearerAuthorization};
+    use super::super::auth::header::{BasicAuthorization, BearerAuthorization};
     use super::*;
     use crate::test::{Mock, mock};
 
@@ -229,7 +229,7 @@ mod tests {
         if auth {
             if use_password {
                 let auth = user.auth_basic();
-                http_request.headers_mut().typed_insert(BaiscAuthorization::basic(
+                http_request.headers_mut().typed_insert(BasicAuthorization::basic(
                     auth.username(),
                     &if ok {
                         auth.password().to_owned()

@@ -9,7 +9,7 @@ use crate::orm::users;
 use crate::{Error, error};
 
 pub type BearerAuthorization = headers::Authorization<headers::authorization::Bearer>;
-pub type BaiscAuthorization = headers::Authorization<headers::authorization::Basic>;
+pub type BasicAuthorization = headers::Authorization<headers::authorization::Basic>;
 
 impl Authentication for BearerAuthorization {
     async fn authenticated(&self, database: &Database) -> Result<users::Authenticated, Error> {
@@ -23,7 +23,7 @@ impl Authentication for BearerAuthorization {
     }
 }
 
-impl username::Authentication for BaiscAuthorization {
+impl username::Authentication for BasicAuthorization {
     fn username(&self) -> &str {
         self.username()
     }
@@ -37,7 +37,7 @@ impl users::Authenticated {
     pub async fn from_headers(database: &Database, headers: &HeaderMap) -> Result<Self, Error> {
         if let Some(header) = headers.typed_get::<BearerAuthorization>() {
             header.authenticated(database).await
-        } else if let Some(header) = headers.typed_get::<BaiscAuthorization>() {
+        } else if let Some(header) = headers.typed_get::<BasicAuthorization>() {
             header.authenticated(database).await
         } else {
             error::Kind::MissingAuthenticationHeader.into()
@@ -62,7 +62,7 @@ mod tests {
     fn test_authenticated(#[values(true, false)] ok: bool) {
         let username = Username().fake::<String>();
         let password = Password(16..32).fake::<String>();
-        let header = BaiscAuthorization::basic(
+        let header = BasicAuthorization::basic(
             &username,
             &if ok { password.clone() } else { Password(16..32).fake::<String>() },
         );
@@ -81,7 +81,7 @@ mod tests {
         let mut http_request = http::Request::builder().body(()).unwrap();
         if use_password {
             let auth = user.auth_basic();
-            http_request.headers_mut().typed_insert(BaiscAuthorization::basic(
+            http_request.headers_mut().typed_insert(BasicAuthorization::basic(
                 auth.username(),
                 &if ok { auth.password().to_owned() } else { Password(16..32).fake::<String>() },
             ));
