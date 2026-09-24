@@ -1,31 +1,31 @@
 use std::ops::Deref;
-use std::vec::Vec;
+use std::vec::Vec as StdVec;
 
 use syn::parse::Parse;
 
 #[derive(Debug)]
-pub struct SynVec<T: Parse>(Vec<T>);
+pub struct Vec<T: Parse>(StdVec<T>);
 
-impl<T: Parse> Default for SynVec<T> {
+impl<T: Parse> Default for Vec<T> {
     fn default() -> Self {
         vec![].into()
     }
 }
 
-impl<T: Parse> From<Vec<T>> for SynVec<T> {
-    fn from(value: Vec<T>) -> Self {
+impl<T: Parse> From<StdVec<T>> for Vec<T> {
+    fn from(value: StdVec<T>) -> Self {
         Self(value)
     }
 }
 
-impl<T: Parse> Deref for SynVec<T> {
-    type Target = Vec<T>;
+impl<T: Parse> Deref for Vec<T> {
+    type Target = StdVec<T>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<T: Parse> Parse for SynVec<T> {
+impl<T: Parse> Parse for Vec<T> {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let content;
         syn::bracketed!(content in input);
@@ -33,7 +33,7 @@ impl<T: Parse> Parse for SynVec<T> {
     }
 }
 
-impl<T: Parse> darling::FromMeta for SynVec<T> {
+impl<T: Parse> darling::FromMeta for Vec<T> {
     fn from_expr(expr: &syn::Expr) -> darling::Result<Self> {
         use quote::ToTokens;
 

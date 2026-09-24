@@ -6,28 +6,36 @@ pub fn router(
 ) -> axum::Router<crate::database::Database> {
     axum::Router::new()
         .route(
-            <create::Request as nghe_api::common::JsonURL>::URL_JSON,
-            axum::routing::post(create::json_handler),
+            <create::Request as nghe_api::common::EndpointURL>::URL,
+            axum::routing::any(create::request_handler),
         )
         .route(
-            <read::Request as nghe_api::common::FormURL>::URL_FORM,
-            axum::routing::get(read::form_handler).post(read::form_handler),
+            <create::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            axum::routing::any(create::request_handler),
         )
         .route(
-            <read::Request as nghe_api::common::FormURL>::URL_FORM_VIEW,
-            axum::routing::get(read::form_handler).post(read::form_handler),
+            <read::Request as nghe_api::common::EndpointURL>::URL,
+            axum::routing::any(read::request_handler),
         )
         .route(
-            <update::Request as nghe_api::common::FormURL>::URL_FORM,
-            axum::routing::get(update::form_handler).post(update::form_handler),
+            <read::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            axum::routing::any(read::request_handler),
         )
         .route(
-            <update::Request as nghe_api::common::FormURL>::URL_FORM_VIEW,
-            axum::routing::get(update::form_handler).post(update::form_handler),
+            <update::Request as nghe_api::common::EndpointURL>::URL,
+            axum::routing::any(update::request_handler),
         )
         .route(
-            <delete::Request as nghe_api::common::JsonURL>::URL_JSON,
-            axum::routing::post(delete::json_handler),
+            <update::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            axum::routing::any(update::request_handler),
+        )
+        .route(
+            <delete::Request as nghe_api::common::EndpointURL>::URL,
+            axum::routing::any(delete::request_handler),
+        )
+        .route(
+            <delete::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            axum::routing::any(delete::request_handler),
         )
         .layer(axum::Extension(filesystem))
         .layer(axum::Extension(extension))
