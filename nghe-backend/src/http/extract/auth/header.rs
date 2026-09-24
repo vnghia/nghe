@@ -71,36 +71,28 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_from_headers_bearer(#[future(awt)] mock: Mock, #[values(true, false)] ok: bool) {
+    async fn test_from_headers(
+        #[future(awt)] mock: Mock,
+        #[values(true, false)] ok: bool,
+        #[values(true, false)] use_password: bool,
+    ) {
         let user = mock.user(0).await;
-        let auth = user.auth_bearer().await;
 
         let mut http_request = http::Request::builder().body(()).unwrap();
-        http_request.headers_mut().typed_insert(if ok {
-            auth
+        if use_password {
+            let auth = user.auth_basic();
+            http_request.headers_mut().typed_insert(BaiscAuthorization::basic(
+                auth.username(),
+                &if ok { auth.password().to_owned() } else { Password(16..32).fake::<String>() },
+            ));
         } else {
-            BearerAuthorization::bearer(&Faker.fake::<Uuid>().to_string()).unwrap()
-        });
-
-        let authenticated =
-            users::Authenticated::from_headers(mock.state(), http_request.headers()).await;
-        assert_eq!(authenticated.is_ok(), ok);
-        if ok {
-            assert_eq!(authenticated.unwrap().id, user.id());
+            let auth = user.auth_bearer().await;
+            http_request.headers_mut().typed_insert(if ok {
+                auth
+            } else {
+                BearerAuthorization::bearer(&Faker.fake::<Uuid>().to_string()).unwrap()
+            });
         }
-    }
-
-    #[rstest]
-    #[tokio::test]
-    async fn test_from_headers_basic(#[future(awt)] mock: Mock, #[values(true, false)] ok: bool) {
-        let user = mock.user(0).await;
-        let auth = user.auth_basic();
-
-        let mut http_request = http::Request::builder().body(()).unwrap();
-        http_request.headers_mut().typed_insert(BaiscAuthorization::basic(
-            auth.username(),
-            &if ok { auth.password().to_owned() } else { Password(16..32).fake::<String>() },
-        ));
 
         let authenticated =
             users::Authenticated::from_headers(mock.state(), http_request.headers()).await;
