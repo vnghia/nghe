@@ -7,7 +7,7 @@ use crate::Error;
 use crate::database::Database;
 use crate::orm::user_music_folder_permissions;
 
-#[handler(role = admin, internal = true)]
+#[handler(role = admin)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
     let Request { user_id, music_folder_id, permission } = request;
     let permission: user_music_folder_permissions::Permission = permission.into();

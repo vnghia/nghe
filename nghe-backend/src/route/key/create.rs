@@ -9,7 +9,7 @@ use crate::database::Database;
 use crate::http::extract::auth::Authentication;
 use crate::orm::user_keys;
 
-#[handler(need_auth = false, internal = true)]
+#[handler(need_auth = false)]
 pub async fn handler(database: &Database, request: Request) -> Result<Response, Error> {
     let Request { username, password, client } = request;
     let user_id =

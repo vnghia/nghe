@@ -10,7 +10,7 @@ use crate::integration::Informant;
 use crate::orm::user_music_folder_permissions;
 use crate::scan::scanner;
 
-#[handler(internal = true)]
+#[handler]
 pub async fn handler(
     database: &Database,
     filesystem: &Filesystem,

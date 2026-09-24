@@ -5,7 +5,7 @@ use crate::database::Database;
 use crate::integration::Informant;
 use crate::{Error, config};
 
-#[handler(role = admin, internal = true)]
+#[handler(role = admin)]
 pub async fn handler(
     database: &Database,
     config: config::CoverArt,

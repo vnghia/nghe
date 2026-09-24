@@ -8,7 +8,7 @@ use crate::Error;
 use crate::database::Database;
 use crate::orm::users;
 
-#[handler(internal = true)]
+#[handler]
 pub async fn handler(
     database: &Database,
     user_id: Uuid,
