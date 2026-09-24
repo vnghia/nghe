@@ -118,10 +118,7 @@ impl Arg {
         }
     }
 
-    fn to_arg_expr(
-        &self,
-        authenticated_request_ident: &syn::Ident,
-    ) -> (Option<syn::FnArg>, Option<syn::Expr>) {
+    fn to_arg_expr(&self, request_ident: &syn::Ident) -> (Option<syn::FnArg>, Option<syn::Expr>) {
         match self {
             Arg::Database { ident, use_database } => (
                 Some(parse_quote! {
@@ -129,9 +126,7 @@ impl Arg {
                 }),
                 if *use_database { Some(parse_quote!(&#ident)) } else { None },
             ),
-            Arg::User(ident) => {
-                (None, Some(parse_quote!(#authenticated_request_ident.user.#ident)))
-            }
+            Arg::User(ident) => (None, Some(parse_quote!(#request_ident.user.#ident))),
             Arg::Request => (None, None),
             Arg::Extension { ident, ty, reference, .. } => (
                 Some(
@@ -180,28 +175,36 @@ impl Handler {
     }
 
     pub fn build(&self) -> TokenStream {
-        let authenticated_request_ident = format_ident!("authenticated_request");
+        let request_ident = format_ident!("request");
 
         let request_handler = {
-            let mut additional_args = vec![];
-            let mut additional_exprs = vec![];
-
-            if self.config.need_auth {
-                additional_args.push(parse_quote!(
-                    #authenticated_request_ident:
-                    crate::http::extract::auth::request::AuthenticatedRequest<
+            let additional_args = vec![if self.config.need_auth {
+                parse_quote!(
+                    #request_ident: crate::http::extract::request::Authenticated<
                         Request
                     >
-                ));
-            }
-            if self.args.use_request {
-                additional_exprs.push(parse_quote!(#authenticated_request_ident.request));
-            }
+                )
+            } else {
+                parse_quote!(
+                    #request_ident: crate::http::extract::request::Validated<
+                        Request
+                    >
+                )
+            }];
+            let additional_exprs = if self.args.use_request {
+                vec![if self.config.need_auth {
+                    parse_quote!(#request_ident.validated.request)
+                } else {
+                    parse_quote!(#request_ident.request)
+                }]
+            } else {
+                vec![]
+            };
 
             Some(self.handler(
                 "request",
                 self.ident(),
-                &authenticated_request_ident,
+                &request_ident,
                 additional_args,
                 additional_exprs,
             ))
@@ -269,12 +272,12 @@ impl Handler {
         parse_quote!(#[cfg_attr(not(coverage_nightly), tracing::instrument(#tracing_args))])
     }
 
-    fn authorization(&self, authenticated_request_ident: &syn::Ident) -> Option<syn::Expr> {
+    fn authorization(&self, request_ident: &syn::Ident) -> Option<syn::Expr> {
         if let Some(role) = self.config.role.as_ref() {
             let method_ident = format_ident!("check_{role}");
             Some(parse_quote! {
                 crate::orm::users::Role::#method_ident(
-                    &database, #authenticated_request_ident.user.id
+                    &database, #request_ident.user.id
                 ).await?
             })
         } else {
@@ -286,26 +289,27 @@ impl Handler {
         &self,
         prefix: &'static str,
         handler_ident: &syn::Ident,
-        authenticated_request_ident: &syn::Ident,
+        request_ident: &syn::Ident,
         additional_args: Vec<syn::FnArg>,
         additional_exprs: Vec<syn::Expr>,
     ) -> syn::ItemFn {
         let ident = format_ident!("{prefix}_handler");
-        let (args, exprs): (Vec<_>, Vec<_>) = self
-            .args
-            .value
-            .iter()
-            .map(|item| item.to_arg_expr(authenticated_request_ident))
-            .collect();
+        let (args, exprs): (Vec<_>, Vec<_>) =
+            self.args.value.iter().map(|item| item.to_arg_expr(request_ident)).collect();
         let args: Punctuated<syn::FnArg, syn::Token![,]> =
             args.into_iter().flatten().chain(additional_args).collect();
         let exprs: Punctuated<syn::Expr, syn::Token![,]> =
             exprs.into_iter().flatten().chain(additional_exprs).collect();
 
-        let authorization = self.authorization(authenticated_request_ident);
+        let authorization = self.authorization(request_ident);
 
         let asyncness = self.item.sig.asyncness.map(|_| quote!(.await));
         let tryness = self.is_result_binary.map(|_| quote!(?));
+        let ty = if self.config.need_auth {
+            quote!(#request_ident.validated.ty)
+        } else {
+            quote!(#request_ident.ty)
+        };
 
         if self.is_result_binary.is_some_and(std::convert::identity) {
             parse_quote! {
@@ -333,7 +337,7 @@ impl Handler {
                         #asyncness
                         #tryness;
                     Ok(crate::http::serializable::Response {
-                        ty: #authenticated_request_ident.ty,
+                        ty: #ty,
                         body,
                     })
                 }

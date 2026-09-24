@@ -15,9 +15,7 @@ pub async fn handler(
 pub async fn request_handler(
     axum::extract::State(database): axum::extract::State<crate::database::Database>,
     range: Option<axum_extra::TypedHeader<Range>>,
-    authenticated_request: crate::http::extract::auth::request::AuthenticatedRequest<
-        Request,
-    >,
+    request: crate::http::extract::request::Authenticated<Request>,
 ) -> Result<
     crate::http::serializable::Response<
         <Request as nghe_api::common::Endpoint>::Response,
@@ -27,12 +25,12 @@ pub async fn request_handler(
     let body = handler(
             &database,
             range.map(|header| header.0),
-            authenticated_request.user.id,
-            authenticated_request.request,
+            request.user.id,
+            request.validated.request,
         )
         .await?;
     Ok(crate::http::serializable::Response {
-        ty: authenticated_request.ty,
+        ty: request.validated.ty,
         body,
     })
 }

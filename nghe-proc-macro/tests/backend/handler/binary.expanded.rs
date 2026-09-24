@@ -22,16 +22,14 @@ pub async fn request_handler(
     axum::extract::State(database): axum::extract::State<crate::database::Database>,
     axum::extract::Extension(filesystem): axum::extract::Extension<Filesystem>,
     range: Option<axum_extra::TypedHeader<Range>>,
-    authenticated_request: crate::http::extract::auth::request::AuthenticatedRequest<
-        Request,
-    >,
+    request: crate::http::extract::request::Authenticated<Request>,
 ) -> Result<crate::http::binary::Response, crate::Error> {
     handler(
             &database,
             &filesystem,
             range.map(|header| header.0),
-            authenticated_request.user.id,
-            authenticated_request.request,
+            request.user.id,
+            request.validated.request,
         )
         .await
 }

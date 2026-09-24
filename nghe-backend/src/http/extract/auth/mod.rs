@@ -1,7 +1,6 @@
 mod api_key;
 mod form;
 mod header;
-pub mod request;
 mod username;
 
 use crate::Error;

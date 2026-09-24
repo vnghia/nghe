@@ -1,8 +1,8 @@
 use nghe_api::auth;
 use nghe_api::auth::form::Trait;
 
+use super::super::request;
 use super::Authentication;
-use super::request::{AuthenticatedRequest, Type};
 use crate::database::Database;
 use crate::orm::users;
 use crate::{Error, error};
@@ -15,19 +15,29 @@ impl Authentication for auth::Form<'_, '_, '_, '_> {
         }
     }
 }
+impl<R> request::Validated<R>
+where
+    R: for<'form> serde::Deserialize<'form> + Send,
+{
+    pub fn from_form(form: impl AsRef<[u8]>) -> Result<Self, Error> {
+        Ok(Self {
+            ty: request::Type::Form,
+            request: serde_html_form::from_bytes(form.as_ref()).map_err(error::Kind::from)?,
+        })
+    }
+}
 
-impl<R> AuthenticatedRequest<R>
+impl<R> request::Authenticated<R>
 where
     R: for<'form> nghe_api::common::Request<'form, 'form, 'form, 'form, 'form> + Send,
 {
     pub async fn from_form(database: &Database, form: impl AsRef<[u8]>) -> Result<Self, Error> {
         let auth_form: R::AuthForm =
             serde_html_form::from_bytes(form.as_ref()).map_err(error::Kind::from)?;
-        return Ok(Self {
-            ty: Type::FORM,
+        Ok(Self {
             user: auth_form.auth().authenticated(database).await?,
-            request: auth_form.request(),
-        });
+            validated: request::Validated { ty: request::Type::Form, request: auth_form.request() },
+        })
     }
 }
 

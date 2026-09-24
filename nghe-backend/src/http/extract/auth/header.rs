@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use axum::http::HeaderMap;
 use axum_extra::headers::{self, HeaderMapExt};
 use nghe_api::auth;
