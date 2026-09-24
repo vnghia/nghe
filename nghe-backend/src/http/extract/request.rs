@@ -223,6 +223,7 @@ mod tests {
         let user = mock.user(0).await;
 
         let mut http_request = http::Request::builder()
+            .method(http::Method::POST)
             .body(axum::body::Body::new(serde_json::to_string(&body).unwrap()))
             .unwrap();
         http_request.headers_mut().typed_insert(headers::ContentType::json());
