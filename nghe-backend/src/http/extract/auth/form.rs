@@ -46,10 +46,6 @@ where
 mod tests {
     #![allow(unexpected_cfgs)]
 
-    use axum::body::Body;
-    use axum::http;
-    use axum_extra::headers::{self, HeaderMapExt};
-    use concat_string::concat_string;
     use fake::{Fake, Faker};
     use nghe_proc_macro::api_derive;
     use rstest::rstest;
@@ -59,9 +55,9 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_from_request(
+    async fn test_from_form(
         #[future(awt)] mock: Mock,
-        #[values(true, false)] get: bool,
+        #[values(true, false)] auth: bool,
         #[values(true, false)] ok: bool,
         #[values(None, Some(true), Some(false))] use_token: Option<bool>,
     ) {
@@ -74,44 +70,46 @@ mod tests {
         }
 
         let request: Request = Faker.fake();
-        let user = mock.user(0).await;
-        let auth = user.auth_form(use_token).await;
-        let auth = if ok {
-            auth
-        } else {
-            match auth {
-                auth::Form::Username(_) => auth::Form::Username(Faker.fake()),
-                auth::Form::ApiKey(_) => auth::Form::ApiKey(Faker.fake()),
+
+        if auth {
+            let user = mock.user(0).await;
+            let auth = user.auth_form(use_token).await;
+            let auth = if ok {
+                auth
+            } else {
+                match auth {
+                    auth::Form::Username(_) => auth::Form::Username(Faker.fake()),
+                    auth::Form::ApiKey(_) => auth::Form::ApiKey(Faker.fake()),
+                }
+            };
+
+            let query = serde_html_form::to_string(
+                <Request as nghe_api::common::Request>::AuthForm::new(request, auth),
+            )
+            .unwrap();
+
+            let form_request =
+                request::Authenticated::<Request>::from_form(mock.database(), query).await;
+
+            if ok {
+                let form_request = form_request.unwrap();
+                assert_eq!(form_request.user.id, user.id());
+                assert_eq!(form_request.validated.request, request);
+            } else {
+                assert!(form_request.is_err());
             }
-        };
-
-        let builder = http::Request::builder();
-        let query = serde_html_form::to_string(
-            <Request as nghe_api::common::Request>::AuthForm::new(request, auth),
-        )
-        .unwrap();
-
-        let http_request = if get {
-            builder
-                .method(http::Method::GET)
-                .uri(concat_string!("/test?", query))
-                .body(Body::empty())
-                .unwrap()
         } else {
-            let mut http_request =
-                builder.method(http::Method::POST).uri("/test").body(Body::from(query)).unwrap();
-            http_request.headers_mut().typed_insert(headers::ContentType::form_url_encoded());
-            http_request
-        };
+            let query = serde_html_form::to_string(request).unwrap();
 
-        let form_request = Form::<Request>::from_request(http_request, mock.state()).await;
+            let form_request =
+                request::Validated::<Request>::from_form(if ok { &query } else { "a=" });
 
-        if ok {
-            let form_request = form_request.unwrap();
-            assert_eq!(form_request.user.id, user.id());
-            assert_eq!(form_request.request, request);
-        } else {
-            assert!(form_request.is_err());
+            if ok {
+                let form_request = form_request.unwrap();
+                assert_eq!(form_request.request, request);
+            } else {
+                assert!(form_request.is_err());
+            }
         }
     }
 }

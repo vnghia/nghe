@@ -9,11 +9,7 @@ use crate::database::Database;
 use crate::orm::user_keys;
 
 #[handler]
-pub async fn handler(
-    database: &Database,
-    user_id: Uuid,
-    request: Request,
-) -> Result<Response, Error> {
+pub async fn handler(database: &Database, user_id: Uuid) -> Result<Response, Error> {
     Ok(Response {
         api_key: diesel::insert_into(user_keys::table)
             .values(user_keys::New { user_id })

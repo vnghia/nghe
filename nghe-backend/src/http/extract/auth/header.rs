@@ -58,8 +58,6 @@ mod tests {
     use super::*;
     use crate::test::{Mock, mock};
 
-    struct Request;
-
     #[rstest]
     fn test_authenticated(#[values(true, false)] ok: bool) {
         let username = Username().fake::<String>();
@@ -73,10 +71,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_from_request_parts_bearer(
-        #[future(awt)] mock: Mock,
-        #[values(true, false)] ok: bool,
-    ) {
+    async fn test_from_headers_bearer(#[future(awt)] mock: Mock, #[values(true, false)] ok: bool) {
         let user = mock.user(0).await;
         let auth = user.auth_bearer().await;
 
@@ -86,21 +81,18 @@ mod tests {
         } else {
             BearerAuthorization::bearer(&Faker.fake::<Uuid>().to_string()).unwrap()
         });
-        let mut parts = http_request.into_parts().0;
 
-        let header = Header::<Request>::from_request_parts(&mut parts, mock.state()).await;
-        assert_eq!(header.is_ok(), ok);
+        let authenticated =
+            users::Authenticated::from_headers(mock.state(), http_request.headers()).await;
+        assert_eq!(authenticated.is_ok(), ok);
         if ok {
-            assert_eq!(header.unwrap().user.id, user.id());
+            assert_eq!(authenticated.unwrap().id, user.id());
         }
     }
 
     #[rstest]
     #[tokio::test]
-    async fn test_from_request_parts_basic(
-        #[future(awt)] mock: Mock,
-        #[values(true, false)] ok: bool,
-    ) {
+    async fn test_from_headers_basic(#[future(awt)] mock: Mock, #[values(true, false)] ok: bool) {
         let user = mock.user(0).await;
         let auth = user.auth_basic();
 
@@ -109,12 +101,12 @@ mod tests {
             auth.username(),
             &if ok { auth.password().to_owned() } else { Password(16..32).fake::<String>() },
         ));
-        let mut parts = http_request.into_parts().0;
 
-        let header = Header::<Request>::from_request_parts(&mut parts, mock.state()).await;
-        assert_eq!(header.is_ok(), ok);
+        let authenticated =
+            users::Authenticated::from_headers(mock.state(), http_request.headers()).await;
+        assert_eq!(authenticated.is_ok(), ok);
         if ok {
-            assert_eq!(header.unwrap().user.id, user.id());
+            assert_eq!(authenticated.unwrap().id, user.id());
         }
     }
 }
