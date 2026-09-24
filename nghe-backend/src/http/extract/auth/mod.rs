@@ -1,9 +1,8 @@
 mod api_key;
-pub mod form;
-pub mod header;
+mod form;
+mod header;
+pub mod request;
 mod username;
-pub use form::Form;
-pub use header::Header;
 
 use crate::Error;
 use crate::database::Database;

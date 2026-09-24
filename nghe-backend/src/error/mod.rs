@@ -37,7 +37,19 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
     DeserializeForm(#[from] serde_html_form::de::Error),
+    #[error(transparent)]
+    #[into(StatusCode| StatusCode::BAD_REQUEST)]
+    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
+    DeserializeJson(#[from] serde_json::Error),
 
+    #[error("Method not allowed: {0}")]
+    #[into(StatusCode| StatusCode::METHOD_NOT_ALLOWED)]
+    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
+    MethodNotAllowed(axum::http::Method),
+    #[error("Missing content type header")]
+    #[into(StatusCode| StatusCode::BAD_REQUEST)]
+    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
+    MissingContentTypeHeader,
     #[error("Missing authentication header")]
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]

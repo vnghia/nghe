@@ -1,17 +1,11 @@
-use axum::extract::{FromRef, FromRequest, Request};
 use nghe_api::auth;
 use nghe_api::auth::form::Trait;
-use nghe_api::common::FormRequest;
 
 use super::Authentication;
+use super::request::AuthenticatedRequest;
 use crate::database::Database;
 use crate::orm::users;
 use crate::{Error, error};
-
-pub struct Form<R> {
-    pub user: users::Authenticated,
-    pub request: R,
-}
 
 impl Authentication for auth::Form<'_, '_, '_, '_> {
     async fn authenticated(&self, database: &Database) -> Result<users::Authenticated, Error> {
@@ -22,22 +16,17 @@ impl Authentication for auth::Form<'_, '_, '_, '_> {
     }
 }
 
-impl<S, R> FromRequest<S> for Form<R>
+impl<R> AuthenticatedRequest<R>
 where
-    S: Send + Sync,
-    Database: FromRef<S>,
-    R: for<'form> FormRequest<'form, 'form, 'form, 'form, 'form> + Send,
+    R: for<'form> nghe_api::common::Request<'form, 'form, 'form, 'form, 'form> + Send,
 {
-    type Rejection = Error;
-
-    async fn from_request(request: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let axum::extract::RawForm(bytes) =
-            axum::extract::RawForm::from_request(request, &()).await.map_err(error::Kind::from)?;
-        let form: R::AuthForm = serde_html_form::from_bytes(&bytes).map_err(error::Kind::from)?;
-        Ok(Self {
-            user: form.auth().authenticated(&Database::from_ref(state)).await?,
-            request: form.request(),
-        })
+    pub async fn from_form(database: &Database, form: impl AsRef<[u8]>) -> Result<Self, Error> {
+        let auth_form: R::AuthForm =
+            serde_html_form::from_bytes(form.as_ref()).map_err(error::Kind::from)?;
+        return Ok(Self {
+            user: auth_form.auth().authenticated(database).await?,
+            request: auth_form.request(),
+        });
     }
 }
 
@@ -86,9 +75,10 @@ mod tests {
         };
 
         let builder = http::Request::builder();
-        let query =
-            serde_html_form::to_string(<Request as FormRequest>::AuthForm::new(request, auth))
-                .unwrap();
+        let query = serde_html_form::to_string(
+            <Request as nghe_api::common::Request>::AuthForm::new(request, auth),
+        )
+        .unwrap();
 
         let http_request = if get {
             builder
