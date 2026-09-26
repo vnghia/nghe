@@ -37,13 +37,11 @@ where
         request: axum::extract::Request,
         state: &S,
     ) -> Result<Self, Self::Rejection> {
-        let method = request.method().to_owned();
+        let method = request.method();
 
         if method == Method::GET {
-            return Self::from_form(request.uri().query().unwrap_or_default().as_bytes());
-        }
-
-        if method == Method::POST {
+            Self::from_form(request.uri().query().unwrap_or_default().as_bytes())
+        } else if method == Method::POST {
             let headers = request.headers();
             let content_type = headers
                 .typed_get::<headers::ContentType>()
@@ -51,19 +49,21 @@ where
 
             if content_type == headers::ContentType::form_url_encoded() {
                 let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
-                return Self::from_form(&body);
+                Self::from_form(&body)
+            } else {
+                let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
+                if content_type == headers::ContentType::json() {
+                    Ok(Self {
+                        ty: Type::Json,
+                        request: serde_json::from_slice(&body).map_err(error::Kind::from)?,
+                    })
+                } else {
+                    error::Kind::UnsupportedContentType(content_type).into()
+                }
             }
-
-            let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
-            if content_type == headers::ContentType::json() {
-                return Ok(Self {
-                    ty: Type::Json,
-                    request: serde_json::from_slice(&body).map_err(error::Kind::from)?,
-                });
-            }
+        } else {
+            error::Kind::MethodNotAllowed(method.to_owned()).into()
         }
-
-        error::Kind::MethodNotAllowed(method).into()
     }
 }
 
@@ -80,17 +80,11 @@ where
         state: &S,
     ) -> Result<Self, Self::Rejection> {
         let database = Database::from_ref(state);
-        let method = request.method().to_owned();
+        let method = request.method();
 
         if method == Method::GET {
-            return Self::from_form(
-                &database,
-                &request.uri().query().unwrap_or_default().as_bytes(),
-            )
-            .await;
-        }
-
-        if method == Method::POST {
+            Self::from_form(&database, &request.uri().query().unwrap_or_default().as_bytes()).await
+        } else if method == Method::POST {
             let headers = request.headers();
             let content_type = headers
                 .typed_get::<headers::ContentType>()
@@ -98,23 +92,25 @@ where
 
             if content_type == headers::ContentType::form_url_encoded() {
                 let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
-                return Self::from_form(&database, &body).await;
+                Self::from_form(&database, &body).await
+            } else {
+                let user = users::Authenticated::from_headers(&database, headers).await?;
+                let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
+                if content_type == headers::ContentType::json() {
+                    Ok(Self {
+                        validated: Validated {
+                            ty: Type::Json,
+                            request: serde_json::from_slice(&body).map_err(error::Kind::from)?,
+                        },
+                        user,
+                    })
+                } else {
+                    error::Kind::UnsupportedContentType(content_type).into()
+                }
             }
-
-            let user = users::Authenticated::from_headers(&database, headers).await?;
-            let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
-            if content_type == headers::ContentType::json() {
-                return Ok(Self {
-                    validated: Validated {
-                        ty: Type::Json,
-                        request: serde_json::from_slice(&body).map_err(error::Kind::from)?,
-                    },
-                    user,
-                });
-            }
+        } else {
+            error::Kind::MethodNotAllowed(method.to_owned()).into()
         }
-
-        error::Kind::MethodNotAllowed(method).into()
     }
 }
 
