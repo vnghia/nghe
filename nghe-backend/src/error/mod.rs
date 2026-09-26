@@ -50,6 +50,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
     MissingContentTypeHeader,
+    #[error("Unsupported content type {0}")]
+    #[into(StatusCode| StatusCode::BAD_REQUEST)]
+    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
+    UnsupportedContentType(axum_extra::headers::ContentType),
     #[error("Missing authentication header")]
     #[into(StatusCode| StatusCode::BAD_REQUEST)]
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
