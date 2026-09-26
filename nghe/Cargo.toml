@@ -1,5 +1,5 @@
 [package]
-name = "nghe-backend"
+name = "nghe"
 version = { workspace = true }
 edition = { workspace = true }
 

@@ -3786,30 +3786,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60993920e071b0c9b66f14e2b32740a4e27ffc82854dcd72035887f336a09a28"
 
 [[package]]
-name = "nghe-api"
-version = "0.13.0"
-dependencies = [
- "bon",
- "built",
- "const_format",
- "fake",
- "faster-hex 1.0.0",
- "md5",
- "nghe-proc-macro",
- "num-traits",
- "paste",
- "rstest",
- "serde",
- "serde_html_form",
- "serde_json",
- "serde_with",
- "strum 0.28.0",
- "time",
- "uuid",
-]
-
-[[package]]
-name = "nghe-backend"
+name = "nghe"
 version = "0.13.0"
 dependencies = [
  "alrc",
@@ -3869,6 +3846,29 @@ dependencies = [
  "url",
  "uuid",
  "xxhash-rust",
+]
+
+[[package]]
+name = "nghe-api"
+version = "0.13.0"
+dependencies = [
+ "bon",
+ "built",
+ "const_format",
+ "fake",
+ "faster-hex 1.0.0",
+ "md5",
+ "nghe-proc-macro",
+ "num-traits",
+ "paste",
+ "rstest",
+ "serde",
+ "serde_html_form",
+ "serde_json",
+ "serde_with",
+ "strum 0.28.0",
+ "time",
+ "uuid",
 ]
 
 [[package]]

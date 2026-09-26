@@ -2,7 +2,7 @@
 
 use axum::serve::ListenerExt;
 use nghe_api::constant;
-use nghe_backend::{build, config, init_tracing, migration};
+use nghe::{build, config, init_tracing, migration};
 
 #[coverage(off)]
 #[tokio::main]
