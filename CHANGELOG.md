@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.13.0](https://github.com/vnghia/nghe/compare/v0.12.3...v0.13.0) (2026-09-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* **api:** merge internal endpoint to normal endpoint ([#1121](https://github.com/vnghia/nghe/issues/1121))
+
+### Features
+
+* **api:** merge internal endpoint to normal endpoint ([#1121](https://github.com/vnghia/nghe/issues/1121)) ([7a65aa4](https://github.com/vnghia/nghe/commit/7a65aa421fd789bd2447cb1f337a08ca1cad1f3d))
+
+
+### Bug Fixes
+
+* **backend/extract:** remove redudant clone ([#1124](https://github.com/vnghia/nghe/issues/1124)) ([17ccf34](https://github.com/vnghia/nghe/commit/17ccf3459d4329dfaeb09b2413197129c0d79642))
+* **deps:** migrate to darling for proc-macro ([#1117](https://github.com/vnghia/nghe/issues/1117)) ([3ca42b8](https://github.com/vnghia/nghe/commit/3ca42b8841e7a70b8e1db4fbe0c51c5ddce18d94))
+* **deps:** update rust crate lofty to 0.25.0 ([#1063](https://github.com/vnghia/nghe/issues/1063)) ([d9e6ae7](https://github.com/vnghia/nghe/commit/d9e6ae7a17727ef23c1d3933904c8d62deb010d5))
+* **deps:** update rust crate tower-http to 0.7.0 ([#1075](https://github.com/vnghia/nghe/issues/1075)) ([3a599f5](https://github.com/vnghia/nghe/commit/3a599f55cac4fd7460b467a8a4d85d6ffc698fbe))
+
 ## [0.12.3](https://github.com/vnghia/nghe/compare/v0.12.2...v0.12.3) (2026-09-20)
 
 
