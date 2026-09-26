@@ -16,7 +16,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
-  RUST_LOG: nghe-backend=trace
+  RUST_LOG: nghe=trace
   COLORBT_SHOW_HIDDEN: 1
 
 jobs:
@@ -60,15 +60,15 @@ jobs:
           devshell: ${{ steps.build.outputs.vendor }}
 
       - name: Build
-        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe-backend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
       - name: Patch ELF
         if: ${{ steps.build.outputs.vendor != 'musl' }}
-        run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
+        run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.build.outputs.docker-arch }}-${{ steps.build.outputs.vendor }}
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
 
       - name: Run test services
@@ -124,12 +124,12 @@ jobs:
           devshell: default
 
       - name: Build
-        run: nix develop .#default --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe-backend
+        run: nix develop .#default --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.build.outputs.docker-arch }}-darwin
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
 
       - name: Run test services
@@ -186,12 +186,12 @@ jobs:
           devshell: freebsd
 
       - name: Build
-        run: nix develop .#freebsd --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe-backend
+        run: nix develop .#freebsd --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.build.outputs.docker-arch }}-freebsd
-          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe-backend
+          path: ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
           retention-days: 1
 
   build-coverage:

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["nghe-api", "nghe-proc-macro", "nghe-frontend", "nghe-backend"]
+members = ["nghe-api", "nghe-proc-macro", "nghe-frontend", "nghe"]
 
 [workspace.package]
 version = "0.13.0"
