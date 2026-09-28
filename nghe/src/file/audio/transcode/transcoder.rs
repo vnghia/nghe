@@ -66,13 +66,6 @@ impl Output {
         let mut context =
             ffmpeg_next::format::output_to_stream(sink.try_into()?, Some(filename), None)?;
 
-        // if cfg!(test) {
-        //     // Set bitexact for deterministic transcoding output.
-        //     unsafe {
-        //         context.deref_mut().flags |= ffi::AVFMT_FLAG_BITEXACT as i32;
-        //     }
-        // }
-
         let codec = avencoder::find(context.format().codec(filename, avmedia::Type::Audio))
             .ok_or_else(|| error::Kind::MissingEncoder)?
             .audio()?;
@@ -96,9 +89,17 @@ impl Output {
         encoder.set_bit_rate(bitrate.try_into()?);
         encoder.set_time_base((1, sample_rate));
 
+        let mut flags = avcodec::flag::Flags::empty();
         // Some formats want stream headers to be separate.
         if context.format().flags().contains(avformat::flag::Flags::GLOBAL_HEADER) {
-            encoder.set_flags(avcodec::flag::Flags::GLOBAL_HEADER);
+            flags |= avcodec::flag::Flags::GLOBAL_HEADER;
+        }
+        // Set bitexact for deterministic transcoding output.
+        if cfg!(test) {
+            flags |= avcodec::flag::Flags::BITEXACT;
+        }
+        if !flags.is_empty() {
+            encoder.set_flags(flags);
         }
 
         let encoder = encoder.open()?;
