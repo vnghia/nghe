@@ -71,7 +71,7 @@ impl Output {
             .audio()?;
 
         // bit to kbit
-        let bitrate = bitrate * 1000;
+        let bitrate = (bitrate * 1000).try_into()?;
         // Opus sample rate will always be 48000Hz.
         let sample_rate =
             if codec.id() == avcodec::Id::OPUS { 48000 } else { decoder.rate().try_into()? };
@@ -86,7 +86,8 @@ impl Output {
                 .ok_or_else(|| error::Kind::MissingEncoderSampleFmts)?,
         );
         encoder.set_rate(sample_rate);
-        encoder.set_bit_rate(bitrate.try_into()?);
+        encoder.set_bit_rate(bitrate);
+        encoder.set_max_bit_rate(bitrate);
         encoder.set_time_base((1, sample_rate));
 
         let mut flags = avcodec::Flags::empty();
@@ -143,7 +144,7 @@ impl Output {
 
     fn flush(&mut self) -> Result<(), Error> {
         if let Some(codec) = self.encoder.codec()
-            && (codec.capabilities() & avcodec::Capabilities::DELAY == avcodec::Capabilities::DELAY)
+            && codec.capabilities().contains(avcodec::Capabilities::DELAY)
         {
             self.encode(None)
         } else {
@@ -164,11 +165,6 @@ impl Graph {
         }
         if decoder.rate() != encoder.rate() {
             specs.push("aresample=resampler=soxr".into());
-        }
-        if encoder.frame_size() > 0 {
-            specs.push(
-                concat_string!("asetnsamples=n=", encoder.frame_size().to_string(), ":p=0").into(),
-            );
         }
 
         let spec = if specs.is_empty() { "anull".into() } else { specs.join(",").into() };
@@ -198,8 +194,8 @@ impl Filter {
             ":channel_layout=0x",
             faster_hex::hex_string(&decoder.channel_layout().bits().to_be_bytes())
         );
-        let source = graph.graph.add(&source_ref, "in", &source_arg)?;
         tracing::debug!(?source_arg);
+        let source = graph.graph.add(&source_ref, "in", &source_arg)?;
 
         let sink_arg = concat_string!(
             "samplerates=",
@@ -209,8 +205,13 @@ impl Filter {
             ":channel_layouts=0x",
             faster_hex::hex_string(&encoder.channel_layout().bits().to_be_bytes())
         );
-        let sink = graph.graph.add(&sink_ref, "out", &sink_arg)?;
         tracing::debug!(?sink_arg);
+        let mut sink = graph.graph.add(&sink_ref, "out", &sink_arg)?;
+        if let Some(codec) = encoder.codec()
+            && !codec.capabilities().contains(avcodec::Capabilities::VARIABLE_FRAME_SIZE)
+        {
+            sink.sink().set_frame_size(encoder.frame_size());
+        }
 
         // Yes. The output name is in.
         graph.graph.output("in", 0)?.input("out", 0)?.parse(&graph.spec)?;
@@ -373,6 +374,7 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
+        ffmpeg_next::log::set_level(ffmpeg_next::log::Level::Trace);
         let input = env!("NGHE_HEARING_TEST_INPUT");
         let config = config::Transcode::default();
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
