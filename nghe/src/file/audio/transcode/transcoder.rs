@@ -89,14 +89,14 @@ impl Output {
         encoder.set_bit_rate(bitrate.try_into()?);
         encoder.set_time_base((1, sample_rate));
 
-        let mut flags = avcodec::flag::Flags::empty();
+        let mut flags = avcodec::Flags::empty();
         // Some formats want stream headers to be separate.
-        if context.format().flags().contains(avformat::flag::Flags::GLOBAL_HEADER) {
-            flags |= avcodec::flag::Flags::GLOBAL_HEADER;
+        if context.format().flags().contains(avformat::Flags::GLOBAL_HEADER) {
+            flags |= avcodec::Flags::GLOBAL_HEADER;
         }
         // Set bitexact for deterministic transcoding output.
         if cfg!(test) {
-            flags |= avcodec::flag::Flags::BITEXACT;
+            flags |= avcodec::Flags::BITEXACT;
         }
         if !flags.is_empty() {
             encoder.set_flags(flags);
@@ -142,12 +142,13 @@ impl Output {
     }
 
     fn flush(&mut self) -> Result<(), Error> {
-        // if self.encoder.as_ref().capabilities() & ffi::AV_CODEC_CAP_DELAY as i32 != 0 {
-        //     self.encode(None)
-        // } else {
-        //     Ok(())
-        // }
-        self.encode(None)
+        if let Some(codec) = self.encoder.codec()
+            && (codec.capabilities() & avcodec::Capabilities::DELAY == avcodec::Capabilities::DELAY)
+        {
+            self.encode(None)
+        } else {
+            Ok(())
+        }
     }
 }
 
