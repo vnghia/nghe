@@ -345,7 +345,7 @@ mod test {
     }
 }
 
-#[cfg(all(test, hearing_test))]
+#[cfg(test)]
 #[coverage(off)]
 mod tests {
     use nghe_api::common::format;
@@ -354,10 +354,39 @@ mod tests {
 
     use super::*;
     use crate::config;
+    use crate::file::audio;
+    use crate::test::assets;
 
     #[rstest]
-    #[case(format::Transcode::Opus, 64)]
+    #[case(format::Transcode::Aac, 128)]
     #[case(format::Transcode::Mp3, 320)]
+    #[case(format::Transcode::Opus, 64)]
+    #[case(format::Transcode::Wav, 0)]
+    #[case(format::Transcode::Wma, 128)]
+    #[tokio::test]
+    async fn test_transcode(
+        #[case] format: format::Transcode,
+        #[case] bitrate: u32,
+        #[values(0, 5)] offset: u32,
+    ) {
+        let input = assets::path(audio::Format::Flac);
+        let config = config::Transcode::default();
+        let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
+
+        let transcoded = assets::transcoded(format, offset);
+        if tokio::fs::try_exists(&transcoded).await.unwrap() {
+            let transcoded = tokio::fs::read(transcoded).await.unwrap();
+            assert_eq!(data, transcoded);
+        } else {
+            tokio::fs::create_dir_all(transcoded.parent().unwrap()).await.unwrap();
+            tokio::fs::write(transcoded, data).await.unwrap();
+        }
+    }
+
+    #[cfg(hearing_test)]
+    #[rstest]
+    #[case(format::Transcode::Mp3, 320)]
+    #[case(format::Transcode::Opus, 64)]
     #[tokio::test]
     async fn test_hearing(
         #[case] format: format::Transcode,
