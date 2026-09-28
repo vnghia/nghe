@@ -136,7 +136,7 @@
                   withHardcodedTables = true;
                   withMultithread = true;
                   withNetwork = true;
-                  withPixelutils = true;
+                  withPixelutils = false;
                   withPic = true;
                   withThumb = false;
 
@@ -145,12 +145,12 @@
                   buildFfprobe = false;
                   buildQtFaststart = false;
                   buildAvcodec = true;
-                  buildAvdevice = true;
+                  buildAvdevice = false;
                   buildAvfilter = true;
                   buildAvformat = true;
                   buildAvutil = true;
                   buildSwresample = true;
-                  buildSwscale = true;
+                  buildSwscale = false;
 
                   withOptimisations = true;
                   withStripping = true;
@@ -165,6 +165,7 @@
                 }).overrideAttrs
                   (
                     finalAttrs: previousAttrs: {
+                      doCheck = false;
                       configureFlags =
                         previousAttrs.configureFlags
                         ++ [

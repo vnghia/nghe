@@ -48,7 +48,11 @@ diesel-async = { version = "0.9.0", features = [
 ] }
 diesel_full_text_search = { version = "2.3.0", default-features = false }
 diesel_migrations = { version = "2.3.1", features = ["postgres"] }
-ffmpeg-next = { version = "9.0.0" }
+ffmpeg-next = { version = "9.0.0", default-features = false, features = [
+  "codec",
+  "filter",
+  "format",
+] }
 figment = { version = "0.10.19", features = ["env"] }
 futures-lite = { version = "2.6.0" }
 image = { version = "0.25.6", default-features = false, features = [
