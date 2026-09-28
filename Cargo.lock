@@ -192,9 +192,9 @@ dependencies = [
 
 [[package]]
 name = "async-walkdir"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37672978ae0febce7516ae0a85b53e6185159a9a28787391eb63fc44ec36037d"
+checksum = "8ed40ca66d45a6775511920324e4ae05c81673f9133c187c4970a3089c3ae27c"
 dependencies = [
  "async-fs",
  "futures-lite",
