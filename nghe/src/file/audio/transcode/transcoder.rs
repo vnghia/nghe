@@ -70,8 +70,7 @@ impl Output {
         if cfg!(test) {
             // Set bitexact for deterministic transcoding output.
             unsafe {
-                // AVFMT_FLAG_BITEXACT
-                (*context.as_mut_ptr()).flags |= 1024;
+                (*context.as_mut_ptr()).flags |= ffmpeg_next::ffi::AVFMT_FLAG_BITEXACT;
             }
         }
 
@@ -365,7 +364,6 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
-        ffmpeg_next::log::set_level(ffmpeg_next::log::Level::Trace);
         let input = env!("NGHE_HEARING_TEST_INPUT");
         let config = config::Transcode::default();
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
