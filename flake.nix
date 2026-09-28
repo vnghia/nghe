@@ -290,7 +290,7 @@
                 AWS_USE_PATH_STYLE_ENDPOINT = "true";
                 AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
               }
-              // (hostLib.optionalAttrs isCross {
+              // (hostLib.optionalAttrs hostPkgs.stdenv.hostPlatform.isBSD {
                 "HOST_CC" = buildCcBin;
               });
 
