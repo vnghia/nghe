@@ -275,7 +275,6 @@
 
                 # test
                 RUST_LOG = "nghe=trace";
-                RUST_BACKTRACE = "full";
 
                 POSTGRES_USER = "postgres";
                 POSTGRES_PASSWORD = "postgres";

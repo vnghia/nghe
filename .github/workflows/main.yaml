@@ -16,6 +16,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   COLORBT_SHOW_HIDDEN: 1
+  RUST_BACKTRACE: full
 
 jobs:
   build-linux:
