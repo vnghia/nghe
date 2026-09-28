@@ -1,39 +1,38 @@
 use std::borrow::Cow;
-use std::ffi::{CStr, CString};
 
 use atomic_write_file::AtomicWriteFile;
 use concat_string::concat_string;
+use ffmpeg_next::{
+    Error as AvError, Packet as AvPacket, codec as avcodec, encoder as avencoder,
+    filter as avfilter, format as avformat, frame as avframe, media as avmedia, util as avutil,
+};
 use loole::Receiver;
-use rsmpeg::avcodec::{AVCodec, AVCodecContext};
-use rsmpeg::avfilter::{AVFilter, AVFilterContextMut, AVFilterGraph, AVFilterInOut};
-use rsmpeg::avformat::{AVFormatContextInput, AVFormatContextOutput};
-use rsmpeg::avutil::AVFrame;
-use rsmpeg::error::RsmpegError;
-use rsmpeg::{UnsafeDerefMut, avutil, ffi};
 use tracing::instrument;
 
 use super::{Path, Sink};
 use crate::{Error, config, error};
 
 struct Input {
-    context: AVFormatContextInput,
-    decoder: AVCodecContext,
-    index: i32,
+    context: avformat::context::Input,
+    decoder: avcodec::decoder::Audio,
+    index: usize,
 }
 
 struct Output {
-    context: AVFormatContextOutput,
-    encoder: AVCodecContext,
+    context: avformat::context::Output,
+    encoder: avcodec::encoder::Audio,
+    in_time_base: avutil::rational::Rational,
+    out_time_base: avutil::rational::Rational,
 }
 
 struct Graph {
-    filter: AVFilterGraph,
-    spec: Cow<'static, CStr>,
+    graph: avfilter::Graph,
+    spec: Cow<'static, str>,
 }
 
-struct Filter<'a> {
-    source: AVFilterContextMut<'a>,
-    sink: AVFilterContextMut<'a>,
+struct Filter {
+    source: avfilter::Context,
+    sink: avfilter::Context,
 }
 
 pub struct Transcoder {
@@ -43,168 +42,178 @@ pub struct Transcoder {
 }
 
 impl Input {
-    fn new(input: &CStr) -> Result<Self, Error> {
-        let context = AVFormatContextInput::builder().url(input).open()?;
-        let (index, codec) = context
-            .find_best_stream(ffi::AVMEDIA_TYPE_AUDIO)?
+    fn new(input: &str) -> Result<Self, Error> {
+        let context = avformat::input(input)?;
+
+        let stream = context
+            .streams()
+            .best(avmedia::Type::Audio)
             .ok_or_else(|| error::Kind::MissingAudioTrack)?;
-        let stream = &context.streams()[index];
+        let index = stream.index();
 
-        let mut decoder = AVCodecContext::new(&codec);
-        decoder.apply_codecpar(&stream.codecpar())?;
-        decoder.open(None)?;
-        decoder.set_pkt_timebase(stream.time_base);
-        decoder.set_bit_rate(context.bit_rate);
+        let mut decoder =
+            avcodec::context::Context::from_parameters(stream.parameters())?.decoder().audio()?;
+        decoder.set_parameters(stream.parameters())?;
+        decoder.set_packet_time_base(stream.time_base());
 
-        Ok(Self { context, decoder, index: index.try_into()? })
+        Ok(Self { context, decoder, index })
     }
 }
 
 impl Output {
-    fn new(sink: Sink, bitrate: u32, decoder: &AVCodecContext) -> Result<Self, Error> {
-        let mut context = AVFormatContextOutput::builder()
-            .filename(sink.format())
-            .io_context(sink.into())
-            .build()?;
+    fn new(sink: Sink, bitrate: u32, decoder: &avcodec::decoder::Audio) -> Result<Self, Error> {
+        let filename = sink.filename();
+        let mut context =
+            ffmpeg_next::format::output_to_stream(sink.try_into()?, Some(filename), None)?;
 
-        if cfg!(test) {
-            // Set bitexact for deterministic transcoding output.
-            unsafe {
-                context.deref_mut().flags |= ffi::AVFMT_FLAG_BITEXACT as i32;
-            }
-        }
+        // if cfg!(test) {
+        //     // Set bitexact for deterministic transcoding output.
+        //     unsafe {
+        //         context.deref_mut().flags |= ffi::AVFMT_FLAG_BITEXACT as i32;
+        //     }
+        // }
 
-        let codec = AVCodec::find_encoder(context.oformat().audio_codec)
-            .ok_or_else(|| error::Kind::MissingEncoder)?;
+        let codec = avencoder::find(context.format().codec(filename, avmedia::Type::Audio))
+            .ok_or_else(|| error::Kind::MissingEncoder)?
+            .audio()?;
 
         // bit to kbit
         let bitrate = bitrate * 1000;
         // Opus sample rate will always be 48000Hz.
         let sample_rate =
-            if codec.id == ffi::AV_CODEC_ID_OPUS { 48000 } else { decoder.sample_rate };
+            if codec.id() == avcodec::Id::OPUS { 48000 } else { decoder.rate().try_into()? };
 
-        let mut encoder = AVCodecContext::new(&codec);
-        encoder.set_ch_layout(decoder.ch_layout);
-        encoder.set_sample_fmt(
-            *codec
-                .sample_fmts()
-                .and_then(<[_]>::first)
+        let mut encoder = avcodec::context::Context::new_with_codec(*codec).encoder().audio()?;
+        encoder.set_channel_layout(decoder.channel_layout());
+        encoder.set_format(
+            codec
+                .formats()
+                .as_mut()
+                .and_then(Iterator::next)
                 .ok_or_else(|| error::Kind::MissingEncoderSampleFmts)?,
         );
-        encoder.set_sample_rate(sample_rate);
-        encoder.set_bit_rate(bitrate.into());
-        encoder.set_time_base(avutil::ra(1, sample_rate));
+        encoder.set_rate(sample_rate);
+        encoder.set_bit_rate(bitrate.try_into()?);
+        encoder.set_time_base((1, sample_rate));
 
         // Some formats want stream headers to be separate.
-        if context.oformat().flags & ffi::AVFMT_GLOBALHEADER as i32 != 0 {
-            encoder.set_flags(encoder.flags | ffi::AV_CODEC_FLAG_GLOBAL_HEADER as i32);
+        if context.format().flags().contains(avformat::flag::Flags::GLOBAL_HEADER) {
+            encoder.set_flags(avcodec::flag::Flags::GLOBAL_HEADER);
         }
 
-        encoder.open(None)?;
+        let encoder = encoder.open()?;
         {
-            let mut stream = context.new_stream();
-            stream.set_codecpar(encoder.extract_codecpar());
-            stream.set_time_base(encoder.time_base);
+            let mut stream = context.add_stream(codec)?;
+            stream.set_parameters(&encoder);
+            stream.set_time_base(encoder.time_base());
         }
-        context.write_header(&mut None)?;
+        context.write_header()?;
 
-        Ok(Self { context, encoder })
+        let in_time_base = decoder.time_base();
+        let out_time_base = encoder.time_base();
+
+        Ok(Self { context, encoder, in_time_base, out_time_base })
     }
 
-    fn encode(&mut self, frame: Option<&AVFrame>) -> Result<(), Error> {
-        self.encoder.send_frame(frame)?;
+    fn encode(&mut self, frame: Option<&avframe::Audio>) -> Result<(), Error> {
+        if let Some(frame) = frame {
+            self.encoder.send_frame(frame)
+        } else {
+            self.encoder.send_eof()
+        }?;
 
+        let mut packet = AvPacket::empty();
         loop {
-            let mut packet = match self.encoder.receive_packet() {
-                Err(RsmpegError::EncoderDrainError | RsmpegError::EncoderFlushedError) => {
-                    return Ok(());
+            match self.encoder.receive_packet(&mut packet) {
+                Err(AvError::Other { errno: avutil::error::EAGAIN } | AvError::Eof) => {
+                    break Ok(());
                 }
-                result => result?,
-            };
-
-            packet.set_stream_index(0);
-            packet.rescale_ts(self.encoder.time_base, self.context.streams()[0].time_base);
-            self.context.interleaved_write_frame(&mut packet)?;
+                Err(error) => {
+                    break Err(error.into());
+                }
+                Ok(()) => {
+                    packet.set_stream(0);
+                    packet.rescale_ts(self.in_time_base, self.out_time_base);
+                    packet.write_interleaved(&mut self.context)?;
+                }
+            }
         }
     }
 
     fn flush(&mut self) -> Result<(), Error> {
-        if self.encoder.codec().capabilities & ffi::AV_CODEC_CAP_DELAY as i32 != 0 {
-            self.encode(None)
-        } else {
-            Ok(())
-        }
+        // if self.encoder.as_ref().capabilities() & ffi::AV_CODEC_CAP_DELAY as i32 != 0 {
+        //     self.encode(None)
+        // } else {
+        //     Ok(())
+        // }
+        self.encode(None)
     }
 }
 
 impl Graph {
-    fn new(decoder: &AVCodecContext, encoder: &AVCodecContext, offset: u32) -> Result<Self, Error> {
+    fn new(
+        decoder: &avcodec::decoder::Audio,
+        encoder: &avcodec::encoder::Audio,
+        offset: u32,
+    ) -> Self {
         let mut specs: Vec<Cow<'static, str>> = vec![];
         if offset > 0 {
             specs.push(concat_string!("atrim=start=", offset.to_string()).into());
         }
-        if decoder.sample_rate != encoder.sample_rate {
+        if decoder.rate() != encoder.rate() {
             specs.push("aresample=resampler=soxr".into());
         }
-        if encoder.frame_size > 0 {
+        if encoder.frame_size() > 0 {
             specs.push(
-                concat_string!("asetnsamples=n=", encoder.frame_size.to_string(), ":p=0").into(),
+                concat_string!("asetnsamples=n=", encoder.frame_size().to_string(), ":p=0").into(),
             );
         }
 
-        let spec =
-            if specs.is_empty() { c"anull".into() } else { CString::new(specs.join(","))?.into() };
+        let spec = if specs.is_empty() { "anull".into() } else { specs.join(",").into() };
 
-        Ok(Self { filter: AVFilterGraph::new(), spec })
+        Self { graph: avfilter::Graph::new(), spec }
     }
 }
 
-impl<'graph> Filter<'graph> {
+impl Filter {
     pub fn new(
-        graph: &'graph Graph,
-        decoder: &AVCodecContext,
-        encoder: &AVCodecContext,
+        graph: &mut Graph,
+        decoder: &avcodec::decoder::Audio,
+        encoder: &avcodec::encoder::Audio,
     ) -> Result<Self, Error> {
-        let source_ref = AVFilter::get_by_name(c"abuffer")
-            .ok_or_else(|| error::Kind::MissingAVFilter("abuffer"))?;
-        let sink_ref = AVFilter::get_by_name(c"abuffersink")
+        let source_ref =
+            avfilter::find("abuffer").ok_or_else(|| error::Kind::MissingAVFilter("abuffer"))?;
+        let sink_ref = avfilter::find("abuffersink")
             .ok_or_else(|| error::Kind::MissingAVFilter("abuffersink"))?;
 
         let source_arg = concat_string!(
             "time_base=",
-            decoder.pkt_timebase.num.to_string(),
-            "/",
-            decoder.pkt_timebase.den.to_string(),
+            &decoder.packet_time_base().to_string(),
             ":sample_rate=",
-            decoder.sample_rate.to_string(),
+            &decoder.rate().to_string(),
             ":sample_fmt=",
-            avutil::get_sample_fmt_name(decoder.sample_fmt)
-                .ok_or_else(|| error::Kind::MissingSampleFmtName(decoder.sample_fmt))?
-                .to_str()?,
-            ":channel_layout=",
-            decoder.ch_layout().describe()?.to_str()?
+            &decoder.format().name(),
+            ":channel_layout=0x",
+            faster_hex::hex_string(&decoder.channel_layout().bits().to_be_bytes())
         );
-        let source_arg = CString::new(source_arg)?;
-        let mut source =
-            graph.filter.create_filter_context(&source_ref, c"in", Some(&source_arg))?;
+        let source = graph.graph.add(&source_ref, "in", &source_arg)?;
+        tracing::debug!(?source_arg);
 
         let sink_arg = concat_string!(
             "samplerates=",
-            encoder.sample_rate.to_string(),
+            encoder.rate().to_string(),
             ":sample_formats=",
-            encoder.sample_fmt.to_string(),
-            ":channel_layouts=",
-            encoder.ch_layout().describe()?.to_str()?
+            encoder.format().name(),
+            ":channel_layouts=0x",
+            faster_hex::hex_string(&encoder.channel_layout().bits().to_be_bytes())
         );
-        let sink_arg = CString::new(sink_arg)?;
-        let mut sink = graph.filter.create_filter_context(&sink_ref, c"out", Some(&sink_arg))?;
+        let sink = graph.graph.add(&sink_ref, "out", &sink_arg)?;
+        tracing::debug!(?sink_arg);
 
         // Yes. The output name is in.
-        let outputs = AVFilterInOut::new(c"in", &mut source, 0);
-        let inputs = AVFilterInOut::new(c"out", &mut sink, 0);
-        graph.filter.parse_ptr(&graph.spec, Some(inputs), Some(outputs))?;
-
-        graph.filter.config()?;
+        graph.graph.output("in", 0)?.input("out", 0)?.parse(&graph.spec)?;
+        graph.graph.validate()?;
+        tracing::debug!(graph = graph.graph.dump());
 
         Ok(Self { source, sink })
     }
@@ -212,18 +221,26 @@ impl<'graph> Filter<'graph> {
     fn filter_and_encode(
         &mut self,
         output: &mut Output,
-        frame: Option<AVFrame>,
+        frame: Option<&avframe::Audio>,
     ) -> Result<(), Error> {
-        self.source.buffersrc_add_frame(frame, None)?;
+        let mut source = self.source.source();
+        let mut sink = self.sink.sink();
 
+        if let Some(frame) = frame { source.add(frame) } else { source.flush() }?;
+
+        let mut frame = avframe::Audio::empty();
         loop {
-            let frame = match self.sink.buffersink_get_frame(None) {
-                Err(RsmpegError::BufferSinkDrainError | RsmpegError::BufferSinkEofError) => {
+            match sink.frame(&mut frame) {
+                Err(AvError::Other { errno: avutil::error::EAGAIN } | AvError::Eof) => {
                     break Ok(());
                 }
-                result => result?,
-            };
-            output.encode(Some(&frame))?;
+                Err(error) => {
+                    break Err(error.into());
+                }
+                Ok(()) => {
+                    output.encode(Some(&frame))?;
+                }
+            }
         }
     }
 }
@@ -244,23 +261,23 @@ impl Transcoder {
         let handle = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
 
-            let atomic_file = path.output.map(AtomicWriteFile::open).transpose()?;
-            let file = atomic_file.as_ref().map(|file| file.as_file().try_clone()).transpose()?;
-            let sink = Sink { tx, buffer_size, format, file };
+            let atomic_cache = path.cache.map(AtomicWriteFile::open).transpose()?;
+            let cache = atomic_cache.as_ref().map(|file| file.as_file().try_clone()).transpose()?;
+            let sink = Sink { tx, buffer_size, format, cache };
 
-            let mut transcoder = Self::new(&CString::new(path.input)?, sink, bitrate, offset)?;
+            let mut transcoder = Self::new(&path.input, sink, bitrate, offset)?;
             transcoder.transcode()?;
-            atomic_file.map(AtomicWriteFile::commit).transpose()?;
+            atomic_cache.map(AtomicWriteFile::commit).transpose()?;
             Ok(())
         });
 
         (rx, handle)
     }
 
-    fn new(input: &CStr, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
+    fn new(input: &str, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
         let input = Input::new(input)?;
         let output = Output::new(sink, bitrate, &input.decoder)?;
-        let graph = Graph::new(&input.decoder, &output.encoder, offset)?;
+        let graph = Graph::new(&input.decoder, &output.encoder, offset);
         Ok(Self { input, output, graph })
     }
 
@@ -269,32 +286,28 @@ impl Transcoder {
         instrument(skip_all, ret(level = "debug"), err(Debug, level = "debug"))
     )]
     pub fn transcode(&mut self) -> Result<(), Error> {
-        let mut filter = Filter::new(&self.graph, &self.input.decoder, &self.output.encoder)?;
+        let mut filter = Filter::new(&mut self.graph, &self.input.decoder, &self.output.encoder)?;
 
-        loop {
-            let packet = self.input.context.read_packet()?;
-
+        for (stream, packet) in self.input.context.packets() {
             // Ignore non audio stream packets.
-            if packet.as_ref().is_some_and(|p| p.stream_index != self.input.index) {
+            if stream.index() != self.input.index {
                 continue;
             }
+            self.input.decoder.send_packet(&packet)?;
 
-            self.input.decoder.send_packet(packet.as_ref())?;
-
-            // If packet is none, we are at input EOF.
-            // The decoder is flushed by passing a none packet as above.
-            if packet.is_none() {
-                break;
-            }
-
+            let mut frame = avframe::Audio::empty();
             loop {
-                let frame = match self.input.decoder.receive_frame() {
-                    Err(RsmpegError::DecoderDrainError | RsmpegError::DecoderFlushedError) => {
+                match self.input.decoder.receive_frame(&mut frame) {
+                    Err(AvError::Other { errno: avutil::error::EAGAIN } | AvError::Eof) => {
                         break;
                     }
-                    result => result?,
-                };
-                filter.filter_and_encode(&mut self.output, Some(frame))?;
+                    Err(error) => {
+                        return Err(error.into());
+                    }
+                    Ok(()) => {
+                        filter.filter_and_encode(&mut self.output, Some(&frame))?;
+                    }
+                }
             }
         }
 
@@ -327,7 +340,7 @@ mod test {
         ) -> Vec<u8> {
             let (rx, handle) = Transcoder::spawn(
                 config,
-                Path { input: input.into(), output: None },
+                Path { input: input.into(), cache: None },
                 format,
                 bitrate,
                 offset,

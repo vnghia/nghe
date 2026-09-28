@@ -245,10 +245,6 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     MissingAVFilter(&'static str),
-    #[error("Missing sample fmt name for fmt id {0}")]
-    #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
-    #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    MissingSampleFmtName(i32),
 
     // Various error
     #[error("Invalid index ignore prefixes format")]
@@ -279,7 +275,7 @@ pub enum Kind {
 #[from_owned(reqwest::header::ToStrError)]
 #[from_owned(typed_path::StripPrefixError)]
 #[from_owned(tokio::task::JoinError)]
-#[from_owned(rsmpeg::error::RsmpegError)]
+#[from_owned(ffmpeg_next::Error)]
 #[from_owned(tokio::sync::AcquireError)]
 #[from_owned(std::ffi::NulError)]
 #[from_owned(std::str::Utf8Error)]

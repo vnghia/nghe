@@ -50,7 +50,7 @@ pub async fn handler(
         if cache_exists {
             if time_offset > 0 {
                 (
-                    transcode::Path { input: output.as_str().to_owned(), output: None },
+                    transcode::Path { input: output.as_str().to_owned(), cache: None },
                     #[cfg(test)]
                     BinaryStatus::UseCachedOutput,
                 )
@@ -73,7 +73,7 @@ pub async fn handler(
             (
                 transcode::Path {
                     input: filesystem.transcode_input(source_path).await?,
-                    output: if time_offset > 0 { None } else { Some(output) },
+                    cache: if time_offset > 0 { None } else { Some(output) },
                 },
                 #[cfg(test)]
                 if time_offset > 0 { BinaryStatus::NoCache } else { BinaryStatus::WithCache },
@@ -81,7 +81,7 @@ pub async fn handler(
         }
     } else {
         (
-            transcode::Path { input: filesystem.transcode_input(source_path).await?, output: None },
+            transcode::Path { input: filesystem.transcode_input(source_path).await?, cache: None },
             #[cfg(test)]
             BinaryStatus::NoCache,
         )

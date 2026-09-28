@@ -273,6 +273,8 @@
                 PQ_LIB_STATIC = if withStatic then "1" else null;
 
                 # test
+                RUST_LOG = "nghe=trace";
+
                 POSTGRES_USER = "postgres";
                 POSTGRES_PASSWORD = "postgres";
                 POSTGRES_DATABASE = "postgres";
@@ -308,12 +310,12 @@
                   (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
               ++ (
                 # for running test services
-                if pkgs.stdenv.isLinux then
+                if pkgs.stdenv.hostPlatform.isLinux then
                   [
                     pkgs.docker
                     pkgs.docker-compose
                   ]
-                else if pkgs.stdenv.isDarwin then
+                else if pkgs.stdenv.hostPlatform.isDarwin then
                   [
                     pkgs.postgresql
                     pkgs.seaweedfs
