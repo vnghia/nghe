@@ -20,6 +20,7 @@ struct Input {
 
 struct Output {
     context: avformat::context::Output,
+    codec: avcodec::Audio,
     encoder: avcodec::encoder::Audio,
     in_time_base: avutil::rational::Rational,
     out_time_base: avutil::rational::Rational,
@@ -75,7 +76,7 @@ impl Output {
         }
 
         let codec = avencoder::find(context.format().codec(filename, avmedia::Type::Audio))
-            .ok_or_else(|| error::Kind::MissingEncoder)?
+            .ok_or_else(|| error::Kind::MissingEncoderCodec)?
             .audio()?;
 
         // bit to kbit
@@ -113,7 +114,7 @@ impl Output {
         let in_time_base = decoder.time_base();
         let out_time_base = encoder.time_base();
 
-        Ok(Self { context, encoder, in_time_base, out_time_base })
+        Ok(Self { context, codec, encoder, in_time_base, out_time_base })
     }
 
     fn encode(&mut self, frame: Option<&avframe::Audio>) -> Result<(), Error> {
@@ -142,9 +143,7 @@ impl Output {
     }
 
     fn flush(&mut self) -> Result<(), Error> {
-        if let Some(codec) = self.encoder.codec()
-            && codec.capabilities().contains(avcodec::Capabilities::DELAY)
-        {
+        if self.codec.capabilities().contains(avcodec::Capabilities::DELAY) {
             self.encode(None)
         } else {
             Ok(())
@@ -153,16 +152,12 @@ impl Output {
 }
 
 impl Graph {
-    fn new(
-        decoder: &avcodec::decoder::Audio,
-        encoder: &avcodec::encoder::Audio,
-        offset: u32,
-    ) -> Self {
+    fn new(input: &Input, output: &Output, offset: u32) -> Self {
         let mut specs: Vec<Cow<'static, str>> = vec![];
         if offset > 0 {
             specs.push(concat_string!("atrim=start=", offset.to_string()).into());
         }
-        if decoder.rate() != encoder.rate() {
+        if input.decoder.rate() != output.encoder.rate() {
             specs.push("aresample=resampler=soxr".into());
         }
 
@@ -173,11 +168,10 @@ impl Graph {
 }
 
 impl Filter {
-    pub fn new(
-        graph: &mut Graph,
-        decoder: &avcodec::decoder::Audio,
-        encoder: &avcodec::encoder::Audio,
-    ) -> Result<Self, Error> {
+    pub fn new(graph: &mut Graph, input: &Input, output: &Output) -> Result<Self, Error> {
+        let decoder = &input.decoder;
+        let encoder = &output.encoder;
+
         let source_ref =
             avfilter::find("abuffer").ok_or_else(|| error::Kind::MissingAVFilter("abuffer"))?;
         let sink_ref = avfilter::find("abuffersink")
@@ -206,9 +200,7 @@ impl Filter {
         );
         tracing::debug!(?sink_arg);
         let mut sink = graph.graph.add(&sink_ref, "out", &sink_arg)?;
-        if let Some(codec) = encoder.codec()
-            && !codec.capabilities().contains(avcodec::Capabilities::VARIABLE_FRAME_SIZE)
-        {
+        if !output.codec.capabilities().contains(avcodec::Capabilities::VARIABLE_FRAME_SIZE) {
             sink.sink().set_frame_size(encoder.frame_size());
         }
 
@@ -279,7 +271,7 @@ impl Transcoder {
     fn new(input: &str, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
         let input = Input::new(input)?;
         let output = Output::new(sink, bitrate, &input.decoder)?;
-        let graph = Graph::new(&input.decoder, &output.encoder, offset);
+        let graph = Graph::new(&input, &output, offset);
         Ok(Self { input, output, graph })
     }
 
@@ -288,7 +280,7 @@ impl Transcoder {
         instrument(skip_all, ret(level = "debug"), err(Debug, level = "debug"))
     )]
     pub fn transcode(&mut self) -> Result<(), Error> {
-        let mut filter = Filter::new(&mut self.graph, &self.input.decoder, &self.output.encoder)?;
+        let mut filter = Filter::new(&mut self.graph, &self.input, &self.output)?;
 
         for (stream, packet) in self.input.context.packets() {
             // Ignore non audio stream packets.

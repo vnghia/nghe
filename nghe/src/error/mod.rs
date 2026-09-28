@@ -233,10 +233,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     MissingAudioTrack,
-    #[error("Missing encoder")]
+    #[error("Missing encoder codec")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    MissingEncoder,
+    MissingEncoderCodec,
     #[error("Missing sample fmts for encoder")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
