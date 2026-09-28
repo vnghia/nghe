@@ -247,6 +247,7 @@
               };
 
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
+              buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
 
               cargoExpand = pkgs.cargo-expand;
               cargoNextest = pkgs.cargo-nextest;
@@ -259,6 +260,7 @@
               env = rec {
                 # cargo
                 CARGO_BUILD_TARGET = rustTarget;
+
                 "CARGO_TARGET_${rustShoutTarget}_LINKER" = ccBin;
                 "CC_${rustShoutTarget}" = ccBin;
 
@@ -273,6 +275,7 @@
 
                 # test
                 RUST_LOG = "nghe=trace";
+                RUST_BACKTRACE = "1";
 
                 POSTGRES_USER = "postgres";
                 POSTGRES_PASSWORD = "postgres";
@@ -286,7 +289,10 @@
                 AWS_PORT = "9090";
                 AWS_USE_PATH_STYLE_ENDPOINT = "true";
                 AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
-              };
+              }
+              // (hostLib.optionalAttrs isCross {
+                "HOST_CC" = buildCcBin;
+              });
 
               packages = [
                 toolchain
