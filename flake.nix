@@ -1,7 +1,7 @@
 {
   inputs = {
     nixpkgs = {
-      url = "github:nixos/nixpkgs/nixos-26.05";
+      url = "github:nixos/nixpkgs/nixos-unstable";
     };
 
     flake-parts = {
@@ -123,8 +123,6 @@
 
               ffmpeg =
                 (hostPkgs.ffmpeg.override {
-                  version = "8.0.3";
-
                   withHeadlessDeps = false;
                   withSmallDeps = false;
                   withFullDeps = false;
