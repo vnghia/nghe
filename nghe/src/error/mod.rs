@@ -237,10 +237,10 @@ pub enum Kind {
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
     MissingEncoderCodec,
-    #[error("Missing sample fmts for encoder")]
+    #[error("Missing sample formats for encoder")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]
-    MissingEncoderSampleFmts,
+    MissingEncoderSampleFormats,
     #[error("Missing av filter with name {0}")]
     #[into(StatusCode| StatusCode::INTERNAL_SERVER_ERROR)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]

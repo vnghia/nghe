@@ -6,6 +6,7 @@ use ffmpeg_next::{
     Error as AvError, Packet as AvPacket, codec as avcodec, encoder as avencoder,
     filter as avfilter, format as avformat, frame as avframe, media as avmedia, util as avutil,
 };
+use itertools::Itertools as _;
 use loole::Receiver;
 use tracing::instrument;
 
@@ -21,6 +22,7 @@ struct Input {
 struct Output {
     context: avformat::context::Output,
     codec: avcodec::Audio,
+    sample_formats: Vec<avformat::Sample>,
     encoder: avcodec::encoder::Audio,
 }
 
@@ -60,7 +62,7 @@ impl Input {
 }
 
 impl Output {
-    fn new(sink: Sink, bitrate: u32, decoder: &avcodec::decoder::Audio) -> Result<Self, Error> {
+    fn new(sink: Sink, bit_rate: u32, decoder: &avcodec::decoder::Audio) -> Result<Self, Error> {
         let filename = sink.filename();
         let mut context =
             ffmpeg_next::format::output_to_stream(sink.try_into()?, Some(filename), None)?;
@@ -77,23 +79,29 @@ impl Output {
             .audio()?;
 
         // bit to kbit
-        let bitrate = (bitrate * 1000).try_into()?;
-        // Opus sample rate will always be 48000Hz.
-        let sample_rate =
-            if codec.id() == avcodec::Id::OPUS { 48000 } else { decoder.rate().try_into()? };
+        let bit_rate = (bit_rate * 1000).try_into()?;
+
+        let decoder_rate = decoder.rate();
+        let sample_rate = if codec.id() == avcodec::Id::OPUS {
+            // Opus sample rate should be rounded to either 24000 or 48000,
+            // 36000 is the median of 24000 and 48000.
+            if decoder_rate <= 36000 { 24000 } else { 48000 }
+        } else {
+            decoder_rate.try_into()?
+        };
+
+        let sample_formats = codec
+            .formats()
+            .ok_or_else(|| error::Kind::MissingEncoderSampleFormats)?
+            .collect::<Vec<_>>();
 
         let mut encoder = avcodec::context::Context::new_with_codec(*codec).encoder().audio()?;
         encoder.set_channel_layout(decoder.channel_layout());
         encoder.set_format(
-            codec
-                .formats()
-                .as_mut()
-                .and_then(Iterator::next)
-                .ok_or_else(|| error::Kind::MissingEncoderSampleFmts)?,
+            *sample_formats.first().ok_or_else(|| error::Kind::MissingEncoderSampleFormats)?,
         );
         encoder.set_rate(sample_rate);
-        encoder.set_bit_rate(bitrate);
-        encoder.set_max_bit_rate(bitrate);
+        encoder.set_bit_rate(bit_rate);
         encoder.set_time_base((1, sample_rate));
 
         if context.format().flags().contains(avformat::Flags::GLOBAL_HEADER) {
@@ -108,7 +116,7 @@ impl Output {
         }
         context.write_header()?;
 
-        Ok(Self { context, codec, encoder })
+        Ok(Self { context, codec, sample_formats, encoder })
     }
 
     fn encode(&mut self, frame: Option<&avframe::Audio>) -> Result<(), Error> {
@@ -147,13 +155,28 @@ impl Output {
 impl Graph {
     fn new(input: &Input, output: &Output, offset: u32) -> Self {
         let mut specs: Vec<Cow<'static, str>> = vec![];
+
         if offset > 0 {
             specs.push(concat_string!("atrim=start=", offset.to_string()).into());
         }
+
         if input.decoder.rate() != output.encoder.rate() {
             specs.push("aresample=resampler=soxr".into());
         }
 
+        // Formatting output
+        specs.push(
+            concat_string!(
+                "aformat=",
+                "sample_fmts=",
+                output.sample_formats.iter().map(avformat::Sample::name).join("|"),
+                ":sample_rates=",
+                output.encoder.rate().to_string()
+            )
+            .into(),
+        );
+
+        tracing::debug!(?specs);
         let spec = if specs.is_empty() { "anull".into() } else { specs.join(",").into() };
 
         Self { graph: avfilter::Graph::new(), spec }
@@ -183,16 +206,7 @@ impl Filter {
         tracing::debug!(?source_arg);
         let source = graph.graph.add(&source_ref, "in", &source_arg)?;
 
-        let sink_arg = concat_string!(
-            "samplerates=",
-            encoder.rate().to_string(),
-            ":sample_formats=",
-            encoder.format().name(),
-            ":channel_layouts=0x",
-            faster_hex::hex_string(&encoder.channel_layout().bits().to_be_bytes())
-        );
-        tracing::debug!(?sink_arg);
-        let mut sink = graph.graph.add(&sink_ref, "out", &sink_arg)?;
+        let mut sink = graph.graph.add(&sink_ref, "out", "")?;
         if !output.codec.capabilities().contains(avcodec::Capabilities::VARIABLE_FRAME_SIZE) {
             sink.sink().set_frame_size(encoder.frame_size());
         }
@@ -238,7 +252,7 @@ impl Transcoder {
         config: &config::Transcode,
         path: Path,
         format: nghe_api::common::format::Transcode,
-        bitrate: u32,
+        bit_rate: u32,
         offset: u32,
     ) -> (Receiver<Vec<u8>>, tokio::task::JoinHandle<Result<(), Error>>) {
         let (tx, rx) = crate::sync::channel(config.channel_size);
@@ -252,7 +266,7 @@ impl Transcoder {
             let cache = atomic_cache.as_ref().map(|file| file.as_file().try_clone()).transpose()?;
             let sink = Sink { tx, buffer_size, format, cache };
 
-            let mut transcoder = Self::new(&path.input, sink, bitrate, offset)?;
+            let mut transcoder = Self::new(&path.input, sink, bit_rate, offset)?;
             transcoder.transcode()?;
             atomic_cache.map(AtomicWriteFile::commit).transpose()?;
             Ok(())
@@ -261,9 +275,9 @@ impl Transcoder {
         (rx, handle)
     }
 
-    fn new(input: &str, sink: Sink, bitrate: u32, offset: u32) -> Result<Self, Error> {
+    fn new(input: &str, sink: Sink, bit_rate: u32, offset: u32) -> Result<Self, Error> {
         let input = Input::new(input)?;
-        let output = Output::new(sink, bitrate, &input.decoder)?;
+        let output = Output::new(sink, bit_rate, &input.decoder)?;
         let graph = Graph::new(&input, &output, offset);
         Ok(Self { input, output, graph })
     }
@@ -329,14 +343,14 @@ mod test {
             config: &config::Transcode,
             input: impl Into<String>,
             format: format::Transcode,
-            bitrate: u32,
+            bit_rate: u32,
             offset: u32,
         ) -> Vec<u8> {
             let (rx, handle) = Transcoder::spawn(
                 config,
                 Path { input: input.into(), cache: None },
                 format,
-                bitrate,
+                bit_rate,
                 offset,
             );
             let data = rx.into_stream().map(stream::iter).flatten().collect().await;
@@ -367,7 +381,7 @@ mod tests {
     #[tokio::test]
     async fn test_transcode(
         #[case] format: format::Transcode,
-        #[case] bitrate: u32,
+        #[case] bit_rate: u32,
         #[values(0, 5)] offset: u32,
     ) {
         let config = config::Transcode {
@@ -377,7 +391,7 @@ mod tests {
         init_ffmpeg(&config).unwrap();
 
         let input = assets::path(audio::Format::Flac);
-        let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
+        let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;
 
         // This generated data here has to have the same streamhash as the output generated
         // by ffmpeg's commands below:
@@ -388,7 +402,7 @@ mod tests {
         let transcoded = assets::transcoded(format, offset);
         if tokio::fs::try_exists(&transcoded).await.unwrap() {
             let transcoded = tokio::fs::read(transcoded).await.unwrap();
-            assert_eq!(data, transcoded);
+            assert!(data == transcoded, "Transcoded file does not match expected file");
         } else {
             tokio::fs::create_dir_all(transcoded.parent().unwrap()).await.unwrap();
             tokio::fs::write(transcoded, data).await.unwrap();
@@ -402,7 +416,7 @@ mod tests {
     #[tokio::test]
     async fn test_hearing(
         #[case] format: format::Transcode,
-        #[case] bitrate: u32,
+        #[case] bit_rate: u32,
         #[values(0, 10)] offset: u32,
     ) {
         let config = config::Transcode {
@@ -412,11 +426,11 @@ mod tests {
         init_ffmpeg(&config).unwrap();
 
         let input = env!("NGHE_HEARING_TEST_INPUT");
-        let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
+        let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;
 
         tokio::fs::write(
             Utf8PlatformPath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
-                .join(concat_string!(bitrate.to_string(), "-", offset.to_string()))
+                .join(concat_string!(bit_rate.to_string(), "-", offset.to_string()))
                 .with_extension(format.as_ref()),
             &data,
         )
