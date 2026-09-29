@@ -146,11 +146,6 @@ impl Graph {
         if decoder.sample_rate != encoder.sample_rate {
             specs.push("aresample=resampler=soxr".into());
         }
-        if encoder.frame_size > 0 {
-            specs.push(
-                concat_string!("asetnsamples=n=", encoder.frame_size.to_string(), ":p=0").into(),
-            );
-        }
 
         let spec =
             if specs.is_empty() { c"anull".into() } else { CString::new(specs.join(","))?.into() };
@@ -198,6 +193,7 @@ impl<'graph> Filter<'graph> {
         );
         let sink_arg = CString::new(sink_arg)?;
         let mut sink = graph.filter.create_filter_context(&sink_ref, c"out", Some(&sink_arg))?;
+        sink.buffersink_set_frame_size(encoder.frame_size.try_into()?);
 
         // Yes. The output name is in.
         let outputs = AVFilterInOut::new(c"in", &mut source, 0);
@@ -387,6 +383,10 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
+        unsafe {
+            rsmpeg::ffi::av_log_set_level(rsmpeg::ffi::AV_LOG_TRACE as i32);
+        }
+
         let input = env!("NGHE_HEARING_TEST_INPUT");
         let config = config::Transcode::default();
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
