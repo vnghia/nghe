@@ -281,12 +281,19 @@ impl Transcoder {
     pub fn transcode(&mut self) -> Result<(), Error> {
         let mut filter = Filter::new(&mut self.graph, &self.input, &self.output)?;
 
-        for (stream, packet) in self.input.context.packets() {
-            // Ignore non audio stream packets.
-            if stream.index() != self.input.index {
-                continue;
+        let mut packet = AvPacket::empty();
+        loop {
+            match packet.read(&mut self.input.context) {
+                Err(AvError::Eof) => break self.input.decoder.send_eof()?,
+                Err(error) => return Err(error.into()),
+                Ok(()) => {
+                    // Ignore non audio stream packets.
+                    if packet.stream() != self.input.index {
+                        continue;
+                    }
+                    self.input.decoder.send_packet(&packet)?;
+                }
             }
-            self.input.decoder.send_packet(&packet)?;
 
             let mut frame = avframe::Audio::empty();
             loop {
