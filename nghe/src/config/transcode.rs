@@ -1,8 +1,24 @@
 use educe::Educe;
+use o2o::o2o;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use typed_path::Utf8PlatformPathBuf;
 use typed_path::utils::utf8_temp_dir;
+
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, o2o)]
+#[map_owned(ffmpeg_next::util::log::Level)]
+pub enum LogLevel {
+    Quiet,
+    Panic,
+    Fatal,
+    Error,
+    #[default]
+    Warning,
+    Info,
+    Verbose,
+    Debug,
+    Trace,
+}
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Educe)]
@@ -18,6 +34,7 @@ pub struct Transcode {
         expression = Some(utf8_temp_dir().unwrap().join("nghe").join("cache").join("transcode"))
     ))]
     pub cache_dir: Option<Utf8PlatformPathBuf>,
+    pub log_level: LogLevel,
 }
 
 #[cfg(test)]

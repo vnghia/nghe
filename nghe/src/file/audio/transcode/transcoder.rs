@@ -354,9 +354,9 @@ mod tests {
     use typed_path::Utf8PlatformPath;
 
     use super::*;
-    use crate::config;
     use crate::file::audio;
     use crate::test::assets;
+    use crate::{config, init_ffmpeg};
 
     #[rstest]
     #[case(format::Transcode::Aac, 128)]
@@ -370,8 +370,13 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 5)] offset: u32,
     ) {
+        let config = config::Transcode {
+            log_level: ffmpeg_next::log::Level::Trace.into(),
+            ..Default::default()
+        };
+        init_ffmpeg(&config).unwrap();
+
         let input = assets::path(audio::Format::Flac);
-        let config = config::Transcode::default();
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
 
         let transcoded = assets::transcoded(format, offset);
@@ -394,9 +399,13 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
-        ffmpeg_next::util::log::set_level(ffmpeg_next::util::log::Level::Trace);
+        let config = config::Transcode {
+            log_level: ffmpeg_next::log::Level::Trace.into(),
+            ..Default::default()
+        };
+        init_ffmpeg(&config).unwrap();
+
         let input = env!("NGHE_HEARING_TEST_INPUT");
-        let config = config::Transcode::default();
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
 
         tokio::fs::write(

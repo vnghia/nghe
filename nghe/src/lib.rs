@@ -83,6 +83,13 @@ pub fn init_tracing(log: &config::Log) -> Result<(), Error> {
 }
 
 #[coverage(off)]
+pub fn init_ffmpeg(transcode: &config::Transcode) -> Result<(), Error> {
+    ffmpeg_next::init()?;
+    ffmpeg_next::util::log::set_level(transcode.log_level.into());
+    Ok(())
+}
+
+#[coverage(off)]
 pub async fn build(config: config::Config) -> Router {
     let filesystem = filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3);
     let informant = integration::Informant::new(config.integration).await;
