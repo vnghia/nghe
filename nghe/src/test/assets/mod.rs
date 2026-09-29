@@ -13,6 +13,7 @@ pub fn path(format: audio::Format) -> Utf8PlatformPathBuf {
 pub fn transcoded(format: nghe_api::common::format::Transcode, offset: u32) -> Utf8PlatformPathBuf {
     dir()
         .join("transcoded")
+        .join(nghe_api::constant::built_info::TARGET)
         .join(concat_string::concat_string!("sample-", offset.to_string()))
         .with_extension(format.as_ref())
 }

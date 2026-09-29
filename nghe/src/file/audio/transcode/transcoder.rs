@@ -379,6 +379,12 @@ mod tests {
         let input = assets::path(audio::Format::Flac);
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
 
+        // This generated data here has to have the same streamhash as the output generated
+        // by ffmpeg's commands below:
+        // `ffmpeg -i assets/test/sample.flac -b:a 64k -map_metadata -1 -bitexact -af
+        // 'aresample=resampler=soxr' out.opus`
+        // `ffmpeg -i out.opus -map 0:a -f md5 - 2> /dev/null`
+
         let transcoded = assets::transcoded(format, offset);
         if tokio::fs::try_exists(&transcoded).await.unwrap() {
             let transcoded = tokio::fs::read(transcoded).await.unwrap();

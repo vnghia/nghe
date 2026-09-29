@@ -11,7 +11,6 @@
 
 #[coverage(off)]
 pub mod config;
-mod constant;
 mod database;
 #[coverage(off)]
 mod error;
