@@ -22,8 +22,6 @@ struct Output {
     context: avformat::context::Output,
     codec: avcodec::Audio,
     encoder: avcodec::encoder::Audio,
-    in_time_base: avutil::rational::Rational,
-    out_time_base: avutil::rational::Rational,
 }
 
 struct Graph {
@@ -110,10 +108,7 @@ impl Output {
         }
         context.write_header()?;
 
-        let in_time_base = decoder.time_base();
-        let out_time_base = encoder.time_base();
-
-        Ok(Self { context, codec, encoder, in_time_base, out_time_base })
+        Ok(Self { context, codec, encoder })
     }
 
     fn encode(&mut self, frame: Option<&avframe::Audio>) -> Result<(), Error> {
@@ -134,7 +129,6 @@ impl Output {
                 }
                 Ok(()) => {
                     packet.set_stream(0);
-                    packet.rescale_ts(self.in_time_base, self.out_time_base);
                     packet.write_interleaved(&mut self.context)?;
                 }
             }
@@ -400,6 +394,7 @@ mod tests {
         #[case] bitrate: u32,
         #[values(0, 10)] offset: u32,
     ) {
+        ffmpeg_next::util::log::set_level(ffmpeg_next::util::log::Level::Trace);
         let input = env!("NGHE_HEARING_TEST_INPUT");
         let config = config::Transcode::default();
         let data = Transcoder::spawn_collect(&config, input, format, bitrate, offset).await;
