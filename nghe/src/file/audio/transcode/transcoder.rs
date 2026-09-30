@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use atomic_write_file::AtomicWriteFile;
 use concat_string::concat_string;
 use ffmpeg_next::{
-    Error as AvError, Packet as AvPacket, codec as avcodec, encoder as avencoder,
+    Error as AvError, Packet as AvPacket, Rescale as _, codec as avcodec, encoder as avencoder,
     filter as avfilter, format as avformat, frame as avframe, media as avmedia, util as avutil,
 };
 use loole::Receiver;
@@ -22,8 +22,6 @@ struct Output {
     context: avformat::context::Output,
     codec: avcodec::Audio,
     encoder: avcodec::encoder::Audio,
-    in_time_base: avutil::rational::Rational,
-    out_time_base: avutil::rational::Rational,
 }
 
 struct Graph {
@@ -110,14 +108,15 @@ impl Output {
         }
         context.write_header()?;
 
-        let in_time_base = decoder.time_base();
-        let out_time_base = encoder.time_base();
-
-        Ok(Self { context, codec, encoder, in_time_base, out_time_base })
+        Ok(Self { context, codec, encoder })
     }
 
-    fn encode(&mut self, frame: Option<&avframe::Audio>) -> Result<(), Error> {
+    fn encode(&mut self, frame: Option<&mut avframe::Audio>) -> Result<(), Error> {
         if let Some(frame) = frame {
+            if let Some(pts) = frame.pts() {
+                let frame_timebase = unsafe { (*frame.as_ptr()).time_base };
+                frame.set_pts(Some(pts.rescale(frame_timebase, self.encoder.time_base())));
+            };
             self.encoder.send_frame(frame)
         } else {
             self.encoder.send_eof()
@@ -134,7 +133,6 @@ impl Output {
                 }
                 Ok(()) => {
                     packet.set_stream(0);
-                    packet.rescale_ts(self.in_time_base, self.out_time_base);
                     packet.write_interleaved(&mut self.context)?;
                 }
             }
@@ -199,7 +197,7 @@ impl Filter {
         );
         tracing::debug!(?sink_arg);
         let mut sink = graph.graph.add(&sink_ref, "out", &sink_arg)?;
-        if !output.codec.capabilities().contains(avcodec::Capabilities::VARIABLE_FRAME_SIZE) {
+        if encoder.frame_size() > 0 {
             sink.sink().set_frame_size(encoder.frame_size());
         }
 
@@ -231,7 +229,10 @@ impl Filter {
                     break Err(error.into());
                 }
                 Ok(()) => {
-                    output.encode(Some(&frame))?;
+                    unsafe {
+                        (*frame.as_mut_ptr()).time_base = sink.time_base().into();
+                    }
+                    output.encode(Some(&mut frame))?;
                 }
             }
         }
@@ -298,6 +299,8 @@ impl Transcoder {
                         return Err(error.into());
                     }
                     Ok(()) => {
+                        let frame_timestamp = frame.timestamp();
+                        frame.set_pts(frame_timestamp);
                         filter.filter_and_encode(&mut self.output, Some(&frame))?;
                     }
                 }
