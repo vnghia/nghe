@@ -1,12 +1,11 @@
-use std::ffi::CStr;
-use std::io::Write;
+use std::io::{Result as IoResult, Write};
 
 use educe::Educe;
+use ffmpeg_next::format::context::StreamIo;
 use loole::Sender;
 use nghe_api::common::format;
-use rsmpeg::avformat::{AVIOContextContainer, AVIOContextCustom};
-use rsmpeg::avutil::AVMem;
-use rsmpeg::ffi;
+
+use crate::Error;
 
 #[derive(Educe)]
 #[educe(Debug)]
@@ -15,51 +14,54 @@ pub struct Sink {
     pub tx: Sender<Vec<u8>>,
     pub buffer_size: usize,
     pub format: format::Transcode,
-    pub file: Option<std::fs::File>,
+    pub cache: Option<std::fs::File>,
 }
 
 impl Sink {
-    pub fn format(&self) -> &'static CStr {
-        // TODO: Use ffmpeg format code after https://github.com/larksuite/rsmpeg/pull/196
+    pub fn filename(&self) -> &'static str {
         match self.format {
-            format::Transcode::Aac => c"output.aac",
-            format::Transcode::Flac => c"output.flac",
-            format::Transcode::Mp3 => c"output.mp3",
-            format::Transcode::Opus => c"output.opus",
-            format::Transcode::Wav => c"output.wav",
-            format::Transcode::Wma => c"output.wma",
-        }
-    }
-
-    fn write(&mut self, data: &[u8]) -> i32 {
-        let write_len = data.len().try_into().unwrap_or(ffi::AVERROR_BUG2);
-
-        let send_result = self.tx.send(data.to_vec());
-        let write_result = self.file.as_mut().map(|file| file.write_all(data));
-
-        tracing::trace!(?write_len, ?send_result, ?write_result);
-
-        // We will keep continue writing in one of two cases below:
-        //  - We can still send data to the receiver. We don't care if we can write or not
-        //    (including the case where the file is none).
-        //  - We can write to the file (this means the file must not be none).
-        if send_result.is_ok() || write_result.is_some_and(|result| result.is_ok()) {
-            write_len
-        } else {
-            ffi::AVERROR_OUTPUT_CHANGED
+            format::Transcode::Aac => ".aac",
+            format::Transcode::Flac => ".flac",
+            format::Transcode::Mp3 => ".mp3",
+            format::Transcode::Opus => ".opus",
+            format::Transcode::Wav => ".wav",
+            format::Transcode::Wma => ".wma",
         }
     }
 }
 
-impl From<Sink> for AVIOContextContainer {
-    fn from(mut sink: Sink) -> Self {
-        AVIOContextContainer::Custom(AVIOContextCustom::alloc_context(
-            AVMem::new(sink.buffer_size),
-            true,
-            Vec::default(),
-            None,
-            Some(Box::new(move |_, data| sink.write(data))),
-            None,
-        ))
+impl Write for Sink {
+    fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
+        let write_len = buf.len();
+
+        let send_result = self.tx.send(buf.to_vec());
+        let cache_write_result = self.cache.as_mut().map(|file| file.write_all(buf));
+
+        tracing::trace!(?write_len, ?send_result, ?cache_write_result);
+
+        // We will keep continue writing in one of two cases below:
+        //  - We can still send data to the receiver. We don't care if we can write or not
+        //    (including the case where the cache is none).
+        //  - We can write to the cache (this means the cache must not be none).
+        if send_result.is_ok() || cache_write_result.is_some_and(|result| result.is_ok()) {
+            Ok(write_len)
+        } else {
+            Err(std::io::Error::other("Could not send data to neither recv nor cache"))
+        }
+    }
+
+    fn flush(&mut self) -> IoResult<()> {
+        self.tx.close();
+        self.cache.as_mut().map(Write::flush).transpose()?;
+        Ok(())
+    }
+}
+
+impl TryFrom<Sink> for StreamIo {
+    type Error = Error;
+
+    fn try_from(sink: Sink) -> Result<Self, Self::Error> {
+        let buffer_size = sink.buffer_size;
+        Self::from_write_with_capacity(sink, buffer_size).map_err(Error::from)
     }
 }

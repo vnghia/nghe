@@ -9,5 +9,5 @@ use typed_path::Utf8PlatformPathBuf;
 #[derive(Debug)]
 pub struct Path {
     pub input: String,
-    pub output: Option<Utf8PlatformPathBuf>,
+    pub cache: Option<Utf8PlatformPathBuf>,
 }

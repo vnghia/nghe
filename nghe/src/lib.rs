@@ -11,7 +11,6 @@
 
 #[coverage(off)]
 pub mod config;
-mod constant;
 mod database;
 #[coverage(off)]
 mod error;
@@ -79,6 +78,13 @@ pub fn init_tracing(log: &config::Log) -> Result<(), Error> {
         }
     }
 
+    Ok(())
+}
+
+#[coverage(off)]
+pub fn init_ffmpeg(transcode: &config::Transcode) -> Result<(), Error> {
+    ffmpeg_next::init()?;
+    ffmpeg_next::util::log::set_level(transcode.log_level.into());
     Ok(())
 }
 

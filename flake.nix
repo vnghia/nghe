@@ -1,7 +1,7 @@
 {
   inputs = {
     nixpkgs = {
-      url = "github:nixos/nixpkgs/nixos-26.05";
+      url = "github:nixos/nixpkgs/nixos-unstable";
     };
 
     flake-parts = {
@@ -123,8 +123,6 @@
 
               ffmpeg =
                 (hostPkgs.ffmpeg.override {
-                  version = "8.0.3";
-
                   withHeadlessDeps = false;
                   withSmallDeps = false;
                   withFullDeps = false;
@@ -138,7 +136,7 @@
                   withHardcodedTables = true;
                   withMultithread = true;
                   withNetwork = true;
-                  withPixelutils = true;
+                  withPixelutils = false;
                   withPic = true;
                   withThumb = false;
 
@@ -147,12 +145,12 @@
                   buildFfprobe = false;
                   buildQtFaststart = false;
                   buildAvcodec = true;
-                  buildAvdevice = true;
+                  buildAvdevice = false;
                   buildAvfilter = true;
                   buildAvformat = true;
                   buildAvutil = true;
                   buildSwresample = true;
-                  buildSwscale = true;
+                  buildSwscale = false;
 
                   withOptimisations = true;
                   withStripping = true;
@@ -167,6 +165,7 @@
                 }).overrideAttrs
                   (
                     finalAttrs: previousAttrs: {
+                      doCheck = false;
                       configureFlags =
                         previousAttrs.configureFlags
                         ++ [
@@ -248,6 +247,7 @@
               };
 
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
+              buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
 
               cargoExpand = pkgs.cargo-expand;
               cargoNextest = pkgs.cargo-nextest;
@@ -260,6 +260,7 @@
               env = rec {
                 # cargo
                 CARGO_BUILD_TARGET = rustTarget;
+
                 "CARGO_TARGET_${rustShoutTarget}_LINKER" = ccBin;
                 "CC_${rustShoutTarget}" = ccBin;
 
@@ -273,6 +274,8 @@
                 PQ_LIB_STATIC = if withStatic then "1" else null;
 
                 # test
+                RUST_LOG = "nghe=trace";
+
                 POSTGRES_USER = "postgres";
                 POSTGRES_PASSWORD = "postgres";
                 POSTGRES_DATABASE = "postgres";
@@ -285,7 +288,10 @@
                 AWS_PORT = "9090";
                 AWS_USE_PATH_STYLE_ENDPOINT = "true";
                 AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
-              };
+              }
+              // (hostLib.optionalAttrs hostPkgs.stdenv.hostPlatform.isBSD {
+                "HOST_CC" = buildCcBin;
+              });
 
               packages = [
                 toolchain
@@ -308,12 +314,12 @@
                   (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
               ++ (
                 # for running test services
-                if pkgs.stdenv.isLinux then
+                if pkgs.stdenv.hostPlatform.isLinux then
                   [
                     pkgs.docker
                     pkgs.docker-compose
                   ]
-                else if pkgs.stdenv.isDarwin then
+                else if pkgs.stdenv.hostPlatform.isDarwin then
                   [
                     pkgs.postgresql
                     pkgs.seaweedfs

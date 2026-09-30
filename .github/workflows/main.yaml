@@ -16,7 +16,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
-  RUST_LOG: nghe=trace
   COLORBT_SHOW_HIDDEN: 1
 
 jobs:

@@ -48,6 +48,11 @@ diesel-async = { version = "0.9.0", features = [
 ] }
 diesel_full_text_search = { version = "2.3.0", default-features = false }
 diesel_migrations = { version = "2.3.1", features = ["postgres"] }
+ffmpeg-next = { version = "9.0.0", default-features = false, features = [
+  "codec",
+  "filter",
+  "format",
+] }
 figment = { version = "0.10.19", features = ["env"] }
 futures-lite = { version = "2.6.0" }
 image = { version = "0.25.6", default-features = false, features = [
@@ -61,10 +66,6 @@ lofty = { version = "0.25.0" }
 loole = { version = "0.4.1" }
 mimalloc = { version = "0.1.48", features = ["v3"] }
 o2o = { version = "0.5.4", default-features = false, features = ["syn2"] }
-rsmpeg = { version = "0.18.0", default-features = false, features = [
-  "ffmpeg8",
-  "link_system_ffmpeg",
-] }
 rspotify = { version = "0.16.0", default-features = false, features = [
   "client-reqwest",
   "reqwest-native-tls",
