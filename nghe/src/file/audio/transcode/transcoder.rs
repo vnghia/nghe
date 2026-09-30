@@ -99,6 +99,7 @@ impl Output {
 
         encoder.set_channel_layout(decoder.channel_layout());
         encoder.set_bit_rate(bit_rate);
+        encoder.set_max_bit_rate(bit_rate);
         encoder.set_rate(encoder_rate);
         encoder.set_time_base((1, encoder_rate));
         encoder.set_format(encoder_format);
@@ -368,7 +369,6 @@ mod test {
 mod tests {
     use nghe_api::common::format;
     use rstest::rstest;
-    use typed_path::Utf8PlatformPath;
 
     use super::*;
     use crate::file::audio;
@@ -395,12 +395,6 @@ mod tests {
 
         let input = assets::path(audio::Format::Flac);
         let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;
-
-        // This generated data here has to have the same streamhash as the output generated
-        // by ffmpeg's commands below:
-        // `ffmpeg -i assets/test/sample.flac -b:a 64k -map_metadata -1 -bitexact -af
-        // 'aresample=resampler=soxr' out.opus`
-        // `ffmpeg -i out.opus -map 0:a -f md5 - 2> /dev/null`
 
         let transcoded = assets::transcoded(format, offset);
         if tokio::fs::try_exists(&transcoded).await.unwrap() {
@@ -432,7 +426,7 @@ mod tests {
         let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;
 
         tokio::fs::write(
-            Utf8PlatformPath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
+            typed_path::Utf8PlatformPath::new(env!("NGHE_HEARING_TEST_OUTPUT"))
                 .join(concat_string!(bit_rate.to_string(), "-", offset.to_string()))
                 .with_extension(format.as_ref()),
             &data,
