@@ -266,7 +266,7 @@
                 PQ_LIB_STATIC = if withStatic then "1" else null;
 
                 # git
-                GIT_COMMIT_HASH_SHORT = builtins.substring 0 8 (
+                GIT_COMMIT_HASH_SHORT = builtins.substring 0 7 (
                   self.rev or (hostLib.removeSuffix "-dirty" self.dirtyRev)
                 );
               }
@@ -299,6 +299,31 @@
                 );
             in
             {
+              package = rustPlatform.buildRustPackage (finalAttrs: rec {
+                pname = "nghe";
+                version = (hostLib.importTOML ./Cargo.toml).workspace.package.version;
+
+                src = hostLib.sourceFilesBySuffices ./. [
+                  ".rs"
+                  ".toml"
+                  ".sql"
+                  ".lock"
+                ];
+
+                cargoLock.lockFile = ./Cargo.lock;
+
+                cargoBuildFlags = [
+                  "--locked"
+                  "--package"
+                  pname
+                ];
+                doCheck = false;
+
+                env = buildEnv;
+                inherit nativeBuildInputs;
+                inherit buildInputs;
+              });
+
               devShell = pkgs.mkShellNoCC {
                 dontAddExtraLibs = true;
 
@@ -361,6 +386,7 @@
           });
         in
         {
+          packages = lib.mapAttrs (_: value: value.package) all;
           devShells = lib.mapAttrs (_: value: value.devShell) all;
         };
     };
