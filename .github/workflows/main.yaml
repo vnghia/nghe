@@ -2,12 +2,25 @@ name: Main
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   pull_request:
-    branches: ["main"]
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      build-profile:
+        description: Build profile
+        required: true
+        default: dev
+        type: choice
+        options:
+          - release
+          - dev
+      release-number:
+        description: Release number
+        required: false
+        type: number
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -46,6 +59,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
+          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -57,9 +71,11 @@ jobs:
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           devshell: ${{ steps.build.outputs.vendor }}
+          skip-push: ${{ steps.build.outputs.profile == 'release' }}
 
-      - name: Build
-        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile != 'release' }}
+        run: nix develop -i .#${{ steps.build.outputs.vendor }} --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
       - name: Patch ELF
         if: ${{ steps.build.outputs.vendor != 'musl' }}
         run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
@@ -110,6 +126,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
+          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -121,9 +138,11 @@ jobs:
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           devshell: default
+          skip-push: ${{ steps.build.outputs.profile == 'release' }}
 
-      - name: Build
-        run: nix develop .#default --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile != 'release' }}
+        run: nix develop -i .#default --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -172,6 +191,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
+          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -183,9 +203,11 @@ jobs:
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           devshell: freebsd
+          skip-push: ${{ steps.build.outputs.profile == 'release' }}
 
-      - name: Build
-        run: nix develop .#freebsd --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile != 'release' }}
+        run: nix develop -i .#freebsd --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:

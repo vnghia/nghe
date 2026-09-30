@@ -4,6 +4,9 @@ inputs:
   target:
     description: "Rust target"
     required: true
+  profile:
+    description: "profile"
+    required: false
 outputs:
   vendor:
     description: "vendor"
@@ -30,5 +33,5 @@ runs:
         echo "vendor=$(echo "${{ inputs.target }}" | cut -d '-' -f4)" >> "$GITHUB_OUTPUT"
         echo "arch=$(echo "${{ inputs.target }}" | cut -d '-' -f1)" >> "$GITHUB_OUTPUT"
         echo "docker-arch=${{ startsWith(inputs.target, 'x86_64') && 'amd64' || 'arm64' }}" >> "$GITHUB_OUTPUT"
-        echo "profile=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
-        echo "output-dir=${{ (github.event_name == 'release' || github.event_name == 'workflow_dispatch') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
+        echo "profile=${{ (inputs.profile == 'release') && 'release' || 'dev' }}" >> "$GITHUB_OUTPUT"
+        echo "output-dir=${{ (inputs.profile == 'release') && 'release' || 'debug' }}" >> "$GITHUB_OUTPUT"
