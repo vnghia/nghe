@@ -273,6 +273,11 @@
 
                 PQ_LIB_STATIC = if withStatic then "1" else null;
 
+                # git
+                GIT_COMMIT_HASH_SHORT = builtins.substring 0 8 (
+                  self.rev or (lib.removeSuffix "-dirty" self.dirtyRev)
+                );
+
                 # test
                 RUST_LOG = "nghe=trace";
 
