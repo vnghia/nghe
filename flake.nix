@@ -213,7 +213,7 @@
                   );
             };
 
-          mkDevShell =
+          mkDevShellAndPackage =
             {
               crossSystem ? null,
               withStatic ? true,
@@ -249,15 +249,7 @@
               ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
               buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
 
-              cargoExpand = pkgs.cargo-expand;
-              cargoNextest = pkgs.cargo-nextest;
-              cargoLlvmCov = pkgs.cargo-llvm-cov;
-            in
-            with hostPkgs;
-            pkgs.mkShellNoCC {
-              dontAddExtraLibs = true;
-
-              env = rec {
+              buildEnv = {
                 # cargo
                 CARGO_BUILD_TARGET = rustTarget;
 
@@ -275,84 +267,101 @@
 
                 # git
                 GIT_COMMIT_HASH_SHORT = builtins.substring 0 8 (
-                  self.rev or (lib.removeSuffix "-dirty" self.dirtyRev)
+                  self.rev or (hostLib.removeSuffix "-dirty" self.dirtyRev)
                 );
-
-                # test
-                RUST_LOG = "nghe=trace";
-
-                POSTGRES_USER = "postgres";
-                POSTGRES_PASSWORD = "postgres";
-                POSTGRES_DATABASE = "postgres";
-                POSTGRES_PORT = "5432";
-                DATABASE_URL = "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DATABASE}";
-
-                AWS_ACCESS_KEY_ID = "key-id";
-                AWS_SECRET_ACCESS_KEY = "access-key";
-                AWS_REGION = "us-east-1";
-                AWS_PORT = "9090";
-                AWS_USE_PATH_STYLE_ENDPOINT = "true";
-                AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
               }
               // (hostLib.optionalAttrs hostPkgs.stdenv.hostPlatform.isBSD {
                 "HOST_CC" = buildCcBin;
               });
 
-              packages = [
+              cargoExpand = pkgs.cargo-expand;
+              cargoNextest = pkgs.cargo-nextest;
+              cargoLlvmCov = pkgs.cargo-llvm-cov;
+
+              nativeBuildInputs = with hostPkgs; [
+                # rust
                 toolchain
                 cargoExpand
                 cargoNextest
 
-                pkg-config
-
                 # native
+                pkg-config
                 pkgs.stdenv.cc
                 stdenv.cc
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
-              ]
-              ++ (hostLib.optional withCoverage cargoLlvmCov)
-              ++ (hostLib.attrValues nativeDeps)
-              ++ hostLib.optional stdenv.hostPlatform.isLinux autoPatchelfHook
-              ++
-                hostLib.optional stdenv.hostPlatform.isDarwin
+              ];
+
+              buildInputs =
+                hostLib.attrValues nativeDeps
+                ++ (hostLib.optional hostPkgs.stdenv.hostPlatform.isDarwin
                   (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
-              ++ (
-                # for running test services
-                if pkgs.stdenv.hostPlatform.isLinux then
-                  [
-                    pkgs.docker
-                    pkgs.docker-compose
-                  ]
-                else if pkgs.stdenv.hostPlatform.isDarwin then
-                  [
-                    pkgs.postgresql
-                    pkgs.seaweedfs
-                  ]
-                else
-                  null
-              );
+                );
+            in
+            {
+              devShell = pkgs.mkShellNoCC {
+                dontAddExtraLibs = true;
+
+                env = buildEnv // rec {
+                  RUST_LOG = "nghe=trace";
+
+                  POSTGRES_USER = "postgres";
+                  POSTGRES_PASSWORD = "postgres";
+                  POSTGRES_DATABASE = "postgres";
+                  POSTGRES_PORT = "5432";
+                  DATABASE_URL = "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DATABASE}";
+
+                  AWS_ACCESS_KEY_ID = "key-id";
+                  AWS_SECRET_ACCESS_KEY = "access-key";
+                  AWS_REGION = "us-east-1";
+                  AWS_PORT = "9090";
+                  AWS_USE_PATH_STYLE_ENDPOINT = "true";
+                  AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
+                };
+
+                packages =
+                  nativeBuildInputs
+                  ++ buildInputs
+                  ++ (hostLib.optional withCoverage cargoLlvmCov)
+                  ++ (
+                    # for running test services
+                    if pkgs.stdenv.hostPlatform.isLinux then
+                      [
+                        pkgs.docker
+                        pkgs.docker-compose
+                      ]
+                    else if pkgs.stdenv.hostPlatform.isDarwin then
+                      [
+                        pkgs.postgresql
+                        pkgs.seaweedfs
+                      ]
+                    else
+                      null
+                  );
+              };
             };
-        in
-        {
-          devShells = {
-            default = mkDevShell { };
+
+          all = {
+            default = mkDevShellAndPackage { };
           }
           // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-            gnu = mkDevShell { };
-            musl = mkDevShell {
+            gnu = mkDevShellAndPackage { };
+            musl = mkDevShellAndPackage {
               crossSystem = {
                 config = muslTargetMap.${system};
                 isStatic = true;
               };
             };
-            freebsd = mkDevShell {
+            freebsd = mkDevShellAndPackage {
               crossSystem = {
                 config = freebsdTargetMap.${system};
               };
             };
-            coverage = mkDevShell { withCoverage = true; };
+            coverage = mkDevShellAndPackage { withCoverage = true; };
           });
+        in
+        {
+          devShells = lib.mapAttrs (_: value: value.devShell) all;
         };
     };
 }
