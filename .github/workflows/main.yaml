@@ -242,6 +242,7 @@ jobs:
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           devshell: coverage
+          skip-push: ${{ github.event_name == 'release' }}
 
       - name: Run test services
         run: nix develop --command docker compose -f ci/test/docker-compose.yaml up -d
