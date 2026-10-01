@@ -286,7 +286,6 @@
 
                 # native
                 pkg-config
-                pkgs.stdenv.cc
                 stdenv.cc
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
@@ -302,6 +301,8 @@
               package = rustPlatform.buildRustPackage (finalAttrs: rec {
                 pname = "nghe";
                 version = (hostLib.importTOML ./Cargo.toml).workspace.package.version;
+
+                strictDeps = true;
 
                 src = hostLib.sourceFilesBySuffices ./. [
                   ".rs"
