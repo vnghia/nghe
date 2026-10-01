@@ -271,7 +271,7 @@
                 );
               }
               // (hostLib.optionalAttrs hostPkgs.stdenv.hostPlatform.isBSD {
-                "HOST_CC" = buildCcBin;
+                HOST_CC = buildCcBin;
               });
 
               cargoExpand = pkgs.cargo-expand;
