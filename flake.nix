@@ -232,9 +232,12 @@
                 else
                   pkgs;
               hostLib = hostPkgs.lib;
-              hostTarget = hostPkgs.stdenv.hostPlatform.config;
+              hostStdenv = hostPkgs.stdenv;
+              hostTarget = hostStdenv.hostPlatform.config;
 
-              rustTarget = hostPkgs.stdenv.targetPlatform.rust.rustcTarget;
+              canExecute = hostStdenv.buildPlatform.canExecute hostStdenv.hostPlatform;
+
+              rustTarget = hostStdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
               rustPlatform = hostPkgs.makeRustPlatform {
                 cargo = toolchain;
@@ -246,7 +249,7 @@
                 inherit withStatic;
               };
 
-              ccBin = "${hostPkgs.stdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
+              ccBin = "${hostStdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
               buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
 
               buildEnv = {
@@ -270,8 +273,8 @@
                   self.rev or (hostLib.removeSuffix "-dirty" self.dirtyRev)
                 );
               }
-              // (hostLib.optionalAttrs hostPkgs.stdenv.hostPlatform.isBSD {
-                HOST_CC = buildCcBin;
+              // (hostLib.optionalAttrs isCross {
+                HOST_CC = if canExecute then ccBin else buildCcBin;
               });
 
               cargoExpand = pkgs.cargo-expand;
@@ -293,7 +296,7 @@
 
               buildInputs =
                 hostLib.attrValues nativeDeps
-                ++ (hostLib.optional hostPkgs.stdenv.hostPlatform.isDarwin
+                ++ (hostLib.optional hostStdenv.hostPlatform.isDarwin
                   (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
                 );
             in
