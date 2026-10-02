@@ -76,6 +76,11 @@ jobs:
       - name: Build ${{ steps.build.outputs.profile }}
         if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop -i .#${{ steps.build.outputs.vendor }} --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile == 'release' }}
+        run: |
+          nix build .#${{ steps.build.outputs.vendor }} -L
+          cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Patch ELF
         if: ${{ steps.build.outputs.vendor != 'musl' }}
         run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
@@ -143,6 +148,11 @@ jobs:
       - name: Build ${{ steps.build.outputs.profile }}
         if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop -i .#default --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile == 'release' }}
+        run: |
+          nix build .#default -L
+          cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -208,6 +218,11 @@ jobs:
       - name: Build ${{ steps.build.outputs.profile }}
         if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop -i .#freebsd --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile == 'release' }}
+        run: |
+          nix build .#freebsd -L
+          cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
