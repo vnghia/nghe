@@ -94,13 +94,15 @@ jobs:
           retention-days: 1
 
       - name: Run test services
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop --command docker compose -f ci/test/docker-compose.yaml up -d
       - name: Test
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
-        if: success() || failure()
+        if: ${{ steps.build.outputs.profile != 'release' }} && (success() || failure())
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -164,17 +166,19 @@ jobs:
           retention-days: 1
 
       - name: Run test services
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: |
           nix develop --command bash -c 'initdb --username=${POSTGRES_USER} --pwfile=<(echo ${POSTGRES_PASSWORD}) --pgdata=${RUNNER_TEMP}/postgres --encoding="UTF-8" --locale="en_US.UTF-8" --set "max_connections = 1000" --set "shared_buffers = 2048MB"'
           nix develop --command bash -c 'pg_ctl start --pgdata=${RUNNER_TEMP}/postgres'
 
           nix develop --command bash -c 'weed mini -dir=${RUNNER_TEMP}/weed -s3.port=${AWS_PORT} &'
       - name: Test
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
-        if: success() || failure()
+        if: ${{ steps.build.outputs.profile != 'release' }} && (success() || failure())
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
