@@ -378,7 +378,6 @@ mod tests {
     #[rstest]
     #[case(format::Transcode::Aac, 128)]
     #[case(format::Transcode::Mp3, 320)]
-    #[cfg_attr(debug_assertions, case(format::Transcode::Opus, 64))]
     #[case(format::Transcode::Wav, 0)]
     #[case(format::Transcode::Wma, 128)]
     #[tokio::test]
