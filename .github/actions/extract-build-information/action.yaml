@@ -19,7 +19,7 @@ outputs:
     value: ${{ steps.build.outputs.docker-arch }}
   profile:
     description: "profile"
-    value: release
+    value: ${{ steps.build.outputs.profile }}
   output-dir:
     description: "output-dir"
     value: ${{ steps.build.outputs.output-dir }}
