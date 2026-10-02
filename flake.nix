@@ -257,18 +257,21 @@
               cargoNextest = pkgs.cargo-nextest;
               cargoLlvmCov = pkgs.cargo-llvm-cov;
 
-              nativeBuildInputs = with hostPkgs; [
-                # rust
-                toolchain
-                cargoExpand
-                cargoNextest
+              nativeBuildInputs =
+                with hostPkgs;
+                [
+                  # rust
+                  toolchain
+                  cargoExpand
+                  cargoNextest
 
-                # native
-                pkg-config
-                stdenv.cc
-                pkgs.llvmPackages.libclang.lib
-                (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
-              ];
+                  # native
+                  pkg-config
+                  stdenv.cc
+                  pkgs.llvmPackages.libclang.lib
+                  (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
+                ]
+                ++ hostLib.optional (isCross && !canExecute) pkgs.stdenv.cc;
 
               buildInputs =
                 hostLib.attrValues nativeDeps.build
@@ -353,7 +356,7 @@
                 inherit checkInputs;
               });
 
-              devShell = hostPkgs.mkShell {
+              devShell = pkgs.mkShellNoCC {
                 dontAddExtraLibs = true;
 
                 env = env.build // env.check;
