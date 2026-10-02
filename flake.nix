@@ -279,9 +279,9 @@
                   (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
                 );
 
-              nativeCheckInputs = [
-                pkgs.postgresql
-                pkgs.seaweedfs
+              nativeCheckInputs = with pkgs; [
+                postgresql
+                seaweedfs
               ];
 
               checkInputs = hostLib.attrValues nativeDeps.check;
@@ -367,10 +367,10 @@
                 env = envBuild // envCheck;
 
                 packages =
-                  nativeBuildInputs
-                  ++ buildInputs
-                  ++ nativeCheckInputs
+                  buildInputs
+                  ++ nativeBuildInputs
                   ++ checkInputs
+                  ++ nativeCheckInputs
                   ++ (hostLib.optional withCoverage cargoLlvmCov)
                   ++ (
                     if pkgs.stdenv.hostPlatform.isLinux then
