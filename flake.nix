@@ -9,8 +9,8 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
-    fenix = {
-      url = "github:nix-community/fenix";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -42,11 +42,6 @@
           ...
         }:
         let
-          toolchain = inputs.fenix.packages.${system}.fromToolchainFile {
-            file = ./rust-toolchain.toml;
-            sha256 = "sha256-6pbof85hshggBqgZz41qx0zHVi5LxtYKukEH/8uljVI=";
-          };
-
           muslTargetMap = {
             "x86_64-linux" = "x86_64-unknown-linux-musl";
             "aarch64-linux" = "aarch64-unknown-linux-musl";
@@ -237,6 +232,9 @@
 
               canExecute = hostStdenv.buildPlatform.canExecute hostStdenv.hostPlatform;
 
+              rustBin = inputs.rust-overlay.lib.mkRustBin { } hostPkgs.buildPackages;
+              toolchain = rustBin.fromRustupToolchainFile ./rust-toolchain.toml;
+
               rustTarget = hostStdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
               rustPlatform = hostPkgs.makeRustPlatform {
@@ -251,6 +249,29 @@
 
               ccBin = "${hostStdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
               buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
+
+              cargoExpand = pkgs.cargo-expand;
+              cargoNextest = pkgs.cargo-nextest;
+              cargoLlvmCov = pkgs.cargo-llvm-cov;
+
+              nativeBuildInputs = with hostPkgs; [
+                # rust
+                toolchain
+                cargoExpand
+                cargoNextest
+
+                # native
+                pkg-config
+                stdenv.cc
+                pkgs.llvmPackages.libclang.lib
+                (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
+              ];
+
+              buildInputs =
+                hostLib.attrValues nativeDeps
+                ++ (hostLib.optional hostStdenv.hostPlatform.isDarwin
+                  (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
+                );
 
               buildEnv = {
                 # cargo
@@ -276,29 +297,6 @@
               // (hostLib.optionalAttrs isCross {
                 HOST_CC = if canExecute then ccBin else buildCcBin;
               });
-
-              cargoExpand = pkgs.cargo-expand;
-              cargoNextest = pkgs.cargo-nextest;
-              cargoLlvmCov = pkgs.cargo-llvm-cov;
-
-              nativeBuildInputs = with hostPkgs; [
-                # rust
-                toolchain
-                cargoExpand
-                cargoNextest
-
-                # native
-                pkg-config
-                stdenv.cc
-                pkgs.llvmPackages.libclang.lib
-                (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
-              ];
-
-              buildInputs =
-                hostLib.attrValues nativeDeps
-                ++ (hostLib.optional hostStdenv.hostPlatform.isDarwin
-                  (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
-                );
             in
             {
               package = rustPlatform.buildRustPackage (finalAttrs: rec {
@@ -328,7 +326,7 @@
                 inherit buildInputs;
               });
 
-              devShell = pkgs.mkShellNoCC {
+              devShell = hostPkgs.mkShell {
                 dontAddExtraLibs = true;
 
                 env = buildEnv // rec {
