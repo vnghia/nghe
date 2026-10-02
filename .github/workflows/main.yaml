@@ -102,7 +102,7 @@ jobs:
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
-        if: ${{ steps.build.outputs.profile != 'release' }} && (success() || failure())
+        if: ${{ steps.build.outputs.profile != 'release' && (success() || failure()) }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -178,7 +178,7 @@ jobs:
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
-        if: ${{ steps.build.outputs.profile != 'release' }} && (success() || failure())
+        if: ${{ steps.build.outputs.profile != 'release' && (success() || failure()) }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
