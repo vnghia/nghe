@@ -65,147 +65,150 @@
               sharedLibs = if withStatic then "OFF" else "ON";
             in
             rec {
-              openssl = hostPkgs.openssl.override { static = withStatic; };
+              build = rec {
+                openssl = hostPkgs.openssl.override { static = withStatic; };
 
-              lame =
-                (hostPkgs.lame.override {
-                  frontendSupport = false;
-                }).overrideAttrs
-                  (
-                    finalAttrs: previousAttrs: {
-                      configureFlags = previousAttrs.configureFlags ++ [
-                        "--disable-${disableTarget}"
-                        "--enable-${enableTarget}"
-                      ];
-                    }
-                  );
+                lame =
+                  (hostPkgs.lame.override {
+                    frontendSupport = false;
+                  }).overrideAttrs
+                    (
+                      finalAttrs: previousAttrs: {
+                        configureFlags = previousAttrs.configureFlags ++ [
+                          "--disable-${disableTarget}"
+                          "--enable-${enableTarget}"
+                        ];
+                      }
+                    );
 
-              libopus = hostPkgs.libopus.overrideAttrs (
-                finalAttrs: previousAttrs: {
-                  mesonBuildType = "release";
-                  mesonFlags = previousAttrs.mesonFlags ++ [
-                    "-Ddefault_library=${enableTarget}"
-                    "-Ddefault_both_libraries=${enableTarget}"
-                  ];
-                }
-              );
+                libopus = hostPkgs.libopus.overrideAttrs (
+                  finalAttrs: previousAttrs: {
+                    mesonBuildType = "release";
+                    mesonFlags = previousAttrs.mesonFlags ++ [
+                      "-Ddefault_library=${enableTarget}"
+                      "-Ddefault_both_libraries=${enableTarget}"
+                    ];
+                  }
+                );
 
-              soxr = hostPkgs.soxr.overrideAttrs (
-                finalAttrs: previousAttrs: {
-                  cmakeFlags = previousAttrs.cmakeFlags ++ [
-                    "-DWITH_OPENMP=OFF"
-                    "-DBUILD_SHARED_LIBS=${sharedLibs}"
-                  ];
-                }
-              );
+                soxr = hostPkgs.soxr.overrideAttrs (
+                  finalAttrs: previousAttrs: {
+                    cmakeFlags = previousAttrs.cmakeFlags ++ [
+                      "-DWITH_OPENMP=OFF"
+                      "-DBUILD_SHARED_LIBS=${sharedLibs}"
+                    ];
+                  }
+                );
 
-              libogg = hostPkgs.libogg.overrideAttrs (
-                finalAttrs: previousAttrs: {
-                  cmakeFlags = previousAttrs.cmakeFlags ++ [
-                    "-DBUILD_SHARED_LIBS=${sharedLibs}"
-                  ];
-                }
-              );
+                libogg = hostPkgs.libogg.overrideAttrs (
+                  finalAttrs: previousAttrs: {
+                    cmakeFlags = previousAttrs.cmakeFlags ++ [
+                      "-DBUILD_SHARED_LIBS=${sharedLibs}"
+                    ];
+                  }
+                );
 
-              libvorbis = (hostPkgs.libvorbis.override { inherit libogg; }).overrideAttrs (
-                finalAttrs: previousAttrs: {
-                  configureFlags = [
-                    "--disable-${disableTarget}"
-                    "--enable-${enableTarget}"
-                  ];
-                }
-              );
+                libvorbis = (hostPkgs.libvorbis.override { inherit libogg; }).overrideAttrs (
+                  finalAttrs: previousAttrs: {
+                    configureFlags = [
+                      "--disable-${disableTarget}"
+                      "--enable-${enableTarget}"
+                    ];
+                  }
+                );
 
-              ffmpeg =
-                (hostPkgs.ffmpeg.override {
-                  withHeadlessDeps = false;
-                  withSmallDeps = false;
-                  withFullDeps = false;
+                ffmpeg =
+                  (hostPkgs.ffmpeg.override {
+                    withHeadlessDeps = false;
+                    withSmallDeps = false;
+                    withFullDeps = false;
 
-                  withMp3lame = true;
-                  withOpus = true;
-                  withSoxr = true;
-                  withVorbis = true;
+                    withMp3lame = true;
+                    withOpus = true;
+                    withSoxr = true;
+                    withVorbis = true;
 
-                  withSmallBuild = false;
-                  withHardcodedTables = true;
-                  withMultithread = true;
-                  withNetwork = true;
-                  withPixelutils = false;
-                  withPic = true;
-                  withThumb = false;
+                    withSmallBuild = false;
+                    withHardcodedTables = true;
+                    withMultithread = true;
+                    withNetwork = true;
+                    withPixelutils = false;
+                    withPic = true;
+                    withThumb = false;
 
-                  buildFfmpeg = false;
-                  buildFfplay = false;
-                  buildFfprobe = false;
-                  buildQtFaststart = false;
-                  buildAvcodec = true;
-                  buildAvdevice = false;
-                  buildAvfilter = true;
-                  buildAvformat = true;
-                  buildAvutil = true;
-                  buildSwresample = true;
-                  buildSwscale = false;
+                    buildFfmpeg = false;
+                    buildFfplay = false;
+                    buildFfprobe = false;
+                    buildQtFaststart = false;
+                    buildAvcodec = true;
+                    buildAvdevice = false;
+                    buildAvfilter = true;
+                    buildAvformat = true;
+                    buildAvutil = true;
+                    buildSwresample = true;
+                    buildSwscale = false;
 
-                  withOptimisations = true;
-                  withStripping = true;
+                    withOptimisations = true;
+                    withStripping = true;
 
-                  inherit withStatic;
-                  withShared = !withStatic;
+                    inherit withStatic;
+                    withShared = !withStatic;
 
-                  inherit lame;
-                  inherit libopus;
-                  inherit soxr;
-                  inherit libvorbis;
-                }).overrideAttrs
-                  (
-                    finalAttrs: previousAttrs: {
-                      doCheck = false;
-                      configureFlags =
-                        previousAttrs.configureFlags
-                        ++ [
-                          "--enable-openssl"
-                          "--extra-libs=-lm"
-                        ]
-                        ++ (hostLib.optional withStatic "--pkg-config-flags=--static");
-                      buildInputs = previousAttrs.buildInputs ++ [
-                        openssl
-                      ];
-                    }
-                  );
+                    inherit lame;
+                    inherit libopus;
+                    inherit soxr;
+                    inherit libvorbis;
+                  }).overrideAttrs
+                    (
+                      finalAttrs: previousAttrs: {
+                        doCheck = false;
+                        configureFlags =
+                          previousAttrs.configureFlags
+                          ++ [
+                            "--enable-openssl"
+                            "--extra-libs=-lm"
+                          ]
+                          ++ (hostLib.optional withStatic "--pkg-config-flags=--static");
+                        buildInputs = previousAttrs.buildInputs ++ [
+                          openssl
+                        ];
+                      }
+                    );
+              };
 
-              # test
-              libpq =
-                (hostPkgs.libpq.override {
-                  curlSupport = false;
-                  gssSupport = false;
-                  nlsSupport = false;
+              check = {
+                libpq =
+                  (hostPkgs.libpq.override {
+                    curlSupport = false;
+                    gssSupport = false;
+                    nlsSupport = false;
 
-                  inherit openssl;
-                }).overrideAttrs
-                  (
-                    finalAttrs: previousAttrs: {
-                      dontDisableStatic = withStatic;
-                      postPatch =
-                        previousAttrs.postPatch
-                        + hostLib.optionalString (withStatic && !hostStdenv.hostPlatform.isStatic) ''
-                          substituteInPlace src/interfaces/libpq/Makefile \
-                            --replace-fail "all: all-lib libpq-refs-stamp" "all: all-lib"
-                          substituteInPlace src/Makefile.shlib \
-                            --replace-fail "all-lib: all-shared-lib" "all-lib: all-static-lib" \
-                            --replace-fail "install-lib: install-lib-shared" "install-lib: install-lib-static"
-                        '';
-                      postInstall =
-                        if (withStatic || hostStdenv.hostPlatform.isStatic) then
-                          ''
-                            touch $out/empty
-                            substituteInPlace $out/lib/pkgconfig/libpq.pc \
-                              --replace-fail "$out" "$dev"
-                          ''
-                        else
-                          previousAttrs.postInstall;
-                    }
-                  );
+                    openssl = build.openssl;
+                  }).overrideAttrs
+                    (
+                      finalAttrs: previousAttrs: {
+                        dontDisableStatic = withStatic;
+                        postPatch =
+                          previousAttrs.postPatch
+                          + hostLib.optionalString (withStatic && !hostStdenv.hostPlatform.isStatic) ''
+                            substituteInPlace src/interfaces/libpq/Makefile \
+                              --replace-fail "all: all-lib libpq-refs-stamp" "all: all-lib"
+                            substituteInPlace src/Makefile.shlib \
+                              --replace-fail "all-lib: all-shared-lib" "all-lib: all-static-lib" \
+                              --replace-fail "install-lib: install-lib-shared" "install-lib: install-lib-static"
+                          '';
+                        postInstall =
+                          if (withStatic || hostStdenv.hostPlatform.isStatic) then
+                            ''
+                              touch $out/empty
+                              substituteInPlace $out/lib/pkgconfig/libpq.pc \
+                                --replace-fail "$out" "$dev"
+                            ''
+                          else
+                            previousAttrs.postInstall;
+                      }
+                    );
+              };
             };
 
           mkDevShellAndPackage =
@@ -268,35 +271,57 @@
               ];
 
               buildInputs =
-                hostLib.attrValues nativeDeps
+                hostLib.attrValues nativeDeps.build
                 ++ (hostLib.optional hostStdenv.hostPlatform.isDarwin
                   (if withStatic then hostPkgs.pkgsStatic else hostPkgs).darwin.libiconv
                 );
 
-              buildEnv = {
-                # cargo
-                CARGO_BUILD_TARGET = rustTarget;
+              nativeCheckInputs = [
+                pkgs.postgresql
+                pkgs.seaweedfs
+              ];
 
-                "CARGO_TARGET_${rustShoutTarget}_LINKER" = ccBin;
-                "CC_${rustShoutTarget}" = ccBin;
+              checkInputs = hostLib.attrValues nativeDeps.check;
 
-                # native
-                PKG_CONFIG_ALL_STATIC = if withStatic then "1" else null;
+              env = {
+                build = {
+                  # cargo
+                  CARGO_BUILD_TARGET = rustTarget;
 
-                OPENSSL_INCLUDE_DIR = "${nativeDeps.openssl.dev}/include";
-                OPENSSL_LIB_DIR = "${nativeDeps.openssl.out}/lib";
-                OPENSSL_STATIC = if withStatic then "1" else "0";
+                  "CARGO_TARGET_${rustShoutTarget}_LINKER" = ccBin;
+                  "CC_${rustShoutTarget}" = ccBin;
 
-                PQ_LIB_STATIC = if withStatic then "1" else null;
+                  # native
+                  PKG_CONFIG_ALL_STATIC = if withStatic then "1" else null;
+                  OPENSSL_STATIC = if withStatic then "1" else "0";
+                  PQ_LIB_STATIC = if withStatic then "1" else null;
 
-                # git
-                GIT_COMMIT_HASH_SHORT = builtins.substring 0 7 (
-                  self.rev or (hostLib.removeSuffix "-dirty" self.dirtyRev)
-                );
-              }
-              // (hostLib.optionalAttrs isCross {
-                HOST_CC = if canExecute then ccBin else buildCcBin;
-              });
+                  # git
+                  GIT_COMMIT_HASH_SHORT = builtins.substring 0 7 (
+                    self.rev or (hostLib.removeSuffix "-dirty" self.dirtyRev)
+                  );
+                }
+                // (hostLib.optionalAttrs isCross {
+                  HOST_CC = if canExecute then ccBin else buildCcBin;
+                });
+
+                check = rec {
+                  RUST_LOG = "nghe=trace";
+
+                  POSTGRES_USER = "postgres";
+                  POSTGRES_PASSWORD = "postgres";
+                  POSTGRES_DATABASE = "postgres";
+                  POSTGRES_PORT = "5432";
+                  DATABASE_URL = "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DATABASE}";
+
+                  AWS_ACCESS_KEY_ID = "key-id";
+                  AWS_SECRET_ACCESS_KEY = "access-key";
+                  AWS_REGION = "us-east-1";
+                  AWS_PORT = "9090";
+                  AWS_USE_PATH_STYLE_ENDPOINT = "true";
+                  AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
+                };
+              };
             in
             {
               package = rustPlatform.buildRustPackage (finalAttrs: rec {
@@ -321,46 +346,29 @@
                 ];
                 doCheck = false;
 
-                env = buildEnv;
+                env = env.build;
                 inherit nativeBuildInputs;
                 inherit buildInputs;
+                inherit nativeCheckInputs;
+                inherit checkInputs;
               });
 
               devShell = hostPkgs.mkShell {
                 dontAddExtraLibs = true;
 
-                env = buildEnv // rec {
-                  RUST_LOG = "nghe=trace";
-
-                  POSTGRES_USER = "postgres";
-                  POSTGRES_PASSWORD = "postgres";
-                  POSTGRES_DATABASE = "postgres";
-                  POSTGRES_PORT = "5432";
-                  DATABASE_URL = "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DATABASE}";
-
-                  AWS_ACCESS_KEY_ID = "key-id";
-                  AWS_SECRET_ACCESS_KEY = "access-key";
-                  AWS_REGION = "us-east-1";
-                  AWS_PORT = "9090";
-                  AWS_USE_PATH_STYLE_ENDPOINT = "true";
-                  AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
-                };
+                env = env.build // env.check;
 
                 packages =
                   nativeBuildInputs
                   ++ buildInputs
+                  ++ nativeCheckInputs
+                  ++ checkInputs
                   ++ (hostLib.optional withCoverage cargoLlvmCov)
                   ++ (
-                    # for running test services
                     if pkgs.stdenv.hostPlatform.isLinux then
                       [
                         pkgs.docker
                         pkgs.docker-compose
-                      ]
-                    else if pkgs.stdenv.hostPlatform.isDarwin then
-                      [
-                        pkgs.postgresql
-                        pkgs.seaweedfs
                       ]
                     else
                       null
