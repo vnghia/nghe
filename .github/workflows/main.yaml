@@ -82,6 +82,7 @@ jobs:
           nix build .#${{ steps.build.outputs.vendor }} -L
           mkdir -p ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}
           cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
+          chmod 777 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Patch ELF
         if: ${{ steps.build.outputs.vendor != 'musl' }}
         run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
