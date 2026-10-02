@@ -333,11 +333,18 @@
 
                 strictDeps = true;
 
-                src = hostLib.sourceFilesBySuffices ./. [
-                  ".rs"
-                  ".toml"
-                  ".sql"
-                  ".lock"
+                src = hostLib.sources.sourceByGlobs ./. [
+                  "*.toml"
+                  "*.lock"
+
+                  ".cargo/config.toml"
+                  ".config/nextest.toml"
+
+                  "assets/**"
+
+                  "nghe*/**/*.rs"
+                  "nghe*/**/*.toml"
+                  "nghe*/**/*.sql"
                 ];
 
                 cargoLock.lockFile = ./Cargo.lock;
@@ -371,7 +378,7 @@
                   kill $(lsof -t -i :${envCheck.AWS_PORT})
                 '';
 
-                env = envBuild // envCheck;
+                env = envBuild // envCheck // { RUST_BACKTRACE = "1"; };
                 inherit nativeBuildInputs;
                 inherit buildInputs;
                 inherit nativeCheckInputs;
