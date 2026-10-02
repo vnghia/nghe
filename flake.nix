@@ -379,7 +379,7 @@
                         pkgs.docker-compose
                       ]
                     else
-                      null
+                      [ ]
                   );
               };
             };
