@@ -279,6 +279,7 @@
               nativeCheckInputs = with pkgs; [
                 postgresql
                 seaweedfs
+                lsof
               ];
 
               checkInputs = hostLib.attrValues nativeDeps.check;
@@ -341,9 +342,36 @@
 
                 cargoLock.lockFile = ./Cargo.lock;
 
-                doCheck = false;
+                doCheck = canExecute;
+                useNextest = true;
 
-                env = envBuild;
+                cargoTestFlags = [
+                  "--frozen"
+                  "--profile"
+                  "ci"
+                  "--workspace"
+                  "--exclude"
+                  "${pname}-frontend"
+                ];
+
+                preCheck = ''
+                  export PGDATA="$NIX_BUILD_TOP/postgresql"
+                  initdb --username=${envCheck.POSTGRES_USER} \
+                    --pwfile=<(echo ${envCheck.POSTGRES_PASSWORD}) \
+                    --encoding="UTF-8" \
+                    --set "max_connections = 1000" --set "shared_buffers = 2048MB"
+                  pg_ctl start -o "-c unix_socket_directories="
+
+                  weed mini -dir=/tmp/weed -s3.port=${envCheck.AWS_PORT} &
+                '';
+
+                postCheck = ''
+                  pg_ctl stop
+
+                  kill $(lsof -t -i :${envCheck.AWS_PORT})
+                '';
+
+                env = envBuild // envCheck;
                 inherit nativeBuildInputs;
                 inherit buildInputs;
                 inherit nativeCheckInputs;
