@@ -325,6 +325,8 @@
                   AWS_ENDPOINT_URL = "http://localhost:${AWS_PORT}";
                 };
               };
+              envBuild = env.build;
+              envCheck = env.check;
             in
             {
               package = rustPlatform.buildRustPackage (finalAttrs: rec {
@@ -342,24 +344,27 @@
 
                 cargoLock.lockFile = ./Cargo.lock;
 
-                cargoBuildFlags = [
-                  "--locked"
-                  "--package"
-                  pname
-                ];
                 doCheck = false;
 
-                env = env.build;
+                env = envBuild;
                 inherit nativeBuildInputs;
                 inherit buildInputs;
                 inherit nativeCheckInputs;
                 inherit checkInputs;
+
+                # Use the built-in one after https://github.com/NixOS/nixpkgs/issues/303796.
+                # The provided HOST_CC does not work with musl build.
+                buildPhase = ''
+                  runHook preBuild
+                  cargo build --frozen --profile ${finalAttrs.cargoBuildType} --package ${pname}
+                  runHook postBuild
+                '';
               });
 
               devShell = pkgs.mkShellNoCC {
                 dontAddExtraLibs = true;
 
-                env = env.build // env.check;
+                env = envBuild // envCheck;
 
                 packages =
                   nativeBuildInputs
