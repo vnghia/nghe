@@ -80,6 +80,7 @@ jobs:
         if: ${{ steps.build.outputs.profile == 'release' }}
         run: |
           nix build .#${{ steps.build.outputs.vendor }} -L
+          mkdir -p ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}
           cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Patch ELF
         if: ${{ steps.build.outputs.vendor != 'musl' }}
@@ -152,6 +153,7 @@ jobs:
         if: ${{ steps.build.outputs.profile == 'release' }}
         run: |
           nix build .#default -L
+          mkdir -p ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}
           cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
@@ -222,6 +224,7 @@ jobs:
         if: ${{ steps.build.outputs.profile == 'release' }}
         run: |
           nix build .#freebsd -L
+          mkdir -p ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}
           cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
