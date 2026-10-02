@@ -4,8 +4,11 @@ inputs:
   cache-auth-token:
     description: "Cache auth token"
     required: true
-  devshell:
-    description: "Devshell"
+  dev-shell:
+    description: "Dev shell"
+    required: true
+  skip-push:
+    description: "Skip push"
     required: true
 runs:
   using: "composite"
@@ -18,6 +21,7 @@ runs:
       with:
         name: nghe
         authToken: ${{ inputs.cache-auth-token }}
-    - name: Build devshell
+        skipPush: ${{ inputs.skip-push }}
+    - name: Build dev shell
       shell: bash
-      run: nix develop .#${{ inputs.devshell }} --command true
+      run: nix develop -i .#${{ inputs.dev-shell }} --command true

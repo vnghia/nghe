@@ -2,12 +2,25 @@ name: Main
 
 on:
   push:
-    branches: ["main"]
+    branches: [main]
   pull_request:
-    branches: ["main"]
+    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      build-profile:
+        description: Build profile
+        required: true
+        default: dev
+        type: choice
+        options:
+          - release
+          - dev
+      release-number:
+        description: Release number
+        required: false
+        type: number
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -46,6 +59,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
+          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -56,10 +70,19 @@ jobs:
         uses: ./.github/actions/setup-nix
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          devshell: ${{ steps.build.outputs.vendor }}
+          dev-shell: ${{ steps.build.outputs.vendor }}
+          skip-push: ${{ steps.build.outputs.profile == 'release' }}
 
-      - name: Build
-        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile != 'release' }}
+        run: nix develop -i .#${{ steps.build.outputs.vendor }} --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile == 'release' }}
+        run: |
+          nix build .#${{ steps.build.outputs.vendor }} -L
+          mkdir -p ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}
+          cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
+          chmod 777 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Patch ELF
         if: ${{ steps.build.outputs.vendor != 'musl' }}
         run: nix run nixpkgs#patchelf -- --set-interpreter /lib64/ld-linux-x86-64.so.2 ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
@@ -71,13 +94,15 @@ jobs:
           retention-days: 1
 
       - name: Run test services
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop --command docker compose -f ci/test/docker-compose.yaml up -d
       - name: Test
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
-        if: success() || failure()
+        if: ${{ steps.build.outputs.profile != 'release' && (success() || failure()) }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -110,6 +135,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
+          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -120,10 +146,18 @@ jobs:
         uses: ./.github/actions/setup-nix
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          devshell: default
+          dev-shell: default
+          skip-push: ${{ steps.build.outputs.profile == 'release' }}
 
-      - name: Build
-        run: nix develop .#default --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile != 'release' }}
+        run: nix develop -i .#default --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile == 'release' }}
+        run: |
+          nix build .#default -L
+          mkdir -p ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}
+          cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -132,17 +166,19 @@ jobs:
           retention-days: 1
 
       - name: Run test services
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: |
           nix develop --command bash -c 'initdb --username=${POSTGRES_USER} --pwfile=<(echo ${POSTGRES_PASSWORD}) --pgdata=${RUNNER_TEMP}/postgres --encoding="UTF-8" --locale="en_US.UTF-8" --set "max_connections = 1000" --set "shared_buffers = 2048MB"'
           nix develop --command bash -c 'pg_ctl start --pgdata=${RUNNER_TEMP}/postgres'
 
           nix develop --command bash -c 'weed mini -dir=${RUNNER_TEMP}/weed -s3.port=${AWS_PORT} &'
       - name: Test
+        if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
-        if: success() || failure()
+        if: ${{ steps.build.outputs.profile != 'release' && (success() || failure()) }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -172,6 +208,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
+          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -182,10 +219,18 @@ jobs:
         uses: ./.github/actions/setup-nix
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          devshell: freebsd
+          dev-shell: freebsd
+          skip-push: ${{ steps.build.outputs.profile == 'release' }}
 
-      - name: Build
-        run: nix develop .#freebsd --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile != 'release' }}
+        run: nix develop -i .#freebsd --command cargo build --locked --profile ${{ steps.build.outputs.profile }} --package nghe
+      - name: Build ${{ steps.build.outputs.profile }}
+        if: ${{ steps.build.outputs.profile == 'release' }}
+        run: |
+          nix build .#freebsd -L
+          mkdir -p ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}
+          cp result/bin/nghe ${{ github.workspace }}/target/${{ matrix.platform.target }}/${{ steps.build.outputs.output-dir }}/nghe
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -219,7 +264,8 @@ jobs:
         uses: ./.github/actions/setup-nix
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          devshell: coverage
+          dev-shell: coverage
+          skip-push: ${{ github.event_name == 'release' }}
 
       - name: Run test services
         run: nix develop --command docker compose -f ci/test/docker-compose.yaml up -d
