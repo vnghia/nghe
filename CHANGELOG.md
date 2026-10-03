@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.14.0](https://github.com/vnghia/nghe/compare/v0.13.0...v0.14.0) (2026-10-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename nghe-backend to nghe ([#1125](https://github.com/vnghia/nghe/issues/1125))
+
+### Features
+
+* add immutable release ([#1138](https://github.com/vnghia/nghe/issues/1138)) ([70f29ca](https://github.com/vnghia/nghe/commit/70f29ca1a8c25b886decc0787022a0b342f27054))
+* support build reproducible release binary ([#1135](https://github.com/vnghia/nghe/issues/1135)) ([4b7b7ba](https://github.com/vnghia/nghe/commit/4b7b7ba6813644f859b1488c5266093ba111c033))
+
+
+### Code Refactoring
+
+* rename nghe-backend to nghe ([#1125](https://github.com/vnghia/nghe/issues/1125)) ([497f49a](https://github.com/vnghia/nghe/commit/497f49a9e6d96f03cdde91150278ce679ea038e5))
+
 ## [0.13.0](https://github.com/vnghia/nghe/compare/v0.12.3...v0.13.0) (2026-09-26)
 
 
