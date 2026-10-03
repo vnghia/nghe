@@ -15,7 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
+        id: release-please
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           config-file: ci/release-please/config.json
           manifest-file: ci/release-please/manifest.json
+      - name: Trigger release build pipeline
+        if: ${{ steps.release-please.outputs.release_created }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: gh workflow run main.yml -f release-tag=${{ steps.release-please.outputs.tag_name }}

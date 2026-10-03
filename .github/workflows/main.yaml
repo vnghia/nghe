@@ -5,8 +5,6 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       build-profile:
@@ -17,10 +15,9 @@ on:
         options:
           - release
           - dev
-      release-number:
-        description: Release number
+      release-tag:
+        description: Release tag
         required: false
-        type: number
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
@@ -59,7 +56,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
-          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
+          profile: ${{ github.event.inputs.release-tag && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -135,7 +132,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
-          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
+          profile: ${{ github.event.inputs.release-tag && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -208,7 +205,7 @@ jobs:
         uses: ./.github/actions/extract-build-information
         with:
           target: ${{ matrix.platform.target }}
-          profile: ${{ github.event.inputs.release-number && 'release' || github.event.inputs.build-profile }}
+          profile: ${{ github.event.inputs.release-tag && 'release' || github.event.inputs.build-profile }}
 
       - name: Setup rust
         uses: ./.github/actions/setup-rust
@@ -247,7 +244,7 @@ jobs:
             runs-on: ubuntu-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
-    if: ${{ github.event_name != 'release' }}
+    if: ${{ !github.event.inputs.release-tag && (github.event.inputs.build-profile != 'release') }}
 
     steps:
       - uses: actions/checkout@v7
@@ -265,7 +262,7 @@ jobs:
         with:
           cache-auth-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
           dev-shell: coverage
-          skip-push: ${{ github.event_name == 'release' }}
+          skip-push: ${{ github.event.inputs.release-tag || (github.event.inputs.build-profile == 'release') }}
 
       - name: Run test services
         run: nix develop --command docker compose -f ci/test/docker-compose.yaml up -d
@@ -371,7 +368,7 @@ jobs:
 
   upload-release:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'release' }}
+    if: ${{ github.event.inputs.release-tag }}
 
     needs: [build-linux, build-macos, build-freebsd]
 
@@ -389,10 +386,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           find artifact/ -mindepth 1 -maxdepth 1 -type d -exec zip -r --move --test {}.zip {} \;
-          gh release upload ${{ github.ref_name }} \
+          gh release upload ${{ github.event.inputs.release-tag }} \
             artifact/amd64-gnu.zip \
             artifact/amd64-musl.zip \
             artifact/arm64-gnu.zip \
             artifact/arm64-musl.zip \
             artifact/arm64-darwin.zip \
             artifact/amd64-freebsd.zip
+          gh release edit ${{ github.event.inputs.release-tag }} --draft=false
