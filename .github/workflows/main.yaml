@@ -393,3 +393,4 @@ jobs:
             artifact/arm64-musl.zip \
             artifact/arm64-darwin.zip \
             artifact/amd64-freebsd.zip
+          gh release edit ${{ github.event.inputs.release-tag }} --draft=false
