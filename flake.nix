@@ -403,15 +403,10 @@
                   ++ checkInputs
                   ++ nativeCheckInputs
                   ++ (hostLib.optional withCoverage cargoLlvmCov)
-                  ++ (
-                    if pkgs.stdenv.hostPlatform.isLinux then
-                      [
-                        pkgs.docker
-                        pkgs.docker-compose
-                      ]
-                    else
-                      [ ]
-                  );
+                  ++ (hostLib.optionals pkgs.stdenv.hostPlatform.isLinux [
+                    pkgs.docker
+                    pkgs.docker-compose
+                  ]);
               };
             };
 
@@ -427,10 +422,11 @@
             in
             {
               default = mkDevShellAndPackage {
-                crossSystem = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux linuxCrossSystem;
+                crossSystem = if pkgs.stdenv.hostPlatform.isLinux then linuxCrossSystem else null;
               };
             }
             // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+              gnu = mkDevShellAndPackage { crossSystem = linuxCrossSystem; };
               musl = mkDevShellAndPackage {
                 crossSystem = llvmCrossSystem // {
                   config = muslTargetMap.${system};
