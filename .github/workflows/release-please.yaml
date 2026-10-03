@@ -18,8 +18,8 @@ jobs:
         id: release-please
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: ci/release-please/config.json
-          manifest-file: ci/release-please/manifest.json
+          config-file: dev/release-please/config.json
+          manifest-file: dev/release-please/manifest.json
 
       - uses: actions/checkout@v7
         if: ${{ steps.release-please.outputs.release_created }}
