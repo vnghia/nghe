@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/vnghia/nghe/compare/v0.14.0...v0.14.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **ci:** docker tag is wrong for manually triggered ([#1151](https://github.com/vnghia/nghe/issues/1151)) ([c35f17b](https://github.com/vnghia/nghe/commit/c35f17b81c9bd15e88339755f4c5a192a8cd05f7))
+
 ## [0.14.0](https://github.com/vnghia/nghe/compare/v0.13.0...v0.14.0) (2026-10-03)
 
 
