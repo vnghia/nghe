@@ -27,4 +27,4 @@ jobs:
         if: ${{ steps.release-please.outputs.release_created }}
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: gh workflow run .github/workflows/main.yml -f release-tag=${{ steps.release-please.outputs.tag_name }}
+        run: gh workflow run main.yaml -f release-tag=${{ steps.release-please.outputs.tag_name }}

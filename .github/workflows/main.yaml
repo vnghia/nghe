@@ -44,6 +44,7 @@ jobs:
             runs-on: ubuntu-24.04-arm
 
     runs-on: ${{ matrix.platform.runs-on }}
+    if: "!contains(github.event.head_commit.message, 'chore(main): release')"
 
     steps:
       - uses: actions/checkout@v7
@@ -117,6 +118,7 @@ jobs:
             runs-on: macos-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
+    if: "!contains(github.event.head_commit.message, 'chore(main): release')"
 
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
@@ -193,6 +195,7 @@ jobs:
             runs-on: ubuntu-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
+    if: "!contains(github.event.head_commit.message, 'chore(main): release')"
 
     steps:
       - uses: actions/checkout@v7
@@ -244,7 +247,7 @@ jobs:
             runs-on: ubuntu-latest
 
     runs-on: ${{ matrix.platform.runs-on }}
-    if: ${{ !github.event.inputs.release-tag && (github.event.inputs.build-profile != 'release') }}
+    if: "${{ !contains(github.event.head_commit.message, 'chore(main): release') && !github.event.inputs.release-tag && (github.event.inputs.build-profile != 'release') }}"
 
     steps:
       - uses: actions/checkout@v7
@@ -327,8 +330,8 @@ jobs:
             name=ghcr.io/${{ github.repository }}
           tags: |
             type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=raw,value=develop,enable={{is_default_branch}}
+            type=semver,pattern={{version}},value=${{ github.event.inputs.release-tag }}
+            type=edge
       - name: Build and push gnu
         uses: docker/build-push-action@v7
         with:
@@ -352,8 +355,8 @@ jobs:
             suffix=-scratch,onlatest=true
           tags: |
             type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=raw,value=develop,enable={{is_default_branch}}
+            type=semver,pattern={{version}},value=${{ github.event.inputs.release-tag }}
+            type=edge
       - name: Build and push musl
         uses: docker/build-push-action@v7
         with:
