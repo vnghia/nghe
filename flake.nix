@@ -286,11 +286,11 @@
 
               env = {
                 build = {
-                  # cargo
-                  CARGO_BUILD_TARGET = rustTarget;
-
-                  "CARGO_TARGET_${rustShoutTarget}_LINKER" = ccBin;
+                  # stdenv
+                  CC = ccBin;
                   "CC_${rustShoutTarget}" = ccBin;
+                  CARGO_BUILD_TARGET = rustTarget;
+                  "CARGO_TARGET_${rustShoutTarget}_LINKER" = ccBin;
 
                   # native
                   PKG_CONFIG_ALL_STATIC = if withStatic then "1" else null;
@@ -302,8 +302,8 @@
                     self.rev or (hostLib.removeSuffix "-dirty" self.dirtyRev)
                   );
                 }
-                // (hostLib.optionalAttrs isCross {
-                  HOST_CC = if canExecute then ccBin else buildCcBin;
+                // (hostLib.optionalAttrs (isCross && !canExecute) {
+                  HOST_CC = buildCcBin;
                 });
 
                 check = rec {
@@ -334,16 +334,15 @@
                 strictDeps = true;
 
                 src = hostLib.sources.sourceByGlobs ./. [
-                  "*.toml"
-                  "*.lock"
-
+                  "Cargo.toml"
+                  "Cargo.lock"
                   ".cargo/config.toml"
                   ".config/nextest.toml"
 
                   "assets/**"
 
+                  "nghe*/**/Cargo.toml"
                   "nghe*/**/*.rs"
-                  "nghe*/**/*.toml"
                   "nghe*/**/*.sql"
                 ];
 
@@ -416,24 +415,38 @@
               };
             };
 
-          all = {
-            default = mkDevShellAndPackage { };
-          }
-          // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-            gnu = mkDevShellAndPackage { };
-            musl = mkDevShellAndPackage {
-              crossSystem = {
-                config = muslTargetMap.${system};
-                isStatic = true;
+          all =
+            let
+              llvmCrossSystem = {
+                useLLVM = true;
+                linker = "lld";
               };
-            };
-            freebsd = mkDevShellAndPackage {
-              crossSystem = {
-                config = freebsdTargetMap.${system};
+              linuxCrossSystem = llvmCrossSystem // {
+                config = pkgs.stdenv.hostPlatform.config;
               };
-            };
-            coverage = mkDevShellAndPackage { withCoverage = true; };
-          });
+            in
+            {
+              default = mkDevShellAndPackage {
+                crossSystem = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux linuxCrossSystem;
+              };
+            }
+            // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+              musl = mkDevShellAndPackage {
+                crossSystem = llvmCrossSystem // {
+                  config = muslTargetMap.${system};
+                  isStatic = true;
+                };
+              };
+              freebsd = mkDevShellAndPackage {
+                crossSystem = llvmCrossSystem // {
+                  config = freebsdTargetMap.${system};
+                };
+              };
+              coverage = mkDevShellAndPackage {
+                crossSystem = linuxCrossSystem;
+                withCoverage = true;
+              };
+            });
         in
         {
           packages = lib.mapAttrs (_: value: value.package) all;
