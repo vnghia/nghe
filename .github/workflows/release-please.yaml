@@ -20,6 +20,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: ci/release-please/config.json
           manifest-file: ci/release-please/manifest.json
+
+      - uses: actions/checkout@v7
+        if: ${{ steps.release-please.outputs.release_created }}
       - name: Trigger release build pipeline
         if: ${{ steps.release-please.outputs.release_created }}
         env:
