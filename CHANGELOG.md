@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.2](https://github.com/vnghia/nghe/compare/v0.14.1...v0.14.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* use llvm to build native deps ([#1155](https://github.com/vnghia/nghe/issues/1155)) ([b6d0ed1](https://github.com/vnghia/nghe/commit/b6d0ed192c0c5b1d3e77a8d805ed49cea2add159))
+
 ## [0.14.1](https://github.com/vnghia/nghe/compare/v0.14.0...v0.14.1) (2026-10-03)
 
 
