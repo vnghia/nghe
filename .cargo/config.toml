@@ -6,4 +6,4 @@ rustflags = ["-Clink-arg=-fuse-ld=lld"]
 
 [unstable]
 build-std = ["std", "panic_abort"]
-build-std-features = ["backtrace", "llvm-libunwind"]
+build-std-features = ["llvm-libunwind"]
