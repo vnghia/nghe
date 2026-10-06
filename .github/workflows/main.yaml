@@ -93,7 +93,7 @@ jobs:
 
       - name: Run test services
         if: ${{ steps.build.outputs.profile != 'release' }}
-        run: nix develop --command docker compose -f dev/test/docker-compose.yaml up -d
+        run: nix develop --command podman compose -f dev/test/docker-compose.yaml up -d
       - name: Test
         if: ${{ steps.build.outputs.profile != 'release' }}
         run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
@@ -268,7 +268,7 @@ jobs:
           skip-push: ${{ github.event.inputs.release-tag || (github.event.inputs.build-profile == 'release') }}
 
       - name: Run test services
-        run: nix develop --command docker compose -f dev/test/docker-compose.yaml up -d
+        run: nix develop --command podman compose -f dev/test/docker-compose.yaml up -d
       - name: Generate code coverage
         run: nix develop .#coverage --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
         env:
