@@ -219,6 +219,7 @@
             {
               crossSystem ? null,
               extendNixpkgs ? null,
+              overrideRustPkgs ? null,
               withStatic ? true,
               withCoverage ? false,
             }:
@@ -246,12 +247,13 @@
 
               canExecute = hostStdenv.buildPlatform.canExecute hostStdenv.hostPlatform;
 
-              rustBin = inputs.rust-overlay.lib.mkRustBin { } hostPkgs.buildPackages;
+              rustPkgs = if (overrideRustPkgs != null) then overrideRustPkgs else hostPkgs;
+              rustBin = inputs.rust-overlay.lib.mkRustBin { } rustPkgs.buildPackages;
               toolchain = rustBin.fromRustupToolchainFile ./rust-toolchain.toml;
 
               rustTarget = hostStdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
-              rustPlatform = hostPkgs.makeRustPlatform {
+              rustPlatform = rustPkgs.makeRustPlatform {
                 cargo = toolchain;
                 rustc = toolchain;
               };
@@ -261,7 +263,9 @@
                 inherit withStatic;
               };
 
-              ccBin = "${hostStdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
+              ccBin = "${rustPkgs.stdenv.cc}/bin/${
+                hostLib.optionalString (isCross && (rustPkgs == null)) "${hostTarget}-"
+              }cc";
               buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
 
               cargoExpand = pkgs.cargo-expand;
@@ -276,7 +280,7 @@
 
                 # native
                 pkg-config
-                stdenv.cc
+                rustPkgs.stdenv.cc
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
               ];
@@ -364,13 +368,13 @@
 
                 env = envBuild // envCheck // { RUST_BACKTRACE = "1"; };
 
+                cargoLock.lockFile = ./Cargo.lock;
+
                 cargoBuildFlags = [
                   "--frozen"
                   "--package"
                   pname
                 ];
-
-                cargoLock.lockFile = ./Cargo.lock;
 
                 inherit nativeCheckInputs;
                 inherit checkInputs;
@@ -441,6 +445,12 @@
 
               defaultSystem = {
                 crossSystem = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux linuxCrossSystem;
+                # `build-std` right now with rustPlatform is not possible
+                # because we need to pull a second Cargo.lock to build the std.
+                # But it should be possible after https://github.com/rust-lang/cargo/issues/16960.
+                #
+                # After `build-std`, we can then build our package with statically-linked LLVM's libunwind.
+                overrideRustPkgs = pkgs;
               };
             in
             {
