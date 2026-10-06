@@ -3,7 +3,3 @@ rustflags = ["-Ctarget-feature=+crt-static"]
 
 [target.'cfg(all())']
 rustflags = ["-Clink-arg=-fuse-ld=lld"]
-
-[unstable]
-build-std = ["std", "panic_abort"]
-build-std-features = ["llvm-libunwind"]
