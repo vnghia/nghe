@@ -230,14 +230,9 @@
                 if (isCross || (extendNixpkgs != null)) then
                   import nixpkgs (
                     {
-                      localSystem = {
-                        inherit system;
-                      };
+                      localSystem = { inherit system; };
                     }
-                    // (lib.optionalAttrs (crossSystem != null) {
-
-                      inherit crossSystem;
-                    })
+                    // (lib.optionalAttrs (crossSystem != null) { inherit crossSystem; })
                     // (lib.optionalAttrs (extendNixpkgs != null) extendNixpkgs)
                   )
                 else
@@ -265,7 +260,7 @@
               };
 
               ccBin = "${rustPkgs.stdenv.cc}/bin/${
-                hostLib.optionalString (isCross && (rustPkgs == null)) "${hostTarget}-"
+                hostLib.optionalString (isCross && (overrideRustPkgs == null)) "${hostTarget}-"
               }cc";
               buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
 
