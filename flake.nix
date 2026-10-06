@@ -425,8 +425,8 @@
                   ++ (hostLib.optionals canExecute nativeCheckInputs)
                   ++ (hostLib.optional withCoverage cargoLlvmCov)
                   ++ (hostLib.optionals pkgs.stdenv.hostPlatform.isLinux [
-                    pkgs.docker
-                    pkgs.docker-compose
+                    pkgs.podman
+                    pkgs.podman-compose
                   ]);
               };
             };
