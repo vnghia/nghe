@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.3](https://github.com/vnghia/nghe/compare/v0.14.2...v0.14.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* link with gcc_s instead of libunwind for gnu target ([#1160](https://github.com/vnghia/nghe/issues/1160)) ([1a57471](https://github.com/vnghia/nghe/commit/1a57471273a75e6a6574eb2188323b26ee8643b3))
+
 ## [0.14.2](https://github.com/vnghia/nghe/compare/v0.14.1...v0.14.2) (2026-10-04)
 
 
