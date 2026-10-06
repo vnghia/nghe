@@ -27,7 +27,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
   COLORBT_SHOW_HIDDEN: 1
-  PODMAN_COMPOSE_PROVIDER: docker-compose
+  PODMAN_COMPOSE_PROVIDER: /usr/libexec/docker/cli-plugins/docker-compose
 
 jobs:
   build-linux:
