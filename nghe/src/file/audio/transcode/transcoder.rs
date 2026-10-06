@@ -124,7 +124,7 @@ impl Output {
             if let Some(pts) = frame.pts() {
                 let frame_timebase = unsafe { (*frame.as_ptr()).time_base };
                 frame.set_pts(Some(pts.rescale(frame_timebase, self.encoder.time_base())));
-            };
+            }
             self.encoder.send_frame(frame)
         } else {
             self.encoder.send_eof()

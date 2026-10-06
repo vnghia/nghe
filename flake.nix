@@ -49,6 +49,7 @@
 
           freebsdTargetMap = {
             "x86_64-linux" = "x86_64-unknown-freebsd";
+            "aarch64-linux" = "aarch64-unknown-freebsd";
           };
 
           mkNativeDeps =
@@ -59,6 +60,8 @@
             let
               hostLib = hostPkgs.lib;
               hostStdenv = hostPkgs.stdenv;
+
+              canExecute = hostStdenv.buildPlatform.canExecute hostStdenv.hostPlatform;
 
               disableTarget = if withStatic then "shared" else "static";
               enableTarget = if withStatic then "static" else "shared";
@@ -128,6 +131,8 @@
                     withSoxr = true;
                     withVorbis = true;
 
+                    withGPLv3 = true;
+
                     withSmallBuild = false;
                     withHardcodedTables = true;
                     withMultithread = true;
@@ -176,7 +181,7 @@
                     );
               };
 
-              check = {
+              check = hostLib.optionalAttrs canExecute {
                 libpq =
                   (hostPkgs.libpq.override {
                     curlSupport = false;
@@ -214,19 +219,22 @@
           mkDevShellAndPackage =
             {
               crossSystem ? null,
+              extendNixpkgs ? null,
+              overrideRustPkgs ? null,
               withStatic ? true,
               withCoverage ? false,
             }:
             let
               isCross = crossSystem != null;
               hostPkgs =
-                if isCross then
-                  import nixpkgs {
-                    localSystem = {
-                      inherit system;
-                    };
-                    inherit crossSystem;
-                  }
+                if (isCross || (extendNixpkgs != null)) then
+                  import nixpkgs (
+                    {
+                      localSystem = { inherit system; };
+                    }
+                    // (lib.optionalAttrs (crossSystem != null) { inherit crossSystem; })
+                    // (lib.optionalAttrs (extendNixpkgs != null) extendNixpkgs)
+                  )
                 else
                   pkgs;
               hostLib = hostPkgs.lib;
@@ -235,12 +243,13 @@
 
               canExecute = hostStdenv.buildPlatform.canExecute hostStdenv.hostPlatform;
 
-              rustBin = inputs.rust-overlay.lib.mkRustBin { } hostPkgs.buildPackages;
+              rustPkgs = if (overrideRustPkgs != null) then overrideRustPkgs else hostPkgs;
+              rustBin = inputs.rust-overlay.lib.mkRustBin { } rustPkgs.buildPackages;
               toolchain = rustBin.fromRustupToolchainFile ./rust-toolchain.toml;
 
               rustTarget = hostStdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
-              rustPlatform = hostPkgs.makeRustPlatform {
+              rustPlatform = rustPkgs.makeRustPlatform {
                 cargo = toolchain;
                 rustc = toolchain;
               };
@@ -250,7 +259,9 @@
                 inherit withStatic;
               };
 
-              ccBin = "${hostStdenv.cc}/bin/${hostLib.optionalString isCross "${hostTarget}-"}cc";
+              ccBin = "${rustPkgs.stdenv.cc}/bin/${
+                hostLib.optionalString (isCross && (overrideRustPkgs == null)) "${hostTarget}-"
+              }cc";
               buildCcBin = "${pkgs.stdenv.cc}/bin/cc";
 
               cargoExpand = pkgs.cargo-expand;
@@ -265,7 +276,10 @@
 
                 # native
                 pkg-config
-                stdenv.cc
+                rustPkgs.stdenv.cc
+                rustPkgs.llvmPackages.bintools
+
+                # bindgen
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
               ];
@@ -289,7 +303,10 @@
                   # stdenv
                   CC = ccBin;
                   "CC_${rustShoutTarget}" = ccBin;
+
+                  # rust
                   CARGO_BUILD_TARGET = rustTarget;
+                  CRATE_CC_NO_DEFAULTS = "1";
                   "CARGO_TARGET_${rustShoutTarget}_LINKER" = ccBin;
 
                   # native
@@ -301,10 +318,7 @@
                   GIT_COMMIT_HASH_SHORT = builtins.substring 0 7 (
                     self.rev or (hostLib.removeSuffix "-dirty" self.dirtyRev)
                   );
-                }
-                // (hostLib.optionalAttrs (isCross && !canExecute) {
-                  HOST_CC = buildCcBin;
-                });
+                };
 
                 check = rec {
                   RUST_LOG = "nghe=trace";
@@ -327,6 +341,8 @@
               envCheck = env.check;
             in
             {
+              inherit nativeDeps;
+
               package = rustPlatform.buildRustPackage (finalAttrs: rec {
                 pname = "nghe";
                 version = (hostLib.importTOML ./Cargo.toml).workspace.package.version;
@@ -346,7 +362,21 @@
                   "nghe*/**/*.sql"
                 ];
 
+                inherit nativeBuildInputs;
+                inherit buildInputs;
+
+                env = envBuild // envCheck // { RUST_BACKTRACE = "1"; };
+
                 cargoLock.lockFile = ./Cargo.lock;
+
+                cargoBuildFlags = [
+                  "--frozen"
+                  "--package"
+                  pname
+                ];
+
+                inherit nativeCheckInputs;
+                inherit checkInputs;
 
                 doCheck = canExecute;
                 useNextest = true;
@@ -376,32 +406,23 @@
 
                   kill $(lsof -t -i :${envCheck.AWS_PORT})
                 '';
-
-                env = envBuild // envCheck // { RUST_BACKTRACE = "1"; };
-                inherit nativeBuildInputs;
-                inherit buildInputs;
-                inherit nativeCheckInputs;
-                inherit checkInputs;
-
-                # Use the built-in one after https://github.com/NixOS/nixpkgs/issues/303796.
-                # The provided HOST_CC does not work with musl build.
-                buildPhase = ''
-                  runHook preBuild
-                  cargo build --frozen --profile ${finalAttrs.cargoBuildType} --package ${pname}
-                  runHook postBuild
-                '';
               });
 
               devShell = pkgs.mkShellNoCC {
                 dontAddExtraLibs = true;
 
-                env = envBuild // envCheck;
+                env =
+                  envBuild
+                  // envCheck
+                  // (hostLib.optionalAttrs (isCross && !canExecute) {
+                    HOST_CC = buildCcBin;
+                  });
 
                 packages =
                   buildInputs
                   ++ nativeBuildInputs
-                  ++ checkInputs
-                  ++ nativeCheckInputs
+                  ++ (hostLib.optionals canExecute checkInputs)
+                  ++ (hostLib.optionals canExecute nativeCheckInputs)
                   ++ (hostLib.optional withCoverage cargoLlvmCov)
                   ++ (hostLib.optionals pkgs.stdenv.hostPlatform.isLinux [
                     pkgs.docker
@@ -416,17 +437,32 @@
                 useLLVM = true;
                 linker = "lld";
               };
+
               linuxCrossSystem = llvmCrossSystem // {
                 config = pkgs.stdenv.hostPlatform.config;
               };
+
+              defaultSystem = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+                crossSystem = linuxCrossSystem;
+                # `build-std` right now with rustPlatform is not possible
+                # because we need to pull a second Cargo.lock to build the std.
+                # But it should be possible after https://github.com/rust-lang/cargo/issues/16960.
+                #
+                # After `build-std`, we can then build our package with statically-linked LLVM's libunwind.
+                overrideRustPkgs = pkgs;
+              };
             in
             {
-              default = mkDevShellAndPackage {
-                crossSystem = if pkgs.stdenv.hostPlatform.isLinux then linuxCrossSystem else null;
-              };
+              default = mkDevShellAndPackage defaultSystem;
+              coverage = mkDevShellAndPackage (
+                defaultSystem
+                // {
+                  withCoverage = true;
+                }
+              );
             }
             // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-              gnu = mkDevShellAndPackage { crossSystem = linuxCrossSystem; };
+              gnu = mkDevShellAndPackage defaultSystem;
               musl = mkDevShellAndPackage {
                 crossSystem = llvmCrossSystem // {
                   config = muslTargetMap.${system};
@@ -438,14 +474,17 @@
                   config = freebsdTargetMap.${system};
                 };
               };
-              coverage = mkDevShellAndPackage {
-                crossSystem = linuxCrossSystem;
-                withCoverage = true;
-              };
             });
         in
         {
-          packages = lib.mapAttrs (_: value: value.package) all;
+          packages = lib.concatMapAttrs (
+            system: value:
+            {
+              "${system}" = value.package;
+            }
+            // (lib.mapAttrs' (name: dep: lib.nameValuePair "${system}-${name}" dep) value.nativeDeps.build)
+            // (lib.mapAttrs' (name: dep: lib.nameValuePair "${system}-${name}" dep) value.nativeDeps.check)
+          ) all;
           devShells = lib.mapAttrs (_: value: value.devShell) all;
         };
     };
