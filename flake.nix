@@ -49,6 +49,7 @@
 
           freebsdTargetMap = {
             "x86_64-linux" = "x86_64-unknown-freebsd";
+            "aarch64-linux" = "aarch64-unknown-freebsd";
           };
 
           mkNativeDeps =
@@ -450,7 +451,7 @@
                 # But it should be possible after https://github.com/rust-lang/cargo/issues/16960.
                 #
                 # After `build-std`, we can then build our package with statically-linked LLVM's libunwind.
-                overrideRustPkgs = pkgs;
+                overrideRustPkgs = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux pkgs;
               };
             in
             {
@@ -463,7 +464,7 @@
               );
             }
             // (lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-              gnu = mkDevShellAndPackage { crossSystem = linuxCrossSystem; };
+              gnu = mkDevShellAndPackage defaultSystem;
               musl = mkDevShellAndPackage {
                 crossSystem = llvmCrossSystem // {
                   config = muslTargetMap.${system};
