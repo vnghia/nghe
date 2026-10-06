@@ -439,14 +439,14 @@
                 config = pkgs.stdenv.hostPlatform.config;
               };
 
-              defaultSystem = {
-                crossSystem = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux linuxCrossSystem;
+              defaultSystem = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+                crossSystem = linuxCrossSystem;
                 # `build-std` right now with rustPlatform is not possible
                 # because we need to pull a second Cargo.lock to build the std.
                 # But it should be possible after https://github.com/rust-lang/cargo/issues/16960.
                 #
                 # After `build-std`, we can then build our package with statically-linked LLVM's libunwind.
-                overrideRustPkgs = lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux pkgs;
+                overrideRustPkgs = pkgs;
               };
             in
             {
