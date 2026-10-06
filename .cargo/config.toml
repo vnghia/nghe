@@ -1,5 +1,5 @@
 [target.'cfg(target_env = "musl")']
 rustflags = ["-Ctarget-feature=+crt-static"]
 
-[target.'cfg(all(target_os = "linux", not(target_env = "gnu")))']
+[target.'cfg(all())']
 rustflags = ["-Clink-arg=-fuse-ld=lld"]

@@ -277,6 +277,9 @@
                 # native
                 pkg-config
                 rustPkgs.stdenv.cc
+                rustPkgs.llvmPackages.bintools
+
+                # bindgen
                 pkgs.llvmPackages.libclang.lib
                 (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
               ];
