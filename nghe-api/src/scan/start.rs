@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 #[api_derive]
 #[derive(Clone, Copy, Default)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Full {
     #[serde(default)]
     pub file: bool,
@@ -16,6 +17,7 @@ pub struct Full {
 
 #[api_derive]
 #[endpoint(path = "startScan")]
+#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     pub music_folder_id: Uuid,
     #[serde(default)]
@@ -24,3 +26,28 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response;
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use rstest::rstest;
+    use uuid::uuid;
+
+    use super::*;
+
+    #[rstest]
+    #[case(
+        "musicFolderId=61d78c98-e9a3-43f2-bbd1-8645c037d0be",
+        Some(Request {
+            music_folder_id: uuid!(
+                "61d78c98-e9a3-43f2-bbd1-8645c037d0be"
+            ),
+            ..Default::default()
+        })
+    )]
+    #[case("musicFolderId=none", None)]
+    #[case("musicFolderId=61d78c98-e9a3-43f2-bbd1-8645c037d0be&full=true", None)]
+    fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
+        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+    }
+}
