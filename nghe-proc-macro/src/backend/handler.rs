@@ -251,7 +251,6 @@ impl Handler {
 
     fn tracing_attribute(&self) -> syn::Attribute {
         let source_path = std::path::PathBuf::from(&proc_macro::Span::call_site().file());
-        let _tracing_name = source_path.file_stem().unwrap().to_str().unwrap().to_string();
         // TODO: Remove this after https://github.com/rust-lang/rust-analyzer/issues/15950.
         let tracing_name = if source_path.as_os_str().is_empty() {
             "handler".to_owned()

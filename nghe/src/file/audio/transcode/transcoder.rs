@@ -373,7 +373,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::test::assets;
-    use crate::{config, init_ffmpeg};
+    use crate::{config, server};
 
     #[rstest]
     #[case(format::Transcode::Aac, 128)]
@@ -390,7 +390,7 @@ mod tests {
             log_level: ffmpeg_next::log::Level::Trace.into(),
             ..Default::default()
         };
-        init_ffmpeg(&config).unwrap();
+        server::init_ffmpeg(&config).unwrap();
 
         let input = assets::path(audio::Format::Flac);
         let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;
