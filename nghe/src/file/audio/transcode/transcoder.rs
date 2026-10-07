@@ -419,7 +419,7 @@ mod tests {
             log_level: ffmpeg_next::log::Level::Trace.into(),
             ..Default::default()
         };
-        init_ffmpeg(&config).unwrap();
+        server::init_ffmpeg(&config).unwrap();
 
         let input = env!("NGHE_HEARING_TEST_INPUT");
         let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;

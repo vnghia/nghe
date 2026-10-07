@@ -9,6 +9,7 @@
 #![feature(stmt_expr_attributes)]
 #![feature(str_as_str)]
 
+pub mod command;
 #[coverage(off)]
 pub mod config;
 mod database;

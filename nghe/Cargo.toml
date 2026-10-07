@@ -100,6 +100,8 @@ typed-path = { version = "0.12.0" }
 unicode-normalization = { version = "0.1.24" }
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 
+clap = { version = "4.6.7", features = ["derive"] }
+
 [dev-dependencies]
 bon = { workspace = true }
 fake = { workspace = true }
