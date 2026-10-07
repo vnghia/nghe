@@ -64,12 +64,12 @@ indexmap = { version = "2.9.0" }
 libaes = { version = "0.7.0" }
 lofty = { version = "0.25.0" }
 loole = { version = "0.4.1" }
-mimalloc = { version = "0.1.48", features = ["v3"] }
 o2o = { version = "0.5.4", default-features = false, features = ["syn2"] }
 rspotify = { version = "0.16.0", default-features = false, features = [
   "client-reqwest",
   "reqwest-native-tls",
 ] }
+rustfs-mimalloc = { version = "0.5.6" }
 s3 = { version = "0.1.8", default-features = false, features = [
   "async",
   "native-tls",

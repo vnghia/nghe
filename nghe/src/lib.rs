@@ -32,7 +32,7 @@ mod test;
 
 use axum::Router;
 use error::Error;
-use mimalloc::MiMalloc;
+use rustfs_mimalloc::MiMalloc;
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
