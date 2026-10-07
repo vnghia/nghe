@@ -101,13 +101,13 @@ unicode-normalization = { version = "0.1.24" }
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 
 clap = { version = "4.6.7", features = ["derive"] }
+url = { workspace = true }
 
 [dev-dependencies]
 bon = { workspace = true }
 fake = { workspace = true }
 rstest = { workspace = true }
 serde_json = { workspace = true }
-url = { workspace = true }
 
 nghe-api = { path = "../nghe-api", features = ["test"] }
 
