@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
@@ -11,7 +13,7 @@ pub enum Format {
     Transcode(format::Transcode),
 }
 
-#[api_derive(command = false)]
+#[api_derive]
 #[endpoint(path = "stream", url_only = true)]
 #[derive(Clone, Copy)]
 pub struct Request {
@@ -19,6 +21,17 @@ pub struct Request {
     pub max_bit_rate: Option<u32>,
     pub format: Option<Format>,
     pub time_offset: Option<u32>,
+}
+
+impl FromStr for Format {
+    type Err = strum::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "raw" => Ok(Self::Raw),
+            _ => format::Transcode::from_str(s).map(Into::into),
+        }
+    }
 }
 
 impl From<format::Transcode> for Format {

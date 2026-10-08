@@ -1,12 +1,30 @@
 mod auth;
+mod media_retrieval;
+mod music_folder;
+mod permission;
+mod user;
 
 use conf::{Conf, Subcommands};
 use url::Url;
 
 #[derive(Debug, Subcommands)]
 enum Endpoint {
-    // user
-    UserSetup(nghe_api::user::setup::Request),
+    MediaRetrieval {
+        #[conf(subcommands)]
+        action: media_retrieval::Action,
+    },
+    MusicFolder {
+        #[conf(subcommands)]
+        action: music_folder::Action,
+    },
+    Permission {
+        #[conf(subcommands)]
+        action: permission::Action,
+    },
+    User {
+        #[conf(subcommands)]
+        action: user::Action,
+    },
 }
 
 #[derive(Debug, Conf)]
