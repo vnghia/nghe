@@ -42,6 +42,10 @@ pub enum Kind {
     #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
     DeserializeJson(#[from] serde_json::Error),
 
+    #[error("Missing request body")]
+    #[into(StatusCode| StatusCode::BAD_REQUEST)]
+    #[into(OpensubsonicCode| OpensubsonicCode::RequiredParameterIsMissing)]
+    MissingRequestBody,
     #[error("Method not allowed: {0}")]
     #[into(StatusCode| StatusCode::METHOD_NOT_ALLOWED)]
     #[into(OpensubsonicCode| OpensubsonicCode::AGenericError)]

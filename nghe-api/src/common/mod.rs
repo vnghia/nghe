@@ -39,6 +39,8 @@ pub trait EndpointURL {
 }
 
 pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: EndpointURL + Deserialize<'de> {
+    const UNIT: Option<Self>;
+
     type AuthForm: auth::form::Trait<'u, 'c, 's, 'p, 'de, Self> + Send;
 }
 

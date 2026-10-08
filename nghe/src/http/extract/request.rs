@@ -40,7 +40,14 @@ where
         let method = request.method();
 
         if method == Method::GET {
-            Self::from_form(request.uri().query().unwrap_or_default().as_bytes())
+            if let Some(query) = request.uri().query() {
+                Self::from_form(query.as_bytes())
+            } else {
+                Ok(Self {
+                    ty: Type::Json,
+                    request: R::UNIT.ok_or_else(|| error::Kind::MissingRequestBody)?,
+                })
+            }
         } else if method == Method::POST {
             let headers = request.headers();
             let content_type = headers
@@ -83,7 +90,17 @@ where
         let method = request.method();
 
         if method == Method::GET {
-            Self::from_form(&database, &request.uri().query().unwrap_or_default().as_bytes()).await
+            if let Some(query) = request.uri().query() {
+                Self::from_form(&database, query.as_bytes()).await
+            } else {
+                Ok(Self {
+                    validated: Validated {
+                        ty: Type::Json,
+                        request: R::UNIT.ok_or_else(|| error::Kind::MissingRequestBody)?,
+                    },
+                    user: users::Authenticated::from_headers(&database, request.headers()).await?,
+                })
+            }
         } else if method == Method::POST {
             let headers = request.headers();
             let content_type = headers
@@ -260,6 +277,68 @@ mod tests {
                 Validated::<Request>::from_request(http_request, mock.state()).await.unwrap();
             assert_eq!(request.request, body);
             assert_eq!(request.ty, Type::Json);
+        }
+    }
+
+    mod unit {
+        use super::*;
+
+        #[api_derive(fake = true)]
+        #[endpoint(path = "test", url_only = true, same_crate = false)]
+        #[derive(Clone, Copy, PartialEq)]
+        struct Request;
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_from_request(
+            #[future(awt)] mock: Mock,
+            #[values(true, false)] auth: bool,
+            #[values(true, false)] ok: bool,
+            #[values(true, false)] use_password: bool,
+        ) {
+            let user = mock.user(0).await;
+
+            let mut http_request =
+                http::Request::builder().method(http::Method::GET).body(Body::empty()).unwrap();
+            if auth {
+                if use_password {
+                    let auth = user.auth_basic();
+                    http_request.headers_mut().typed_insert(BasicAuthorization::basic(
+                        auth.username(),
+                        &if ok {
+                            auth.password().to_owned()
+                        } else {
+                            Password(16..32).fake::<String>()
+                        },
+                    ));
+                } else {
+                    let auth = user.auth_bearer().await;
+                    http_request.headers_mut().typed_insert(if ok {
+                        auth
+                    } else {
+                        BearerAuthorization::bearer(&Faker.fake::<Uuid>().to_string()).unwrap()
+                    });
+                }
+            }
+
+            if auth {
+                let request =
+                    Authenticated::<Request>::from_request(http_request, mock.state()).await;
+
+                if ok {
+                    let request = request.unwrap();
+                    assert_eq!(request.user.id, user.id());
+                    assert_eq!(request.validated.request, Request);
+                    assert_eq!(request.validated.ty, Type::Json);
+                } else {
+                    assert!(request.is_err());
+                }
+            } else {
+                let request =
+                    Validated::<Request>::from_request(http_request, mock.state()).await.unwrap();
+                assert_eq!(request.request, Request);
+                assert_eq!(request.ty, Type::Json);
+            }
         }
     }
 }
