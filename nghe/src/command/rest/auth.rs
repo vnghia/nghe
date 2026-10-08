@@ -1,6 +1,6 @@
-use clap::Args;
+use conf::Conf;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Conf)]
 pub struct Auth {
     #[arg(long)]
     username: Option<String>,

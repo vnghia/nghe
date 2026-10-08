@@ -1,12 +1,20 @@
 mod auth;
 
-use clap::Args;
+use conf::{Conf, Subcommands};
 use url::Url;
 
-#[derive(Debug, Args)]
+#[derive(Debug, Subcommands)]
+enum Endpoint {
+    // user
+    UserSetup(nghe_api::user::setup::Request),
+}
+
+#[derive(Debug, Conf)]
 pub struct Rest {
     #[arg(long)]
     server: Option<Url>,
-    #[command(flatten)]
+    #[conf(flatten)]
     auth: auth::Auth,
+    #[conf(subcommands)]
+    endpoint: Endpoint,
 }

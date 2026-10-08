@@ -1,34 +1,30 @@
 mod rest;
 
-use clap::{Parser, Subcommand};
+use conf::{Conf, Subcommands};
 use rest::Rest;
 
 use crate::server;
 
-#[derive(Debug, Default, Subcommand)]
+#[derive(Debug, Default, Subcommands)]
 enum Action {
     #[default]
     Start,
     Rest(Rest),
 }
 
-#[derive(Parser)]
+#[derive(Conf)]
 struct Entrypoint {
-    #[command(subcommand)]
+    #[conf(subcommands)]
     action: Option<Action>,
 }
 
 pub async fn entrypoint() {
-    match Entrypoint::try_parse() {
-        Ok(entrypoint) => {
-            let action = entrypoint.action.unwrap_or_default();
-            match action {
-                Action::Start => server::start().await,
-                Action::Rest(rest) => {
-                    dbg!(rest);
-                }
-            }
+    let entrypoint = Entrypoint::parse();
+    let action = entrypoint.action.unwrap_or_default();
+    match action {
+        Action::Start => server::start().await,
+        Action::Rest(rest) => {
+            dbg!(rest);
         }
-        Err(error) => error.exit(),
     }
 }
