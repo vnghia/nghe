@@ -4,7 +4,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::database::Database;
-use crate::{config, init_tracing, migration};
+use crate::{config, migration, server};
 
 pub struct Mock {
     name: String,
@@ -15,7 +15,7 @@ pub struct Mock {
 impl Mock {
     pub async fn new() -> Self {
         let url = std::env::var("DATABASE_URL").unwrap();
-        let _ = init_tracing(&config::Log::default());
+        let _ = server::init_tracing(&config::Log::default());
 
         let name = Uuid::new_v4().to_string();
         let mut mock_url = Url::parse(&url).unwrap();

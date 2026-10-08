@@ -30,6 +30,7 @@ color-eyre = { version = "0.6.3", default-features = false, features = [
   "capture-spantrace",
 ] }
 concat-string = { version = "1.0.1" }
+conf = { version = "0.4.5" }
 const_format = { version = "0.2.34", features = ["fmt"] }
 convert_case = { version = "0.12.0" }
 educe = { version = "0.8.0" }

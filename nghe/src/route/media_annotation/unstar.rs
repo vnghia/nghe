@@ -14,24 +14,24 @@ pub async fn handler(
     user_id: Uuid,
     request: Request,
 ) -> Result<Response, Error> {
-    if let Some(ref song_ids) = request.song_ids {
+    if !request.song_ids.is_empty() {
         diesel::delete(star_songs::table)
             .filter(star_songs::user_id.eq(user_id))
-            .filter(star_songs::song_id.eq_any(song_ids))
+            .filter(star_songs::song_id.eq_any(&request.song_ids))
             .execute(&mut database.get().await?)
             .await?;
     }
-    if let Some(ref album_ids) = request.album_ids {
+    if !request.album_ids.is_empty() {
         diesel::delete(star_albums::table)
             .filter(star_albums::user_id.eq(user_id))
-            .filter(star_albums::album_id.eq_any(album_ids))
+            .filter(star_albums::album_id.eq_any(&request.album_ids))
             .execute(&mut database.get().await?)
             .await?;
     }
-    if let Some(ref artist_ids) = request.artist_ids {
+    if !request.artist_ids.is_empty() {
         diesel::delete(star_artists::table)
             .filter(star_artists::user_id.eq(user_id))
-            .filter(star_artists::artist_id.eq_any(artist_ids))
+            .filter(star_artists::artist_id.eq_any(&request.artist_ids))
             .execute(&mut database.get().await?)
             .await?;
     }

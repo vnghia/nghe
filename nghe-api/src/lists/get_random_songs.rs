@@ -11,7 +11,8 @@ pub struct Request {
     pub from_year: Option<u16>,
     pub to_year: Option<u16>,
     #[serde(rename = "musicFolderId")]
-    pub music_folder_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub music_folder_ids: Vec<Uuid>,
 }
 
 #[api_derive]

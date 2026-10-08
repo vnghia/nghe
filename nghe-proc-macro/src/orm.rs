@@ -6,7 +6,7 @@ use syn::{Error, parse_quote};
 #[derive(Debug, darling::FromMeta)]
 #[darling(derive_syn_parse)]
 struct CheckMusicFolder {
-    #[darling(default = || parse_quote!(request.music_folder_ids.as_ref()))]
+    #[darling(default = || parse_quote!(request.music_folder_ids.is_empty()))]
     input: syn::Expr,
     #[darling(default = || parse_quote!(with_user_id))]
     user_id: syn::Ident,
@@ -30,7 +30,7 @@ impl Fold for CheckMusicFolder {
                 ident: self.music_folder.clone(),
                 arguments: syn::PathArguments::None,
             });
-            parse_quote! { #with_music_folder_path(user_id, music_folder_ids) }
+            parse_quote! { #with_music_folder_path(user_id, &request.music_folder_ids) }
         } else {
             expr
         }
@@ -44,10 +44,10 @@ pub fn check_music_folder(args: TokenStream, item: TokenStream) -> Result<TokenS
 
     let input = args.input;
     Ok(quote! {
-        if let Some(music_folder_ids) = #input {
-            #check_music_folder
-        } else {
+        if #input {
             #check_user_id
+        } else {
+            #check_music_folder
         }
     })
 }

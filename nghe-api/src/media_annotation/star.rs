@@ -6,11 +6,14 @@ use uuid::Uuid;
 #[cfg_attr(feature = "test", derive(Default))]
 pub struct Request {
     #[serde(rename = "id")]
-    pub song_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub song_ids: Vec<Uuid>,
     #[serde(rename = "albumId")]
-    pub album_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub album_ids: Vec<Uuid>,
     #[serde(rename = "artistId")]
-    pub artist_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub artist_ids: Vec<Uuid>,
 }
 
 #[api_derive]

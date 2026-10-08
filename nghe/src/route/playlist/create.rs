@@ -1,11 +1,11 @@
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-use nghe_api::playlists::create_playlist::CreateOrUpdate;
-pub use nghe_api::playlists::create_playlist::{Request, Response};
+use nghe_api::playlist::create::CreateOrUpdate;
+pub use nghe_api::playlist::create::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
-use super::get_playlist;
+use super::get;
 use crate::Error;
 use crate::database::Database;
 use crate::orm::upsert::Insert;
@@ -34,17 +34,11 @@ pub async fn handler(
             playlist_id
         }
     };
-    if let Some(ref song_ids) = request.song_ids {
-        playlists_songs::Upsert::upserts(database, playlist_id, song_ids).await?;
+    if !request.song_ids.is_empty() {
+        playlists_songs::Upsert::upserts(database, playlist_id, &request.song_ids).await?;
     }
 
     Ok(Response {
-        playlist: get_playlist::handler(
-            database,
-            user_id,
-            get_playlist::Request { id: playlist_id },
-        )
-        .await?
-        .playlist,
+        playlist: get::handler(database, user_id, get::Request { id: playlist_id }).await?.playlist,
     })
 }

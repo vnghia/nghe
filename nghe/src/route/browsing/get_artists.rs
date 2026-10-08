@@ -63,7 +63,7 @@ mod tests {
         .await;
 
         let index =
-            handler(mock.database(), mock.user_id(0).await, Request { music_folder_ids: None })
+            handler(mock.database(), mock.user_id(0).await, Request { music_folder_ids: vec![] })
                 .await
                 .unwrap()
                 .artists
@@ -97,13 +97,11 @@ mod tests {
 
         let user_id = mock.user_id(0).await;
         let with_user_id =
-            handler(mock.database(), user_id, Request { music_folder_ids: None }).await.unwrap();
+            handler(mock.database(), user_id, Request { music_folder_ids: vec![] }).await.unwrap();
         let with_music_folder = handler(
             mock.database(),
             user_id,
-            Request {
-                music_folder_ids: Some(vec![music_folder_deny.id(), music_folder_allow.id()]),
-            },
+            Request { music_folder_ids: vec![music_folder_deny.id(), music_folder_allow.id()] },
         )
         .await
         .unwrap();

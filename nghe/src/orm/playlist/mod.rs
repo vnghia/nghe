@@ -6,7 +6,7 @@ use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
-use nghe_api::playlists::playlist::{self, builder};
+use nghe_api::playlist::{self, builder};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -84,7 +84,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::route::playlists::create_playlist;
+    use crate::route::playlist::create;
     use crate::test::{Mock, mock};
 
     #[rstest]
@@ -94,12 +94,12 @@ mod tests {
         music_folder.add_audio().n_song(n_song).call().await;
 
         let user_id = mock.user_id(0).await;
-        create_playlist::handler(
+        create::handler(
             mock.database(),
             user_id,
-            create_playlist::Request {
+            create::Request {
                 create_or_update: Faker.fake::<String>().into(),
-                song_ids: Some(music_folder.database.keys().copied().collect()),
+                song_ids: music_folder.database.keys().copied().collect(),
             },
         )
         .await

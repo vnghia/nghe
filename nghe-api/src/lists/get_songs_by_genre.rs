@@ -10,7 +10,8 @@ pub struct Request {
     pub count: Option<u32>,
     pub offset: Option<u32>,
     #[serde(rename = "musicFolderId")]
-    pub music_folder_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub music_folder_ids: Vec<Uuid>,
 }
 
 #[api_derive]

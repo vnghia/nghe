@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::playlists::get_playlist::{Request, Response};
+pub use nghe_api::playlist::get::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
@@ -33,7 +33,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::route::playlists::create_playlist;
+    use crate::route::playlist::create;
     use crate::test::{Mock, mock};
 
     #[rstest]
@@ -62,12 +62,12 @@ mod tests {
             .chain(music_folder.database.keys().copied())
             .collect();
 
-        let playlist = create_playlist::handler(
+        let playlist = create::handler(
             mock.database(),
             mock.user_id(0).await,
-            create_playlist::Request {
+            create::Request {
                 create_or_update: Faker.fake::<String>().into(),
-                song_ids: Some(song_ids.clone()),
+                song_ids: song_ids.clone(),
             },
         )
         .await
@@ -95,12 +95,12 @@ mod tests {
                 let user_id = mock.user_id(i).await;
                 (
                     user_id,
-                    create_playlist::handler(
+                    create::handler(
                         mock.database(),
                         user_id,
-                        create_playlist::Request {
+                        create::Request {
                             create_or_update: Faker.fake::<String>().into(),
-                            song_ids: Some(song_ids.clone()),
+                            song_ids: song_ids.clone(),
                         },
                     )
                     .await

@@ -10,6 +10,7 @@ pub struct Request {
     pub username: String,
     pub password: String,
     pub email: String,
+    #[conf(flatten, prefix)]
     pub role: Role,
     pub allow: bool,
 }

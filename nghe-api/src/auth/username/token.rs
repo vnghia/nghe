@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-#[cfg(feature = "fake")]
+#[cfg(any(test, feature = "fake"))]
 use fake::{Fake, Faker};
 use nghe_proc_macro::api_derive;
 
@@ -13,7 +13,7 @@ pub struct Token(#[serde(with = "faster_hex::nopfx_ignorecase::array")] [u8; 16]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Auth<'s> {
     #[serde(rename = "s")]
-    #[cfg_attr(feature = "fake", dummy(expr = "Faker.fake::<String>().into()"))]
+    #[dummy(expr = "Faker.fake::<String>().into()")]
     pub salt: Cow<'s, str>,
     #[serde(rename = "t")]
     pub token: Token,

@@ -7,6 +7,7 @@ use super::Role;
 #[endpoint(path = "updateUserRole")]
 pub struct Request {
     pub id: Uuid,
+    #[conf(flatten, prefix)]
     pub role: Role,
 }
 

@@ -25,7 +25,7 @@ pub enum Type {
     },
 }
 
-#[api_derive]
+#[api_derive(command = false)]
 #[endpoint(path = "getAlbumList2")]
 #[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
@@ -34,7 +34,8 @@ pub struct Request {
     pub size: Option<u32>,
     pub offset: Option<u32>,
     #[serde(rename = "musicFolderId")]
-    pub music_folder_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub music_folder_ids: Vec<Uuid>,
 }
 
 #[api_derive]

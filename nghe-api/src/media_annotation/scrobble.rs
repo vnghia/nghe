@@ -3,15 +3,15 @@ use serde_with::TimestampMilliSeconds;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[api_derive(serde_as = true)]
+#[api_derive(command = false, serde_as = true)]
 #[endpoint(path = "scrobble")]
 #[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     #[serde(rename = "id")]
     pub ids: Vec<Uuid>,
     #[serde(rename = "time")]
-    #[serde_as(as = "Option<Vec<TimestampMilliSeconds<i64>>>")]
-    pub times: Option<Vec<OffsetDateTime>>,
+    #[serde_as(as = "Vec<TimestampMilliSeconds<i64>>")]
+    pub times: Vec<OffsetDateTime>,
     pub submission: Option<bool>,
 }
 
@@ -40,7 +40,7 @@ mod tests {
         time=1000000000000",
         Some(Request {
             ids: vec![uuid!("d4ea6896-a838-446c-ace4-d9d13d336391")],
-            times: Some(vec![datetime!(2001-09-09 01:46:40.000 UTC)]),
+            times: vec![datetime!(2001-09-09 01:46:40.000 UTC)],
             ..Default::default()
         })
     )]

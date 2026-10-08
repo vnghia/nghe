@@ -6,6 +6,7 @@ use uuid::Uuid;
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Request {
     #[serde(rename = "id")]
+    #[conf(repeat, long)]
     pub ids: Vec<Uuid>,
     pub current: Option<Uuid>,
     pub position: Option<u64>,

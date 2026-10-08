@@ -12,14 +12,14 @@ pub async fn handler(
     user_id: Uuid,
     request: Request,
 ) -> Result<Response, Error> {
-    if let Some(ref song_ids) = request.song_ids {
-        star_songs::Upsert::upserts(database, user_id, song_ids).await?;
+    if !request.song_ids.is_empty() {
+        star_songs::Upsert::upserts(database, user_id, &request.song_ids).await?;
     }
-    if let Some(ref album_ids) = request.album_ids {
-        star_albums::Upsert::upserts(database, user_id, album_ids).await?;
+    if !request.album_ids.is_empty() {
+        star_albums::Upsert::upserts(database, user_id, &request.album_ids).await?;
     }
-    if let Some(ref artist_ids) = request.artist_ids {
-        star_artists::Upsert::upserts(database, user_id, artist_ids).await?;
+    if !request.artist_ids.is_empty() {
+        star_artists::Upsert::upserts(database, user_id, &request.artist_ids).await?;
     }
     Ok(Response)
 }

@@ -71,7 +71,7 @@ mod tests {
         star::handler(
             mock.database(),
             user_id_star,
-            star::Request { artist_ids: Some(vec![artist_id]), ..Default::default() },
+            star::Request { artist_ids: vec![artist_id], ..Default::default() },
         )
         .await
         .unwrap();
@@ -149,7 +149,7 @@ mod tests {
         star::handler(
             mock.database(),
             user_id_star,
-            star::Request { album_ids: Some(vec![album_id]), ..Default::default() },
+            star::Request { album_ids: vec![album_id], ..Default::default() },
         )
         .await
         .unwrap();
@@ -215,7 +215,7 @@ mod tests {
         star::handler(
             mock.database(),
             user_id_star,
-            star::Request { song_ids: Some(vec![song_id]), ..Default::default() },
+            star::Request { song_ids: vec![song_id], ..Default::default() },
         )
         .await
         .unwrap();

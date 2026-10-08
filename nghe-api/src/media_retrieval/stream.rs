@@ -11,7 +11,7 @@ pub enum Format {
     Transcode(format::Transcode),
 }
 
-#[api_derive]
+#[api_derive(command = false)]
 #[endpoint(path = "stream", url_only = true)]
 #[derive(Clone, Copy)]
 pub struct Request {

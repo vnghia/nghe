@@ -1,7 +1,7 @@
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-#[api_derive]
+#[api_derive(command = true)]
 #[derive(Clone, Copy, Default)]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Full {
@@ -21,6 +21,7 @@ pub struct Full {
 pub struct Request {
     pub music_folder_id: Uuid,
     #[serde(default)]
+    #[conf(flatten, prefix)]
     pub full: Full,
 }
 
