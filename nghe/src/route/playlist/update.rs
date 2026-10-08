@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::playlists::update_playlist::{Request, Response};
+pub use nghe_api::playlist::update::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
@@ -61,7 +61,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::route::playlists::{create_playlist, get_playlist};
+    use crate::route::playlist::{create, get};
     use crate::test::{Mock, mock};
 
     #[rstest]
@@ -102,10 +102,10 @@ mod tests {
             .collect();
 
         let user_id = mock.user_id(0).await;
-        let playlist_id = create_playlist::handler(
+        let playlist_id = create::handler(
             mock.database(),
             user_id,
-            create_playlist::Request {
+            create::Request {
                 create_or_update: Faker.fake::<String>().into(),
                 song_ids: song_ids.clone(),
             },
@@ -129,18 +129,15 @@ mod tests {
             .filter_map(|index| song_ids.get::<usize>((*index).into()))
             .copied()
             .collect();
-        let database_song_ids: Vec<_> = get_playlist::handler(
-            mock.database(),
-            user_id,
-            get_playlist::Request { id: playlist_id },
-        )
-        .await
-        .unwrap()
-        .playlist
-        .entry
-        .into_iter()
-        .map(|entry| entry.song.id)
-        .collect();
+        let database_song_ids: Vec<_> =
+            get::handler(mock.database(), user_id, get::Request { id: playlist_id })
+                .await
+                .unwrap()
+                .playlist
+                .entry
+                .into_iter()
+                .map(|entry| entry.song.id)
+                .collect();
         assert_eq!(database_song_ids, song_ids);
     }
 }

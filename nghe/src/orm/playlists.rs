@@ -10,7 +10,7 @@ pub use crate::schema::playlists::{self, *};
 #[derive(Insertable, AsChangeset, Default, o2o)]
 #[diesel(table_name = playlists, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = false)]
-#[from_ref(nghe_api::playlists::update_playlist::Request)]
+#[from_ref(nghe_api::playlist::update::Request)]
 pub struct Upsert<'a> {
     #[from(~.as_ref().map(|value| value.as_str().into()))]
     pub name: Option<Cow<'a, str>>,

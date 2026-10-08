@@ -1,8 +1,6 @@
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-use super::playlist;
-
 #[api_derive(request = true)]
 #[serde(untagged)]
 #[cfg_attr(test, derive(PartialEq))]
@@ -24,7 +22,7 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response {
-    pub playlist: playlist::Full,
+    pub playlist: super::Full,
 }
 
 #[cfg(any(test, feature = "test"))]

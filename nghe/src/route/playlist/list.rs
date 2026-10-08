@@ -1,6 +1,6 @@
 use diesel_async::RunQueryDsl;
-use nghe_api::playlists::get_playlists::Playlists;
-pub use nghe_api::playlists::get_playlists::{Request, Response};
+use nghe_api::playlist::list::Playlists;
+pub use nghe_api::playlist::list::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
@@ -30,7 +30,7 @@ mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::route::playlists::create_playlist;
+    use crate::route::playlist::create;
     use crate::test::{Mock, mock};
 
     #[rstest]
@@ -51,10 +51,10 @@ mod tests {
                     user_id,
                     stream::iter(0..(2..4).fake())
                         .then(async |_| {
-                            create_playlist::handler(
+                            create::handler(
                                 mock.database(),
                                 user_id,
-                                create_playlist::Request {
+                                create::Request {
                                     create_or_update: Faker.fake::<String>().into(),
                                     song_ids: song_ids.clone(),
                                 },

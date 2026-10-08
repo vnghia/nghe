@@ -97,7 +97,7 @@ pub async fn build(config: config::Config) -> Router {
         .merge(route::browsing::router())
         .merge(route::lists::router())
         .merge(route::media_annotation::router(config.cover_art, informant))
-        .merge(route::playlists::router())
+        .merge(route::playlist::router())
         .merge(route::search::router())
         .merge(route::system::router())
         .merge(route::key::router())

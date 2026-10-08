@@ -1,11 +1,11 @@
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-use nghe_api::playlists::create_playlist::CreateOrUpdate;
-pub use nghe_api::playlists::create_playlist::{Request, Response};
+use nghe_api::playlist::create::CreateOrUpdate;
+pub use nghe_api::playlist::create::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
-use super::get_playlist;
+use super::get;
 use crate::Error;
 use crate::database::Database;
 use crate::orm::upsert::Insert;
@@ -39,12 +39,6 @@ pub async fn handler(
     }
 
     Ok(Response {
-        playlist: get_playlist::handler(
-            database,
-            user_id,
-            get_playlist::Request { id: playlist_id },
-        )
-        .await?
-        .playlist,
+        playlist: get::handler(database, user_id, get::Request { id: playlist_id }).await?.playlist,
     })
 }
