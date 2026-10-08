@@ -2,6 +2,7 @@ mod auth;
 mod media_retrieval;
 mod music_folder;
 mod permission;
+mod system;
 mod user;
 
 use conf::{Conf, Subcommands};
@@ -24,6 +25,10 @@ enum Endpoint {
     User {
         #[conf(subcommands)]
         action: user::Action,
+    },
+    System {
+        #[conf(subcommands)]
+        action: system::Action,
     },
 }
 
