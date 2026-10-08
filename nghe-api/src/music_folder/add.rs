@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::common::filesystem;
 
-#[api_derive(fake = true)]
+#[api_derive(command = false, fake = true)]
 #[endpoint(path = "addMusicFolder")]
 pub struct Request {
     pub name: String,

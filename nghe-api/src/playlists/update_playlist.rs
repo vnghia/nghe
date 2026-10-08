@@ -10,9 +10,11 @@ pub struct Request {
     pub comment: Option<String>,
     pub public: Option<bool>,
     #[serde(rename = "songIdToAdd")]
-    pub add_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub add_ids: Vec<Uuid>,
     #[serde(rename = "songIndexToRemove")]
-    pub remove_indexes: Option<Vec<u16>>,
+    #[conf(repeat, long)]
+    pub remove_indexes: Vec<u16>,
 }
 
 #[api_derive]

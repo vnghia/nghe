@@ -8,6 +8,7 @@ use super::Permission;
 pub struct Request {
     pub user_id: Option<Uuid>,
     pub music_folder_id: Option<Uuid>,
+    #[conf(flatten, prefix)]
     pub permission: Permission,
 }
 

@@ -11,14 +11,15 @@ pub enum CreateOrUpdate {
     Update { playlist_id: Uuid },
 }
 
-#[api_derive]
+#[api_derive(command = false)]
 #[endpoint(path = "createPlaylist")]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Request {
     #[serde(flatten)]
     pub create_or_update: CreateOrUpdate,
     #[serde(rename = "songId")]
-    pub song_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub song_ids: Vec<Uuid>,
 }
 
 #[api_derive]
@@ -56,7 +57,7 @@ mod tests {
         "name=ef14c42b-6efa-45f3-961c-74856fd431d5",
         Some(Request {
             create_or_update: "ef14c42b-6efa-45f3-961c-74856fd431d5".to_owned().into(),
-            song_ids: None,
+            song_ids: vec![],
         })
     )]
     #[case(
@@ -64,14 +65,14 @@ mod tests {
         songId=2b839103-04ab-4b39-9b05-8c664590eda4",
         Some(Request {
             create_or_update: "ef14c42b-6efa-45f3-961c-74856fd431d5".to_owned().into(),
-            song_ids: Some(vec![uuid!("2b839103-04ab-4b39-9b05-8c664590eda4")]),
+            song_ids: vec![uuid!("2b839103-04ab-4b39-9b05-8c664590eda4")],
         })
     )]
     #[case(
         "playlistId=ef14c42b-6efa-45f3-961c-74856fd431d5",
         Some(Request {
             create_or_update: uuid!("ef14c42b-6efa-45f3-961c-74856fd431d5").into(),
-            song_ids: None,
+            song_ids: vec![],
         })
     )]
     #[case(
@@ -79,7 +80,7 @@ mod tests {
         songId=2b839103-04ab-4b39-9b05-8c664590eda4",
         Some(Request {
             create_or_update: uuid!("ef14c42b-6efa-45f3-961c-74856fd431d5").into(),
-            song_ids: Some(vec![uuid!("2b839103-04ab-4b39-9b05-8c664590eda4")]),
+            song_ids: vec![uuid!("2b839103-04ab-4b39-9b05-8c664590eda4")],
         })
     )]
     #[case("playlistId=none", None)]

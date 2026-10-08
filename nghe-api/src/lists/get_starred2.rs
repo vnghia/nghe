@@ -8,7 +8,8 @@ use crate::id3;
 #[cfg_attr(feature = "test", derive(Default))]
 pub struct Request {
     #[serde(rename = "musicFolderId")]
-    pub music_folder_ids: Option<Vec<Uuid>>,
+    #[conf(repeat, long)]
+    pub music_folder_ids: Vec<Uuid>,
 }
 
 #[api_derive]

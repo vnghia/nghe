@@ -34,8 +34,8 @@ pub async fn handler(
             playlist_id
         }
     };
-    if let Some(ref song_ids) = request.song_ids {
-        playlists_songs::Upsert::upserts(database, playlist_id, song_ids).await?;
+    if !request.song_ids.is_empty() {
+        playlists_songs::Upsert::upserts(database, playlist_id, &request.song_ids).await?;
     }
 
     Ok(Response {

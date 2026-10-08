@@ -99,7 +99,7 @@ mod tests {
             user_id,
             create_playlist::Request {
                 create_or_update: Faker.fake::<String>().into(),
-                song_ids: Some(music_folder.database.keys().copied().collect()),
+                song_ids: music_folder.database.keys().copied().collect(),
             },
         )
         .await

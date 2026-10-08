@@ -56,7 +56,7 @@ mod tests {
                                 user_id,
                                 create_playlist::Request {
                                     create_or_update: Faker.fake::<String>().into(),
-                                    song_ids: Some(song_ids.clone()),
+                                    song_ids: song_ids.clone(),
                                 },
                             )
                             .await

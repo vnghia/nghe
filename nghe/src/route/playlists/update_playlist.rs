@@ -22,7 +22,7 @@ pub async fn handler(
         playlists::Upsert::from(&request).update(database, playlist_id).await?;
     }
 
-    if let Some(song_indexes) = request.remove_indexes {
+    if !request.remove_indexes.is_empty() {
         // TODO: Do it in one query.
         let song_ids = playlists_songs::table
             .left_join(songs::table)
@@ -34,7 +34,8 @@ pub async fn handler(
             .get_results::<Uuid>(&mut database.get().await?)
             .await?;
 
-        let song_ids: Vec<_> = song_indexes
+        let song_ids: Vec<_> = request
+            .remove_indexes
             .into_iter()
             .filter_map(|index| song_ids.get::<usize>(index.into()))
             .collect();
@@ -46,8 +47,8 @@ pub async fn handler(
             .await?;
     }
 
-    if let Some(song_ids) = request.add_ids {
-        playlists_songs::Upsert::upserts(database, playlist_id, &song_ids).await?;
+    if !request.add_ids.is_empty() {
+        playlists_songs::Upsert::upserts(database, playlist_id, &request.add_ids).await?;
     }
 
     Ok(Response)
@@ -106,7 +107,7 @@ mod tests {
             user_id,
             create_playlist::Request {
                 create_or_update: Faker.fake::<String>().into(),
-                song_ids: Some(song_ids.clone()),
+                song_ids: song_ids.clone(),
             },
         )
         .await
@@ -118,11 +119,7 @@ mod tests {
         handler(
             mock.database(),
             user_id,
-            Request {
-                playlist_id,
-                remove_indexes: Some(remove_indexes.into()),
-                ..Default::default()
-            },
+            Request { playlist_id, remove_indexes: remove_indexes.into(), ..Default::default() },
         )
         .await
         .unwrap();

@@ -18,7 +18,7 @@ pub async fn handler(
         let values: Vec<_> = request
             .ids
             .into_iter()
-            .zip_longest(request.times.unwrap_or_default())
+            .zip_longest(request.times)
             .map(|data| match data {
                 EitherOrBoth::Both(song_id, updated_at) => {
                     Ok(playbacks::Scrobble { user_id, song_id, updated_at })
@@ -75,15 +75,15 @@ mod tests {
         for i in 0..n_play {
             let times = if i < n_play - 1 {
                 if Faker.fake() {
-                    Some(fake::vec![
+                    fake::vec![
                         OffsetDateTime as DateTimeBetween(start_dt, end_dt);
                         0..(n_song - (0..2).fake::<usize>())
-                    ])
+                    ]
                 } else {
-                    None
+                    vec![]
                 }
             } else {
-                Some(times.clone())
+                times.clone()
             };
 
             let result = handler(

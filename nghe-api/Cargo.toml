@@ -16,6 +16,8 @@ strum = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }
 
+conf = { workspace = true, optional = true }
+
 fake = { workspace = true, optional = true }
 
 nghe-proc-macro = { path = "../nghe-proc-macro" }
@@ -38,4 +40,5 @@ built = { workspace = true }
 
 [features]
 backend = ["md5"]
+command = ["conf"]
 test = ["fake"]
