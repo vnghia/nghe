@@ -27,6 +27,12 @@ struct RootResponse<B> {
 struct ErrorRootResponse<B> {
     #[serde(serialize_with = "emit_open_subsonic_version")]
     version: (),
+    #[serde(serialize_with = "emit_server_type")]
+    r#type: (),
+    #[serde(serialize_with = "emit_server_version")]
+    server_version: (),
+    #[serde(serialize_with = "emit_open_subsonic")]
+    open_subsonic: (),
     #[serde(serialize_with = "emit_status_error")]
     status: (),
     error: B,
@@ -82,7 +88,16 @@ impl<B> SubsonicResponse<B> {
 
 impl<B> ErrorSubsonicResponse<B> {
     pub fn new(error: B) -> Self {
-        Self { root: ErrorRootResponse { version: (), status: (), error } }
+        Self {
+            root: ErrorRootResponse {
+                version: (),
+                r#type: (),
+                server_version: (),
+                open_subsonic: (),
+                status: (),
+                error,
+            },
+        }
     }
 }
 
