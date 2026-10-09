@@ -1,5 +1,4 @@
 mod auth;
-mod client;
 mod route;
 
 use conf::Conf;
