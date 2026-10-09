@@ -34,6 +34,7 @@ where
 {
     type Rejection = ErrorResponse;
 
+    #[cfg_attr(not(coverage_nightly), tracing::instrument(skip_all, err(Debug)))]
     async fn from_request(
         request: axum::extract::Request,
         state: &S,
@@ -86,6 +87,7 @@ where
 {
     type Rejection = ErrorResponse;
 
+    #[cfg_attr(not(coverage_nightly), tracing::instrument(skip_all, err(Debug)))]
     async fn from_request(
         request: axum::extract::Request,
         state: &S,
