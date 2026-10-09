@@ -9,8 +9,8 @@ struct Endpoint {
     path: String,
     #[darling(default = || false)]
     url_only: bool,
-    #[darling(default = || true)]
-    same_crate: bool,
+    #[darling(default = || format_ident!("crate"))]
+    api_crate: syn::Ident,
 }
 
 #[derive(Debug, darling::FromMeta)]
@@ -34,7 +34,7 @@ struct Derive {
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let input: syn::ItemStruct = syn::parse2(item)?;
-    let Endpoint { path, url_only, same_crate } =
+    let Endpoint { path, url_only, api_crate } =
         darling::FromAttributes::from_attributes(&input.attrs)?;
 
     let ident = &input.ident;
@@ -44,8 +44,6 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             "Struct derived with `Endpoint` should be named `Request`",
         ));
     }
-
-    let crate_path = if same_crate { format_ident!("crate") } else { format_ident!("nghe_api") };
 
     let url = concat_string!("/", &path);
     let url_view = concat_string!("/", &path, ".view");
@@ -73,14 +71,14 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             fields.named.iter_mut().for_each(|field| field.attrs.clear());
             fields.named.push(parse_quote! {
                     #[serde(flatten, borrow)]
-                    auth: #crate_path::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
+                    auth: #api_crate::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
             });
             (fields, quote! {None})
         }
         syn::Fields::Unit => (
             parse_quote! {{
                 #[serde(flatten, borrow)]
-                auth: #crate_path::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
+                auth: #api_crate::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
             }},
             quote! {
                 Some(#ident)
@@ -99,7 +97,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         quote! {}
     } else {
         quote! {
-            impl #crate_path::common::Endpoint for #ident {
+            impl #api_crate::http::Endpoint for #ident {
                 type Response = Response;
             }
         }
@@ -107,7 +105,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
     let impl_auth_form_trait = if let Some(auth_form_fields) = auth_form_fields {
         quote! {
-            fn new(request: #ident, auth: #crate_path::auth::Form<'u, 'c, 's, 'p>) -> Self {
+            fn new(request: #ident, auth: #api_crate::auth::Form<'u, 'c, 's, 'p>) -> Self {
                 let #ident { #(#auth_form_fields),* } = request;
                 Self { #(#auth_form_fields),*, auth }
             }
@@ -119,7 +117,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         }
     } else {
         quote! {
-            fn new(_: #ident, auth: #crate_path::auth::Form<'u, 'c, 's, 'p>) -> Self {
+            fn new(_: #ident, auth: #api_crate::auth::Form<'u, 'c, 's, 'p>) -> Self {
                 Self { auth }
             }
 
@@ -133,15 +131,15 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         #[nghe_proc_macro::api_derive]
         #auth_form_struct
 
-        impl #crate_path::common::EndpointURL for #ident {
+        impl #api_crate::http::Url for #ident {
             const URL: &'static str = #url;
             const URL_VIEW: &'static str = #url_view;
         }
 
         impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>
-        #crate_path::auth::form::Trait<'u, 'c, 's, 'p, 'de, #ident>
+        #api_crate::auth::form::Trait<'u, 'c, 's, 'p, 'de, #ident>
         for #auth_form_ident<'u, 'c, 's, 'p> {
-            fn auth<'form>(&'form self) -> &'form #crate_path::auth::Form<'u, 'c, 's, 'p> {
+            fn auth<'form>(&'form self) -> &'form #api_crate::auth::Form<'u, 'c, 's, 'p> {
                 &self.auth
             }
 
@@ -149,7 +147,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
         }
 
         impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>
-        #crate_path::common::Request<'u, 'c, 's, 'p, 'de> for #ident {
+        #api_crate::http::Request<'u, 'c, 's, 'p, 'de> for #ident {
             const UNIT: Option<Self> = #unit;
 
             type AuthForm = #auth_form_ident<'u, 'c, 's, 'p>;

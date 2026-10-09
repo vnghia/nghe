@@ -1,7 +1,3 @@
-pub mod filesystem;
-pub mod format;
-pub mod typed_uuid;
-
 use nghe_proc_macro::api_derive;
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -33,12 +29,12 @@ pub struct SubsonicResponse<B> {
     root: RootResponse<B>,
 }
 
-pub trait EndpointURL {
+pub trait Url {
     const URL: &'static str;
     const URL_VIEW: &'static str;
 }
 
-pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: EndpointURL + Deserialize<'de> {
+pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: Url + Deserialize<'de> {
     const UNIT: Option<Self>;
 
     type AuthForm: auth::form::Trait<'u, 'c, 's, 'p, 'de, Self> + Send;
