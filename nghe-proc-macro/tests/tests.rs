@@ -12,3 +12,8 @@ pub fn backend() {
 pub fn orm() {
     macrotest::expand("tests/orm/**/*.rs");
 }
+
+#[test]
+pub fn command() {
+    macrotest::expand("tests/command/**/*.rs");
+}

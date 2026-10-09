@@ -19,6 +19,7 @@ pub trait Trait: Debug + Copy {
 #[api_derive]
 #[derive(Clone, Copy, IntoStaticStr, EnumString)]
 #[strum(serialize_all = "lowercase")]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "test", derive(strum::AsRefStr))]
 pub enum Transcode {
     Aac,

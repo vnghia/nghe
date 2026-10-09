@@ -10,19 +10,12 @@ use nghe_proc_macro::api_derive;
 )]
 #[serde(rename_all = "camelCase")]
 #[endpoint(path = "path/endpoint")]
-pub struct Request {
-    pub token: bool,
-}
+pub struct Request;
 #[automatically_derived]
 impl ::core::fmt::Debug for Request {
     #[inline]
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        ::core::fmt::Formatter::debug_struct_field1_finish(
-            f,
-            "Request",
-            "token",
-            &&self.token,
-        )
+        ::core::fmt::Formatter::write_str(f, "Request")
     }
 }
 #[serde_with::apply(
@@ -36,7 +29,6 @@ impl ::core::fmt::Debug for Request {
 )]
 #[serde(rename_all = "camelCase")]
 pub struct AuthFormRequest<'auth_u, 'auth_c, 'auth_s, 'auth_p> {
-    pub token: bool,
     #[serde(flatten, borrow)]
     auth: crate::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>,
 }
@@ -45,11 +37,9 @@ impl<'auth_u, 'auth_c, 'auth_s, 'auth_p> ::core::fmt::Debug
 for AuthFormRequest<'auth_u, 'auth_c, 'auth_s, 'auth_p> {
     #[inline]
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        ::core::fmt::Formatter::debug_struct_field2_finish(
+        ::core::fmt::Formatter::debug_struct_field1_finish(
             f,
             "AuthFormRequest",
-            "token",
-            &self.token,
             "auth",
             &&self.auth,
         )
@@ -70,18 +60,16 @@ for AuthFormRequest<'u, 'c, 's, 'p> {
     fn auth<'form>(&'form self) -> &'form crate::auth::Form<'u, 'c, 's, 'p> {
         &self.auth
     }
-    fn new(request: Request, auth: crate::auth::Form<'u, 'c, 's, 'p>) -> Self {
-        let Request { token } = request;
-        Self { token, auth }
+    fn new(_: Request, auth: crate::auth::Form<'u, 'c, 's, 'p>) -> Self {
+        Self { auth }
     }
     fn request(self) -> Request {
-        let Self { token, auth } = self;
-        Request { token }
+        Request
     }
 }
 impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p> crate::common::Request<'u, 'c, 's, 'p, 'de>
 for Request {
-    const UNIT: Option<Self> = None;
+    const UNIT: Option<Self> = Some(Request);
     type AuthForm = AuthFormRequest<'u, 'c, 's, 'p>;
 }
 impl crate::common::Endpoint for Request {

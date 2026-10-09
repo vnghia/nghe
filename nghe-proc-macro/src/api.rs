@@ -60,7 +60,8 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     auth_form_struct.generics.params.push(parse_quote!('auth_c));
     auth_form_struct.generics.params.push(parse_quote!('auth_s));
     auth_form_struct.generics.params.push(parse_quote!('auth_p));
-    auth_form_struct.fields = syn::Fields::Named(match input.fields {
+
+    let (fields, unit) = match input.fields {
         syn::Fields::Named(mut fields) => {
             auth_form_fields = Some(
                 fields
@@ -74,19 +75,25 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
                     #[serde(flatten, borrow)]
                     auth: #crate_path::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
             });
-            fields
+            (fields, quote! {None})
         }
-        syn::Fields::Unit => parse_quote! {{
-            #[serde(flatten, borrow)]
-            auth: #crate_path::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
-        }},
+        syn::Fields::Unit => (
+            parse_quote! {{
+                #[serde(flatten, borrow)]
+                auth: #crate_path::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
+            }},
+            quote! {
+                Some(#ident)
+            },
+        ),
         syn::Fields::Unnamed(_) => {
             return Err(syn::Error::new(
                 ident.span(),
                 "Struct derived with `Endpoint` should be either named or unit struct",
             ));
         }
-    });
+    };
+    auth_form_struct.fields = syn::Fields::Named(fields);
 
     let impl_endpoint = if url_only {
         quote! {}
@@ -143,6 +150,8 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
         impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>
         #crate_path::common::Request<'u, 'c, 's, 'p, 'de> for #ident {
+            const UNIT: Option<Self> = #unit;
+
             type AuthForm = #auth_form_ident<'u, 'c, 's, 'p>;
         }
 

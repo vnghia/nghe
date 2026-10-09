@@ -5,6 +5,7 @@ use proc_macro::TokenStream;
 
 mod api;
 mod backend;
+mod command;
 mod orm;
 mod utils;
 
@@ -53,4 +54,9 @@ pub fn build_router(item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn check_music_folder(attr: TokenStream, item: TokenStream) -> TokenStream {
     orm::check_music_folder(attr.into(), item.into()).into_token_stream()
+}
+
+#[proc_macro]
+pub fn build_command(item: TokenStream) -> TokenStream {
+    command::build(item.into()).into_token_stream()
 }

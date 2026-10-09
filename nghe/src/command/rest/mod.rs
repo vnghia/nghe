@@ -1,13 +1,8 @@
 mod auth;
+mod route;
 
-use conf::{Conf, Subcommands};
+use conf::Conf;
 use url::Url;
-
-#[derive(Debug, Subcommands)]
-enum Endpoint {
-    // user
-    UserSetup(nghe_api::user::setup::Request),
-}
 
 #[derive(Debug, Conf)]
 pub struct Rest {
@@ -16,5 +11,5 @@ pub struct Rest {
     #[conf(flatten)]
     auth: auth::Auth,
     #[conf(subcommands)]
-    endpoint: Endpoint,
+    route: route::Route,
 }
