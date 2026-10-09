@@ -17,9 +17,7 @@ pub async fn request_handler(
     range: Option<axum_extra::TypedHeader<Range>>,
     request: crate::http::extract::request::Authenticated<Request>,
 ) -> Result<
-    crate::http::serializable::Response<
-        <Request as nghe_api::http::Endpoint>::Response,
-    >,
+    crate::http::serializable::Response<<Request as nghe_api::http::Endpoint>::Response>,
     crate::Error,
 > {
     let body = handler(

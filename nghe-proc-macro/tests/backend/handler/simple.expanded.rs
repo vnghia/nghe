@@ -15,9 +15,7 @@ pub async fn request_handler(
     axum::extract::State(database): axum::extract::State<crate::database::Database>,
     request: crate::http::extract::request::Authenticated<Request>,
 ) -> Result<
-    crate::http::serializable::Response<
-        <Request as nghe_api::http::Endpoint>::Response,
-    >,
+    crate::http::serializable::Response<<Request as nghe_api::http::Endpoint>::Response>,
     crate::Error,
 > {
     let body = handler(&database, request.user.id, request.validated.request).await?;

@@ -55,7 +55,7 @@ for AuthFormRequest<'auth_u, 'auth_c, 'auth_s, 'auth_p> {
         )
     }
 }
-impl crate::common::EndpointURL for Request {
+impl crate::http::Url for Request {
     const URL: &'static str = "/path/endpoint";
     const URL_VIEW: &'static str = "/path/endpoint.view";
 }
@@ -79,11 +79,11 @@ for AuthFormRequest<'u, 'c, 's, 'p> {
         Request { token }
     }
 }
-impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p> crate::common::Request<'u, 'c, 's, 'p, 'de>
+impl<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p> crate::http::Request<'u, 'c, 's, 'p, 'de>
 for Request {
     const UNIT: Option<Self> = None;
     type AuthForm = AuthFormRequest<'u, 'c, 's, 'p>;
 }
-impl crate::common::Endpoint for Request {
+impl crate::http::Endpoint for Request {
     type Response = Response;
 }
