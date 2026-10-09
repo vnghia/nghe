@@ -1,36 +1,9 @@
 mod auth;
-mod media_retrieval;
-mod music_folder;
-mod permission;
-mod system;
-mod user;
+mod client;
+mod route;
 
-use conf::{Conf, Subcommands};
+use conf::Conf;
 use url::Url;
-
-#[derive(Debug, Subcommands)]
-enum Endpoint {
-    MediaRetrieval {
-        #[conf(subcommands)]
-        action: media_retrieval::Action,
-    },
-    MusicFolder {
-        #[conf(subcommands)]
-        action: music_folder::Action,
-    },
-    Permission {
-        #[conf(subcommands)]
-        action: permission::Action,
-    },
-    User {
-        #[conf(subcommands)]
-        action: user::Action,
-    },
-    System {
-        #[conf(subcommands)]
-        action: system::Action,
-    },
-}
 
 #[derive(Debug, Conf)]
 pub struct Rest {
@@ -39,5 +12,5 @@ pub struct Rest {
     #[conf(flatten)]
     auth: auth::Auth,
     #[conf(subcommands)]
-    endpoint: Endpoint,
+    route: route::Route,
 }
