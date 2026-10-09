@@ -1,5 +1,5 @@
 use axum::response::IntoResponse;
-use nghe_api::common::SubsonicResponse;
+use nghe_api::http::SubsonicResponse;
 use serde::Serialize;
 
 use super::extract::request;

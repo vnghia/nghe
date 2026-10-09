@@ -1,6 +1,6 @@
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-pub use nghe_api::permission::update::{Request, Response};
+pub use nghe_api::route::permission::update::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::Error;
@@ -74,7 +74,7 @@ mod tests {
             permission::add::Request {
                 user_id: None,
                 music_folder_id: None,
-                permission: nghe_api::permission::Permission::default(),
+                permission: nghe_api::route::permission::Permission::default(),
             },
         )
         .await
@@ -89,9 +89,9 @@ mod tests {
                 Request {
                     user_id,
                     music_folder_id,
-                    permission: nghe_api::permission::Permission {
+                    permission: nghe_api::route::permission::Permission {
                         owner: true,
-                        ..nghe_api::permission::Permission::default()
+                        ..nghe_api::route::permission::Permission::default()
                     }
                 }
             )

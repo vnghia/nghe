@@ -1,5 +1,5 @@
 use axum_extra::headers::Range;
-pub use nghe_api::media_retrieval::download::Request;
+pub use nghe_api::route::media_retrieval::download::Request;
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
@@ -40,7 +40,7 @@ mod tests {
         AcceptRanges, CacheControl, ContentLength, ContentRange, ETag, HeaderMapExt,
     };
     use binary::property::Trait as _;
-    use nghe_api::common::filesystem;
+    use nghe_api::filesystem;
     use rstest::rstest;
     use xxhash_rust::xxh3::xxh3_64;
 

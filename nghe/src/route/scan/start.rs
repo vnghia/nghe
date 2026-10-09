@@ -1,4 +1,4 @@
-pub use nghe_api::scan::start::{Request, Response};
+pub use nghe_api::route::scan::start::{Request, Response};
 use nghe_proc_macro::handler;
 use tracing::Instrument;
 use uuid::Uuid;

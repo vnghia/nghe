@@ -1,7 +1,7 @@
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-use nghe_api::playlist::create::CreateOrUpdate;
-pub use nghe_api::playlist::create::{Request, Response};
+use nghe_api::route::playlist::create::CreateOrUpdate;
+pub use nghe_api::route::playlist::create::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

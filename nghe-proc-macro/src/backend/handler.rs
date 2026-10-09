@@ -327,7 +327,7 @@ impl Handler {
                 #[automatically_derived]
                 pub async fn #ident(#args) -> Result<
                     crate::http::serializable::Response<
-                        <Request as nghe_api::common::Endpoint>::Response
+                        <Request as nghe_api::http::Endpoint>::Response
                     >,
                     crate::Error
                 > {

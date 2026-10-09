@@ -1,6 +1,6 @@
 #![allow(clippy::wrong_self_convention)]
 
-use nghe_api::common::filesystem;
+use nghe_api::filesystem;
 use typed_path::{PathType, Utf8TypedPath, Utf8TypedPathBuf, Utf8UnixPathBuf, Utf8WindowsPathBuf};
 
 #[derive(Debug, Clone, Copy)]

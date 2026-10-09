@@ -1,9 +1,9 @@
 use conf::{Conf, Subcommands};
 pub enum Action {
-    Create(nghe_api::user::create::Request),
+    Create(nghe_api::route::user::create::Request),
     List,
-    Get(nghe_api::user::get::Request),
-    Delete(nghe_api::user::delete::Request),
+    Get(nghe_api::route::user::get::Request),
+    Delete(nghe_api::route::user::delete::Request),
 }
 #[automatically_derived]
 impl ::core::fmt::Debug for Action {

@@ -9,7 +9,7 @@ use diesel::pg::PgValue;
 use diesel::prelude::*;
 use diesel::serialize::{self, Output, ToSql};
 use diesel::sql_types::Int2;
-use nghe_api::music_folder::add::Request as AddRequest;
+use nghe_api::route::music_folder::add::Request as AddRequest;
 use o2o::o2o;
 use strum::FromRepr;
 use uuid::Uuid;
@@ -19,7 +19,7 @@ pub use crate::schema::music_folders::{self, *};
 #[repr(i16)]
 #[derive(Debug, Clone, Copy, FromRepr, AsExpression, FromSqlRow, PartialEq, Eq, o2o)]
 #[diesel(sql_type = Int2)]
-#[map_owned(nghe_api::common::filesystem::Type)]
+#[map_owned(nghe_api::filesystem::Type)]
 pub enum FilesystemType {
     Local = 1,
     S3 = 2,

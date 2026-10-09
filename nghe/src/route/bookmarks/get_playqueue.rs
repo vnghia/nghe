@@ -1,8 +1,8 @@
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use futures_lite::{StreamExt as _, stream};
-use nghe_api::bookmarks::get_playqueue::Playqueue;
-pub use nghe_api::bookmarks::get_playqueue::{Request, Response};
+use nghe_api::route::bookmarks::get_playqueue::Playqueue;
+pub use nghe_api::route::bookmarks::get_playqueue::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

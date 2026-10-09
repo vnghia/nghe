@@ -30,7 +30,7 @@ pub fn build_router(item: TokenStream) -> Result<TokenStream, Error> {
             let mut routers = vec![];
 
             let request_handler = quote! { #module::request_handler };
-            let request = quote! { <#module::Request as nghe_api::common::EndpointURL> };
+            let request = quote! { <#module::Request as nghe_api::http::Url> };
             routers.push(quote! {
                 route(
                     #request::URL,

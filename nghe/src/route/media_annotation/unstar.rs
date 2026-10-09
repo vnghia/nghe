@@ -1,6 +1,6 @@
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-pub use nghe_api::media_annotation::unstar::{Request, Response};
+pub use nghe_api::route::media_annotation::unstar::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

@@ -1,7 +1,7 @@
 use leptos::html;
 use leptos::prelude::*;
-use nghe_api::user::create::Request;
-use nghe_api::user::get::Response;
+use nghe_api::route::user::create::Request;
+use nghe_api::route::user::get::Response;
 
 use crate::client::Client;
 use crate::components::form;
@@ -98,7 +98,7 @@ pub fn Modal(
                     username,
                     password,
                     email,
-                    role: nghe_api::user::Role { admin: false },
+                    role: nghe_api::route::user::Role { admin: false },
                     allow: false,
                 });
             },

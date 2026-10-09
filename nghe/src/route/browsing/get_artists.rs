@@ -1,7 +1,7 @@
 use diesel_async::RunQueryDsl;
 use itertools::Itertools;
-use nghe_api::browsing::get_artists::Artists;
-pub use nghe_api::browsing::get_artists::{Index, Request, Response};
+use nghe_api::route::browsing::get_artists::Artists;
+pub use nghe_api::route::browsing::get_artists::{Index, Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 

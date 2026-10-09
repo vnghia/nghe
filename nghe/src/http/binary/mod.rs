@@ -12,7 +12,7 @@ use axum_extra::headers::{
 };
 use futures_lite::{Stream, StreamExt};
 use loole::{Receiver, RecvStream};
-use nghe_api::common::format;
+use nghe_api::format;
 pub use source::Source;
 use tokio::io::{AsyncRead, AsyncSeekExt, SeekFrom};
 use tokio_util::io::ReaderStream;

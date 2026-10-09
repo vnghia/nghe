@@ -3,7 +3,7 @@ mod local;
 mod s3;
 
 pub use common::{Impl, Trait};
-use nghe_api::common::filesystem;
+use nghe_api::filesystem;
 use typed_path::Utf8PlatformPathBuf;
 
 use crate::filesystem::Filesystem;

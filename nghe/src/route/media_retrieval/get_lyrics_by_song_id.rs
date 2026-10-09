@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use itertools::{EitherOrBoth, Itertools};
-use nghe_api::media_retrieval::get_lyrics_by_song_id::{Line, Lyric, LyricsList};
-pub use nghe_api::media_retrieval::get_lyrics_by_song_id::{Request, Response};
+use nghe_api::route::media_retrieval::get_lyrics_by_song_id::{Line, Lyric, LyricsList};
+pub use nghe_api::route::media_retrieval::get_lyrics_by_song_id::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::database::Database;

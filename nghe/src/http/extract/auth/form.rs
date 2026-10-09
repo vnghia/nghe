@@ -29,7 +29,7 @@ where
 
 impl<R> request::Authenticated<R>
 where
-    R: for<'form> nghe_api::common::Request<'form, 'form, 'form, 'form, 'form> + Send,
+    R: for<'form> nghe_api::http::Request<'form, 'form, 'form, 'form, 'form> + Send,
 {
     pub async fn from_form(database: &Database, form: impl AsRef<[u8]>) -> Result<Self, Error> {
         let auth_form: R::AuthForm =
@@ -62,7 +62,7 @@ mod tests {
         #[values(None, Some(true), Some(false))] use_token: Option<bool>,
     ) {
         #[api_derive(fake = true)]
-        #[endpoint(path = "test", url_only = true, same_crate = false)]
+        #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
         #[derive(Clone, Copy, PartialEq)]
         struct Request {
             param_one: i32,
@@ -84,7 +84,7 @@ mod tests {
             };
 
             let query = serde_html_form::to_string(
-                <Request as nghe_api::common::Request>::AuthForm::new(request, auth),
+                <Request as nghe_api::http::Request>::AuthForm::new(request, auth),
             )
             .unwrap();
 

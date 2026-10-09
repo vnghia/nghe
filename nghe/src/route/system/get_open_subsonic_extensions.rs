@@ -1,5 +1,5 @@
-use nghe_api::system::get_open_subsonic_extensions::Extension;
-pub use nghe_api::system::get_open_subsonic_extensions::{Request, Response};
+use nghe_api::route::system::get_open_subsonic_extensions::Extension;
+pub use nghe_api::route::system::get_open_subsonic_extensions::{Request, Response};
 use nghe_proc_macro::handler;
 
 static EXTENSIONS: &[Extension] = &[

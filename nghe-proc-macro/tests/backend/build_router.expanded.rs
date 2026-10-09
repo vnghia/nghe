@@ -6,35 +6,35 @@ pub fn router(
 ) -> axum::Router<crate::database::Database> {
     axum::Router::new()
         .route(
-            <create::Request as nghe_api::common::EndpointURL>::URL,
+            <create::Request as nghe_api::http::Url>::URL,
             axum::routing::any(create::request_handler),
         )
         .route(
-            <create::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            <create::Request as nghe_api::http::Url>::URL_VIEW,
             axum::routing::any(create::request_handler),
         )
         .route(
-            <read::Request as nghe_api::common::EndpointURL>::URL,
+            <read::Request as nghe_api::http::Url>::URL,
             axum::routing::any(read::request_handler),
         )
         .route(
-            <read::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            <read::Request as nghe_api::http::Url>::URL_VIEW,
             axum::routing::any(read::request_handler),
         )
         .route(
-            <update::Request as nghe_api::common::EndpointURL>::URL,
+            <update::Request as nghe_api::http::Url>::URL,
             axum::routing::any(update::request_handler),
         )
         .route(
-            <update::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            <update::Request as nghe_api::http::Url>::URL_VIEW,
             axum::routing::any(update::request_handler),
         )
         .route(
-            <delete::Request as nghe_api::common::EndpointURL>::URL,
+            <delete::Request as nghe_api::http::Url>::URL,
             axum::routing::any(delete::request_handler),
         )
         .route(
-            <delete::Request as nghe_api::common::EndpointURL>::URL_VIEW,
+            <delete::Request as nghe_api::http::Url>::URL_VIEW,
             axum::routing::any(delete::request_handler),
         )
         .layer(axum::Extension(filesystem))

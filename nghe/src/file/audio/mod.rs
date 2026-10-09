@@ -25,7 +25,7 @@ use lofty::flac::FlacFile;
 use lofty::mpeg::MpegFile;
 pub use metadata::{Metadata, Song};
 pub use name_date_mbz::{Album, NameDateMbz};
-use nghe_api::common::format;
+use nghe_api::format;
 pub use position::TrackDisc;
 pub use property::Property;
 pub use signed_duration::SignedDuration;
@@ -148,7 +148,7 @@ mod test {
 mod tests {
     use fake::{Fake, Faker};
     use isolang::Language;
-    use nghe_api::common::filesystem;
+    use nghe_api::filesystem;
     use position::Position;
     use rstest::rstest;
     use time::Month;

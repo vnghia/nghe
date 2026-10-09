@@ -29,7 +29,7 @@ pub struct Authenticated<R> {
 impl<S, R> FromRequest<S> for Validated<R>
 where
     S: Send + Sync,
-    R: for<'form> nghe_api::common::Request<'form, 'form, 'form, 'form, 'form> + Send,
+    R: for<'form> nghe_api::http::Request<'form, 'form, 'form, 'form, 'form> + Send,
 {
     type Rejection = Error;
 
@@ -78,7 +78,7 @@ impl<S, R> FromRequest<S> for Authenticated<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: for<'form> nghe_api::common::Request<'form, 'form, 'form, 'form, 'form> + Send,
+    R: for<'form> nghe_api::http::Request<'form, 'form, 'form, 'form, 'form> + Send,
 {
     type Rejection = Error;
 
@@ -153,7 +153,7 @@ mod tests {
     use crate::test::{Mock, mock};
 
     #[api_derive(fake = true)]
-    #[endpoint(path = "test", url_only = true, same_crate = false)]
+    #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
     #[derive(Clone, Copy, PartialEq)]
     struct Request {
         param_one: i32,
@@ -184,7 +184,7 @@ mod tests {
                 }
             };
 
-            serde_html_form::to_string(<Request as nghe_api::common::Request>::AuthForm::new(
+            serde_html_form::to_string(<Request as nghe_api::http::Request>::AuthForm::new(
                 body, auth,
             ))
             .unwrap()
@@ -284,7 +284,7 @@ mod tests {
         use super::*;
 
         #[api_derive(fake = true)]
-        #[endpoint(path = "test", url_only = true, same_crate = false)]
+        #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
         #[derive(Clone, Copy, PartialEq)]
         struct Request;
 

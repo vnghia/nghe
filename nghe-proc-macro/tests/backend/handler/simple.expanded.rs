@@ -16,7 +16,7 @@ pub async fn request_handler(
     request: crate::http::extract::request::Authenticated<Request>,
 ) -> Result<
     crate::http::serializable::Response<
-        <Request as nghe_api::common::Endpoint>::Response,
+        <Request as nghe_api::http::Endpoint>::Response,
     >,
     crate::Error,
 > {

@@ -1,6 +1,6 @@
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-pub use nghe_api::user::delete::{Request, Response};
+pub use nghe_api::route::user::delete::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::Error;

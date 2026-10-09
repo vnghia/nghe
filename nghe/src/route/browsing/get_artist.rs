@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::browsing::get_artist::{Request, Response};
+pub use nghe_api::route::browsing::get_artist::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

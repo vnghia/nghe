@@ -2,7 +2,7 @@ use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_router::components::Redirect;
-use nghe_api::user::setup::Request;
+use nghe_api::route::user::setup::Request;
 
 use crate::client::Client;
 use crate::components::form;

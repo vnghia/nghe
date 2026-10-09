@@ -6,7 +6,7 @@ pub use crate::schema::user_music_folder_permissions::{self, *};
 
 #[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = user_music_folder_permissions, check_for_backend(crate::orm::Type))]
-#[map_owned(nghe_api::permission::Permission)]
+#[map_owned(nghe_api::route::permission::Permission)]
 #[cfg_attr(test, derive(Default, PartialEq, Eq))]
 pub struct Permission {
     pub owner: bool,

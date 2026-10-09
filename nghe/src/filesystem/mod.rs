@@ -9,7 +9,7 @@ use std::borrow::Cow;
 use color_eyre::eyre::OptionExt;
 pub use common::{Impl, Trait};
 pub use entry::Entry;
-use nghe_api::common::filesystem;
+use nghe_api::filesystem;
 
 use crate::{Error, config};
 

@@ -1,6 +1,6 @@
 use diesel::ExpressionMethods;
 use diesel_async::RunQueryDsl;
-pub use nghe_api::user::update_role::{Request, Response};
+pub use nghe_api::route::user::update_role::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::Error;

@@ -7,7 +7,7 @@ use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
-use nghe_api::common::format::Trait as _;
+use nghe_api::format::Trait as _;
 use nghe_api::id3;
 use nghe_api::id3::builder::song as builder;
 use time::OffsetDateTime;

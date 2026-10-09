@@ -6,8 +6,8 @@ use diesel_full_text_search::configuration::TsConfigurationByName;
 use diesel_full_text_search::{
     TsVectorExtensions, ts_rank_cd, websearch_to_tsquery_with_search_config,
 };
-use nghe_api::search::search3::SearchResult3;
-pub use nghe_api::search::search3::{Request, Response};
+use nghe_api::route::search::search3::SearchResult3;
+pub use nghe_api::route::search::search3::{Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 

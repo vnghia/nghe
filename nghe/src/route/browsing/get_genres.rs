@@ -1,6 +1,6 @@
 use diesel_async::RunQueryDsl;
-use nghe_api::browsing::get_genres::Genres;
-pub use nghe_api::browsing::get_genres::{Request, Response};
+use nghe_api::route::browsing::get_genres::Genres;
+pub use nghe_api::route::browsing::get_genres::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

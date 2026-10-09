@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::user::get::{Request, Response};
+pub use nghe_api::route::user::get::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

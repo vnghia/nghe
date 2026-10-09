@@ -1,5 +1,5 @@
 use axum_extra::headers::Range;
-pub use nghe_api::media_retrieval::stream::{Format, Request};
+pub use nghe_api::route::media_retrieval::stream::{Format, Request};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
@@ -104,7 +104,7 @@ mod tests {
     use axum::http::StatusCode;
     use axum_extra::headers::HeaderMapExt;
     use itertools::Itertools;
-    use nghe_api::common::{filesystem, format};
+    use nghe_api::{filesystem, format};
     use rstest::rstest;
 
     use super::*;

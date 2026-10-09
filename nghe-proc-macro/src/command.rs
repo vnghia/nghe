@@ -35,7 +35,7 @@ pub fn build(item: TokenStream) -> Result<TokenStream, Error> {
             let variant = syn::Ident::new(&action.to_string().to_case(Case::Pascal), module.span());
             Ok::<syn::Variant, Error>(if attribute.body {
                 parse_quote!(
-                    #variant(nghe_api::#module::#action::Request)
+                    #variant(nghe_api::route::#module::#action::Request)
                 )
             } else {
                 parse_quote!(

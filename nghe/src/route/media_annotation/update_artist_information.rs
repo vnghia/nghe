@@ -1,4 +1,4 @@
-pub use nghe_api::media_annotation::update_artist_information::{Request, Response};
+pub use nghe_api::route::media_annotation::update_artist_information::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::database::Database;

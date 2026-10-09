@@ -1,6 +1,6 @@
 use diesel_async::RunQueryDsl;
-use nghe_api::playlist::list::Playlists;
-pub use nghe_api::playlist::list::{Request, Response};
+use nghe_api::route::playlist::list::Playlists;
+pub use nghe_api::route::playlist::list::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

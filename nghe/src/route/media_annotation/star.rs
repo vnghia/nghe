@@ -1,4 +1,4 @@
-pub use nghe_api::media_annotation::star::{Request, Response};
+pub use nghe_api::route::media_annotation::star::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_api::browsing::get_artist_info2::ArtistInfo2;
-pub use nghe_api::browsing::get_artist_info2::{Request, Response};
+use nghe_api::route::browsing::get_artist_info2::ArtistInfo2;
+pub use nghe_api::route::browsing::get_artist_info2::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

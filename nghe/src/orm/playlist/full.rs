@@ -3,7 +3,7 @@ use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
 use diesel_async::RunQueryDsl;
-use nghe_api::playlist;
+use nghe_api::route::playlist;
 use uuid::Uuid;
 
 use super::Playlist;

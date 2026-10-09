@@ -104,9 +104,11 @@ pub async fn build(config: config::Config) -> Router {
         .with_state(database::Database::new(&config.database))
         .layer(backend_middleware);
 
-    Router::new().nest(nghe_api::common::BACKEND_PREFIX, backend_router).fallback_service(
-        Redirect::<axum::body::Body>::permanent(nghe_api::common::FRONTEND_PREFIX.parse().unwrap()),
-    )
+    Router::new().nest(nghe_api::http::BACKEND_PREFIX, backend_router).fallback_service(Redirect::<
+        axum::body::Body,
+    >::permanent(
+        nghe_api::http::FRONTEND_PREFIX.parse().unwrap(),
+    ))
 }
 
 #[coverage(off)]
