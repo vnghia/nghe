@@ -208,6 +208,9 @@ mod tests {
                     },
                     "status": "failed",
                     "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_NAME,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
                 }
             })
         );
