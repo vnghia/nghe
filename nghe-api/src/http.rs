@@ -1,4 +1,5 @@
 use nghe_proc_macro::api_derive;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize, Serializer};
 
 use super::constant;
@@ -50,7 +51,7 @@ pub struct ErrorSubsonicResponse<B> {
     root: ErrorRootResponse<B>,
 }
 
-pub trait Url {
+pub trait Url: Serialize {
     const URL: &'static str;
     const URL_VIEW: &'static str;
 }
@@ -62,7 +63,7 @@ pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: Url + Deserialize<'de
 }
 
 pub trait Endpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {
-    type Response: Serialize;
+    type Response: Serialize + DeserializeOwned;
 }
 
 pub trait BinaryEndpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {}
