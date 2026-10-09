@@ -1,4 +1,4 @@
-pub use nghe_api::system::ping::{Request, Response};
+pub use nghe_api::route::system::ping::{Request, Response};
 use nghe_proc_macro::handler;
 
 #[handler]

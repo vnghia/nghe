@@ -1,7 +1,7 @@
 use diesel::QueryDsl;
 use diesel_async::RunQueryDsl;
-use nghe_api::user::Role;
-pub use nghe_api::user::setup::{Request, Response};
+use nghe_api::route::user::Role;
+pub use nghe_api::route::user::setup::{Request, Response};
 use nghe_proc_macro::handler;
 
 use super::create;

@@ -1,7 +1,7 @@
 use leptos::html;
 use leptos::prelude::*;
-use nghe_api::user::delete::Request;
-use nghe_api::user::get::Response;
+use nghe_api::route::user::delete::Request;
+use nghe_api::route::user::get::Response;
 use uuid::Uuid;
 
 use crate::client::Client;

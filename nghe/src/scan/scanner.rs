@@ -7,7 +7,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use lofty::config::ParseOptions;
 use loole::Receiver;
-use nghe_api::scan;
+use nghe_api::route::scan;
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
 use tracing::{Instrument, instrument};
@@ -415,7 +415,7 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
 #[coverage(off)]
 mod tests {
     use fake::{Fake, Faker};
-    use nghe_api::scan;
+    use nghe_api::route::scan;
     use rstest::rstest;
 
     use crate::file::audio;

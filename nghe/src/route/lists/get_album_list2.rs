@@ -1,8 +1,8 @@
 use diesel::dsl::{max, sum};
 use diesel::{ExpressionMethods, JoinOnDsl, PgSortExpressionMethods as _, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_api::lists::get_album_list2::{AlbumList2, Type};
-pub use nghe_api::lists::get_album_list2::{Request, Response};
+use nghe_api::route::lists::get_album_list2::{AlbumList2, Type};
+pub use nghe_api::route::lists::get_album_list2::{Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 

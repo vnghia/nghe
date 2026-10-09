@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use nghe_api::common::filesystem;
+use nghe_api::filesystem;
 use o2o::o2o;
 use typed_path::Utf8TypedPath;
 
@@ -117,7 +117,7 @@ mod tests {
     use fake::{Fake, Faker};
     use futures_lite::StreamExt;
     use itertools::Itertools;
-    use nghe_api::common::filesystem;
+    use nghe_api::filesystem;
     use rstest::rstest;
 
     use super::Trait as _;

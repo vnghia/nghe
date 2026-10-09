@@ -40,8 +40,8 @@ pub struct Handler {
     item: syn::ItemFn,
     config: Config,
     args: Args,
-    // None if not `Result` and false if not `Result<binary::Response>`.
-    is_result_binary: Option<bool>,
+    is_result: bool,
+    is_binary: bool,
 }
 
 impl Arg {
@@ -169,9 +169,9 @@ impl Handler {
 
         let config = syn::parse2(attr)?;
         let args = Args::new(&mut item.sig.inputs)?;
-        let is_result_binary = Self::is_result_binary(&item.sig.output);
+        let (is_result, is_binary) = Self::is_result_and_is_binary(&item.sig.output)?;
 
-        Ok(Self { item, config, args, is_result_binary })
+        Ok(Self { item, config, args, is_result, is_binary })
     }
 
     pub fn build(&self) -> TokenStream {
@@ -224,28 +224,33 @@ impl Handler {
         &self.item.sig.ident
     }
 
-    fn is_result_binary(output: &syn::ReturnType) -> Option<bool> {
+    fn is_result_and_is_binary(output: &syn::ReturnType) -> Result<(bool, bool), Error> {
         if let syn::ReturnType::Type(_, ty) = &output
             && let syn::Type::Path(ty) = ty.as_ref()
-            && let Some(segment) = ty.path.segments.last()
-            && segment.ident == "Result"
+            && let Some(first_segment) = ty.path.segments.first()
+            && let Some(last_segment) = ty.path.segments.last()
         {
-            Some(
-                if let syn::PathArguments::AngleBracketed(angle) = &segment.arguments
+            Ok(if last_segment.ident == "Result" {
+                if let syn::PathArguments::AngleBracketed(angle) = &last_segment.arguments
                     && let Some(syn::GenericArgument::Type(syn::Type::Path(ty))) =
                         angle.args.first()
-                    && let Some(segment) = ty.path.segments.first()
-                    && segment.ident == "binary"
-                    && let Some(segment) = ty.path.segments.last()
-                    && segment.ident == "Response"
+                    && let Some(first_segment) = ty.path.segments.first()
+                    && first_segment.ident == "binary"
+                    && let Some(last_segment) = ty.path.segments.last()
+                    && last_segment.ident == "Response"
                 {
-                    true
+                    (true, true)
                 } else {
-                    false
-                },
-            )
+                    (true, false)
+                }
+            } else {
+                (false, (first_segment.ident == "binary" && last_segment.ident == "Response"))
+            })
         } else {
-            None
+            Err(Error::new(
+                output.span(),
+                "Function derived with `handler` should return a concrete type",
+            ))
         }
     }
 
@@ -263,7 +268,7 @@ impl Handler {
         let mut tracing_args = Punctuated::<syn::Meta, syn::Token![,]>::default();
         tracing_args.push(parse_quote!(name = #tracing_name));
         tracing_args.push(parse_quote!(skip(#skip_debugs)));
-        if self.is_result_binary.is_some() {
+        if self.is_result {
             tracing_args.push(parse_quote!(ret(level = "debug")));
             tracing_args.push(parse_quote!(err(Debug)));
         }
@@ -271,13 +276,17 @@ impl Handler {
         parse_quote!(#[cfg_attr(not(coverage_nightly), tracing::instrument(#tracing_args))])
     }
 
-    fn authorization(&self, request_ident: &syn::Ident) -> Option<syn::Expr> {
+    fn authorization(
+        &self,
+        request_ident: &syn::Ident,
+        map_err: &TokenStream,
+    ) -> Option<syn::Expr> {
         if let Some(role) = self.config.role.as_ref() {
             let method_ident = format_ident!("check_{role}");
             Some(parse_quote! {
                 crate::orm::users::Role::#method_ident(
                     &database, #request_ident.user.id
-                ).await?
+                ).await.#map_err?
             })
         } else {
             None
@@ -300,24 +309,29 @@ impl Handler {
         let exprs: Punctuated<syn::Expr, syn::Token![,]> =
             exprs.into_iter().flatten().chain(additional_exprs).collect();
 
-        let authorization = self.authorization(request_ident);
-
-        let asyncness = self.item.sig.asyncness.map(|_| quote!(.await));
-        let tryness = self.is_result_binary.map(|_| quote!(?));
         let ty = if self.config.need_auth {
             quote!(#request_ident.validated.ty)
         } else {
             quote!(#request_ident.ty)
         };
+        let map_err =
+            quote!(map_err(|error| crate::http::serializable::ErrorResponse { ty: #ty, error }));
 
-        if self.is_result_binary.is_some_and(std::convert::identity) {
+        let authorization = self.authorization(request_ident, &map_err);
+        let asyncness = self.item.sig.asyncness.map(|_| quote!(.await));
+        let tryness = if self.is_result { Some(quote!(.#map_err?)) } else { None };
+
+        if self.is_binary {
             parse_quote! {
                 #[coverage(off)]
                 #[axum::debug_handler]
                 #[automatically_derived]
-                pub async fn #ident(#args) -> Result<crate::http::binary::Response, crate::Error> {
+                pub async fn #ident(#args) -> Result<
+                    crate::http::binary::Response,
+                    crate::http::serializable::ErrorResponse
+                > {
                     #authorization;
-                    #handler_ident(#exprs)#asyncness
+                    Ok(#handler_ident(#exprs) #asyncness #tryness)
                 }
             }
         } else {
@@ -327,9 +341,9 @@ impl Handler {
                 #[automatically_derived]
                 pub async fn #ident(#args) -> Result<
                     crate::http::serializable::Response<
-                        <Request as nghe_api::common::Endpoint>::Response
+                        <Request as nghe_api::http::Endpoint>::Response
                     >,
-                    crate::Error
+                    crate::http::serializable::ErrorResponse
                 > {
                     #authorization;
                     let body = #handler_ident(#exprs)

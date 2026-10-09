@@ -3,7 +3,7 @@ use std::io::{Result as IoResult, Write};
 use educe::Educe;
 use ffmpeg_next::format::context::StreamIo;
 use loole::Sender;
-use nghe_api::common::format;
+use nghe_api::format;
 
 use crate::Error;
 

@@ -1,5 +1,5 @@
 use itertools::{EitherOrBoth, Itertools};
-pub use nghe_api::media_annotation::scrobble::{Request, Response};
+pub use nghe_api::route::media_annotation::scrobble::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

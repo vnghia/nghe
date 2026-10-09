@@ -1,6 +1,6 @@
 use diesel::{IntoSql, JoinOnDsl, QueryDsl, sql_types};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::permission::add::{Request, Response};
+pub use nghe_api::route::permission::add::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::Error;
@@ -101,7 +101,7 @@ mod tests {
                 Request {
                     user_id,
                     music_folder_id,
-                    permission: nghe_api::permission::Permission::default()
+                    permission: nghe_api::route::permission::Permission::default()
                 }
             )
             .await

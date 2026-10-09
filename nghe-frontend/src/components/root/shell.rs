@@ -1,6 +1,6 @@
 use leptos::html;
 use leptos::prelude::*;
-use nghe_api::user::get::Request;
+use nghe_api::route::user::get::Request;
 
 use super::navbar::Navbar;
 use super::sidebar::Sidebar;

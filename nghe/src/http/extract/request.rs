@@ -4,10 +4,11 @@ use axum::http::Method;
 use axum_extra::headers::{self, HeaderMapExt};
 
 use crate::database::Database;
+use crate::error;
+use crate::http::serializable::ErrorResponse;
 use crate::orm::users;
-use crate::{Error, error};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum Type {
     Form,
@@ -29,9 +30,9 @@ pub struct Authenticated<R> {
 impl<S, R> FromRequest<S> for Validated<R>
 where
     S: Send + Sync,
-    R: for<'form> nghe_api::common::Request<'form, 'form, 'form, 'form, 'form> + Send,
+    R: for<'form> nghe_api::http::Request<'form, 'form, 'form, 'form, 'form> + Send,
 {
-    type Rejection = Error;
+    type Rejection = ErrorResponse;
 
     async fn from_request(
         request: axum::extract::Request,
@@ -41,7 +42,7 @@ where
 
         if method == Method::GET {
             if let Some(query) = request.uri().query() {
-                Self::from_form(query.as_bytes())
+                Self::from_form(query.as_bytes()).map_err(|error| (Type::Form, error).into())
             } else {
                 Ok(Self {
                     ty: Type::Json,
@@ -55,21 +56,24 @@ where
                 .ok_or_else(|| error::Kind::MissingContentTypeHeader)?;
 
             if content_type == headers::ContentType::form_url_encoded() {
-                let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
-                Self::from_form(&body)
+                let body = Bytes::from_request(request, state)
+                    .await
+                    .map_err(|error| (Type::Form, error))?;
+                Self::from_form(&body).map_err(|error| (Type::Form, error).into())
             } else {
                 let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
                 if content_type == headers::ContentType::json() {
                     Ok(Self {
                         ty: Type::Json,
-                        request: serde_json::from_slice(&body).map_err(error::Kind::from)?,
+                        request: serde_json::from_slice(&body)
+                            .map_err(|error| (Type::Json, error))?,
                     })
                 } else {
-                    error::Kind::UnsupportedContentType(content_type).into()
+                    ErrorResponse::from(error::Kind::UnsupportedContentType(content_type)).into()
                 }
             }
         } else {
-            error::Kind::MethodNotAllowed(method.to_owned()).into()
+            ErrorResponse::from(error::Kind::MethodNotAllowed(method.to_owned())).into()
         }
     }
 }
@@ -78,9 +82,9 @@ impl<S, R> FromRequest<S> for Authenticated<R>
 where
     S: Send + Sync,
     Database: FromRef<S>,
-    R: for<'form> nghe_api::common::Request<'form, 'form, 'form, 'form, 'form> + Send,
+    R: for<'form> nghe_api::http::Request<'form, 'form, 'form, 'form, 'form> + Send,
 {
-    type Rejection = Error;
+    type Rejection = ErrorResponse;
 
     async fn from_request(
         request: axum::extract::Request,
@@ -91,14 +95,18 @@ where
 
         if method == Method::GET {
             if let Some(query) = request.uri().query() {
-                Self::from_form(&database, query.as_bytes()).await
+                Self::from_form(&database, query.as_bytes())
+                    .await
+                    .map_err(|error| (Type::Form, error).into())
             } else {
                 Ok(Self {
                     validated: Validated {
                         ty: Type::Json,
                         request: R::UNIT.ok_or_else(|| error::Kind::MissingRequestBody)?,
                     },
-                    user: users::Authenticated::from_headers(&database, request.headers()).await?,
+                    user: users::Authenticated::from_headers(&database, request.headers())
+                        .await
+                        .map_err(|error| (Type::Json, error))?,
                 })
             }
         } else if method == Method::POST {
@@ -109,9 +117,11 @@ where
 
             if content_type == headers::ContentType::form_url_encoded() {
                 let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
-                Self::from_form(&database, &body).await
+                Self::from_form(&database, &body).await.map_err(|error| (Type::Form, error).into())
             } else {
-                let user = users::Authenticated::from_headers(&database, headers).await?;
+                let user = users::Authenticated::from_headers(&database, headers)
+                    .await
+                    .map_err(|error| (Type::Json, error))?;
                 let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
                 if content_type == headers::ContentType::json() {
                     Ok(Self {
@@ -122,11 +132,11 @@ where
                         user,
                     })
                 } else {
-                    error::Kind::UnsupportedContentType(content_type).into()
+                    ErrorResponse::from(error::Kind::UnsupportedContentType(content_type)).into()
                 }
             }
         } else {
-            error::Kind::MethodNotAllowed(method.to_owned()).into()
+            ErrorResponse::from(error::Kind::MethodNotAllowed(method.to_owned())).into()
         }
     }
 }
@@ -153,7 +163,7 @@ mod tests {
     use crate::test::{Mock, mock};
 
     #[api_derive(fake = true)]
-    #[endpoint(path = "test", url_only = true, same_crate = false)]
+    #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
     #[derive(Clone, Copy, PartialEq)]
     struct Request {
         param_one: i32,
@@ -184,7 +194,7 @@ mod tests {
                 }
             };
 
-            serde_html_form::to_string(<Request as nghe_api::common::Request>::AuthForm::new(
+            serde_html_form::to_string(<Request as nghe_api::http::Request>::AuthForm::new(
                 body, auth,
             ))
             .unwrap()
@@ -214,7 +224,8 @@ mod tests {
                 assert_eq!(request.validated.request, body);
                 assert_eq!(request.validated.ty, Type::Form);
             } else {
-                assert!(request.is_err());
+                let error = request.unwrap_err();
+                assert_eq!(error.ty, Type::Form);
             }
         } else {
             let request =
@@ -270,7 +281,8 @@ mod tests {
                 assert_eq!(request.validated.request, body);
                 assert_eq!(request.validated.ty, Type::Json);
             } else {
-                assert!(request.is_err());
+                let error = request.unwrap_err();
+                assert_eq!(error.ty, Type::Json);
             }
         } else {
             let request =
@@ -284,7 +296,7 @@ mod tests {
         use super::*;
 
         #[api_derive(fake = true)]
-        #[endpoint(path = "test", url_only = true, same_crate = false)]
+        #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
         #[derive(Clone, Copy, PartialEq)]
         struct Request;
 
@@ -331,7 +343,8 @@ mod tests {
                     assert_eq!(request.validated.request, Request);
                     assert_eq!(request.validated.ty, Type::Json);
                 } else {
-                    assert!(request.is_err());
+                    let error = request.unwrap_err();
+                    assert_eq!(error.ty, Type::Json);
                 }
             } else {
                 let request =

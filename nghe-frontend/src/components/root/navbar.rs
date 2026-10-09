@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos::{html, svg};
 use leptos_router::components::A;
-use nghe_api::user::get::Response;
+use nghe_api::route::user::get::Response;
 
 pub fn Navbar(user: Response) -> impl IntoView {
     html::nav()

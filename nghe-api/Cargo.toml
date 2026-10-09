@@ -23,7 +23,8 @@ fake = { workspace = true, optional = true }
 nghe-proc-macro = { path = "../nghe-proc-macro" }
 
 num-traits = { version = "0.2.19" }
-paste = { version = "1.0.15" }
+pastey = { version = "0.2.3" }
+serde_repr = { version = "0.1.21" }
 
 md5 = { version = "0.8.0", optional = true }
 

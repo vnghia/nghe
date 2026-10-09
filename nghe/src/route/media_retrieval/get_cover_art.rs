@@ -1,5 +1,5 @@
 use axum_extra::headers::Range;
-pub use nghe_api::media_retrieval::get_cover_art::Request;
+pub use nghe_api::route::media_retrieval::get_cover_art::Request;
 use nghe_proc_macro::handler;
 
 use crate::database::Database;

@@ -253,7 +253,7 @@ impl Transcoder {
     pub fn spawn(
         config: &config::Transcode,
         path: Path,
-        format: nghe_api::common::format::Transcode,
+        format: nghe_api::format::Transcode,
         bit_rate: u32,
         offset: u32,
     ) -> (Receiver<Vec<u8>>, tokio::task::JoinHandle<Result<(), Error>>) {
@@ -337,7 +337,7 @@ impl Transcoder {
 #[coverage(off)]
 mod test {
     use futures_lite::{StreamExt, stream};
-    use nghe_api::common::format;
+    use nghe_api::format;
 
     use super::*;
     use crate::config;
@@ -367,7 +367,7 @@ mod test {
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
-    use nghe_api::common::format;
+    use nghe_api::format;
     use rstest::rstest;
 
     use super::*;

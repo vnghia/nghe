@@ -1,7 +1,7 @@
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_api::lists::get_starred2::Starred2;
-pub use nghe_api::lists::get_starred2::{Request, Response};
+use nghe_api::route::lists::get_starred2::Starred2;
+pub use nghe_api::route::lists::get_starred2::{Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 

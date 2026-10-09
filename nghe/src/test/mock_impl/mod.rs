@@ -10,7 +10,6 @@ use educe::Educe;
 use fake::{Fake, Faker};
 pub use information::Mock as Information;
 use lofty::config::{ParseOptions, WriteOptions};
-use nghe_api::common;
 use rstest::fixture;
 use typed_path::Utf8PlatformPath;
 use uuid::Uuid;
@@ -122,14 +121,15 @@ impl Mock {
         self.filesystem.filesystem()
     }
 
-    pub fn to_impl(&self, ty: common::filesystem::Type) -> filesystem::Impl<'_> {
+    pub fn to_impl(&self, ty: nghe_api::filesystem::Type) -> filesystem::Impl<'_> {
         self.filesystem.to_impl(ty)
     }
 
     #[builder]
     pub async fn add_music_folder(
         &self,
-        #[builder(default = Faker.fake::<common::filesystem::Type>())] ty: common::filesystem::Type,
+        #[builder(default = Faker.fake::<nghe_api::filesystem::Type>())]
+        ty: nghe_api::filesystem::Type,
         #[builder(default = true)] allow: bool,
     ) -> Uuid {
         let filesystem = self.to_impl(ty);
@@ -194,7 +194,7 @@ pub async fn mock(
         mock.add_user().call().await;
     }
     for _ in 0..n_music_folder {
-        mock.add_music_folder().ty(Faker.fake::<common::filesystem::Type>()).call().await;
+        mock.add_music_folder().ty(Faker.fake::<nghe_api::filesystem::Type>()).call().await;
     }
     mock.database().upsert_config(&mock.config.index).await.unwrap();
 

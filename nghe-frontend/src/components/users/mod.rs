@@ -3,8 +3,8 @@ mod delete;
 
 use leptos::prelude::*;
 use leptos::{ev, html, svg};
-use nghe_api::user::get::Response;
-use nghe_api::user::list::Request;
+use nghe_api::route::user::get::Response;
+use nghe_api::route::user::list::Request;
 use uuid::Uuid;
 
 use crate::components::{Boundary, ClientRedirect, Loading};

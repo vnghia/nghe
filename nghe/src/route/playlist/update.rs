@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::playlist::update::{Request, Response};
+pub use nghe_api::route::playlist::update::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

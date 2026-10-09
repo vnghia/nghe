@@ -1,7 +1,7 @@
 use diesel::{BoolExpressionMethods, ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_api::lists::get_random_songs::RandomSong;
-pub use nghe_api::lists::get_random_songs::{Request, Response};
+use nghe_api::route::lists::get_random_songs::RandomSong;
+pub use nghe_api::route::lists::get_random_songs::{Request, Response};
 use nghe_proc_macro::{check_music_folder, handler};
 use uuid::Uuid;
 

@@ -1,5 +1,5 @@
 use diesel_async::RunQueryDsl;
-pub use nghe_api::music_folder::add::{Request, Response};
+pub use nghe_api::route::music_folder::add::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 
@@ -28,7 +28,7 @@ async fn handler_impl(
             permission::add::Request {
                 user_id: None,
                 music_folder_id: Some(music_folder_id),
-                permission: nghe_api::permission::Permission::default(),
+                permission: nghe_api::route::permission::Permission::default(),
             },
         )
         .await?;
@@ -49,7 +49,7 @@ pub async fn handler(
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
-    use nghe_api::common::filesystem;
+    use nghe_api::filesystem;
     use rstest::rstest;
 
     use crate::test::{Mock, mock};

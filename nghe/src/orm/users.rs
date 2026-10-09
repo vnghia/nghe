@@ -8,7 +8,7 @@ pub use crate::schema::users::{self, *};
 
 #[derive(Debug, Clone, Copy, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]
-#[map_owned(nghe_api::user::Role)]
+#[map_owned(nghe_api::route::user::Role)]
 #[cfg_attr(test, derive(Default, PartialEq, Eq))]
 pub struct Role {
     pub admin: bool,
@@ -47,7 +47,7 @@ pub struct Data<'a> {
 
 #[derive(Debug, Queryable, Selectable, Identifiable, o2o)]
 #[diesel(table_name = users, check_for_backend(crate::orm::Type))]
-#[owned_into(nghe_api::user::get::Response)]
+#[owned_into(nghe_api::route::user::get::Response)]
 #[ghosts(
     username: {@.info.username.into_owned()},
     email: {@.info.email.into_owned()},

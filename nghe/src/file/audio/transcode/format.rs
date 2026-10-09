@@ -1,7 +1,7 @@
 use std::num::NonZeroU64;
 
 use axum_extra::headers::{CacheControl, ETag};
-use nghe_api::common::format;
+use nghe_api::format;
 
 use crate::Error;
 use crate::http::binary;

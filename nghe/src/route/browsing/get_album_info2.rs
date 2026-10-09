@@ -1,7 +1,7 @@
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_api::browsing::get_album_info2::AlbumInfo;
-pub use nghe_api::browsing::get_album_info2::{Request, Response};
+use nghe_api::route::browsing::get_album_info2::AlbumInfo;
+pub use nghe_api::route::browsing::get_album_info2::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

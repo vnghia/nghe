@@ -1,4 +1,4 @@
-pub use nghe_api::bookmarks::save_playqueue::{Request, Response};
+pub use nghe_api::route::bookmarks::save_playqueue::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

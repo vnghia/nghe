@@ -9,7 +9,7 @@ use diesel::{
 use diesel_async::RunQueryDsl;
 use educe::Educe;
 use lofty::picture::{MimeType, Picture as LoftyPicture};
-use nghe_api::common::format::{self, Trait as _};
+use nghe_api::format::{self, Trait as _};
 use o2o::o2o;
 pub use resize::Resizer;
 use strum::{EnumString, IntoStaticStr};

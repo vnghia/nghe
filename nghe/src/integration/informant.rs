@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use diesel::dsl::{exists, not};
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use nghe_api::media_annotation::update_artist_information::Request;
+use nghe_api::route::media_annotation::update_artist_information::Request;
 use rspotify::model::Id;
 use typed_path::Utf8PlatformPath;
 use uuid::Uuid;

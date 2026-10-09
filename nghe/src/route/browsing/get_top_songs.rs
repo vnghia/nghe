@@ -1,8 +1,8 @@
 use diesel::dsl::sum;
 use diesel::{ExpressionMethods, JoinOnDsl, PgSortExpressionMethods as _, QueryDsl};
 use diesel_async::RunQueryDsl;
-use nghe_api::browsing::get_top_songs::TopSongs;
-pub use nghe_api::browsing::get_top_songs::{Request, Response};
+use nghe_api::route::browsing::get_top_songs::TopSongs;
+pub use nghe_api::route::browsing::get_top_songs::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

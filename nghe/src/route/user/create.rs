@@ -1,5 +1,5 @@
 use diesel_async::RunQueryDsl;
-pub use nghe_api::user::create::{Request, Response};
+pub use nghe_api::route::user::create::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::Error;
@@ -27,7 +27,7 @@ pub async fn handler(database: &Database, request: Request) -> Result<Response, 
             permission::add::Request {
                 user_id: Some(user_id),
                 music_folder_id: None,
-                permission: nghe_api::permission::Permission::default(),
+                permission: nghe_api::route::permission::Permission::default(),
             },
         )
         .await?;

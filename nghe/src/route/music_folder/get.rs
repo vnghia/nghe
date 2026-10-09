@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::music_folder::get::{Request, Response};
+pub use nghe_api::route::music_folder::get::{Request, Response};
 use nghe_proc_macro::handler;
 use uuid::Uuid;
 

@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos::{html, svg};
 use leptos_router::components::A;
-use nghe_api::user::Role;
+use nghe_api::route::user::Role;
 
 pub fn Sidebar(user_role: Role) -> impl IntoView {
     html::aside()

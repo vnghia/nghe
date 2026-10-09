@@ -11,7 +11,7 @@ pub use crate::schema::playqueues::{self, *};
 #[derive(Debug, Queryable, Selectable, Insertable, AsChangeset, o2o)]
 #[diesel(table_name = playqueues, check_for_backend(crate::orm::Type))]
 #[diesel(treat_none_as_null = true)]
-#[try_from_owned(nghe_api::bookmarks::save_playqueue::Request, Error)]
+#[try_from_owned(nghe_api::route::bookmarks::save_playqueue::Request, Error)]
 pub struct Data {
     #[diesel(select_expression = sql("playqueues.ids ids"))]
     #[diesel(select_expression_type = SqlLiteral<sql_types::Array<sql_types::Uuid>>)]

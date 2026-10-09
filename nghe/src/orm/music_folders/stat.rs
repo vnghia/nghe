@@ -12,7 +12,7 @@ diesel::alias!(albums as albums_size: AlbumsSize, songs as songs_size: SongsSize
 
 #[derive(Debug, Queryable, Selectable, o2o)]
 #[diesel(table_name = music_folders, check_for_backend(crate::orm::Type))]
-#[owned_into(nghe_api::music_folder::get::Response)]
+#[owned_into(nghe_api::route::music_folder::get::Response)]
 pub struct Stat<'a> {
     #[into(~.into_owned())]
     pub name: Cow<'a, str>,

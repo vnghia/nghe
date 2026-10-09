@@ -1,6 +1,6 @@
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
-pub use nghe_api::permission::remove::{Request, Response};
+pub use nghe_api::route::permission::remove::{Request, Response};
 use nghe_proc_macro::handler;
 
 use crate::Error;
@@ -74,7 +74,7 @@ mod tests {
             permission::add::Request {
                 user_id: None,
                 music_folder_id: None,
-                permission: nghe_api::permission::Permission::default(),
+                permission: nghe_api::route::permission::Permission::default(),
             },
         )
         .await

@@ -6,7 +6,7 @@ use diesel::dsl::sql;
 use diesel::expression::SqlLiteral;
 use diesel::prelude::*;
 use diesel::sql_types;
-use nghe_api::playlist::{self, builder};
+use nghe_api::route::playlist::{self, builder};
 use time::OffsetDateTime;
 use uuid::Uuid;
 

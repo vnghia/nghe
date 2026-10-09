@@ -8,7 +8,7 @@ use fake::{Fake, Faker};
 use futures_lite::{StreamExt, stream};
 use indexmap::IndexMap;
 use itertools::Itertools;
-use nghe_api::scan;
+use nghe_api::route::scan;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 use uuid::Uuid;
 

@@ -15,13 +15,21 @@ pub async fn request_handler(
     axum::extract::State(database): axum::extract::State<crate::database::Database>,
     request: crate::http::extract::request::Authenticated<Request>,
 ) -> Result<
-    crate::http::serializable::Response<
-        <Request as nghe_api::common::Endpoint>::Response,
-    >,
-    crate::Error,
+    crate::http::serializable::Response<<Request as nghe_api::http::Endpoint>::Response>,
+    crate::http::serializable::ErrorResponse,
 > {
-    crate::orm::users::Role::check_admin(&database, request.user.id).await?;
-    let body = handler(&database, request.user.id, request.validated.request).await?;
+    crate::orm::users::Role::check_admin(&database, request.user.id)
+        .await
+        .map_err(|error| crate::http::serializable::ErrorResponse {
+            ty: request.validated.ty,
+            error,
+        })?;
+    let body = handler(&database, request.user.id, request.validated.request)
+        .await
+        .map_err(|error| crate::http::serializable::ErrorResponse {
+            ty: request.validated.ty,
+            error,
+        })?;
     Ok(crate::http::serializable::Response {
         ty: request.validated.ty,
         body,
