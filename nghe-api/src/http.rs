@@ -24,9 +24,24 @@ struct RootResponse<B> {
 }
 
 #[api_derive(debug = false)]
+struct ErrorRootResponse<B> {
+    #[serde(serialize_with = "emit_open_subsonic_version")]
+    version: (),
+    #[serde(serialize_with = "emit_status_error")]
+    status: (),
+    error: B,
+}
+
+#[api_derive(debug = false)]
 pub struct SubsonicResponse<B> {
     #[serde(rename = "subsonic-response")]
     root: RootResponse<B>,
+}
+
+#[api_derive(debug = false)]
+pub struct ErrorSubsonicResponse<B> {
+    #[serde(rename = "subsonic-response")]
+    root: ErrorRootResponse<B>,
 }
 
 pub trait Url {
@@ -65,9 +80,15 @@ impl<B> SubsonicResponse<B> {
     }
 }
 
+impl<B> ErrorSubsonicResponse<B> {
+    pub fn new(error: B) -> Self {
+        Self { root: ErrorRootResponse { version: (), status: (), error } }
+    }
+}
+
 macro_rules! emit_constant_serialize {
     ($constant_name:ident, $constant_type:ty, $constant_value:expr) => {
-        paste::paste! {
+        pastey::paste! {
             fn [<emit_ $constant_name>]<S: Serializer>(_: &(), s: S) -> Result<S::Ok, S::Error> {
                 s.[<serialize_ $constant_type>]($constant_value)
             }
@@ -80,6 +101,7 @@ emit_constant_serialize!(server_type, str, constant::SERVER_NAME);
 emit_constant_serialize!(server_version, str, constant::SERVER_VERSION);
 emit_constant_serialize!(open_subsonic, bool, true);
 emit_constant_serialize!(status_ok, str, "ok");
+emit_constant_serialize!(status_error, str, "failed");
 
 #[cfg(test)]
 #[coverage(off)]
@@ -148,6 +170,28 @@ mod tests {
                     "type": constant::SERVER_NAME,
                     "serverVersion": constant::SERVER_VERSION,
                     "openSubsonic": true
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn test_serialize_error() {
+        #[api_derive(debug = false)]
+        struct TestBody {
+            snake_case: u16,
+        }
+        let snake_case = 10;
+
+        assert_eq!(
+            to_value(ErrorSubsonicResponse::new(TestBody { snake_case })).unwrap(),
+            json!({
+                "subsonic-response": {
+                    "error": {
+                        "snakeCase": snake_case,
+                    },
+                    "status": "failed",
+                    "version": constant::OPEN_SUBSONIC_VERSION,
                 }
             })
         );

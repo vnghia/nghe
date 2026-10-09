@@ -4,9 +4,12 @@
 
 pub mod auth;
 pub mod constant;
+pub mod error;
 pub mod filesystem;
 pub mod format;
 pub mod http;
 pub mod id3;
 pub mod route;
 pub mod time;
+
+pub use error::Error;
