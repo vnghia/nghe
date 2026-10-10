@@ -20,7 +20,7 @@ static EXTENSIONS: [Extension; 4] = [
 
 #[api_derive]
 pub struct Response {
-    #[serde(serialize_with = "serde::emit_extensions")]
+    #[serde(serialize_with = "serde::serialize_extensions", skip_deserializing)]
     pub open_subsonic_extensions: (),
 }
 
@@ -31,7 +31,7 @@ mod serde {
     use super::EXTENSIONS;
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn emit_extensions<S: Serializer>(_: &(), s: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize_extensions<S: Serializer>(_: &(), s: S) -> Result<S::Ok, S::Error> {
         let mut seq = s.serialize_seq(Some(EXTENSIONS.len()))?;
         for extension in EXTENSIONS {
             seq.serialize_element(&extension)?;
