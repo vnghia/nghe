@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/vnghia/nghe/compare/v0.14.3...v0.15.0) (2026-10-10)
+
+
+### Features
+
+* add command line ([#1172](https://github.com/vnghia/nghe/issues/1172)) ([23b31eb](https://github.com/vnghia/nghe/commit/23b31eb736d39b4c6ce77a4a7134e3e2e0984969))
+* prepare for command line interface ([#1165](https://github.com/vnghia/nghe/issues/1165)) ([5e97c28](https://github.com/vnghia/nghe/commit/5e97c28a475f7e0f50b5ca8595ffb0107d426e2b))
+* prepare for command line interface ([#1166](https://github.com/vnghia/nghe/issues/1166)) ([01d2af4](https://github.com/vnghia/nghe/commit/01d2af41c49147e281d9ea9e022c8e66082b95d9))
+
+
+### Bug Fixes
+
+* **api:** return error as json with code and message ([#1167](https://github.com/vnghia/nghe/issues/1167)) ([f29f884](https://github.com/vnghia/nghe/commit/f29f884d54cec501330e4483b92c1c04789f0c0f))
+
 ## [0.14.3](https://github.com/vnghia/nghe/compare/v0.14.2...v0.14.3) (2026-10-06)
 
 
