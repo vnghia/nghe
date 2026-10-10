@@ -4,5 +4,5 @@ use nghe_proc_macro::api_derive;
 #[endpoint(path = "health")]
 pub struct Request;
 
-#[api_derive(request = false)]
+#[api_derive]
 pub struct Response;

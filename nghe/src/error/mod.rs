@@ -276,6 +276,16 @@ pub struct Error {
     pub source: Report,
 }
 
+impl Error {
+    pub fn new(
+        status_code: StatusCode,
+        open_subsonic_code: OpenSubsonicCode,
+        source: impl Into<color_eyre::Report>,
+    ) -> Self {
+        Self { status_code, open_subsonic_code, source: source.into() }
+    }
+}
+
 impl Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&self.source, f)
@@ -291,16 +301,6 @@ impl From<Kind> for Error {
 impl<T> From<Kind> for Result<T, Error> {
     fn from(value: Kind) -> Self {
         Err(value.into())
-    }
-}
-
-impl Error {
-    pub fn new(
-        status_code: StatusCode,
-        open_subsonic_code: OpenSubsonicCode,
-        source: impl Into<color_eyre::Report>,
-    ) -> Self {
-        Self { status_code, open_subsonic_code, source: source.into() }
     }
 }
 

@@ -1,6 +1,8 @@
+mod error;
 mod rest;
 
 use conf::{Conf, Subcommands};
+use error::Error;
 use rest::Rest;
 
 use crate::server;
@@ -24,7 +26,7 @@ pub async fn entrypoint() {
     match action {
         Action::Start => server::start().await,
         Action::Rest(rest) => {
-            dbg!(rest);
+            rest.run().await.unwrap();
         }
     }
 }

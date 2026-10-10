@@ -16,12 +16,15 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 pedantic = { level = "deny", priority = -1 }
 cast_possible_wrap = { level = "allow", priority = 0 }
 duplicated_attributes = { level = "allow", priority = 0 }
+large_enum_variant = { level = "allow", priority = 0 }
 missing_panics_doc = { level = "allow", priority = 0 }
 missing_errors_doc = { level = "allow", priority = 0 }
 must_use_candidate = { level = "allow", priority = 0 }
 needless_raw_string_hashes = { level = "allow", priority = 0 }
+result_large_err = { level = "allow", priority = 0 }
 return_self_not_must_use = { level = "allow", priority = 0 }
 struct_excessive_bools = { level = "allow", priority = 0 }
+unsafe_derive_deserialize = { level = "allow", priority = 0 }
 wildcard_imports = { level = "allow", priority = 0 }
 
 [workspace.dependencies]

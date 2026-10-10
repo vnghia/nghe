@@ -286,7 +286,7 @@ impl Handler {
             Some(parse_quote! {
                 crate::orm::users::Role::#method_ident(
                     &database, #request_ident.user.id
-                ).await.#map_err?
+                ).await #map_err?
             })
         } else {
             None
@@ -315,23 +315,38 @@ impl Handler {
             quote!(#request_ident.ty)
         };
         let map_err =
-            quote!(map_err(|error| crate::http::serializable::ErrorResponse { ty: #ty, error }));
+            quote!(.map_err(|error| crate::http::serializable::ErrorResponse { ty: #ty, error }));
 
         let authorization = self.authorization(request_ident, &map_err);
         let asyncness = self.item.sig.asyncness.map(|_| quote!(.await));
-        let tryness = if self.is_result { Some(quote!(.#map_err?)) } else { None };
+        let tryness = if self.is_result { Some(quote!(#map_err?)) } else { None };
 
         if self.is_binary {
-            parse_quote! {
-                #[coverage(off)]
-                #[axum::debug_handler]
-                #[automatically_derived]
-                pub async fn #ident(#args) -> Result<
-                    crate::http::binary::Response,
-                    crate::http::serializable::ErrorResponse
-                > {
-                    #authorization;
-                    Ok(#handler_ident(#exprs) #asyncness #tryness)
+            if self.is_result {
+                parse_quote! {
+                    #[coverage(off)]
+                    #[axum::debug_handler]
+                    #[automatically_derived]
+                    pub async fn #ident(#args) -> Result<
+                        crate::http::binary::Response,
+                        crate::http::serializable::ErrorResponse
+                    > {
+                        #authorization;
+                        #handler_ident(#exprs) #asyncness #map_err
+                    }
+                }
+            } else {
+                parse_quote! {
+                    #[coverage(off)]
+                    #[axum::debug_handler]
+                    #[automatically_derived]
+                    pub async fn #ident(#args) -> Result<
+                        crate::http::binary::Response,
+                        crate::http::serializable::ErrorResponse
+                    > {
+                        #authorization;
+                        Ok(#handler_ident(#exprs) #asyncness)
+                    }
                 }
             }
         } else {

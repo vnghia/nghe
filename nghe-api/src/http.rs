@@ -1,4 +1,7 @@
+use std::fmt::Debug;
+
 use nghe_proc_macro::api_derive;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize, Serializer};
 
 use super::constant;
@@ -27,6 +30,12 @@ struct RootResponse<B> {
 struct ErrorRootResponse<B> {
     #[serde(serialize_with = "emit_open_subsonic_version")]
     version: (),
+    #[serde(serialize_with = "emit_server_type")]
+    r#type: (),
+    #[serde(serialize_with = "emit_server_version")]
+    server_version: (),
+    #[serde(serialize_with = "emit_open_subsonic")]
+    open_subsonic: (),
     #[serde(serialize_with = "emit_status_error")]
     status: (),
     error: B,
@@ -44,7 +53,7 @@ pub struct ErrorSubsonicResponse<B> {
     root: ErrorRootResponse<B>,
 }
 
-pub trait Url {
+pub trait Url: Serialize {
     const URL: &'static str;
     const URL_VIEW: &'static str;
 }
@@ -56,7 +65,7 @@ pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: Url + Deserialize<'de
 }
 
 pub trait Endpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {
-    type Response: Serialize;
+    type Response: Debug + Serialize + DeserializeOwned;
 }
 
 pub trait BinaryEndpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {}
@@ -82,7 +91,16 @@ impl<B> SubsonicResponse<B> {
 
 impl<B> ErrorSubsonicResponse<B> {
     pub fn new(error: B) -> Self {
-        Self { root: ErrorRootResponse { version: (), status: (), error } }
+        Self {
+            root: ErrorRootResponse {
+                version: (),
+                r#type: (),
+                server_version: (),
+                open_subsonic: (),
+                status: (),
+                error,
+            },
+        }
     }
 }
 
@@ -192,6 +210,9 @@ mod tests {
                     },
                     "status": "failed",
                     "version": constant::OPEN_SUBSONIC_VERSION,
+                    "type": constant::SERVER_NAME,
+                    "serverVersion": constant::SERVER_VERSION,
+                    "openSubsonic": true
                 }
             })
         );
