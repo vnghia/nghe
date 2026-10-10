@@ -24,7 +24,7 @@ pub struct Runner {
 }
 
 impl Output {
-    async fn try_new(output: Option<&Utf8PlatformPath>) -> Result<Self, Error> {
+    async fn open(output: Option<&Utf8PlatformPath>) -> Result<Self, Error> {
         if let Some(output) = output {
             Ok(Self::File(tokio::fs::File::create(output).await?))
         } else {
@@ -71,7 +71,7 @@ impl TryFrom<Rest> for Runner {
 
     fn try_from(rest: Rest) -> Result<Self, Self::Error> {
         let Rest { server, output, route } = rest;
-        let config = config::Config::try_extract().ok();
+        let config = config::Config::extract().ok();
 
         let url = if let Some(ref url) = server.url {
             url.to_owned()
@@ -109,8 +109,8 @@ impl Runner {
         self.url.join(&concat_string!(nghe_api::http::BACKEND_PREFIX, R::URL)).map_err(Error::from)
     }
 
-    async fn build_output(&self) -> Result<Output, Error> {
-        Output::try_new(self.output.as_deref()).await
+    async fn open_output(&self) -> Result<Output, Error> {
+        Output::open(self.output.as_deref()).await
     }
 
     async fn send_url<R: nghe_api::http::Url>(
@@ -137,7 +137,7 @@ impl Runner {
         request: Option<&R>,
     ) -> Result<(), Error> {
         let mut stream = self.send_url(request).await?.bytes_stream();
-        let mut output = self.build_output().await?;
+        let mut output = self.open_output().await?;
         while let Some(chunk) = stream.next().await {
             output.write_all(&chunk?).await?;
         }
@@ -148,7 +148,7 @@ impl Runner {
         &self,
         request: Option<&R>,
     ) -> Result<(), Error> {
-        self.build_output()
+        self.open_output()
             .await?
             .write_all(&serde_json::to_vec(
                 &self.send_url(request).await?.json::<R::Response>().await?,
