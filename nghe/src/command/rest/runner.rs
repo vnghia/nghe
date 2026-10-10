@@ -1,17 +1,23 @@
 use axum_extra::headers::{self, HeaderMapExt};
 use concat_string::concat_string;
+use typed_path::Utf8PlatformPathBuf;
 use url::Url;
 
-use crate::command::Error;
+use super::{Error, Rest, Route};
 use crate::config;
 
-pub struct Client {
+pub struct Runner {
     url: Url,
-    inner: reqwest::Client,
+    http: reqwest::Client,
+    output: Option<Utf8PlatformPathBuf>,
+    route: Route,
 }
 
-impl Client {
-    pub fn new(server: &super::Server) -> Result<Self, Error> {
+impl TryFrom<Rest> for Runner {
+    type Error = Error;
+
+    fn try_from(rest: Rest) -> Result<Self, Self::Error> {
+        let Rest { server, output, route } = rest;
         let config = config::Config::try_extract().ok();
 
         let url = if let Some(ref url) = server.url {
@@ -36,13 +42,18 @@ impl Client {
             headers.typed_insert(headers::Authorization::bearer(api_key)?);
         }
 
-        Ok(Self { url, inner: reqwest::ClientBuilder::new().default_headers(headers).build()? })
+        Ok(Self {
+            url,
+            http: reqwest::ClientBuilder::new().default_headers(headers).build()?,
+            output,
+            route,
+        })
     }
+}
 
+impl Runner {
     fn build_url<R: nghe_api::http::Url>(&self) -> Result<Url, Error> {
-        self.url
-            .join(&concat_string!(nghe_api::http::BACKEND_PREFIX, "/", R::URL))
-            .map_err(Error::from)
+        self.url.join(&concat_string!(nghe_api::http::BACKEND_PREFIX, R::URL)).map_err(Error::from)
     }
 
     async fn send_url<R: nghe_api::http::Url>(
@@ -51,25 +62,35 @@ impl Client {
     ) -> Result<reqwest::Response, Error> {
         let url = self.build_url::<R>()?;
         let response = if let Some(request) = request {
-            self.inner.post(url).json(request).send().await
+            self.http.post(url).json(request).send().await
         } else {
-            self.inner.get(url).send().await
+            self.http.get(url).send().await
         }?;
 
         if response.status().is_success() {
             Ok(response)
         } else {
-            Err(Error::Http {
-                status_code: response.status(),
-                error: serde_json::from_slice(&response.bytes().await?)?,
-            })
+            Err(Error::Http { status_code: response.status(), error: response.json().await? })
         }
     }
 
-    pub async fn send_endpoint<R: nghe_api::http::Endpoint>(
+    pub async fn run_binary<'a, R: nghe_api::http::Request<'a, 'a, 'a, 'a, 'a>>(
         &self,
         request: Option<&R>,
-    ) -> Result<R::Response, Error> {
-        Ok(serde_json::from_slice(&self.send_url(request).await?.bytes().await?)?)
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    pub async fn run_endpoint<R: nghe_api::http::Endpoint>(
+        &self,
+        request: Option<&R>,
+    ) -> Result<(), Error> {
+        let response: R::Response = self.send_url(request).await?.json().await?;
+        dbg!(response);
+        Ok(())
+    }
+
+    pub async fn run(&self) -> Result<(), Error> {
+        self.route.run(self).await
     }
 }

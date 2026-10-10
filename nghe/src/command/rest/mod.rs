@@ -1,8 +1,11 @@
 mod auth;
-mod client;
 mod route;
+mod runner;
 
 use conf::Conf;
+use route::Route;
+use runner::Runner;
+use typed_path::Utf8PlatformPathBuf;
 use url::Url;
 
 use super::Error;
@@ -19,13 +22,14 @@ pub struct Server {
 pub struct Rest {
     #[conf(flatten)]
     server: Server,
+    #[conf(long)]
+    output: Option<Utf8PlatformPathBuf>,
     #[conf(subcommands)]
-    route: route::Route,
+    route: Route,
 }
 
 impl Rest {
-    pub async fn run(&self) -> Result<(), Error> {
-        let client = client::Client::new(&self.server)?;
-        Ok(())
+    pub async fn run(self) -> Result<(), Error> {
+        Runner::try_from(self)?.run().await
     }
 }

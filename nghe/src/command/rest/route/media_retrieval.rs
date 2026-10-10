@@ -1,4 +1,9 @@
 nghe_proc_macro::build_command! {
     module = media_retrieval,
-    actions = [download, get_cover_art, get_lyrics_by_song_id, stream],
+    actions = [
+        download(binary = true),
+        get_cover_art(binary = true),
+        get_lyrics_by_song_id(binary = true),
+        stream(binary = true),
+    ],
 }

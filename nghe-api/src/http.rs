@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use nghe_proc_macro::api_derive;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize, Serializer};
@@ -63,7 +65,7 @@ pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: Url + Deserialize<'de
 }
 
 pub trait Endpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {
-    type Response: Serialize + DeserializeOwned;
+    type Response: Debug + Serialize + DeserializeOwned;
 }
 
 pub trait BinaryEndpoint: for<'form> Request<'form, 'form, 'form, 'form, 'form> {}
