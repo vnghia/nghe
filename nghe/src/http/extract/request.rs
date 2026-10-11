@@ -70,13 +70,18 @@ where
                     Self::from_form(&body).map_err(|error| (Type::Form, error).into())
                 }
             } else {
-                let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
                 if content_type == headers::ContentType::json() {
-                    Ok(Self {
-                        ty: Type::Json,
-                        request: serde_json::from_slice(&body)
-                            .map_err(|error| (Type::Json, error))?,
-                    })
+                    if let Some(request) = R::UNIT {
+                        Ok(Self { ty: Type::Json, request })
+                    } else {
+                        let body =
+                            Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
+                        Ok(Self {
+                            ty: Type::Json,
+                            request: serde_json::from_slice(&body)
+                                .map_err(|error| (Type::Json, error))?,
+                        })
+                    }
                 } else {
                     ErrorResponse::from(error::Kind::UnsupportedContentType(content_type)).into()
                 }
@@ -132,15 +137,21 @@ where
                 let user = users::Authenticated::from_headers(&database, headers)
                     .await
                     .map_err(|error| (Type::Json, error))?;
-                let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
                 if content_type == headers::ContentType::json() {
-                    Ok(Self {
-                        validated: Validated {
-                            ty: Type::Json,
-                            request: serde_json::from_slice(&body).map_err(error::Kind::from)?,
-                        },
-                        user,
-                    })
+                    if let Some(request) = R::UNIT {
+                        Ok(Self { validated: Validated { ty: Type::Json, request }, user })
+                    } else {
+                        let body =
+                            Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
+                        Ok(Self {
+                            validated: Validated {
+                                ty: Type::Json,
+                                request: serde_json::from_slice(&body)
+                                    .map_err(error::Kind::from)?,
+                            },
+                            user,
+                        })
+                    }
                 } else {
                     ErrorResponse::from(error::Kind::UnsupportedContentType(content_type)).into()
                 }
@@ -258,7 +269,7 @@ mod tests {
 
         let mut http_request = http::Request::builder()
             .method(http::Method::POST)
-            .body(axum::body::Body::new(serde_json::to_string(&body).unwrap()))
+            .body(Body::new(serde_json::to_string(&body).unwrap()))
             .unwrap();
         http_request.headers_mut().typed_insert(headers::ContentType::json());
         if auth {
@@ -339,7 +350,7 @@ mod tests {
                 ))
                 .unwrap()
             } else {
-                "a=b".into()
+                Faker.fake()
             };
 
             let http_request = if get {
@@ -383,14 +394,25 @@ mod tests {
         #[tokio::test]
         async fn test_from_request_json(
             #[future(awt)] mock: Mock,
+            #[values(true, false)] get: bool,
             #[values(true, false)] auth: bool,
             #[values(true, false)] ok: bool,
             #[values(true, false)] use_password: bool,
         ) {
             let user = mock.user(0).await;
 
-            let mut http_request =
-                http::Request::builder().method(http::Method::GET).body(Body::empty()).unwrap();
+            let builder = http::Request::builder();
+            let mut http_request = if get {
+                builder.method(http::Method::GET).body(Body::empty()).unwrap()
+            } else {
+                let mut http_request = builder
+                    .method(http::Method::POST)
+                    .body(Body::from(Faker.fake::<String>()))
+                    .unwrap();
+                http_request.headers_mut().typed_insert(headers::ContentType::json());
+                http_request
+            };
+
             if auth {
                 if use_password {
                     let auth = user.auth_basic();
