@@ -14,8 +14,13 @@ use tracing_subscriber::util::SubscriberInitExt;
 use crate::{Error, config, database, filesystem, integration, migration, route, scan};
 
 #[coverage(off)]
+pub fn init_eyre() -> Result<(), Error> {
+    color_eyre::config::HookBuilder::new().install().map_err(Into::into)
+}
+
+#[coverage(off)]
 pub fn init_tracing(log: &config::Log) -> Result<(), Error> {
-    color_eyre::install()?;
+    init_eyre()?;
 
     let tracing = tracing_subscriber::registry()
         .with(

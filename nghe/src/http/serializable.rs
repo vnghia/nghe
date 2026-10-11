@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use axum::response::IntoResponse;
 use nghe_api::http::{ErrorSubsonicResponse, SubsonicResponse};
 use serde::Serialize;
@@ -11,11 +13,15 @@ pub struct Response<R> {
     pub body: R,
 }
 
-#[derive(Debug)]
-
 pub struct ErrorResponse {
     pub ty: request::Type,
     pub error: Error,
+}
+
+impl Debug for ErrorResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.error, f)
+    }
 }
 
 impl<R: Serialize> IntoResponse for Response<R> {
@@ -29,23 +35,17 @@ impl<R: Serialize> IntoResponse for Response<R> {
 
 impl IntoResponse for ErrorResponse {
     fn into_response(self) -> axum::response::Response {
+        let error = nghe_api::Error {
+            code: self.error.open_subsonic_code,
+            message: self.error.source.to_string(),
+        };
+
         match self.ty {
-            request::Type::Form => (
-                self.error.status_code,
-                axum::Json(ErrorSubsonicResponse::new(nghe_api::Error {
-                    code: self.error.open_subsonic_code,
-                    message: self.error.source.to_string(),
-                })),
-            )
-                .into_response(),
-            request::Type::Json => (
-                self.error.status_code,
-                axum::Json(nghe_api::Error {
-                    code: self.error.open_subsonic_code,
-                    message: self.error.source.to_string(),
-                }),
-            )
-                .into_response(),
+            request::Type::Form => {
+                (self.error.status_code, axum::Json(ErrorSubsonicResponse::new(error)))
+                    .into_response()
+            }
+            request::Type::Json => (self.error.status_code, axum::Json(error)).into_response(),
         }
     }
 }

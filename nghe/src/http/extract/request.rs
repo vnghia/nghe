@@ -43,7 +43,11 @@ where
 
         if method == Method::GET {
             if let Some(query) = request.uri().query() {
-                Self::from_form(query.as_bytes()).map_err(|error| (Type::Form, error).into())
+                if let Some(request) = R::UNIT {
+                    Ok(Self { ty: Type::Form, request })
+                } else {
+                    Self::from_form(query.as_bytes()).map_err(|error| (Type::Form, error).into())
+                }
             } else {
                 Ok(Self {
                     ty: Type::Json,
@@ -57,10 +61,14 @@ where
                 .ok_or_else(|| error::Kind::MissingContentTypeHeader)?;
 
             if content_type == headers::ContentType::form_url_encoded() {
-                let body = Bytes::from_request(request, state)
-                    .await
-                    .map_err(|error| (Type::Form, error))?;
-                Self::from_form(&body).map_err(|error| (Type::Form, error).into())
+                if let Some(request) = R::UNIT {
+                    Ok(Self { ty: Type::Form, request })
+                } else {
+                    let body = Bytes::from_request(request, state)
+                        .await
+                        .map_err(|error| (Type::Form, error))?;
+                    Self::from_form(&body).map_err(|error| (Type::Form, error).into())
+                }
             } else {
                 let body = Bytes::from_request(request, state).await.map_err(error::Kind::from)?;
                 if content_type == headers::ContentType::json() {
@@ -304,7 +312,76 @@ mod tests {
 
         #[rstest]
         #[tokio::test]
-        async fn test_from_request(
+        async fn test_from_request_form(
+            #[future(awt)] mock: Mock,
+            #[values(true, false)] get: bool,
+            #[values(true, false)] auth: bool,
+            #[values(true, false)] ok: bool,
+            #[values(None, Some(true), Some(false))] use_token: Option<bool>,
+        ) {
+            let body: Request = Faker.fake();
+            let user = mock.user(0).await;
+
+            let builder = http::Request::builder();
+            let query = if auth {
+                let auth = user.auth_form(use_token).await;
+                let auth = if ok {
+                    auth
+                } else {
+                    match auth {
+                        auth::Form::Username(_) => auth::Form::Username(Faker.fake()),
+                        auth::Form::ApiKey(_) => auth::Form::ApiKey(Faker.fake()),
+                    }
+                };
+
+                serde_html_form::to_string(<Request as nghe_api::http::Request>::AuthForm::new(
+                    body, auth,
+                ))
+                .unwrap()
+            } else {
+                "a=b".into()
+            };
+
+            let http_request = if get {
+                builder
+                    .method(http::Method::GET)
+                    .uri(concat_string!("/test?", query))
+                    .body(Body::empty())
+                    .unwrap()
+            } else {
+                let mut http_request = builder
+                    .method(http::Method::POST)
+                    .uri("/test")
+                    .body(Body::from(query))
+                    .unwrap();
+                http_request.headers_mut().typed_insert(headers::ContentType::form_url_encoded());
+                http_request
+            };
+
+            if auth {
+                let request =
+                    Authenticated::<Request>::from_request(http_request, mock.state()).await;
+
+                if ok {
+                    let request = request.unwrap();
+                    assert_eq!(request.user.id, user.id());
+                    assert_eq!(request.validated.request, Request);
+                    assert_eq!(request.validated.ty, Type::Form);
+                } else {
+                    let error = request.unwrap_err();
+                    assert_eq!(error.ty, Type::Form);
+                }
+            } else {
+                let request =
+                    Validated::<Request>::from_request(http_request, mock.state()).await.unwrap();
+                assert_eq!(request.request, Request);
+                assert_eq!(request.ty, Type::Form);
+            }
+        }
+
+        #[rstest]
+        #[tokio::test]
+        async fn test_from_request_json(
             #[future(awt)] mock: Mock,
             #[values(true, false)] auth: bool,
             #[values(true, false)] ok: bool,
