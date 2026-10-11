@@ -1,5 +1,6 @@
 use conf::{Conf, Subcommands};
-use crate::command::{Error, Runner};
+use crate::command::rest::Runner;
+use crate::command::Error;
 pub enum Route {
     MusicFolder { #[conf(subcommands)] action: music_folder::Action },
     User { #[conf(subcommands)] action: user::Action },
