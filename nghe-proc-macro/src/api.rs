@@ -277,15 +277,12 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                 attributes.push(parse_quote!(#[serde(rename_all_fields = "camelCase")]));
             }
             if let Some(ref cfg_attr) = cfg_attr_command {
-                attributes.push(parse_quote!(#[cfg_attr(#cfg_attr, derive(::conf::Conf))]));
+                attributes.push(parse_quote!(#[cfg_attr(#cfg_attr, derive(::conf::Subcommands))]));
             }
 
             for variant in &mut data.variants {
-                variant.attrs = derive_transform_attrs(
-                    cfg_attr_command.as_ref(),
-                    cfg_attr_fake.as_ref(),
-                    &variant.attrs,
-                );
+                variant.attrs =
+                    derive_transform_attrs(None, cfg_attr_fake.as_ref(), &variant.attrs);
                 for field in &mut variant.fields {
                     field.attrs = derive_transform_attrs(
                         cfg_attr_command.as_ref(),
