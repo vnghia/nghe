@@ -25,17 +25,12 @@ pub struct Response {
 }
 
 mod serde {
-    use ::serde::Serializer;
-    use ::serde::ser::SerializeSeq as _;
+    use ::serde::{Serialize, Serializer};
 
     use super::EXTENSIONS;
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
     pub fn serialize_extensions<S: Serializer>(_: &(), s: S) -> Result<S::Ok, S::Error> {
-        let mut seq = s.serialize_seq(Some(EXTENSIONS.len()))?;
-        for extension in EXTENSIONS {
-            seq.serialize_element(&extension)?;
-        }
-        seq.end()
+        EXTENSIONS.serialize(s)
     }
 }

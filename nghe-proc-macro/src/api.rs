@@ -68,7 +68,30 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
                     .map(|field| field.ident.as_ref().unwrap().clone())
                     .collect::<Vec<_>>(),
             );
-            fields.named.iter_mut().for_each(|field| field.attrs.clear());
+            fields.named.iter_mut().for_each(|field| {
+                field.attrs = field
+                    .attrs
+                    .iter()
+                    .filter(|attr| {
+                        attr.path().get_ident().is_some_and(|ident| {
+                            if ident == "conf" {
+                                true
+                            } else if ident == "cfg_attr" {
+                                let mut is_conf_attr = false;
+                                attr.parse_nested_meta(|meta| {
+                                    is_conf_attr |= meta.path.is_ident("conf");
+                                    Ok(())
+                                })
+                                .expect("Checking conf ident never fail");
+                                is_conf_attr
+                            } else {
+                                false
+                            }
+                        })
+                    })
+                    .map(ToOwned::to_owned)
+                    .collect()
+            });
             fields.named.push(parse_quote! {
                     #[serde(flatten, borrow)]
                     auth: #api_crate::auth::Form<'auth_u, 'auth_c, 'auth_s, 'auth_p>
