@@ -78,7 +78,7 @@ rspotify = { version = "0.16.0", default-features = false, features = [
   "client-reqwest",
   "reqwest-native-tls",
 ] }
-rustfs-mimalloc = { version = "0.5.6" }
+rustfs-mimalloc = { version = "0.6.0" }
 s3 = { version = "0.1.8", default-features = false, features = [
   "async",
   "native-tls",
