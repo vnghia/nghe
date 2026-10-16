@@ -58,7 +58,7 @@ pub trait Url: Serialize {
     const URL_VIEW: &'static str;
 }
 
-pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: Url + Deserialize<'de> {
+pub trait Request<'u, 'c, 's, 'p, 'de: 'u + 'c + 's + 'p>: Debug + Url + Deserialize<'de> {
     const UNIT: Option<Self>;
 
     type AuthForm: auth::form::Trait<'u, 'c, 's, 'p, 'de, Self> + Send;
