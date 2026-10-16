@@ -9,13 +9,14 @@ use crate::id3;
 #[api_derive(command = true, serde_as = true)]
 #[cfg_attr(test, derive(Default, PartialEq))]
 pub struct ByYear {
+    // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
     #[serde_as(as = "serde_with::DisplayFromStr")]
     pub from_year: u16,
+    // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
     #[serde_as(as = "serde_with::DisplayFromStr")]
     pub to_year: u16,
 }
 
-// TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
 #[api_derive(command = true)]
 #[serde(tag = "type")]
 #[cfg_attr(test, derive(Default, PartialEq))]
@@ -108,6 +109,6 @@ mod tests {
     #[case("type=byYear&fromYear=From&toYear=2000", None)]
     #[case("type=byGenre", None)]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
-        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+        crate::test_deserialize_form!(url, request, Request);
     }
 }

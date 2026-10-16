@@ -49,6 +49,6 @@ mod tests {
     #[case("musicFolderId=none", None)]
     #[case("musicFolderId=61d78c98-e9a3-43f2-bbd1-8645c037d0be&full=true", None)]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
-        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+        crate::test_deserialize_form!(url, request, Request);
     }
 }

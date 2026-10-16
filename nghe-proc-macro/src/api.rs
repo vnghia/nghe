@@ -14,6 +14,18 @@ struct Endpoint {
 }
 
 #[derive(Debug, darling::FromMeta)]
+struct SerdeApply {
+    #[darling(default = || true)]
+    enable: bool,
+    #[darling(default = || true)]
+    genre: bool,
+    #[darling(default = || true)]
+    date: bool,
+    #[darling(default = || true)]
+    time: bool,
+}
+
+#[derive(Debug, darling::FromMeta)]
 #[darling(derive_syn_parse)]
 struct Derive {
     #[darling(default = || true)]
@@ -24,8 +36,10 @@ struct Derive {
     command: Option<bool>,
     #[darling(default = || true)]
     debug: bool,
-    #[darling(default = || true)]
-    serde_apply: bool,
+    #[darling(default = || SerdeApply {
+        enable: true, genre: true, date: true, time: true
+    })]
+    serde_apply: SerdeApply,
     #[darling(default = || false)]
     serde_as: bool,
     #[darling(default = || false)]
@@ -52,7 +66,15 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     let auth_form_ident = format_ident!("AuthFormRequest");
     let mut auth_form_fields = None;
 
-    auth_form_struct.attrs.clear();
+    let api_derive = {
+        let serde_as = auth_form_struct
+            .attrs
+            .iter()
+            .any(|attr| attr.path().segments.last().is_some_and(|path| path.ident == "serde_as"));
+        syn::parse_quote!(#[nghe_proc_macro::api_derive(serde_as = #serde_as)])
+    };
+
+    auth_form_struct.attrs = vec![api_derive];
     auth_form_struct.ident = auth_form_ident.clone();
     auth_form_struct.generics.params.push(parse_quote!('auth_u));
     auth_form_struct.generics.params.push(parse_quote!('auth_c));
@@ -69,28 +91,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
                     .collect::<Vec<_>>(),
             );
             fields.named.iter_mut().for_each(|field| {
-                field.attrs = field
-                    .attrs
-                    .iter()
-                    .filter(|attr| {
-                        attr.path().get_ident().is_some_and(|ident| {
-                            if ident == "conf" {
-                                true
-                            } else if ident == "cfg_attr" {
-                                let mut is_conf_attr = false;
-                                attr.parse_nested_meta(|meta| {
-                                    is_conf_attr |= meta.path.is_ident("conf");
-                                    Ok(())
-                                })
-                                .expect("Checking conf ident never fail");
-                                is_conf_attr
-                            } else {
-                                false
-                            }
-                        })
-                    })
-                    .map(ToOwned::to_owned)
-                    .collect()
+                field.attrs.retain(|attr| !attr.path().is_ident("conf"));
             });
             fields.named.push(parse_quote! {
                     #[serde(flatten, borrow)]
@@ -151,7 +152,6 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
     };
 
     Ok(quote! {
-        #[nghe_proc_macro::api_derive]
         #auth_form_struct
 
         impl #api_crate::http::Url for #ident {
@@ -255,19 +255,36 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
     }
 
-    let apply_statement = if has_serde && args.serde_apply {
+    let apply_statement = if has_serde && args.serde_apply.enable {
+        let serde_apply = args.serde_apply;
+        let mut applies = vec![
+            quote! {Option => #[serde(skip_serializing_if = "Option::is_none", default)]},
+            quote! {Vec => #[serde(skip_serializing_if = "Vec::is_empty", default)]},
+        ];
+        if serde_apply.genre {
+            applies.push(quote! {
+                genre::Genres => #[serde(skip_serializing_if = "genre::Genres::is_empty", default)]
+            });
+        }
+        if serde_apply.date {
+            applies.push(quote! {
+                date::Date => #[serde(skip_serializing_if = "date::Date::is_none", default)]
+            });
+        }
+        if serde_apply.time {
+            applies.push(quote! {OffsetDateTime => #[serde(
+                serialize_with = "crate::time::serde::serialize",
+            )]});
+            applies.push(quote! {Option<OffsetDateTime> => #[serde(
+                serialize_with = "crate::time::serde::option::serialize"
+            )]});
+            applies.push(quote! {time::SignedDuration => #[serde(
+                serialize_with = "crate::time::signed_duration::serde::serialize"
+            )]});
+        }
         quote! {
             #[serde_with::apply(
-                Option => #[serde(skip_serializing_if = "Option::is_none", default)],
-                Vec => #[serde(skip_serializing_if = "Vec::is_empty", default)],
-                date::Date => #[serde(skip_serializing_if = "date::Date::is_none", default)],
-                genre::Genres => #[serde(
-                    skip_serializing_if = "genre::Genres::is_empty",
-                    default
-                )],
-                OffsetDateTime => #[serde(with = "crate::time::serde")],
-                Option<OffsetDateTime> => #[serde(with = "crate::time::serde::option")],
-                time::SignedDuration => #[serde(with = "crate::time::signed_duration::serde")],
+                #(#applies),*
             )]
         }
     } else {
