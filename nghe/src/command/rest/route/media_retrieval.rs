@@ -1,4 +1,4 @@
-nghe_proc_macro::build_command! {
+nghe_proc_macro::build_command_action! {
     module = media_retrieval,
     actions = [
         download(binary = true),

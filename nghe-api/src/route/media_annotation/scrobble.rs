@@ -45,7 +45,6 @@ mod tests {
         })
     )]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
-        serde_html_form::from_str::<Request>(url).unwrap();
-        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+        crate::test_deserialize_form!(url, request, Request);
     }
 }

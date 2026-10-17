@@ -18,13 +18,13 @@ struct Endpoint {
 
 #[derive(Debug, darling::FromMeta)]
 #[darling(derive_syn_parse)]
-struct BuildCommand {
+struct BuildAction {
     module: syn::Ident,
     actions: utils::syn::Vec<syn::Meta>,
 }
 
 pub fn build(item: TokenStream) -> Result<TokenStream, Error> {
-    let BuildCommand { module, actions } = syn::parse2(item)?;
+    let BuildAction { module, actions } = syn::parse2(item)?;
     let (variants, arms): (Vec<_>, Vec<_>) = actions
         .iter()
         .map(|meta| {

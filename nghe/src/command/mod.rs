@@ -15,9 +15,14 @@ enum Action {
 }
 
 #[derive(Conf)]
+#[conf(version_fn = version)]
 struct Entrypoint {
     #[conf(subcommands)]
     action: Option<Action>,
+}
+
+fn version() -> &'static str {
+    nghe_api::constant::SERVER_VERSION
 }
 
 pub async fn entrypoint() {
