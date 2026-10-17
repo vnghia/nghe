@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.15.0](https://github.com/vnghia/nghe/compare/v0.14.3...v0.15.0) (2026-10-17)
+
+
+### Features
+
+* add command line ([#1172](https://github.com/vnghia/nghe/issues/1172)) ([23b31eb](https://github.com/vnghia/nghe/commit/23b31eb736d39b4c6ce77a4a7134e3e2e0984969))
+* prepare for command line interface ([#1165](https://github.com/vnghia/nghe/issues/1165)) ([5e97c28](https://github.com/vnghia/nghe/commit/5e97c28a475f7e0f50b5ca8595ffb0107d426e2b))
+* prepare for command line interface ([#1166](https://github.com/vnghia/nghe/issues/1166)) ([01d2af4](https://github.com/vnghia/nghe/commit/01d2af41c49147e281d9ea9e022c8e66082b95d9))
+
+
+### Bug Fixes
+
+* **api:** return error as json with code and message ([#1167](https://github.com/vnghia/nghe/issues/1167)) ([f29f884](https://github.com/vnghia/nghe/commit/f29f884d54cec501330e4483b92c1c04789f0c0f))
+* **deps:** update rust crate rustfs-mimalloc to 0.6.0 ([#1179](https://github.com/vnghia/nghe/issues/1179)) ([5087e1d](https://github.com/vnghia/nghe/commit/5087e1dbe189f3ed1c2982261e848f8c4c3f373b))
+* **deps:** update rust crate rustfs-mimalloc to 0.7.0 ([#1181](https://github.com/vnghia/nghe/issues/1181)) ([9ac53e7](https://github.com/vnghia/nghe/commit/9ac53e7f0f75c54ff790752cea9b8940e311f890))
+
 ## [0.14.3](https://github.com/vnghia/nghe/compare/v0.14.2...v0.14.3) (2026-10-06)
 
 
