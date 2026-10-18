@@ -74,6 +74,6 @@ mod tests {
     #[case("id=66ff5f1b-e897-42dc-88ad-7a5972a691c0&current=", None)]
     #[case("id=66ff5f1b-e897-42dc-88ad-7a5972a691c0&current=error", None)]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
-        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+        crate::test_deserialize_form!(url, request, Request);
     }
 }

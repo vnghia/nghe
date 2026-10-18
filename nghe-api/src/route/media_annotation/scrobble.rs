@@ -3,14 +3,16 @@ use serde_with::TimestampMilliSeconds;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[api_derive(command = false, serde_as = true)]
+#[api_derive(serde_as = true)]
 #[endpoint(path = "scrobble")]
 #[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     #[serde(rename = "id")]
+    #[conf(repeat, long)]
     pub ids: Vec<Uuid>,
     #[serde(rename = "time")]
     #[serde_as(as = "Vec<TimestampMilliSeconds<i64>>")]
+    #[conf(repeat, long, value_parser = crate::time::parsing::offset_date_time::from_str)]
     pub times: Vec<OffsetDateTime>,
     pub submission: Option<bool>,
 }
@@ -45,7 +47,6 @@ mod tests {
         })
     )]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
-        serde_html_form::from_str::<Request>(url).unwrap();
-        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+        crate::test_deserialize_form!(url, request, Request);
     }
 }

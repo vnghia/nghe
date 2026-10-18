@@ -1,7 +1,9 @@
+#[cfg(feature = "command")]
+use conf::Conf;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-#[api_derive(request = true)]
+#[api_derive(command = true, request = true)]
 #[serde(untagged)]
 #[cfg_attr(test, derive(PartialEq))]
 pub enum CreateOrUpdate {
@@ -9,11 +11,12 @@ pub enum CreateOrUpdate {
     Update { playlist_id: Uuid },
 }
 
-#[api_derive(command = false)]
+#[api_derive]
 #[endpoint(path = "createPlaylist")]
 #[cfg_attr(test, derive(PartialEq))]
 pub struct Request {
     #[serde(flatten)]
+    #[conf(subcommands)]
     pub create_or_update: CreateOrUpdate,
     #[serde(rename = "songId")]
     #[conf(repeat, long)]
@@ -83,6 +86,6 @@ mod tests {
     )]
     #[case("playlistId=none", None)]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
-        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+        crate::test_deserialize_form!(url, request, Request);
     }
 }

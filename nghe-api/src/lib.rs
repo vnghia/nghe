@@ -12,4 +12,7 @@ pub mod id3;
 pub mod route;
 pub mod time;
 
+#[cfg(test)]
+pub mod test;
+
 pub use error::Error;

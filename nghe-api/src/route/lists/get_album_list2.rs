@@ -1,10 +1,23 @@
+#[cfg(feature = "command")]
+use conf::Conf;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
 use crate::id3;
 
-// TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
-#[api_derive(serde_as = true)]
+// TODO: Remove this after https://github.com/cbeck88/conf-rs/pull/42
+#[api_derive(command = true, serde_as = true)]
+#[cfg_attr(test, derive(Default, PartialEq))]
+pub struct ByYear {
+    // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
+    #[serde_as(as = "serde_with::DisplayFromStr")]
+    pub from_year: u16,
+    // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
+    #[serde_as(as = "serde_with::DisplayFromStr")]
+    pub to_year: u16,
+}
+
+#[api_derive(command = true)]
 #[serde(tag = "type")]
 #[cfg_attr(test, derive(Default, PartialEq))]
 pub enum Type {
@@ -14,22 +27,18 @@ pub enum Type {
     Frequent,
     Recent,
     AlphabeticalByName,
-    ByYear {
-        #[serde_as(as = "serde_with::DisplayFromStr")]
-        from_year: u16,
-        #[serde_as(as = "serde_with::DisplayFromStr")]
-        to_year: u16,
-    },
+    ByYear(ByYear),
     ByGenre {
         genre: String,
     },
 }
 
-#[api_derive(command = false)]
+#[api_derive]
 #[endpoint(path = "getAlbumList2")]
 #[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     #[serde(flatten, rename = "type")]
+    #[conf(subcommands)]
     pub ty: Type,
     pub size: Option<u32>,
     pub offset: Option<u32>,
@@ -71,17 +80,17 @@ mod tests {
     #[case(
         "type=byYear&fromYear=1000&toYear=2000",
         Some(Request {
-            ty: Type::ByYear {
+            ty: Type::ByYear(ByYear{
                 from_year: 1000, to_year: 2000
-            }, size: None, ..Default::default()
+            }), size: None, ..Default::default()
         })
     )]
     #[case(
         "type=byYear&fromYear=1000&toYear=2000&size=10",
         Some(Request {
-            ty: Type::ByYear {
+            ty: Type::ByYear(ByYear{
                 from_year: 1000, to_year: 2000
-            }, size: Some(10), ..Default::default()
+            }), size: Some(10), ..Default::default()
         })
     )]
     #[case(
@@ -100,6 +109,6 @@ mod tests {
     #[case("type=byYear&fromYear=From&toYear=2000", None)]
     #[case("type=byGenre", None)]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
-        assert_eq!(serde_html_form::from_str::<Request>(url).ok(), request);
+        crate::test_deserialize_form!(url, request, Request);
     }
 }
