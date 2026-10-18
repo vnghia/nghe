@@ -22,7 +22,7 @@ use typed_path::Utf8PlatformPath;
 use crate::test::binary;
 use crate::{Error, error, file};
 
-struct RxStream(RecvStream<Vec<u8>>);
+struct RxStream(RecvStream<'static, Vec<u8>>);
 
 #[derive(Debug)]
 pub struct Response {
