@@ -4,13 +4,9 @@ use nghe_proc_macro::api_derive;
     Vec = >#[serde(skip_serializing_if = "Vec::is_empty", default)],
     genre::Genres = >#[serde(skip_serializing_if = "genre::Genres::is_empty", default)],
     date::Date = >#[serde(skip_serializing_if = "date::Date::is_none", default)],
-    OffsetDateTime = >#[serde(serialize_with = "crate::time::serde::serialize")],
-    Option<OffsetDateTime>= >#[serde(
-        serialize_with = "crate::time::serde::option::serialize"
-    )],
-    time::SignedDuration = >#[serde(
-        serialize_with = "crate::time::signed_duration::serde::serialize"
-    )]
+    OffsetDateTime = >#[serde(with = "crate::time::serde")],
+    Option<OffsetDateTime>= >#[serde(with = "crate::time::serde::option")],
+    time::SignedDuration = >#[serde(with = "crate::time::signed_duration::serde")]
 )]
 #[serde(rename_all = "camelCase")]
 pub struct Token {

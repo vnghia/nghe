@@ -273,13 +273,13 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         }
         if serde_apply.time {
             applies.push(quote! {OffsetDateTime => #[serde(
-                serialize_with = "crate::time::serde::serialize",
+                with = "crate::time::serde",
             )]});
             applies.push(quote! {Option<OffsetDateTime> => #[serde(
-                serialize_with = "crate::time::serde::option::serialize"
+                with = "crate::time::serde::option"
             )]});
             applies.push(quote! {time::SignedDuration => #[serde(
-                serialize_with = "crate::time::signed_duration::serde::serialize"
+                with = "crate::time::signed_duration::serde"
             )]});
         }
         quote! {
