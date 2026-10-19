@@ -81,13 +81,12 @@ mod serde {
 #[cfg(test)]
 #[coverage(off)]
 mod tests {
-    use nghe_proc_macro::api_derive;
+    use ::serde::{Deserialize, Serialize};
     use rstest::rstest;
 
     use super::*;
 
-    #[api_derive]
-    #[derive(PartialEq)]
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
     struct Test {
         pub id: Id,
     }

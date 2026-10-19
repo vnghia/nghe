@@ -119,7 +119,7 @@ mod tests {
         handler(
             mock.database(),
             user_id,
-            Request { playlist_id, remove_indexes: remove_indexes.into(), ..Default::default() },
+            Request::builder().playlist_id(playlist_id).remove_indexes(remove_indexes).build(),
         )
         .await
         .unwrap();

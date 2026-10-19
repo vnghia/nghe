@@ -183,7 +183,7 @@ mod tests {
     use super::*;
     use crate::test::{Mock, mock};
 
-    #[api_derive(fake = true)]
+    #[api_derive]
     #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
     #[derive(Clone, Copy, PartialEq)]
     struct Request {
@@ -316,7 +316,7 @@ mod tests {
     mod unit {
         use super::*;
 
-        #[api_derive(fake = true)]
+        #[api_derive]
         #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
         #[derive(Clone, Copy, PartialEq)]
         struct Request;

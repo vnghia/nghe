@@ -61,7 +61,7 @@ mod tests {
         #[values(true, false)] ok: bool,
         #[values(None, Some(true), Some(false))] use_token: Option<bool>,
     ) {
-        #[api_derive(fake = true)]
+        #[api_derive]
         #[endpoint(path = "test", url_only = true, api_crate = nghe_api)]
         #[derive(Clone, Copy, PartialEq)]
         struct Request {
