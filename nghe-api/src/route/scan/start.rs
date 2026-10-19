@@ -37,12 +37,11 @@ mod tests {
     #[rstest]
     #[case(
         "musicFolderId=61d78c98-e9a3-43f2-bbd1-8645c037d0be",
-        Some(Request {
-            music_folder_id: uuid!(
-                "61d78c98-e9a3-43f2-bbd1-8645c037d0be"
-            ),
-            ..Default::default()
-        })
+        Some(Request::builder()
+            .music_folder_id(uuid!("61d78c98-e9a3-43f2-bbd1-8645c037d0be"))
+            .full(Full::default())
+            .build()
+        )
     )]
     #[case("musicFolderId=none", None)]
     #[case("musicFolderId=61d78c98-e9a3-43f2-bbd1-8645c037d0be&full=true", None)]

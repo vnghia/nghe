@@ -29,8 +29,8 @@ struct SerdeApply {
 struct TestDerive {
     #[darling(default = || true)]
     eq: bool,
-    #[darling(default = || false)]
-    default: bool,
+    #[darling(default = || true)]
+    bon: bool,
     #[darling(default = || true)]
     fake: bool,
 }
@@ -53,7 +53,7 @@ struct Derive {
     #[darling(default = || false)]
     serde_as: bool,
     #[darling(default = || TestDerive {
-        eq: true, default: false, fake: true
+        eq: true, bon: true, fake: true
     })]
     test: TestDerive,
 }
@@ -83,7 +83,10 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             .attrs
             .iter()
             .any(|attr| attr.path().segments.last().is_some_and(|path| path.ident == "serde_as"));
-        syn::parse_quote!(#[nghe_proc_macro::api_derive(serde_as = #serde_as)])
+        syn::parse_quote!(#[nghe_proc_macro::api_derive(
+            serde_as = #serde_as,
+            test(bon = false),
+        )])
     };
 
     auth_form_struct.attrs = vec![api_derive];
@@ -243,8 +246,27 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         if is_request_struct { Some(quote! {feature = "command"}) } else { None }
     };
 
-    let mut derives: Vec<syn::Expr> = vec![];
+    let input_derives = input
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("derive"))
+        .map(|attr| {
+            let mut derives = vec![];
+            attr.parse_nested_meta(|meta| {
+                derives.push(meta.path.clone());
+                Ok(())
+            })?;
+            Ok::<_, Error>(derives)
+        })
+        .transpose()?
+        .unwrap_or_default();
+
+    let input_attributes = &input.attrs;
+
+    let mut derives: Vec<syn::Path> = vec![];
+    let mut test_derives: Vec<syn::Path> = vec![];
     let mut attributes: Vec<syn::Attribute> = vec![];
+    let mut test_attributes: Vec<syn::Attribute> = vec![];
 
     let endpoint_statement =
         if is_request_struct { Some(quote! {#[derive(nghe_proc_macro::Endpoint)]}) } else { None };
@@ -258,6 +280,16 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
 
     if args.debug {
         derives.push(parse_quote! {Debug});
+    }
+
+    if args.test.eq {
+        test_derives.push(parse_quote!(PartialEq));
+    }
+    if args.test.eq {
+        test_derives.push(parse_quote!(Eq));
+    }
+    if args.test.fake {
+        test_derives.push(parse_quote!(fake::Dummy));
     }
 
     if has_serde {
@@ -319,6 +351,15 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                         &field.attrs,
                     );
                 }
+
+                if args.test.bon {
+                    // Bon does not work with unit struct
+                    test_derives.push(parse_quote!(bon::Builder));
+                    test_attributes.push(parse_quote!(#[builder(
+                        on(Vec<_>, default, into),
+                        on(Option, default, into),
+                    )]));
+                }
             }
         }
         syn::Data::Enum(ref mut data) => {
@@ -347,36 +388,26 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         }
     }
 
-    let input_derives = input
-        .attrs
+    let test_derives: Vec<syn::Path> = test_derives
         .iter()
-        .find(|attr| attr.path().is_ident("derive"))
-        .map(|attr| {
-            let mut derives = vec![];
-            attr.parse_nested_meta(|meta| {
-                derives.push(meta.path.clone());
-                Ok(())
-            })?;
-            Ok::<_, Error>(derives)
+        .filter_map(|derive| {
+            if input_derives.contains(&derive) { None } else { Some(parse_quote!(#derive)) }
         })
-        .transpose()?
-        .unwrap_or_default();
+        .collect();
 
-    let test_derives: Vec<syn::Path> =
-        [
-            if args.test.eq { Some(parse_quote!(PartialEq)) } else { None },
-            if args.test.eq { Some(parse_quote!(Eq)) } else { None },
-            if args.test.default { Some(parse_quote!(Default)) } else { None },
-            if args.test.fake { Some(parse_quote!(fake::Dummy)) } else { None },
-        ]
+    let test_attributes: Vec<syn::Attribute> = test_attributes
         .iter()
-        .filter_map(|derive: &Option<syn::Path>| {
-            derive
-                .as_ref()
-                .map(|derive| {
-                    if input_derives.contains(&derive) { None } else { Some(parse_quote!(#derive)) }
-                })
-                .flatten()
+        .filter_map(|attribute| {
+            if input_attributes
+                .iter()
+                .find(|input_attribute| input_attribute.path() == attribute.path())
+                .is_some()
+            {
+                None
+            } else {
+                let meta = &attribute.meta;
+                Some(parse_quote!(#[cfg_attr(#cfg_attr_test, #meta)]))
+            }
         })
         .collect();
 
@@ -387,6 +418,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         #[derive(#(#derives),*)]
         #[cfg_attr(#cfg_attr_test, derive(#(#test_derives),*))]
         #( #attributes )*
+        #( #test_attributes )*
         #input
     })
 }

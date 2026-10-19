@@ -3,7 +3,8 @@ mod short;
 
 use std::borrow::Cow;
 
-use bon::Builder;
+#[cfg(any(test, feature = "test"))]
+use fake::{Fake, Faker};
 pub use full::Full;
 use nghe_proc_macro::api_derive;
 pub use short::Short;
@@ -13,7 +14,7 @@ use uuid::Uuid;
 use super::artist;
 
 #[api_derive]
-#[derive(Builder)]
+#[derive(bon::Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
 pub struct Song {
@@ -23,7 +24,9 @@ pub struct Song {
     pub year: Option<u16>,
     pub cover_art: Option<Uuid>,
     pub size: u32,
+    #[dummy(expr = "Faker.fake::<String>().into()")]
     pub content_type: Cow<'static, str>,
+    #[dummy(expr = "Faker.fake::<String>().into()")]
     pub suffix: Cow<'static, str>,
     pub duration: time::SignedDuration,
     pub bit_rate: u32,

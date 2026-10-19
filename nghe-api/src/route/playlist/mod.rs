@@ -4,7 +4,6 @@ pub mod get;
 pub mod list;
 pub mod update;
 
-use bon::Builder;
 use nghe_proc_macro::api_derive;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -12,7 +11,7 @@ use uuid::Uuid;
 use crate::id3;
 
 #[api_derive]
-#[derive(Builder)]
+#[derive(bon::Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
 pub struct Playlist {

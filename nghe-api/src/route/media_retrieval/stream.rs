@@ -67,44 +67,41 @@ mod tests {
     #[rstest]
     #[case(
         "id=2613efae-e8e6-4233-bf62-43451455a1f7",
-        Some(Request {
-            id: uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"),
-            ..Default::default()
-        })
+        Some(Request::builder().id(uuid!("2613efae-e8e6-4233-bf62-43451455a1f7")).build())
     )]
     #[case(
         "id=2613efae-e8e6-4233-bf62-43451455a1f7&format=raw",
-        Some(Request {
-            id: uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"),
-            format: Some(Format::Raw),
-            ..Default::default()
-        })
+        Some(Request::builder()
+            .id(uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"))
+            .format(Format::Raw)
+            .build()
+        )
     )]
     #[case(
         "id=2613efae-e8e6-4233-bf62-43451455a1f7&format=raw&timeOffset=10",
-        Some(Request {
-            id: uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"),
-            format: Some(Format::Raw),
-            time_offset: Some(10),
-            ..Default::default()
-        })
+        Some(Request::builder()
+            .id(uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"))
+            .format(Format::Raw)
+            .time_offset(10)
+            .build()
+        )
     )]
     #[case(
         "id=2613efae-e8e6-4233-bf62-43451455a1f7&format=opus",
-        Some(Request {
-            id: uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"),
-            format: Some(format::Transcode::Opus.into()),
-            ..Default::default()
-        })
+        Some(Request::builder()
+            .id(uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"))
+            .format(Format::Transcode(format::Transcode::Opus))
+            .build()
+        )
     )]
     #[case(
         "id=2613efae-e8e6-4233-bf62-43451455a1f7&maxBitRate=64&format=wav",
-        Some(Request {
-            id: uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"),
-            max_bit_rate: Some(64),
-            format: Some(format::Transcode::Wav.into()),
-            ..Default::default()
-        })
+        Some(Request::builder()
+            .id(uuid!("2613efae-e8e6-4233-bf62-43451455a1f7"))
+            .max_bit_rate(64)
+            .format(Format::Transcode(format::Transcode::Wav))
+            .build()
+        )
     )]
     #[case("id=2613efae-e8e6-4233-bf62-43451455a1f7&format=err", None)]
     #[case("format=err", None)]

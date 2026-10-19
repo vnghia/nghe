@@ -1,7 +1,6 @@
 mod full;
 mod required;
 
-use bon::Builder;
 pub use full::Full;
 use nghe_proc_macro::api_derive;
 pub use required::Required;
@@ -13,13 +12,12 @@ use uuid::Uuid;
 #[derive(PartialEq, Eq, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum Role {
-    #[cfg_attr(any(test, feature = "test"), default)]
     Artist,
     AlbumArtist,
 }
 
 #[api_derive]
-#[derive(Builder)]
+#[derive(bon::Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
 pub struct Artist {
