@@ -11,7 +11,7 @@ pub const FRONTEND_PREFIX: &str = "/frontend";
 pub const BACKEND_PREFIX: &str = "/rest";
 
 #[api_derive(debug = false)]
-struct RootResponse<B> {
+pub struct RootResponse<B> {
     #[serde(serialize_with = "emit_open_subsonic_version")]
     version: (),
     #[serde(serialize_with = "emit_server_type")]
@@ -27,7 +27,7 @@ struct RootResponse<B> {
 }
 
 #[api_derive(debug = false)]
-struct ErrorRootResponse<B> {
+pub struct ErrorRootResponse<B> {
     #[serde(serialize_with = "emit_open_subsonic_version")]
     version: (),
     #[serde(serialize_with = "emit_server_type")]
