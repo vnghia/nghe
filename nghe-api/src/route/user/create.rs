@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::Role;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[derive(Clone)]
 #[endpoint(path = "createUser")]
 pub struct Request {

@@ -1,7 +1,7 @@
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[endpoint(path = "updateUser")]
 pub struct Request {
     pub id: Option<Uuid>,

@@ -5,7 +5,6 @@ use crate::id3;
 
 #[api_derive]
 #[endpoint(path = "getStarred2")]
-#[cfg_attr(feature = "test", derive(Default))]
 pub struct Request {
     #[serde(rename = "musicFolderId")]
     #[conf(repeat, long)]

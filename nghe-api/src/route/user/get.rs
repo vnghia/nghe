@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::Role;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[endpoint(path = "getUser")]
 pub struct Request {
     pub id: Option<Uuid>,

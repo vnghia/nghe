@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 #[api_derive(command = true)]
 #[derive(Clone, Copy, Default)]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct Full {
     #[serde(default)]
     pub file: bool,
@@ -17,7 +16,6 @@ pub struct Full {
 
 #[api_derive]
 #[endpoint(path = "startScan")]
-#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     pub music_folder_id: Uuid,
     #[serde(default)]

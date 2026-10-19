@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 #[api_derive]
 #[endpoint(path = "unstar")]
-#[cfg_attr(feature = "test", derive(Default))]
 pub struct Request {
     #[serde(rename = "id")]
     #[conf(repeat, long)]

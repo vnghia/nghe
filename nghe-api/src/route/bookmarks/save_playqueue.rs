@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 #[api_derive]
 #[endpoint(path = "savePlayQueue")]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct Request {
     #[serde(rename = "id")]
     #[conf(repeat, long)]

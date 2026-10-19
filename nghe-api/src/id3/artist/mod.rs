@@ -13,6 +13,7 @@ use uuid::Uuid;
 #[derive(PartialEq, Eq, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum Role {
+    #[cfg_attr(any(test, feature = "test"), default)]
     Artist,
     AlbumArtist,
 }
@@ -21,7 +22,6 @@ pub enum Role {
 #[derive(Builder)]
 #[builder(on(_, required))]
 #[builder(state_mod(vis = "pub"))]
-#[cfg_attr(feature = "test", derive(PartialEq))]
 pub struct Artist {
     #[serde(flatten)]
     pub required: Required,

@@ -42,4 +42,4 @@ built = { workspace = true }
 [features]
 backend = ["md5"]
 command = ["conf"]
-test = ["fake"]
+test = ["dep:fake"]

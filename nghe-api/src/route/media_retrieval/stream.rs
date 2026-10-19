@@ -7,7 +7,6 @@ use crate::format;
 
 #[api_derive(request = false)]
 #[derive(Default, Clone, Copy)]
-#[cfg_attr(test, derive(PartialEq))]
 pub enum Format {
     #[default]
     Raw,
@@ -17,7 +16,6 @@ pub enum Format {
 #[api_derive]
 #[endpoint(path = "stream", url_only = true)]
 #[derive(Clone, Copy)]
-#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     pub id: Uuid,
     pub max_bit_rate: Option<u32>,

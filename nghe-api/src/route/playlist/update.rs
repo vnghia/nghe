@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 #[api_derive]
 #[endpoint(path = "updatePlaylist")]
-#[cfg_attr(feature = "test", derive(Default))]
 pub struct Request {
     pub playlist_id: Uuid,
     pub name: Option<String>,

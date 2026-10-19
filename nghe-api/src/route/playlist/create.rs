@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 #[api_derive(command = true, request = true)]
 #[serde(untagged)]
-#[cfg_attr(test, derive(PartialEq))]
 pub enum CreateOrUpdate {
     Create { name: String },
     Update { playlist_id: Uuid },
@@ -13,7 +12,6 @@ pub enum CreateOrUpdate {
 
 #[api_derive]
 #[endpoint(path = "createPlaylist")]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct Request {
     #[serde(flatten)]
     #[conf(subcommands)]

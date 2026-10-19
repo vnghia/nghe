@@ -1,6 +1,6 @@
 use nghe_proc_macro::api_derive;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[derive(Clone)]
 #[endpoint(path = "setupUser")]
 pub struct Request {

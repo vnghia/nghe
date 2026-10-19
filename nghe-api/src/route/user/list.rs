@@ -2,7 +2,7 @@ use nghe_proc_macro::api_derive;
 
 use super::get;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[endpoint(path = "listUser")]
 pub struct Request;
 
