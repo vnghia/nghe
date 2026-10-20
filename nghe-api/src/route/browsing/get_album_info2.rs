@@ -17,3 +17,11 @@ pub struct AlbumInfo {
 pub struct Response {
     pub album_info: AlbumInfo,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

@@ -20,3 +20,11 @@ pub struct MusicFolders {
 pub struct Response {
     pub music_folders: MusicFolders,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

@@ -48,7 +48,7 @@ use crate::{Error, config};
     FromSqlRow,
 )]
 #[diesel(sql_type = Text)]
-#[strum(serialize_all = "snake_case")]
+#[strum(serialize_all = "lowercase")]
 #[cfg_attr(test, derive(fake::Dummy, strum::AsRefStr))]
 pub enum Format {
     Flac,

@@ -18,3 +18,11 @@ pub struct TopSongs {
 pub struct Response {
     pub top_songs: TopSongs,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}
