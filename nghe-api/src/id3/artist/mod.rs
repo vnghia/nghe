@@ -31,6 +31,5 @@ pub struct Artist {
                     map(time::PrimitiveDateTime::assume_utc)")]
     pub starred: Option<OffsetDateTime>,
     pub music_brainz_id: Option<Uuid>,
-    #[builder(default)]
     pub roles: Vec<Role>,
 }

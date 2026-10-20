@@ -7,7 +7,7 @@ use nghe_proc_macro::api_derive;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use super::{artist, date, genre};
+use super::{date, genre};
 
 #[api_derive]
 #[derive(bon::Builder)]
@@ -24,13 +24,8 @@ pub struct Album {
     pub created: OffsetDateTime,
     pub year: Option<u16>,
     pub music_brainz_id: Option<Uuid>,
-    #[builder(default)]
     pub genres: genre::Genres,
-    #[builder(default)]
-    pub artists: Vec<artist::Artist>,
-    #[builder(default)]
     pub original_release_date: date::Date,
-    #[builder(default)]
     pub release_date: date::Date,
     #[dummy(expr = "Faker.fake::<Option<time::PrimitiveDateTime>>().\
                     map(time::PrimitiveDateTime::assume_utc)")]
