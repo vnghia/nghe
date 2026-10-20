@@ -1,6 +1,8 @@
 mod full;
 mod required;
 
+#[cfg(any(test, feature = "test"))]
+use fake::{Fake, Faker};
 pub use full::Full;
 use nghe_proc_macro::api_derive;
 pub use required::Required;
@@ -25,6 +27,8 @@ pub struct Artist {
     pub required: Required,
     pub cover_art: Option<Uuid>,
     pub album_count: u16,
+    #[dummy(expr = "Faker.fake::<Option<time::PrimitiveDateTime>>().\
+                    map(time::PrimitiveDateTime::assume_utc)")]
     pub starred: Option<OffsetDateTime>,
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]

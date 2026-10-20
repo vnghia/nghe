@@ -6,7 +6,6 @@ use super::{ApiKey, Username};
 #[api_derive]
 #[derive(Clone)]
 #[serde(untagged)]
-#[cfg_attr(any(test, feature = "test"), derive(strum::EnumTryAs))]
 pub enum Form<'u, 'c, 's, 'p> {
     Username(Username<'u, 'c, 's, 'p>),
     ApiKey(ApiKey),

@@ -357,7 +357,6 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                     test_derives.push(parse_quote!(bon::Builder));
                     test_attributes.push(parse_quote!(#[builder(
                         on(Vec<_>, default, into),
-                        on(Option, default, into),
                         state_mod(vis = "pub"),
                     )]));
                 }

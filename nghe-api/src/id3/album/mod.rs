@@ -1,5 +1,7 @@
 mod full;
 
+#[cfg(any(test, feature = "test"))]
+use fake::{Fake, Faker};
 pub use full::Full;
 use nghe_proc_macro::api_derive;
 use time::OffsetDateTime;
@@ -16,7 +18,9 @@ pub struct Album {
     pub name: String,
     pub cover_art: Option<Uuid>,
     pub song_count: u16,
+    #[dummy(expr = "time::SignedDuration::seconds(Faker.fake())")]
     pub duration: time::SignedDuration,
+    #[dummy(expr = "Faker.fake::<time::PrimitiveDateTime>().assume_utc()")]
     pub created: OffsetDateTime,
     pub year: Option<u16>,
     pub music_brainz_id: Option<Uuid>,
@@ -28,5 +32,7 @@ pub struct Album {
     pub original_release_date: date::Date,
     #[builder(default)]
     pub release_date: date::Date,
+    #[dummy(expr = "Faker.fake::<Option<time::PrimitiveDateTime>>().\
+                    map(time::PrimitiveDateTime::assume_utc)")]
     pub starred: Option<OffsetDateTime>,
 }

@@ -28,16 +28,20 @@ pub struct Song {
     pub content_type: Cow<'static, str>,
     #[dummy(expr = "Faker.fake::<String>().into()")]
     pub suffix: Cow<'static, str>,
+    #[dummy(expr = "time::SignedDuration::seconds(Faker.fake())")]
     pub duration: time::SignedDuration,
     pub bit_rate: u32,
     pub bit_depth: Option<u8>,
     pub sampling_rate: u32,
     pub channel_count: u8,
     pub disc_number: Option<u16>,
+    #[dummy(expr = "Faker.fake::<time::PrimitiveDateTime>().assume_utc()")]
     pub created: OffsetDateTime,
     pub artist: String,
     pub artist_id: Uuid,
     pub artists: Vec<artist::Required>,
     pub music_brainz_id: Option<Uuid>,
+    #[dummy(expr = "Faker.fake::<Option<time::PrimitiveDateTime>>().\
+                    map(time::PrimitiveDateTime::assume_utc)")]
     pub starred: Option<OffsetDateTime>,
 }

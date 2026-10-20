@@ -4,6 +4,8 @@ pub mod get;
 pub mod list;
 pub mod update;
 
+#[cfg(any(test, feature = "test"))]
+use fake::{Fake, Faker};
 use nghe_proc_macro::api_derive;
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -20,8 +22,11 @@ pub struct Playlist {
     pub comment: Option<String>,
     pub public: bool,
     pub song_count: u16,
+    #[dummy(expr = "time::SignedDuration::seconds(Faker.fake())")]
     pub duration: time::SignedDuration,
+    #[dummy(expr = "Faker.fake::<time::PrimitiveDateTime>().assume_utc()")]
     pub created: OffsetDateTime,
+    #[dummy(expr = "Faker.fake::<time::PrimitiveDateTime>().assume_utc()")]
     pub changed: OffsetDateTime,
 }
 
