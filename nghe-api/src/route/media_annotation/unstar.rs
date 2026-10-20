@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 #[api_derive]
 #[endpoint(path = "unstar")]
-#[cfg_attr(feature = "test", derive(Default))]
 pub struct Request {
     #[serde(rename = "id")]
     #[conf(repeat, long)]
@@ -18,3 +17,11 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response;
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 #[api_derive(command = true)]
 #[derive(Clone, Copy, Default)]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct Full {
     #[serde(default)]
     pub file: bool,
@@ -17,7 +16,6 @@ pub struct Full {
 
 #[api_derive]
 #[endpoint(path = "startScan")]
-#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     pub music_folder_id: Uuid,
     #[serde(default)]
@@ -39,16 +37,17 @@ mod tests {
     #[rstest]
     #[case(
         "musicFolderId=61d78c98-e9a3-43f2-bbd1-8645c037d0be",
-        Some(Request {
-            music_folder_id: uuid!(
-                "61d78c98-e9a3-43f2-bbd1-8645c037d0be"
-            ),
-            ..Default::default()
-        })
+        Some(Request::builder()
+            .music_folder_id(uuid!("61d78c98-e9a3-43f2-bbd1-8645c037d0be"))
+            .full(Full::default())
+            .build()
+        )
     )]
     #[case("musicFolderId=none", None)]
     #[case("musicFolderId=61d78c98-e9a3-43f2-bbd1-8645c037d0be&full=true", None)]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
         crate::test_deserialize_form!(url, request, Request);
     }
+
+    crate::test_roundtrip_json!(Request, Response);
 }

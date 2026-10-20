@@ -3,7 +3,6 @@ use uuid::Uuid;
 
 #[api_derive]
 #[endpoint(path = "savePlayQueue")]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct Request {
     #[serde(rename = "id")]
     #[conf(repeat, long)]
@@ -76,4 +75,6 @@ mod tests {
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
         crate::test_deserialize_form!(url, request, Request);
     }
+
+    crate::test_roundtrip!(Request, Response);
 }

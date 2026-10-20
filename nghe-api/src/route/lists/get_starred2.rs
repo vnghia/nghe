@@ -5,7 +5,6 @@ use crate::id3;
 
 #[api_derive]
 #[endpoint(path = "getStarred2")]
-#[cfg_attr(feature = "test", derive(Default))]
 pub struct Request {
     #[serde(rename = "musicFolderId")]
     #[conf(repeat, long)]
@@ -22,4 +21,12 @@ pub struct Starred2 {
 #[api_derive]
 pub struct Response {
     pub starred2: Starred2,
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
 }

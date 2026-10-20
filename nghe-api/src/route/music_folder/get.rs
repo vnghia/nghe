@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::filesystem;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[endpoint(path = "getMusicFolder")]
 pub struct Request {
     pub id: Uuid,
@@ -19,4 +19,12 @@ pub struct Response {
     pub album_count: u64,
     pub song_count: u64,
     pub total_size: u64,
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
 }

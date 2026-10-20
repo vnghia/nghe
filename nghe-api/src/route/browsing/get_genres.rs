@@ -15,3 +15,11 @@ pub struct Genres {
 pub struct Response {
     pub genres: Genres,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

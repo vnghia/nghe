@@ -13,3 +13,11 @@ pub struct Request {
 pub struct Response {
     pub artist: id3::artist::Full,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

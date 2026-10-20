@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::filesystem;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[endpoint(path = "addMusicFolder")]
 pub struct Request {
     pub name: String,
@@ -17,4 +17,12 @@ pub struct Request {
 #[api_derive]
 pub struct Response {
     pub music_folder_id: Uuid,
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
 }

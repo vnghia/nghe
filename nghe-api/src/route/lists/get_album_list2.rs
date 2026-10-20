@@ -6,8 +6,7 @@ use uuid::Uuid;
 use crate::id3;
 
 // TODO: Remove this after https://github.com/cbeck88/conf-rs/pull/42
-#[api_derive(command = true, serde_as = true)]
-#[cfg_attr(test, derive(Default, PartialEq))]
+#[api_derive(command = true, serde(sas = true))]
 pub struct ByYear {
     // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
     #[serde_as(as = "serde_with::DisplayFromStr")]
@@ -19,23 +18,18 @@ pub struct ByYear {
 
 #[api_derive(command = true)]
 #[serde(tag = "type")]
-#[cfg_attr(test, derive(Default, PartialEq))]
 pub enum Type {
-    #[cfg_attr(test, default)]
     Random,
     Newest,
     Frequent,
     Recent,
     AlphabeticalByName,
     ByYear(ByYear),
-    ByGenre {
-        genre: String,
-    },
+    ByGenre { genre: String },
 }
 
 #[api_derive]
 #[endpoint(path = "getAlbumList2")]
-#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     #[serde(flatten, rename = "type")]
     #[conf(subcommands)]
@@ -65,45 +59,45 @@ mod tests {
     use super::*;
 
     #[rstest]
-    #[case("type=random", Some(Request { ty: Type::Random, ..Default::default() }))]
+    #[case("type=random", Some(Request::builder().ty(Type::Random).build()))]
     #[case(
         "type=random&size=10",
-        Some(Request { ty: Type::Random, size: Some(10), ..Default::default() })
+        Some(Request::builder().ty(Type::Random).size(10).build())
     )]
-    #[case("type=newest", Some(Request { ty: Type::Newest, ..Default::default() }))]
-    #[case("type=frequent", Some(Request { ty: Type::Frequent, ..Default::default() }))]
-    #[case("type=recent", Some(Request { ty: Type::Recent, ..Default::default() }))]
+    #[case("type=newest", Some(Request::builder().ty(Type::Newest).build()))]
+    #[case("type=frequent", Some(Request::builder().ty(Type::Frequent).build()))]
+    #[case("type=recent", Some(Request::builder().ty(Type::Recent).build()))]
     #[case(
         "type=alphabeticalByName",
-        Some(Request { ty: Type::AlphabeticalByName, ..Default::default() })
+        Some(Request::builder().ty(Type::AlphabeticalByName).build())
     )]
     #[case(
         "type=byYear&fromYear=1000&toYear=2000",
-        Some(Request {
-            ty: Type::ByYear(ByYear{
+        Some(Request::builder()
+            .ty(Type::ByYear(ByYear{
                 from_year: 1000, to_year: 2000
-            }), size: None, ..Default::default()
-        })
+            }))
+            .build()
+        )
     )]
     #[case(
         "type=byYear&fromYear=1000&toYear=2000&size=10",
-        Some(Request {
-            ty: Type::ByYear(ByYear{
+        Some(Request::builder()
+            .ty(Type::ByYear(ByYear{
                 from_year: 1000, to_year: 2000
-            }), size: Some(10), ..Default::default()
-        })
+            }))
+            .size(10)
+            .build()
+        )
     )]
     #[case(
         "type=byGenre&genre=Test",
-        Some(Request {
-            ty: Type::ByGenre { genre: "Test".to_owned() }, size: None, ..Default::default()
-        })
+        Some(Request::builder().ty(Type::ByGenre { genre: "Test".into() }).build())
     )]
     #[case(
         "type=byGenre&genre=Test&size=10",
-        Some(Request {
-            ty: Type::ByGenre { genre: "Test".to_owned() }, size: Some(10), ..Default::default()
-        })
+        Some(Request::builder().ty(Type::ByGenre { genre: "Test".into() }).size(10).build())
+
     )]
     #[case("type=byYear&toYear=2000", None)]
     #[case("type=byYear&fromYear=From&toYear=2000", None)]
@@ -111,4 +105,6 @@ mod tests {
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
         crate::test_deserialize_form!(url, request, Request);
     }
+
+    crate::test_roundtrip!(Request, Response);
 }

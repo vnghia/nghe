@@ -13,3 +13,11 @@ pub struct Playlists {
 pub struct Response {
     pub playlists: Playlists,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

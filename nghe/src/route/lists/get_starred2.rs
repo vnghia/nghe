@@ -71,14 +71,14 @@ mod tests {
         star::handler(
             mock.database(),
             user_id_star,
-            star::Request { artist_ids: vec![artist_id], ..Default::default() },
+            star::Request::builder().artist_ids(vec![artist_id]).build(),
         )
         .await
         .unwrap();
 
         {
             let starred =
-                handler(database, user_id_star, Request::default()).await.unwrap().starred2;
+                handler(database, user_id_star, Request::builder().build()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.album.is_empty());
             assert_eq!(
@@ -86,27 +86,31 @@ mod tests {
                 vec![artist_id]
             );
 
-            let artists: Vec<_> =
-                get_artists::handler(database, user_id_star, get_artists::Request::default())
-                    .await
-                    .unwrap()
-                    .artists
-                    .index
-                    .into_iter()
-                    .flat_map(|index| index.artist)
-                    .map(|artist| artist.starred.is_some())
-                    .collect();
+            let artists: Vec<_> = get_artists::handler(
+                database,
+                user_id_star,
+                get_artists::Request::builder().build(),
+            )
+            .await
+            .unwrap()
+            .artists
+            .index
+            .into_iter()
+            .flat_map(|index| index.artist)
+            .map(|artist| artist.starred.is_some())
+            .collect();
             assert_eq!(artists, vec![true]);
         }
 
         {
-            let starred = handler(database, user_id, Request::default()).await.unwrap().starred2;
+            let starred =
+                handler(database, user_id, Request::builder().build()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.album.is_empty());
             assert!(starred.artist.is_empty());
 
             let artists: Vec<_> =
-                get_artists::handler(database, user_id, get_artists::Request::default())
+                get_artists::handler(database, user_id, get_artists::Request::builder().build())
                     .await
                     .unwrap()
                     .artists
@@ -149,14 +153,14 @@ mod tests {
         star::handler(
             mock.database(),
             user_id_star,
-            star::Request { album_ids: vec![album_id], ..Default::default() },
+            star::Request::builder().album_ids(vec![album_id]).build(),
         )
         .await
         .unwrap();
 
         {
             let starred =
-                handler(database, user_id_star, Request::default()).await.unwrap().starred2;
+                handler(database, user_id_star, Request::builder().build()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.artist.is_empty());
             assert_eq!(
@@ -177,7 +181,8 @@ mod tests {
         }
 
         {
-            let starred = handler(database, user_id, Request::default()).await.unwrap().starred2;
+            let starred =
+                handler(database, user_id, Request::builder().build()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.album.is_empty());
             assert!(starred.artist.is_empty());
@@ -215,14 +220,14 @@ mod tests {
         star::handler(
             mock.database(),
             user_id_star,
-            star::Request { song_ids: vec![song_id], ..Default::default() },
+            star::Request::builder().song_ids(vec![song_id]).build(),
         )
         .await
         .unwrap();
 
         {
             let starred =
-                handler(database, user_id_star, Request::default()).await.unwrap().starred2;
+                handler(database, user_id_star, Request::builder().build()).await.unwrap().starred2;
             assert!(starred.album.is_empty());
             assert!(starred.artist.is_empty());
             assert_eq!(
@@ -243,7 +248,8 @@ mod tests {
         }
 
         {
-            let starred = handler(database, user_id, Request::default()).await.unwrap().starred2;
+            let starred =
+                handler(database, user_id, Request::builder().build()).await.unwrap().starred2;
             assert!(starred.song.is_empty());
             assert!(starred.album.is_empty());
             assert!(starred.artist.is_empty());

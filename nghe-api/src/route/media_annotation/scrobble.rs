@@ -3,9 +3,8 @@ use serde_with::TimestampMilliSeconds;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[api_derive(serde_as = true)]
+#[api_derive(serde(sas = true))]
 #[endpoint(path = "scrobble")]
-#[cfg_attr(test, derive(Default, PartialEq))]
 pub struct Request {
     #[serde(rename = "id")]
     #[conf(repeat, long)]
@@ -32,21 +31,20 @@ mod tests {
     #[rstest]
     #[case(
         "id=d4ea6896-a838-446c-ace4-d9d13d336391",
-        Some(Request {
-            ids: vec![uuid!("d4ea6896-a838-446c-ace4-d9d13d336391")],
-            ..Default::default()
-        })
+        Some(Request::builder().ids(vec![uuid!("d4ea6896-a838-446c-ace4-d9d13d336391")]).build())
     )]
     #[case(
         "id=d4ea6896-a838-446c-ace4-d9d13d336391&\
         time=1000000000000",
-        Some(Request {
-            ids: vec![uuid!("d4ea6896-a838-446c-ace4-d9d13d336391")],
-            times: vec![datetime!(2001-09-09 01:46:40.000 UTC)],
-            ..Default::default()
-        })
+        Some(Request::builder()
+            .ids(vec![uuid!("d4ea6896-a838-446c-ace4-d9d13d336391")])
+            .times(vec![datetime!(2001-09-09 01:46:40.000 UTC)])
+            .build()
+        )
     )]
     fn test_deserialize(#[case] url: &str, #[case] request: Option<Request>) {
         crate::test_deserialize_form!(url, request, Request);
     }
+
+    crate::test_roundtrip!(Request, Response);
 }

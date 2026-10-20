@@ -4,7 +4,7 @@ use nghe_proc_macro::api_derive;
 #[endpoint(path = "getOpenSubsonicExtensions")]
 pub struct Request;
 
-#[api_derive]
+#[api_derive(test(fake = false))]
 #[derive(Clone, Copy)]
 pub struct Extension {
     pub name: &'static str,

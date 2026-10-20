@@ -6,7 +6,6 @@ use super::{ApiKey, Username};
 #[api_derive]
 #[derive(Clone)]
 #[serde(untagged)]
-#[cfg_attr(test, derive(PartialEq, strum::EnumTryAs))]
 pub enum Form<'u, 'c, 's, 'p> {
     Username(Username<'u, 'c, 's, 'p>),
     ApiKey(ApiKey),
@@ -46,7 +45,6 @@ mod tests {
     use crate::auth::username;
 
     #[api_derive]
-    #[derive(PartialEq)]
     pub struct Test<'u, 'c, 's, 'p> {
         value: Option<u32>,
         #[serde(flatten)]

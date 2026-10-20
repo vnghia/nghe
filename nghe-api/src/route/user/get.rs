@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::Role;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[endpoint(path = "getUser")]
 pub struct Request {
     pub id: Option<Uuid>,
@@ -16,4 +16,12 @@ pub struct Response {
     pub username: String,
     pub email: String,
     pub role: Role,
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
 }

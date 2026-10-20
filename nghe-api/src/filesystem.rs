@@ -4,7 +4,7 @@ use nghe_proc_macro::api_derive;
 use strum::EnumString;
 
 #[repr(i16)]
-#[api_derive(fake = true)]
+#[api_derive(serde(case = "lowercase"))]
 #[derive(Clone, Copy, PartialEq, Eq, ConstParamTy, EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum Type {

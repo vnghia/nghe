@@ -4,12 +4,12 @@ use nghe_proc_macro::api_derive;
 pub use with_count::WithCount;
 
 #[api_derive]
-#[cfg_attr(feature = "test", derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash))]
+#[cfg_attr(any(test, feature = "test"), derive(Clone, PartialOrd, Ord, Hash))]
 pub struct Genre {
     pub name: String,
 }
 
-#[api_derive(serde_apply(enable = false))]
+#[api_derive(serde(apply(enable = false)))]
 #[derive(Default)]
 #[serde(transparent)]
 pub struct Genres {

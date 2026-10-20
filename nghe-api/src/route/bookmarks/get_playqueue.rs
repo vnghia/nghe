@@ -21,3 +21,11 @@ pub struct Response {
     #[serde(rename = "playQueue")]
     pub playqueue: Playqueue,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

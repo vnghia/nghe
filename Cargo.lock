@@ -2952,7 +2952,6 @@ dependencies = [
  "faster-hex",
  "md5",
  "nghe-proc-macro",
- "num-traits",
  "pastey",
  "rstest",
  "serde",

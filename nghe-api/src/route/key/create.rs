@@ -12,3 +12,11 @@ pub struct Request;
 pub struct Response {
     pub api_key: ApiKey,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

@@ -1,16 +1,15 @@
 use std::borrow::Cow;
 
-#[cfg(any(test, feature = "fake"))]
+#[cfg(any(test, feature = "test"))]
 use fake::{Fake, Faker};
 use nghe_proc_macro::api_derive;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Token(#[serde(with = "faster_hex::nopfx_ignorecase::array")] [u8; 16]);
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[derive(Clone)]
-#[cfg_attr(test, derive(PartialEq))]
 pub struct Auth<'s> {
     #[serde(rename = "s")]
     #[dummy(expr = "Faker.fake::<String>().into()")]
@@ -44,7 +43,6 @@ mod tests {
     use super::*;
 
     #[api_derive]
-    #[cfg_attr(test, derive(PartialEq))]
     pub struct Test {
         token: Token,
     }

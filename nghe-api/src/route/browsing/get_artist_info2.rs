@@ -20,3 +20,11 @@ pub struct ArtistInfo2 {
 pub struct Response {
     pub artist_info2: ArtistInfo2,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

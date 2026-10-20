@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::Role;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[derive(Clone)]
 #[endpoint(path = "createUser")]
 pub struct Request {
@@ -18,4 +18,12 @@ pub struct Request {
 #[api_derive]
 pub struct Response {
     pub user_id: Uuid,
+}
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip_json!(Request, Response);
 }

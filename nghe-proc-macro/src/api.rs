@@ -1,7 +1,7 @@
 use concat_string::concat_string;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Error, parse_quote, parse_str};
+use syn::{Error, parse_quote};
 
 #[derive(Debug, darling::FromAttributes)]
 #[darling(attributes(endpoint))]
@@ -26,6 +26,26 @@ struct SerdeApply {
 }
 
 #[derive(Debug, darling::FromMeta)]
+struct SerdeDerive {
+    #[darling(default = || "camelCase".into())]
+    case: String,
+    #[darling(default = || SerdeApply::from_list(&[]).unwrap())]
+    apply: SerdeApply,
+    #[darling(default = || false)]
+    sas: bool,
+}
+
+#[derive(Debug, darling::FromMeta)]
+struct TestDerive {
+    #[darling(default = || true)]
+    eq: bool,
+    #[darling(default = || true)]
+    bon: bool,
+    #[darling(default = || true)]
+    fake: bool,
+}
+
+#[derive(Debug, darling::FromMeta)]
 #[darling(derive_syn_parse)]
 struct Derive {
     #[darling(default = || true)]
@@ -36,14 +56,10 @@ struct Derive {
     command: Option<bool>,
     #[darling(default = || true)]
     debug: bool,
-    #[darling(default = || SerdeApply {
-        enable: true, genre: true, date: true, time: true
-    })]
-    serde_apply: SerdeApply,
-    #[darling(default = || false)]
-    serde_as: bool,
-    #[darling(default = || false)]
-    fake: bool,
+    #[darling(default = || SerdeDerive::from_list(&[]).unwrap())]
+    serde: SerdeDerive,
+    #[darling(default = || TestDerive::from_list(&[]).unwrap())]
+    test: TestDerive,
 }
 
 pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
@@ -71,7 +87,10 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             .attrs
             .iter()
             .any(|attr| attr.path().segments.last().is_some_and(|path| path.ident == "serde_as"));
-        syn::parse_quote!(#[nghe_proc_macro::api_derive(serde_as = #serde_as)])
+        syn::parse_quote!(#[nghe_proc_macro::api_derive(
+            serde(sas = #serde_as),
+            test(bon = false),
+        )])
     };
 
     auth_form_struct.attrs = vec![api_derive];
@@ -182,7 +201,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
 
 fn derive_transform_attrs(
     cfg_attr_command: Option<&TokenStream>,
-    cfg_attr_fake: Option<&TokenStream>,
+    cfg_attr_test: &TokenStream,
     original_attrs: &[syn::Attribute],
 ) -> Vec<syn::Attribute> {
     let mut conf_attr = None;
@@ -190,9 +209,8 @@ fn derive_transform_attrs(
     let mut attrs = vec![];
 
     for attr in original_attrs {
-        if let syn::Meta::List(meta) = &attr.meta
-            && let Some(ident) = meta.path.get_ident()
-        {
+        let meta = &attr.meta;
+        if let Some(ident) = meta.path().get_ident() {
             if ident == "conf" {
                 conf_attr = Some(meta.to_owned());
             } else if ident == "dummy" {
@@ -210,10 +228,8 @@ fn derive_transform_attrs(
         attrs.push(parse_quote!(#[cfg_attr(#cfg_attr, #conf_attr)]));
     }
 
-    if let Some(cfg_attr) = cfg_attr_fake
-        && let Some(ref fake_attr) = fake_attr
-    {
-        attrs.push(parse_quote!(#[cfg_attr(#cfg_attr, #fake_attr)]));
+    if let Some(ref fake_attr) = fake_attr {
+        attrs.push(parse_quote!(#[cfg_attr(#cfg_attr_test, #fake_attr)]));
     }
 
     attrs
@@ -226,37 +242,67 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let ident = input.ident.to_string();
     let is_request_struct = ident == "Request";
     let has_serde = args.request || args.response;
+    let serde_case = &args.serde.case;
 
+    let cfg_attr_test = quote! {any(test, feature = "test")};
     let cfg_attr_command = if let Some(command) = args.command {
         if command { Some(quote! {feature = "command"}) } else { None }
     } else {
         if is_request_struct { Some(quote! {feature = "command"}) } else { None }
     };
-    let cfg_attr_fake = if args.fake { Some(quote! {any(test, feature = "fake")}) } else { None };
 
-    let mut derives: Vec<syn::Expr> = vec![];
+    let input_derives = input
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("derive"))
+        .map(|attr| {
+            let mut derives = vec![];
+            attr.parse_nested_meta(|meta| {
+                derives.push(meta.path.clone());
+                Ok(())
+            })?;
+            Ok::<_, Error>(derives)
+        })
+        .transpose()?
+        .unwrap_or_default();
+
+    let input_attributes = &input.attrs;
+
+    let mut derives: Vec<syn::Path> = vec![];
+    let mut test_derives: Vec<syn::Path> = vec![];
     let mut attributes: Vec<syn::Attribute> = vec![];
+    let mut test_attributes: Vec<syn::Attribute> = vec![];
 
     let endpoint_statement =
         if is_request_struct { Some(quote! {#[derive(nghe_proc_macro::Endpoint)]}) } else { None };
 
     if args.request {
-        derives.push(parse_str("::serde::Deserialize")?);
+        derives.push(parse_quote! {::serde::Deserialize});
     }
     if args.response {
-        derives.push(parse_str("::serde::Serialize")?);
+        derives.push(parse_quote! {::serde::Serialize});
     }
 
     if args.debug {
-        derives.push(parse_str("Debug")?);
+        derives.push(parse_quote! {Debug});
+    }
+
+    if args.test.eq {
+        test_derives.push(parse_quote!(PartialEq));
+    }
+    if args.test.eq {
+        test_derives.push(parse_quote!(Eq));
+    }
+    if args.test.fake {
+        test_derives.push(parse_quote!(fake::Dummy));
     }
 
     if has_serde {
-        attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
+        attributes.push(parse_quote!(#[serde(rename_all = #serde_case)]));
     }
 
-    let apply_statement = if has_serde && args.serde_apply.enable {
-        let serde_apply = args.serde_apply;
+    let apply_statement = if has_serde && args.serde.apply.enable {
+        let serde_apply = args.serde.apply;
         let mut applies = vec![
             quote! {Option => #[serde(skip_serializing_if = "Option::is_none", default)]},
             quote! {Vec => #[serde(skip_serializing_if = "Vec::is_empty", default)]},
@@ -290,7 +336,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     } else {
         quote! {}
     };
-    let as_statement = if has_serde && args.serde_as {
+    let as_statement = if has_serde && args.serde.sas {
         quote! { #[serde_with::serde_as] }
     } else {
         quote! {}
@@ -306,27 +352,35 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
                 for field in &mut fields.named {
                     field.attrs = derive_transform_attrs(
                         cfg_attr_command.as_ref(),
-                        cfg_attr_fake.as_ref(),
+                        &cfg_attr_test,
                         &field.attrs,
                     );
+                }
+
+                if args.test.bon {
+                    // Bon does not work with unit struct
+                    test_derives.push(parse_quote!(bon::Builder));
+                    test_attributes.push(parse_quote!(#[builder(
+                        on(Vec<_>, default, into),
+                        state_mod(vis = "pub"),
+                    )]));
                 }
             }
         }
         syn::Data::Enum(ref mut data) => {
             if has_serde {
-                attributes.push(parse_quote!(#[serde(rename_all_fields = "camelCase")]));
+                attributes.push(parse_quote!(#[serde(rename_all_fields = #serde_case)]));
             }
             if let Some(ref cfg_attr) = cfg_attr_command {
                 attributes.push(parse_quote!(#[cfg_attr(#cfg_attr, derive(::conf::Subcommands))]));
             }
 
             for variant in &mut data.variants {
-                variant.attrs =
-                    derive_transform_attrs(None, cfg_attr_fake.as_ref(), &variant.attrs);
+                variant.attrs = derive_transform_attrs(None, &cfg_attr_test, &variant.attrs);
                 for field in &mut variant.fields {
                     field.attrs = derive_transform_attrs(
                         cfg_attr_command.as_ref(),
-                        cfg_attr_fake.as_ref(),
+                        &cfg_attr_test,
                         &field.attrs,
                     );
                 }
@@ -339,16 +393,37 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         }
     }
 
-    if let Some(ref cfg_attr) = cfg_attr_fake {
-        attributes.push(parse_quote!(#[cfg_attr(#cfg_attr, derive(fake::Dummy))]));
-    }
+    let test_derives: Vec<syn::Path> = test_derives
+        .iter()
+        .filter_map(|derive| {
+            if input_derives.contains(&derive) { None } else { Some(parse_quote!(#derive)) }
+        })
+        .collect();
+
+    let test_attributes: Vec<syn::Attribute> = test_attributes
+        .iter()
+        .filter_map(|attribute| {
+            if input_attributes
+                .iter()
+                .find(|input_attribute| input_attribute.path() == attribute.path())
+                .is_some()
+            {
+                None
+            } else {
+                let meta = &attribute.meta;
+                Some(parse_quote!(#[cfg_attr(#cfg_attr_test, #meta)]))
+            }
+        })
+        .collect();
 
     Ok(quote! {
         #endpoint_statement
         #apply_statement
         #as_statement
         #[derive(#(#derives),*)]
+        #[cfg_attr(#cfg_attr_test, derive(#(#test_derives),*))]
         #( #attributes )*
+        #( #test_attributes )*
         #input
     })
 }

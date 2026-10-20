@@ -23,3 +23,11 @@ pub struct SongsByGenre {
 pub struct Response {
     pub songs_by_genre: SongsByGenre,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::Role;
 
-#[api_derive(fake = true)]
+#[api_derive]
 #[endpoint(path = "updateUserRole")]
 pub struct Request {
     pub id: Uuid,
@@ -13,3 +13,11 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response;
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip_json!(Request, Response);
+}
