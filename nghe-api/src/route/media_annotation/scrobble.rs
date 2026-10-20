@@ -3,7 +3,7 @@ use serde_with::TimestampMilliSeconds;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[api_derive(serde_as = true)]
+#[api_derive(serde(sas = true))]
 #[endpoint(path = "scrobble")]
 pub struct Request {
     #[serde(rename = "id")]

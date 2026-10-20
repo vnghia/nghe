@@ -16,7 +16,7 @@ pub trait Trait: Debug + Copy {
     fn extension(&self) -> &'static str;
 }
 
-#[api_derive]
+#[api_derive(serde(case = "lowercase"))]
 #[derive(Clone, Copy, IntoStaticStr, EnumString)]
 #[strum(serialize_all = "lowercase")]
 #[cfg_attr(any(test, feature = "test"), derive(strum::AsRefStr))]

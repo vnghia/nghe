@@ -26,6 +26,16 @@ struct SerdeApply {
 }
 
 #[derive(Debug, darling::FromMeta)]
+struct SerdeDerive {
+    #[darling(default = || "camelCase".into())]
+    case: String,
+    #[darling(default = || SerdeApply::from_list(&[]).unwrap())]
+    apply: SerdeApply,
+    #[darling(default = || false)]
+    sas: bool,
+}
+
+#[derive(Debug, darling::FromMeta)]
 struct TestDerive {
     #[darling(default = || true)]
     eq: bool,
@@ -46,15 +56,9 @@ struct Derive {
     command: Option<bool>,
     #[darling(default = || true)]
     debug: bool,
-    #[darling(default = || SerdeApply {
-        enable: true, genre: true, date: true, time: true
-    })]
-    serde_apply: SerdeApply,
-    #[darling(default = || false)]
-    serde_as: bool,
-    #[darling(default = || TestDerive {
-        eq: true, bon: true, fake: true
-    })]
+    #[darling(default = || SerdeDerive::from_list(&[]).unwrap())]
+    serde: SerdeDerive,
+    #[darling(default = || TestDerive::from_list(&[]).unwrap())]
     test: TestDerive,
 }
 
@@ -84,7 +88,7 @@ pub fn derive_endpoint(item: TokenStream) -> Result<TokenStream, Error> {
             .iter()
             .any(|attr| attr.path().segments.last().is_some_and(|path| path.ident == "serde_as"));
         syn::parse_quote!(#[nghe_proc_macro::api_derive(
-            serde_as = #serde_as,
+            serde(sas = #serde_as),
             test(bon = false),
         )])
     };
@@ -238,6 +242,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let ident = input.ident.to_string();
     let is_request_struct = ident == "Request";
     let has_serde = args.request || args.response;
+    let serde_case = &args.serde.case;
 
     let cfg_attr_test = quote! {any(test, feature = "test")};
     let cfg_attr_command = if let Some(command) = args.command {
@@ -293,11 +298,11 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     }
 
     if has_serde {
-        attributes.push(parse_quote!(#[serde(rename_all = "camelCase")]));
+        attributes.push(parse_quote!(#[serde(rename_all = #serde_case)]));
     }
 
-    let apply_statement = if has_serde && args.serde_apply.enable {
-        let serde_apply = args.serde_apply;
+    let apply_statement = if has_serde && args.serde.apply.enable {
+        let serde_apply = args.serde.apply;
         let mut applies = vec![
             quote! {Option => #[serde(skip_serializing_if = "Option::is_none", default)]},
             quote! {Vec => #[serde(skip_serializing_if = "Vec::is_empty", default)]},
@@ -331,7 +336,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     } else {
         quote! {}
     };
-    let as_statement = if has_serde && args.serde_as {
+    let as_statement = if has_serde && args.serde.sas {
         quote! { #[serde_with::serde_as] }
     } else {
         quote! {}
@@ -364,7 +369,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         }
         syn::Data::Enum(ref mut data) => {
             if has_serde {
-                attributes.push(parse_quote!(#[serde(rename_all_fields = "camelCase")]));
+                attributes.push(parse_quote!(#[serde(rename_all_fields = #serde_case)]));
             }
             if let Some(ref cfg_attr) = cfg_attr_command {
                 attributes.push(parse_quote!(#[cfg_attr(#cfg_attr, derive(::conf::Subcommands))]));

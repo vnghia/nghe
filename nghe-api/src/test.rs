@@ -35,24 +35,24 @@ macro_rules! test_roundtrip {
                 let auth_request = serde_html_form::from_str::<
                     <$Request as $crate::http::Request>::AuthForm,
                 >(&url)
-                .unwrap();
+                .expect(&url);
                 assert_eq!(auth_request.auth(), &auth);
                 assert_eq!(auth_request.request(), request);
             }
 
             {
+                let serialized = serde_json::to_string(&request).unwrap();
                 assert_eq!(
-                    serde_json::from_str::<$Request>(&serde_json::to_string(&request).unwrap())
-                        .unwrap(),
+                    serde_json::from_str::<$Request>(&serialized).expect(&serialized),
                     request
                 );
             }
 
+            let response: $Response = Faker.fake();
             {
-                let response: $Response = Faker.fake();
+                let serialized = serde_json::to_string(&response).unwrap();
                 assert_eq!(
-                    serde_json::from_str::<$Response>(&serde_json::to_string(&response).unwrap())
-                        .unwrap(),
+                    serde_json::from_str::<$Response>(&serialized).expect(&serialized),
                     response
                 )
             }

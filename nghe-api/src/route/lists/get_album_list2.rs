@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::id3;
 
 // TODO: Remove this after https://github.com/cbeck88/conf-rs/pull/42
-#[api_derive(command = true, serde_as = true)]
+#[api_derive(command = true, serde(sas = true))]
 pub struct ByYear {
     // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
     #[serde_as(as = "serde_with::DisplayFromStr")]

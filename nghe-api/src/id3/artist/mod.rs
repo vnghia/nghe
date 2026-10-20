@@ -10,7 +10,7 @@ use strum::IntoStaticStr;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[api_derive(response = false)]
+#[api_derive(serde(case = "lowercase"))]
 #[derive(PartialEq, Eq, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum Role {
@@ -33,19 +33,4 @@ pub struct Artist {
     pub music_brainz_id: Option<Uuid>,
     #[builder(default)]
     pub roles: Vec<Role>,
-}
-
-mod serde {
-    use ::serde::{Serialize, Serializer};
-
-    use super::*;
-
-    impl Serialize for Role {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            serializer.serialize_str(self.into())
-        }
-    }
 }

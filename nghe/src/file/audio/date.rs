@@ -110,18 +110,10 @@ mod test {
 
     impl Dummy<Faker> for Date {
         fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(config: &Faker, rng: &mut R) -> Self {
-            let date: time::Date = config.fake_with_rng(rng);
-
-            let year =
-                if config.fake_with_rng(rng) { Some(date.year().clamp(0, 9999)) } else { None };
-            let month =
-                if year.is_some() && config.fake_with_rng(rng) { Some(date.month()) } else { None };
-            let day = if month.is_some() && config.fake_with_rng(rng) {
-                Some(date.day().try_into().unwrap())
-            } else {
-                None
-            };
-
+            let date: nghe_api::id3::date::Date = config.fake_with_rng(rng);
+            let year = date.year.map(i32::from);
+            let month = date.month.map(time::Month::try_from).transpose().unwrap();
+            let day = date.day.map(NonZeroU8::try_from).transpose().unwrap();
             Self { year, month, day }
         }
     }
