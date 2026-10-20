@@ -29,3 +29,11 @@ pub struct SearchResult3 {
 pub struct Response {
     pub search_result3: SearchResult3,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

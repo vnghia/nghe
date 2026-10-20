@@ -6,3 +6,11 @@ use uuid::Uuid;
 pub struct Request {
     pub id: Uuid,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip_request!(Request);
+}

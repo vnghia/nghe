@@ -20,3 +20,11 @@ pub struct Response {
     pub song_count: u64,
     pub total_size: u64,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

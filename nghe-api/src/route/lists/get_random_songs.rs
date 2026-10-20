@@ -24,3 +24,11 @@ pub struct RandomSong {
 pub struct Response {
     pub random_songs: RandomSong,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

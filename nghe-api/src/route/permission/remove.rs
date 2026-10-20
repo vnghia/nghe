@@ -10,3 +10,11 @@ pub struct Request {
 
 #[api_derive]
 pub struct Response;
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

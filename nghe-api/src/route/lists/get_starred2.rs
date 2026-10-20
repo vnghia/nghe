@@ -22,3 +22,11 @@ pub struct Starred2 {
 pub struct Response {
     pub starred2: Starred2,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

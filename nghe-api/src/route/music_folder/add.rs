@@ -18,3 +18,11 @@ pub struct Request {
 pub struct Response {
     pub music_folder_id: Uuid,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

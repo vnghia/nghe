@@ -19,3 +19,11 @@ pub struct Request {
 pub struct Response {
     pub user_id: Uuid,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip_json!(Request, Response);
+}

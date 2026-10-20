@@ -31,3 +31,11 @@ pub struct LyricsList {
 pub struct Response {
     pub lyrics_list: LyricsList,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

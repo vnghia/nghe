@@ -17,3 +17,11 @@ pub struct Response {
     pub email: String,
     pub role: Role,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}

@@ -11,3 +11,11 @@ pub struct Request;
 pub struct Response {
     pub users: Vec<get::Response>,
 }
+
+#[cfg(test)]
+#[coverage(off)]
+mod tests {
+    use super::*;
+
+    crate::test_roundtrip!(Request, Response);
+}
