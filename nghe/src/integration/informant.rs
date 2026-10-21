@@ -85,12 +85,11 @@ impl Informant {
             artist_informations::Spotify::default()
         };
         let lastfm = lastfm
-            .map(|lastfm| artist_informations::Lastfm {
+            .map_or_default(|lastfm| artist_informations::Lastfm {
                 url: Some(lastfm.short.url.as_str().into()),
                 mbz_id: lastfm.short.mbid,
                 biography: lastfm.bio.summary.as_deref().map(Cow::Borrowed),
-            })
-            .unwrap_or_default();
+            });
         artist_informations::Data { spotify, lastfm }.update(database, id).await
     }
 

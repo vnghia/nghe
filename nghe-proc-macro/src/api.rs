@@ -396,7 +396,7 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let test_derives: Vec<syn::Path> = test_derives
         .iter()
         .filter_map(|derive| {
-            if input_derives.contains(&derive) { None } else { Some(parse_quote!(#derive)) }
+            if input_derives.contains(derive) { None } else { Some(parse_quote!(#derive)) }
         })
         .collect();
 

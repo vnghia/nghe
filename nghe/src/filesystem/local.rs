@@ -115,7 +115,7 @@ impl super::Trait for Filesystem {
         .await
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         Ok(path.as_str().to_owned())
     }
 }

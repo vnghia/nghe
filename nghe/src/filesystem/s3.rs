@@ -149,7 +149,7 @@ impl super::Trait for Filesystem {
         )
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         let Path { bucket, key } = Self::split(path)?;
         Ok(self
             .client
