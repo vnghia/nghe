@@ -10,7 +10,7 @@ impl ::core::fmt::Debug for Route {
     #[inline]
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         match self {
-            Route::MusicFolder { action: __self_0 } => {
+            Self::MusicFolder { action: __self_0 } => {
                 ::core::fmt::Formatter::debug_struct_field1_finish(
                     f,
                     "MusicFolder",
@@ -18,7 +18,7 @@ impl ::core::fmt::Debug for Route {
                     &__self_0,
                 )
             }
-            Route::User { action: __self_0 } => {
+            Self::User { action: __self_0 } => {
                 ::core::fmt::Formatter::debug_struct_field1_finish(
                     f,
                     "User",
