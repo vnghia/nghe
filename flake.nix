@@ -73,6 +73,7 @@
 
                 lame =
                   (hostPkgs.lame.override {
+                    decoderSupport = false;
                     frontendSupport = false;
                   }).overrideAttrs
                     (

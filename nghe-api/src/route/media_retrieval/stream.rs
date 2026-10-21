@@ -5,11 +5,12 @@ use uuid::Uuid;
 
 use crate::format;
 
-#[api_derive(request = false)]
+#[api_derive(serde(case = "lowercase"))]
 #[derive(Default, Clone, Copy)]
 pub enum Format {
     #[default]
     Raw,
+    #[serde(untagged)]
     Transcode(format::Transcode),
 }
 
@@ -37,22 +38,6 @@ impl FromStr for Format {
 impl From<format::Transcode> for Format {
     fn from(value: format::Transcode) -> Self {
         Self::Transcode(value)
-    }
-}
-
-mod serde {
-    use ::serde::{Deserialize, Deserializer, de};
-
-    use super::*;
-
-    impl<'de> Deserialize<'de> for Format {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            let format = <&'de str>::deserialize(deserializer)?;
-            format.parse().map_err(|_| de::Error::custom("Could not parse stream format parameter"))
-        }
     }
 }
 

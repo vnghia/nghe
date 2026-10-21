@@ -22,7 +22,7 @@ pub struct Durations {
 
 impl Durations {
     pub fn count(&self) -> usize {
-        self.value.as_ref().map(Vec::len).unwrap_or_default()
+        self.value.as_ref().map_or_default(Vec::len)
     }
 }
 
@@ -35,6 +35,6 @@ impl FromSql<SqlType, crate::orm::Type> for audio::SignedDuration {
 
 impl audio::signed_duration::Trait for Durations {
     fn duration(&self) -> audio::SignedDuration {
-        self.value.as_ref().map(Vec::duration).unwrap_or_default()
+        self.value.as_ref().map_or_default(Vec::duration)
     }
 }

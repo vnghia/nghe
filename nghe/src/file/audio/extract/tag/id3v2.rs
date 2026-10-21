@@ -136,8 +136,7 @@ impl<'a> extract::Metadata<'a> for Id3v2Tag {
 
     fn genres(&'a self, config: &'a config::Parsing) -> Result<Genres<'a>, Error> {
         Ok(get_texts(self, &config.id3v2.genres, config.id3v2.separator)?
-            .map(std::iter::Iterator::collect)
-            .unwrap_or_default())
+            .map_or_default(std::iter::Iterator::collect))
     }
 
     fn lyrics(&'a self, _: &'a config::Parsing) -> Result<Vec<Lyric<'a>>, Error> {

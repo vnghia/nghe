@@ -56,7 +56,7 @@ impl Drop for Mock {
         {
         } else {
             println!("Could not drop temporary database");
-            println!("Please drop the database manually with '{}'", &raw_statement);
+            println!("Please drop the database manually with '{raw_statement}'");
         }
     }
 }

@@ -73,8 +73,8 @@ impl filesystem::Trait for Mock {
         self.filesystem.read_to_binary(source, offset).await
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        self.filesystem.transcode_input(path).await
+    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+        self.filesystem.transcode_input(path)
     }
 }
 
@@ -87,8 +87,8 @@ impl super::Trait for Mock {
         filesystem::Impl::S3(Cow::Borrowed(&self.filesystem))
     }
 
-    async fn create_dir(&self, path: Utf8TypedPath<'_>) -> Utf8TypedPathBuf {
-        self.prefix().join(path)
+    fn create_dir(&self, path: Utf8TypedPath<'_>) -> impl Future<Output = Utf8TypedPathBuf> {
+        std::future::ready(self.prefix().join(path))
     }
 
     async fn write(&self, path: Utf8TypedPath<'_>, data: &[u8]) {

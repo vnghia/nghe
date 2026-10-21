@@ -91,9 +91,9 @@ impl Position {
                 tag,
                 frame_id,
                 concat_string!(
-                    self.number.as_ref().map(u16::to_string).unwrap_or_default(),
+                    self.number.as_ref().map_or_default(u16::to_string),
                     "/",
-                    self.total.as_ref().map(u16::to_string).unwrap_or_default()
+                    self.total.as_ref().map_or_default(u16::to_string)
                 ),
             );
         }

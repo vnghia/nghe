@@ -14,6 +14,7 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 
 [workspace.lints.clippy]
 pedantic = { level = "deny", priority = -1 }
+assert_is_empty = { level = "allow", priority = 0 }
 cast_possible_wrap = { level = "allow", priority = 0 }
 duplicated_attributes = { level = "allow", priority = 0 }
 large_enum_variant = { level = "allow", priority = 0 }

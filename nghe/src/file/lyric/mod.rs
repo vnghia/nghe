@@ -394,7 +394,7 @@ mod test {
                 Lines::Unsync(lines) => UnsynchronizedTextFrame::new(
                     lofty::TextEncoding::UTF8,
                     language,
-                    value.description.map(Cow::into_owned).unwrap_or_default(),
+                    value.description.map_or_default(Cow::into_owned),
                     lines.join("\n"),
                 )
                 .into(),

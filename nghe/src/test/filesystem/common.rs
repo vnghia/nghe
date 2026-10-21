@@ -86,10 +86,10 @@ impl filesystem::Trait for Impl<'_> {
         }
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.transcode_input(path).await,
-            Impl::S3(filesystem) => filesystem.transcode_input(path).await,
+            Impl::Local(filesystem) => filesystem.transcode_input(path),
+            Impl::S3(filesystem) => filesystem.transcode_input(path),
         }
     }
 }
