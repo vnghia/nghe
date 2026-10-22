@@ -30,7 +30,6 @@ pub struct CoverArt {
                 .join("nghe")
                 .join("cache")
                 .join("cover_art")
-                .with_platform_encoding()
         )
     ))]
     pub cache_dir: Option<Utf8PlatformPathBuf>,

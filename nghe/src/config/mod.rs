@@ -38,7 +38,7 @@ pub struct Config {
 impl Config {
     pub fn extract() -> Result<Self, figment::Error> {
         Figment::new()
-            .merge(Env::prefixed(const_format::concatcp!(constant::SERVER_NAME, "_")).split("__"))
+            .join(Env::prefixed(const_format::concatcp!(constant::SERVER_NAME, "__")).split("__"))
             .join(Serialized::default("server", Server::default()))
             .join(Serialized::default("filesystem", Filesystem::default()))
             .join(Serialized::default("parsing", Parsing::default()))
