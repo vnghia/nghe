@@ -1,9 +1,9 @@
-#[cfg(feature = "command")]
+#[cfg(feature = "cli")]
 use conf::Conf;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
 
-#[api_derive(command = true, request = true)]
+#[api_derive(cli = true, request = true)]
 #[serde(untagged)]
 pub enum CreateOrUpdate {
     Create { name: String },

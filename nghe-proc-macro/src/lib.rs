@@ -5,7 +5,7 @@ use proc_macro::TokenStream;
 
 mod api;
 mod backend;
-mod command;
+mod cli;
 mod orm;
 mod utils;
 
@@ -58,10 +58,10 @@ pub fn check_music_folder(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn build_command_action(item: TokenStream) -> TokenStream {
-    command::action::build(item.into()).into_token_stream()
+    cli::action::build(item.into()).into_token_stream()
 }
 
 #[proc_macro]
 pub fn build_command_route(item: TokenStream) -> TokenStream {
-    command::route::build(item.into()).into_token_stream()
+    cli::route::build(item.into()).into_token_stream()
 }

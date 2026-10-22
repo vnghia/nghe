@@ -1,9 +1,9 @@
 #![feature(coverage_attribute)]
 
-use nghe::command;
+use nghe::cli;
 
 #[coverage(off)]
 #[tokio::main]
 async fn main() {
-    command::entrypoint().await;
+    cli::entrypoint().await;
 }

@@ -6,7 +6,7 @@ use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf};
 use url::Url;
 
 use super::{Error, Rest, Route};
-use crate::command::error;
+use crate::cli::error;
 use crate::config;
 
 enum Output {

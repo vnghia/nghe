@@ -16,7 +16,7 @@ isolang = { workspace = true }
 itertools = { workspace = true }
 rand = { workspace = true }
 reqwest = { workspace = true, features = [
-  # command
+  # cli
   "brotli",
   "gzip",
   "zstd",
@@ -35,7 +35,7 @@ uuid = { workspace = true, features = ["v4"] }
 conf = { workspace = true }
 url = { workspace = true }
 
-nghe-api = { path = "../nghe-api", features = ["backend", "command"] }
+nghe-api = { path = "../nghe-api", features = ["backend", "cli"] }
 nghe-proc-macro = { path = "../nghe-proc-macro" }
 
 alrc = { version = "0.1.0" }
