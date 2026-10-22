@@ -338,7 +338,7 @@ jobs:
           context: .
           file: dev/docker/Dockerfile
           build-args: |
-            BASE_IMAGE=debian:13-slim
+            BASE_IMAGE=chainguard/glibc-dynamic:latest
             TARGET_ENV=gnu
           platforms: linux/amd64,linux/arm64
           push: true
