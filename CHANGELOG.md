@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/vnghia/nghe/compare/v0.15.0...v0.15.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* use list-form for docker healthcheck ([#1196](https://github.com/vnghia/nghe/issues/1196)) ([afa5ac1](https://github.com/vnghia/nghe/commit/afa5ac16ae93eb0fd82b1d0f65ec1bad90b6211b))
+
 ## [0.15.0](https://github.com/vnghia/nghe/compare/v0.14.3...v0.15.0) (2026-10-23)
 
 
