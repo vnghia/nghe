@@ -16,6 +16,7 @@ pub enum Kind {
 #[from_owned(reqwest::Error)]
 #[from_owned(serde_json::Error)]
 #[from_owned(std::io::Error)]
+#[from_owned(tracing_subscriber::util::TryInitError)]
 pub struct Error {
     pub source: Report,
 }
