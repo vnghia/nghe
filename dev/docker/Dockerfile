@@ -17,4 +17,4 @@ COPY --from=artifact /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENV NGHE__SERVER__HOST="::"
 ENTRYPOINT [ "/app/nghe" ]
 
-HEALTHCHECK CMD /app/nghe cli rest system health
+HEALTHCHECK CMD ["/app/nghe", "cli", "rest", "system", "health"]
