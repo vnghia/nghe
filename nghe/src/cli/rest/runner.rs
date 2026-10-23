@@ -71,10 +71,10 @@ impl TryFrom<Rest> for Runner {
     type Error = Error;
 
     fn try_from(rest: Rest) -> Result<Self, Self::Error> {
-        let Rest { server, output, route } = rest;
+        let Rest { url, auth, output, route } = rest;
         let config = config::Config::extract().ok();
 
-        let url = if let Some(ref url) = server.url {
+        let url = if let Some(ref url) = url {
             url.to_owned()
         } else {
             let port = if let Some(config) = config {
@@ -86,7 +86,7 @@ impl TryFrom<Rest> for Runner {
         };
 
         let mut headers = reqwest::header::HeaderMap::new();
-        if let Some(auth) = &server.auth {
+        if let Some(auth) = &auth {
             match auth {
                 Auth::Basic { username, password } => {
                     headers.typed_insert(headers::Authorization::basic(username, password));

@@ -7,18 +7,26 @@ use rest::Rest;
 
 use crate::server;
 
-#[derive(Debug, Default, Subcommands)]
+#[derive(Debug, Subcommands)]
 enum Action {
-    #[default]
-    Start,
     Rest(Rest),
 }
 
-#[derive(Conf)]
+#[derive(Debug, Default, Subcommands)]
+enum Entrypoint {
+    #[default]
+    Server,
+    Cli {
+        #[conf(subcommands)]
+        action: Action,
+    },
+}
+
+#[derive(Debug, Conf)]
 #[conf(version_fn = version)]
-struct Entrypoint {
+struct Cli {
     #[conf(subcommands)]
-    action: Option<Action>,
+    entrypoint: Option<Entrypoint>,
 }
 
 fn version() -> &'static str {
@@ -26,12 +34,12 @@ fn version() -> &'static str {
 }
 
 pub async fn entrypoint() {
-    let entrypoint = Entrypoint::parse();
-    let action = entrypoint.action.unwrap_or_default();
-    match action {
-        Action::Start => server::start().await,
-        Action::Rest(rest) => {
-            rest.run().await.unwrap();
-        }
+    let cli = Cli::parse();
+    let entrypoint = cli.entrypoint.unwrap_or_default();
+    match entrypoint {
+        Entrypoint::Server => server::start().await,
+        Entrypoint::Cli { action } => match action {
+            Action::Rest(rest) => rest.run().await.unwrap(),
+        },
     }
 }
