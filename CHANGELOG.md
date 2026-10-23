@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.15.0](https://github.com/vnghia/nghe/compare/v0.14.3...v0.15.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* fix inconsistency in parsing env and add parsing env for cli ([#1194](https://github.com/vnghia/nghe/issues/1194))
+
+### Features
+
+* add command line ([#1172](https://github.com/vnghia/nghe/issues/1172)) ([23b31eb](https://github.com/vnghia/nghe/commit/23b31eb736d39b4c6ce77a4a7134e3e2e0984969))
+* add more routes to command line ([#1174](https://github.com/vnghia/nghe/issues/1174)) ([af99979](https://github.com/vnghia/nghe/commit/af999799d4cf0133bb09724822ad8351347fd970))
+* fix inconsistency in parsing env and add parsing env for cli ([#1194](https://github.com/vnghia/nghe/issues/1194)) ([189e5f3](https://github.com/vnghia/nghe/commit/189e5f30a4d280044d7f4b94c3afa68f751b583f))
+* prepare for command line interface ([#1165](https://github.com/vnghia/nghe/issues/1165)) ([5e97c28](https://github.com/vnghia/nghe/commit/5e97c28a475f7e0f50b5ca8595ffb0107d426e2b))
+* prepare for command line interface ([#1166](https://github.com/vnghia/nghe/issues/1166)) ([01d2af4](https://github.com/vnghia/nghe/commit/01d2af41c49147e281d9ea9e022c8e66082b95d9))
+
+
+### Bug Fixes
+
+* **api:** return error as json with code and message ([#1167](https://github.com/vnghia/nghe/issues/1167)) ([f29f884](https://github.com/vnghia/nghe/commit/f29f884d54cec501330e4483b92c1c04789f0c0f))
+* **api:** unify api cargo features ([#1185](https://github.com/vnghia/nghe/issues/1185)) ([8af19a5](https://github.com/vnghia/nghe/commit/8af19a518eb3e1cc5d60f9c38970a66a58946137))
+* **deps:** update rust crate loole to 0.6.0 ([#1168](https://github.com/vnghia/nghe/issues/1168)) ([4ab45ed](https://github.com/vnghia/nghe/commit/4ab45edc4e87e8c5a2e363a3266aa0aa7ad8bbad))
+* **deps:** update rust crate rustfs-mimalloc to 0.6.0 ([#1179](https://github.com/vnghia/nghe/issues/1179)) ([5087e1d](https://github.com/vnghia/nghe/commit/5087e1dbe189f3ed1c2982261e848f8c4c3f373b))
+* **deps:** update rust crate rustfs-mimalloc to 0.7.0 ([#1181](https://github.com/vnghia/nghe/issues/1181)) ([9ac53e7](https://github.com/vnghia/nghe/commit/9ac53e7f0f75c54ff790752cea9b8940e311f890))
+* **deps:** update rust crate typed-path to 0.13.0 ([#1188](https://github.com/vnghia/nghe/issues/1188)) ([2f3c75c](https://github.com/vnghia/nghe/commit/2f3c75cb94c196cdbc8dcf1487b46a7a241c6eed))
+
 ## [0.14.3](https://github.com/vnghia/nghe/compare/v0.14.2...v0.14.3) (2026-10-06)
 
 
