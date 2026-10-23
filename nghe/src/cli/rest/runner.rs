@@ -5,6 +5,7 @@ use tokio::io::{AsyncWrite, AsyncWriteExt};
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf};
 use url::Url;
 
+use super::auth::Auth;
 use super::{Error, Rest, Route};
 use crate::cli::error;
 use crate::config;
@@ -85,12 +86,15 @@ impl TryFrom<Rest> for Runner {
         };
 
         let mut headers = reqwest::header::HeaderMap::new();
-        if let Some(ref username) = server.auth.username
-            && let Some(ref password) = server.auth.password
-        {
-            headers.typed_insert(headers::Authorization::basic(username, password));
-        } else if let Some(ref api_key) = server.auth.api_key {
-            headers.typed_insert(headers::Authorization::bearer(api_key)?);
+        if let Some(auth) = &server.auth {
+            match auth {
+                Auth::Basic { username, password } => {
+                    headers.typed_insert(headers::Authorization::basic(username, password));
+                }
+                Auth::Bearer(bearer) => {
+                    headers.typed_insert(headers::Authorization::bearer(bearer)?);
+                }
+            }
         }
 
         Ok(Self {

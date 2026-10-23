@@ -14,8 +14,10 @@ use super::Error;
 pub struct Server {
     #[conf(long)]
     pub url: Option<Url>,
-    #[conf(flatten)]
-    pub auth: auth::Auth,
+    /// Either server username and password <username:password>
+    /// or arbitrary string for bearer authentication
+    #[conf(long)]
+    pub auth: Option<auth::Auth>,
 }
 
 #[derive(Debug, Conf)]
