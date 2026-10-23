@@ -4,7 +4,7 @@ pub mod update;
 
 use nghe_proc_macro::api_derive;
 
-#[api_derive(command = true)]
+#[api_derive(cli = true)]
 #[derive(Clone, Copy, Default)]
 pub struct Permission {
     pub owner: bool,

@@ -14,6 +14,6 @@ pub fn orm() {
 }
 
 #[test]
-pub fn command() {
-    macrotest::expand("tests/command/**/*.rs");
+pub fn cli() {
+    macrotest::expand("tests/cli/**/*.rs");
 }

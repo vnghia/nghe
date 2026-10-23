@@ -76,8 +76,8 @@ pub fn build(item: TokenStream) -> Result<TokenStream, Error> {
 
     Ok(quote! {
         use conf::{Conf, Subcommands};
-        use crate::command::rest::Runner;
-        use crate::command::Error;
+        use crate::cli::rest::Runner;
+        use crate::cli::Error;
 
         #[derive(Debug, Subcommands)]
         pub enum Action {

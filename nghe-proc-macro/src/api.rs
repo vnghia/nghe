@@ -53,7 +53,7 @@ struct Derive {
     #[darling(default = || true)]
     response: bool,
     #[darling(default = || None)]
-    command: Option<bool>,
+    cli: Option<bool>,
     #[darling(default = || true)]
     debug: bool,
     #[darling(default = || SerdeDerive::from_list(&[]).unwrap())]
@@ -245,10 +245,10 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
     let serde_case = &args.serde.case;
 
     let cfg_attr_test = quote! {any(test, feature = "test")};
-    let cfg_attr_command = if let Some(command) = args.command {
-        if command { Some(quote! {feature = "command"}) } else { None }
+    let cfg_attr_command = if let Some(cli) = args.cli {
+        if cli { Some(quote! {feature = "cli"}) } else { None }
     } else {
-        if is_request_struct { Some(quote! {feature = "command"}) } else { None }
+        if is_request_struct { Some(quote! {feature = "cli"}) } else { None }
     };
 
     let input_derives = input
@@ -393,12 +393,13 @@ pub fn derive(args: TokenStream, item: TokenStream) -> Result<TokenStream, Error
         }
     }
 
-    let test_derives: Vec<syn::Path> = test_derives
-        .iter()
-        .filter_map(|derive| {
-            if input_derives.contains(derive) { None } else { Some(parse_quote!(#derive)) }
-        })
-        .collect();
+    let test_derives: Vec<syn::Path> =
+        test_derives
+            .iter()
+            .filter_map(|derive| {
+                if input_derives.contains(derive) { None } else { Some(parse_quote!(#derive)) }
+            })
+            .collect();
 
     let test_attributes: Vec<syn::Attribute> = test_attributes
         .iter()

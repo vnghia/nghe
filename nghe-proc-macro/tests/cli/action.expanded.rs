@@ -1,6 +1,6 @@
 use conf::{Conf, Subcommands};
-use crate::command::rest::Runner;
-use crate::command::Error;
+use crate::cli::rest::Runner;
+use crate::cli::Error;
 pub enum Action {
     Create(nghe_api::route::user::create::Request),
     List,

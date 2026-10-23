@@ -11,18 +11,14 @@ use url::Url;
 use super::Error;
 
 #[derive(Debug, Conf)]
-pub struct Server {
-    #[conf(long)]
-    pub url: Option<Url>,
-    #[conf(flatten)]
-    pub auth: auth::Auth,
-}
-
-#[derive(Debug, Conf)]
+#[conf(env_prefix = "NGHE_CLI_REST_")]
 pub struct Rest {
-    #[conf(flatten)]
-    server: Server,
-    #[conf(long)]
+    #[conf(long, env)]
+    pub url: Option<Url>,
+    /// Either <username:password> for basic auth or arbitrary string for bearer auth
+    #[conf(long, env)]
+    pub auth: Option<auth::Auth>,
+    #[conf(long, env)]
     output: Option<Utf8PlatformPathBuf>,
     #[conf(subcommands)]
     route: Route,

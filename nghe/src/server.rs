@@ -14,8 +14,8 @@ use tracing_subscriber::util::SubscriberInitExt;
 use crate::{Error, config, database, filesystem, integration, migration, route, scan};
 
 #[coverage(off)]
-pub fn init_eyre() -> Result<(), Error> {
-    color_eyre::config::HookBuilder::new().install().map_err(Into::into)
+pub fn init_eyre() -> Result<(), color_eyre::eyre::Report> {
+    color_eyre::config::HookBuilder::new().install()
 }
 
 #[coverage(off)]

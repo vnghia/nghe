@@ -6,7 +6,7 @@ use reqwest::StatusCode;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Kind {
-    #[error("[{}][{}] {}", status_code, error.code as u8, error.message)]
+    #[error("[HTTP-{}][OS-{}] {}", status_code.as_u16(), error.code as u8, error.message)]
     Http { status_code: StatusCode, error: nghe_api::Error },
 }
 
@@ -16,6 +16,7 @@ pub enum Kind {
 #[from_owned(reqwest::Error)]
 #[from_owned(serde_json::Error)]
 #[from_owned(std::io::Error)]
+#[from_owned(tracing_subscriber::util::TryInitError)]
 pub struct Error {
     pub source: Report,
 }

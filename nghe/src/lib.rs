@@ -10,7 +10,7 @@
 #![feature(str_as_str)]
 
 #[coverage(off)]
-pub mod command;
+pub mod cli;
 #[coverage(off)]
 pub mod config;
 mod database;

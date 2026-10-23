@@ -1,4 +1,4 @@
-#[cfg(feature = "command")]
+#[cfg(feature = "cli")]
 use conf::Conf;
 use nghe_proc_macro::api_derive;
 use uuid::Uuid;
@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::id3;
 
 // TODO: Remove this after https://github.com/cbeck88/conf-rs/pull/42
-#[api_derive(command = true, serde(sas = true))]
+#[api_derive(cli = true, serde(sas = true))]
 pub struct ByYear {
     // TODO: Optimize this after https://github.com/serde-rs/serde/issues/1183
     #[serde_as(as = "serde_with::DisplayFromStr")]
@@ -16,7 +16,7 @@ pub struct ByYear {
     pub to_year: u16,
 }
 
-#[api_derive(command = true)]
+#[api_derive(cli = true)]
 #[serde(tag = "type")]
 pub enum Type {
     Random,

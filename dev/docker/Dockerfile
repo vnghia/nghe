@@ -14,5 +14,7 @@ RUN update-ca-certificates
 FROM ${BASE_IMAGE}
 COPY --from=artifact /artifact/nghe /app/nghe
 COPY --from=artifact /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-ENV NGHE_SERVER__HOST="::"
+ENV NGHE__SERVER__HOST="::"
 ENTRYPOINT [ "/app/nghe" ]
+
+HEALTHCHECK CMD /app/nghe cli rest system health
