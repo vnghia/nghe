@@ -60,8 +60,8 @@ impl filesystem::Trait for Mock {
         self.filesystem.read_to_binary(source, offset).await
     }
 
-    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        self.filesystem.transcode_input(path)
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+        self.filesystem.transcode_input(path).await
     }
 }
 

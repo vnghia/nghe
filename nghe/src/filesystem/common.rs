@@ -49,7 +49,7 @@ pub trait Trait {
         offset: Option<u64>,
     ) -> Result<binary::Response, Error>;
 
-    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error>;
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error>;
 }
 
 impl Trait for Impl<'_> {
@@ -103,10 +103,10 @@ impl Trait for Impl<'_> {
         }
     }
 
-    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.transcode_input(path),
-            Impl::S3(filesystem) => filesystem.transcode_input(path),
+            Impl::Local(filesystem) => filesystem.transcode_input(path).await,
+            Impl::S3(filesystem) => filesystem.transcode_input(path).await,
         }
     }
 }

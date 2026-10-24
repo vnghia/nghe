@@ -62,7 +62,8 @@ pub fn init_ffmpeg(transcode: &config::Transcode) -> Result<(), Error> {
 
 #[coverage(off)]
 pub async fn build(config: config::Config) -> Router {
-    let filesystem = filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3);
+    let filesystem =
+        filesystem::Filesystem::new(&config.filesystem.tls, &config.filesystem.s3).await;
     let informant = integration::Informant::new(config.integration).await;
 
     let backend_middleware = ServiceBuilder::new()

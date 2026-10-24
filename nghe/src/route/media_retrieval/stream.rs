@@ -72,7 +72,7 @@ pub async fn handler(
             //    chunk to the cache file.
             (
                 transcode::Path {
-                    input: filesystem.transcode_input(source_path)?,
+                    input: filesystem.transcode_input(source_path).await?,
                     cache: if time_offset > 0 { None } else { Some(output) },
                 },
                 #[cfg(test)]
@@ -81,7 +81,7 @@ pub async fn handler(
         }
     } else {
         (
-            transcode::Path { input: filesystem.transcode_input(source_path)?, cache: None },
+            transcode::Path { input: filesystem.transcode_input(source_path).await?, cache: None },
             #[cfg(test)]
             BinaryStatus::NoCache,
         )
@@ -162,7 +162,7 @@ mod tests {
 
         let transcoded = {
             let path = music_folder.absolute_path(0);
-            let input = music_folder.to_impl().transcode_input(path.to_path()).unwrap();
+            let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
             transcode::Transcoder::spawn_collect(config, &input, format, bitrate, 0).await
         };
 
@@ -212,7 +212,7 @@ mod tests {
 
         let transcoded = {
             let path = music_folder.absolute_path(0);
-            let input = music_folder.to_impl().transcode_input(path.to_path()).unwrap();
+            let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
             transcode::Transcoder::spawn_collect(config, &input, format, bitrate, time_offset).await
         };
 

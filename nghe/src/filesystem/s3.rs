@@ -1,5 +1,11 @@
+use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
+use aws_config::timeout::TimeoutConfig;
+use aws_sdk_s3::Client;
+use aws_sdk_s3::presigning::PresigningConfig;
+use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
+use aws_sdk_s3::types::Object;
+use concat_string::concat_string;
 use educe::Educe;
-use s3::Client;
 use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
@@ -22,28 +28,29 @@ pub struct Path<'b, 'k> {
 }
 
 impl Filesystem {
-    pub fn new(_tls: &config::filesystem::Tls, s3: &config::filesystem::S3) -> Self {
-        let client = Client::builder(&s3.endpoint_url)
-            .expect("Could not initialize s3 client builder")
-            .region(&s3.region)
-            .addressing_style(if s3.use_path_style_endpoint {
-                s3::AddressingStyle::Path
+    pub async fn new(_tls: &config::filesystem::Tls, s3: &config::filesystem::S3) -> Self {
+        let config = aws_config::from_env()
+            .stalled_stream_protection(if s3.stalled_stream_grace_preriod > 0 {
+                StalledStreamProtectionConfig::enabled()
+                    .grace_period(std::time::Duration::from_secs(s3.stalled_stream_grace_preriod))
+                    .build()
             } else {
-                s3::AddressingStyle::VirtualHosted
+                StalledStreamProtectionConfig::disabled()
             })
-            .max_attempts(s3.max_attempts)
-            .timeout(std::time::Duration::from_secs(s3.timeout.into()))
-            .auth(
-                s3::Auth::from_env()
-                    .expect("Could not initialize aws authentication from environment variable"),
-            )
-            .build()
-            .expect("Could not build s3 client");
+            .load()
+            .await;
+        let client = Client::from_conf(
+            aws_sdk_s3::config::Builder::from(&config)
+                .force_path_style(s3.use_path_style_endpoint)
+                .timeout_config(
+                    TimeoutConfig::builder()
+                        .connect_timeout(std::time::Duration::from_secs(s3.timeout))
+                        .build(),
+                )
+                .build(),
+        );
 
-        Self {
-            client,
-            presigned_duration: std::time::Duration::from_mins(s3.presigned_duration.into()),
-        }
+        Self { client, presigned_duration: std::time::Duration::from_mins(s3.presigned_duration) }
     }
 
     pub fn split<'b, 'k, 'p: 'b + 'k>(
@@ -76,8 +83,7 @@ impl Filesystem {
 impl super::Trait for Filesystem {
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
-        let request = self.client.objects().list_v2(bucket);
-        (if key.is_empty() { request } else { request.prefix(key)? }).max_keys(1)?.send().await?;
+        self.client.list_objects_v2().bucket(bucket).prefix(key).max_keys(1).send().await?;
         Ok(())
     }
 
@@ -87,13 +93,17 @@ impl super::Trait for Filesystem {
         prefix: Utf8TypedPath<'_>,
     ) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(prefix)?;
-        let request = self.client.objects().list_v2(bucket);
-        let mut pager = (if key.is_empty() { request } else { request.prefix(key)? }).pager();
+        let mut steam =
+            self.client.list_objects_v2().bucket(bucket).prefix(key).into_paginator().send();
         let bucket = path::S3::from_str("/").join(bucket);
 
-        while let Some(output) = pager.next_page().await? {
-            for content in output.contents {
-                sender.send(bucket.join(&content.key), &content).await?;
+        while let Some(output) = steam.try_next().await? {
+            if let Some(contents) = output.contents {
+                for content in contents {
+                    if let Some(key) = content.key() {
+                        sender.send(bucket.join(key), &content).await?;
+                    }
+                }
             }
         }
 
@@ -102,7 +112,7 @@ impl super::Trait for Filesystem {
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
         let Path { bucket, key } = Self::split(path)?;
-        let result = self.client.objects().head(bucket, key).send().await;
+        let result = self.client.head_object().bucket(bucket).key(key).send().await;
         if let Err(error) = result {
             let error: Error = error.into();
             if error.status_code == axum::http::StatusCode::NOT_FOUND {
@@ -117,7 +127,17 @@ impl super::Trait for Filesystem {
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error> {
         let Path { bucket, key } = Self::split(path)?;
-        Ok(self.client.objects().get(bucket, key).send().await?.bytes().await?.into())
+        self.client
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .send()
+            .await?
+            .body
+            .collect()
+            .await
+            .map(AggregatedBytes::to_vec)
+            .map_err(Error::from)
     }
 
     async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
@@ -131,17 +151,18 @@ impl super::Trait for Filesystem {
     ) -> Result<binary::Response, Error> {
         let path = source.path.to_path();
         let Path { bucket, key } = Self::split(path)?;
-        let stream = self
+        let reader = self
             .client
-            .objects()
-            .get(bucket, key)
-            .range_bytes(offset.unwrap_or(0), source.property.size.get().into())?
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .set_range(offset.map(|offset| concat_string!("bytes=", offset.to_string(), "-")))
             .send()
-            .await
-            .map_err(Error::from)?
-            .body;
-        binary::Response::from_body(
-            axum::body::Body::from_stream(stream),
+            .await?
+            .body
+            .into_async_read();
+        binary::Response::from_async_read(
+            reader,
             &source.property,
             offset,
             #[cfg(test)]
@@ -149,34 +170,30 @@ impl super::Trait for Filesystem {
         )
     }
 
-    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
+    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
         let Path { bucket, key } = Self::split(path)?;
         Ok(self
             .client
-            .objects()
-            .presign_get(bucket, key)
-            .expires_in(self.presigned_duration)?
-            .build()?
-            .url
-            .into())
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .presigned(PresigningConfig::expires_in(self.presigned_duration)?)
+            .await?
+            .uri()
+            .to_owned())
     }
 }
 
-impl entry::Metadata for s3::types::Object {
+impl entry::Metadata for Object {
     fn size(&self) -> Result<usize, Error> {
-        Ok(self.size.try_into()?)
+        Ok(self.size().ok_or_else(|| error::Kind::MissingFileSize)?.try_into()?)
     }
 
     fn last_modified(&self) -> Result<Option<OffsetDateTime>, Error> {
         Ok(self
-            .last_modified
-            .as_deref()
-            .map(|timestamp| {
-                OffsetDateTime::parse(
-                    timestamp,
-                    &time::format_description::well_known::Iso8601::DEFAULT,
-                )
-            })
+            .last_modified()
+            .map(DateTime::as_nanos)
+            .map(OffsetDateTime::from_unix_timestamp_nanos)
             .transpose()?)
     }
 }
