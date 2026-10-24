@@ -115,8 +115,11 @@ impl super::Trait for Filesystem {
         .await
     }
 
-    fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        Ok(path.as_str().to_owned())
+    fn transcode_input(
+        &self,
+        path: Utf8TypedPath<'_>,
+    ) -> impl Future<Output = Result<String, Error>> {
+        std::future::ready(Ok(path.as_str().to_owned()))
     }
 }
 

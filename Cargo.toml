@@ -18,6 +18,7 @@ assert_is_empty = { level = "allow", priority = 0 }
 cast_possible_wrap = { level = "allow", priority = 0 }
 duplicated_attributes = { level = "allow", priority = 0 }
 large_enum_variant = { level = "allow", priority = 0 }
+large_futures = { level = "allow", priority = 0 }
 missing_panics_doc = { level = "allow", priority = 0 }
 missing_errors_doc = { level = "allow", priority = 0 }
 must_use_candidate = { level = "allow", priority = 0 }
