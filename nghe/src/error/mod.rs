@@ -270,6 +270,8 @@ pub enum Kind {
 #[from_owned(std::str::Utf8Error)]
 #[from_owned(tracing_subscriber::util::TryInitError)]
 #[from_owned(image::ImageError)]
+#[from_owned(aws_sdk_s3::primitives::ByteStreamError)]
+#[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
 pub struct Error {
     pub status_code: StatusCode,
     pub open_subsonic_code: OpenSubsonicCode,
@@ -384,14 +386,46 @@ impl<T: Send + Sync + 'static> From<loole::SendError<T>> for Error {
 }
 
 mod s3 {
-    use ::s3::Error as S3Error;
+    use aws_sdk_s3::error::SdkError;
+    use aws_sdk_s3::operation::get_object::GetObjectError;
+    use aws_sdk_s3::operation::head_object::HeadObjectError;
+    use aws_sdk_s3::operation::list_objects_v2::ListObjectsV2Error;
 
     use super::*;
 
-    impl From<S3Error> for Error {
-        fn from(source: S3Error) -> Self {
-            let (status_code, open_subsonic_code) = if let Some(status) = source.status()
-                && status == StatusCode::NOT_FOUND
+    impl From<SdkError<ListObjectsV2Error>> for Error {
+        fn from(source: SdkError<ListObjectsV2Error>) -> Self {
+            let (status_code, open_subsonic_code) = if let SdkError::ServiceError(ref error) =
+                source
+                && let ListObjectsV2Error::NoSuchBucket(_) = error.err()
+            {
+                (StatusCode::NOT_FOUND, OpenSubsonicCode::TheRequestedDataWasNotFound)
+            } else {
+                (StatusCode::INTERNAL_SERVER_ERROR, OpenSubsonicCode::AGenericError)
+            };
+            Self::new(status_code, open_subsonic_code, source)
+        }
+    }
+
+    impl From<SdkError<GetObjectError>> for Error {
+        fn from(source: SdkError<GetObjectError>) -> Self {
+            let (status_code, open_subsonic_code) = if let SdkError::ServiceError(ref error) =
+                source
+                && let GetObjectError::NoSuchKey(_) = error.err()
+            {
+                (StatusCode::NOT_FOUND, OpenSubsonicCode::TheRequestedDataWasNotFound)
+            } else {
+                (StatusCode::INTERNAL_SERVER_ERROR, OpenSubsonicCode::AGenericError)
+            };
+            Self::new(status_code, open_subsonic_code, source)
+        }
+    }
+
+    impl From<SdkError<HeadObjectError>> for Error {
+        fn from(source: SdkError<HeadObjectError>) -> Self {
+            let (status_code, open_subsonic_code) = if let SdkError::ServiceError(ref error) =
+                source
+                && let HeadObjectError::NotFound(_) = error.err()
             {
                 (StatusCode::NOT_FOUND, OpenSubsonicCode::TheRequestedDataWasNotFound)
             } else {

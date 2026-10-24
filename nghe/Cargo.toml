@@ -41,6 +41,17 @@ nghe-proc-macro = { path = "../nghe-proc-macro" }
 alrc = { version = "0.1.0" }
 async-walkdir = { version = "2.1.0" }
 atomic-write-file = { version = "0.3.0" }
+aws-config = { version = "1.13.0", default-features = false, features = [
+  "rt-tokio",
+  "behavior-version-latest",
+] }
+aws-sdk-s3 = { version = "1.155.0", default-features = false, features = [
+  "default-https-client",
+  "http-1x",
+  "rt-tokio",
+  "rustls",
+  "sigv4a",
+] }
 axum = { version = "0.8.4", default-features = false, features = [
   "http1",
   "http2",
@@ -79,10 +90,6 @@ rspotify = { version = "0.16.0", default-features = false, features = [
   "reqwest-native-tls",
 ] }
 rustfs-mimalloc = { version = "0.7.0" }
-s3 = { version = "0.1.8", default-features = false, features = [
-  "async",
-  "native-tls",
-] }
 tokio = { version = "1.45.1", features = [
   "fs",
   "macros",
