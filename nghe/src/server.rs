@@ -6,7 +6,6 @@ use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
 use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
-use tower_http::services::Redirect;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -110,11 +109,7 @@ pub async fn build(config: config::Config) -> Router {
         .with_state(database::Database::new(&config.database))
         .layer(backend_middleware);
 
-    Router::new().nest(nghe_api::http::BACKEND_PREFIX, backend_router).fallback_service(Redirect::<
-        axum::body::Body,
-    >::permanent(
-        nghe_api::http::FRONTEND_PREFIX.parse().unwrap(),
-    ))
+    Router::new().nest(nghe_api::http::BACKEND_PREFIX, backend_router)
 }
 
 #[coverage(off)]

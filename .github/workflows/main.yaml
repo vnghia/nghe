@@ -96,7 +96,7 @@ jobs:
         run: nix develop --command /usr/libexec/docker/cli-plugins/docker-compose -f dev/test/docker-compose.yaml up -d
       - name: Test
         if: ${{ steps.build.outputs.profile != 'release' }}
-        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+        run: nix develop .#${{ steps.build.outputs.vendor }} --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'amd64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
@@ -173,7 +173,7 @@ jobs:
           nix develop --command bash -c 'weed mini -dir=${RUNNER_TEMP}/weed -s3.port=${AWS_PORT} &'
       - name: Test
         if: ${{ steps.build.outputs.profile != 'release' }}
-        run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace --exclude nghe-frontend
+        run: nix develop .#default --command cargo nextest run --locked --profile ci --cargo-profile ${{ steps.build.outputs.profile }} --workspace
         env:
           LASTFM_KEY: ${{ steps.build.outputs.docker-arch == 'arm64' && secrets.LASTFM_KEY || '' }}
       - name: Upload test report to Codecov
@@ -270,7 +270,7 @@ jobs:
       - name: Run test services
         run: nix develop --command /usr/libexec/docker/cli-plugins/docker-compose -f dev/test/docker-compose.yaml up -d
       - name: Generate code coverage
-        run: nix develop .#coverage --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json --exclude nghe-frontend
+        run: nix develop .#coverage --command cargo llvm-cov nextest --profile ci --workspace --codecov --output-path codecov.json
         env:
           LASTFM_KEY: ${{ secrets.LASTFM_KEY }}
       - name: Upload test report to Codecov
