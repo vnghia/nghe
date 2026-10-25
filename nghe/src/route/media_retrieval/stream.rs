@@ -30,11 +30,12 @@ pub async fn handler(
     let bitrate = request.max_bit_rate.unwrap_or(32);
     let time_offset = request.time_offset.unwrap_or(0);
 
-    let format = match request.format.unwrap_or_default() {
+    let source_format = source.property.format;
+    let sink_format = match request.format.unwrap_or_default() {
         Format::Raw => return download::handler_impl(filesystem, source, size_offset).await,
         Format::Transcode(format) => format,
     };
-    let property = source.property.replace(format);
+    let property = source.property.replace(sink_format);
     let source_path = source.path.to_path();
 
     let transcode_args = if let Some(ref cache_dir) = config.cache_dir {
@@ -58,7 +59,7 @@ pub async fn handler(
             } else {
                 return binary::Response::from_path(
                     output,
-                    format,
+                    sink_format,
                     size_offset,
                     #[cfg(test)]
                     BinaryStatus::ServeCachedOutput,
@@ -89,16 +90,15 @@ pub async fn handler(
 
     let (rx, _) = transcode::Transcoder::spawn(
         &config,
-        transcode_args.0,
-        format,
+        transcode::source::Args { format: source_format, source: transcode_args.0 },
+        transcode::sink::Args { format: sink_format, cache: transcode_args.1 },
         bitrate,
         time_offset,
-        transcode_args.1,
     );
 
     binary::Response::from_rx(
         rx,
-        format,
+        sink_format,
         #[cfg(test)]
         transcode_args.2,
     )
@@ -116,7 +116,7 @@ mod tests {
     use super::*;
     use crate::file::audio;
     use crate::test::binary::Header as BinaryHeader;
-    use crate::test::{Mock, mock};
+    use crate::test::{Mock, assets, mock};
 
     async fn spawn_stream(
         mock: &Mock,
@@ -158,24 +158,38 @@ mod tests {
     ) {
         mock.add_music_folder().ty(ty).call().await;
         let mut music_folder = mock.music_folder(0).await;
-        music_folder.add_audio_filesystem::<&str>().format(audio::Format::Flac).call().await;
+        let source_format = audio::Format::Flac;
+        music_folder.add_audio_filesystem::<&str>().format(source_format).call().await;
 
         let config = &mock.config.transcode;
         let user_id = mock.user_id(0).await;
         let song_id = music_folder.song_id_filesystem(0).await;
-        let format = format::Transcode::Opus;
-        let bitrate = 32;
+        let sink_format = format::Transcode::Opus;
+        let bit_rate = 32;
 
         let transcoded = {
             let path = music_folder.absolute_path(0);
-            let source = music_folder.to_impl().read_to_read(path.to_path(), None).await.unwrap();
-            transcode::Transcoder::spawn_collect(config, source, format, bitrate, 0).await
+            transcode::Transcoder::spawn_collect(
+                config,
+                transcode::source::Args {
+                    format: source_format,
+                    source: music_folder
+                        .to_impl()
+                        .read_to_read(path.to_path(), None)
+                        .await
+                        .unwrap(),
+                },
+                transcode::sink::Args { format: sink_format, cache: None },
+                bit_rate,
+                0,
+            )
+            .await
         };
 
         let request = Request {
             id: song_id,
-            max_bit_rate: Some(bitrate),
-            format: Some(format.into()),
+            max_bit_rate: Some(bit_rate),
+            format: Some(sink_format.into()),
             time_offset: None,
         };
 
@@ -183,6 +197,20 @@ mod tests {
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(body, transcoded);
+            if ty != filesystem::Type::Local {
+                let local_transcoded = transcode::Transcoder::spawn_collect(
+                    config,
+                    transcode::source::Args {
+                        format: source_format,
+                        source: assets::source(assets::path(source_format)).await,
+                    },
+                    transcode::sink::Args { format: sink_format, cache: None },
+                    bit_rate,
+                    0,
+                )
+                .await;
+                assert_eq!(body, local_transcoded);
+            }
         }
         assert_eq!(binary_status, &[BinaryStatus::WithCache, BinaryStatus::WithCache]);
 
@@ -207,25 +235,39 @@ mod tests {
     ) {
         mock.add_music_folder().ty(ty).call().await;
         let mut music_folder = mock.music_folder(0).await;
-        music_folder.add_audio_filesystem::<&str>().format(audio::Format::Flac).call().await;
+        let source_format = audio::Format::Flac;
+        music_folder.add_audio_filesystem::<&str>().format(source_format).call().await;
 
         let user_id = mock.user_id(0).await;
         let song_id = music_folder.song_id_filesystem(0).await;
         let config = &mock.config.transcode;
-        let format = format::Transcode::Opus;
-        let bitrate = 32;
+        let sink_format = format::Transcode::Opus;
+        let bit_rate = 32;
         let time_offset = 10;
 
         let transcoded = {
             let path = music_folder.absolute_path(0);
-            let source = music_folder.to_impl().read_to_read(path.to_path(), None).await.unwrap();
-            transcode::Transcoder::spawn_collect(config, source, format, bitrate, time_offset).await
+            transcode::Transcoder::spawn_collect(
+                config,
+                transcode::source::Args {
+                    format: source_format,
+                    source: music_folder
+                        .to_impl()
+                        .read_to_read(path.to_path(), None)
+                        .await
+                        .unwrap(),
+                },
+                transcode::sink::Args { format: sink_format, cache: None },
+                bit_rate,
+                time_offset,
+            )
+            .await
         };
 
         let request = Request {
             id: song_id,
-            max_bit_rate: Some(bitrate),
-            format: Some(format.into()),
+            max_bit_rate: Some(bit_rate),
+            format: Some(sink_format.into()),
             time_offset: Some(time_offset),
         };
 
@@ -233,6 +275,20 @@ mod tests {
         for (status, body) in responses {
             assert_eq!(status, StatusCode::OK);
             assert_eq!(transcoded, body);
+            if ty != filesystem::Type::Local {
+                let local_transcoded = transcode::Transcoder::spawn_collect(
+                    config,
+                    transcode::source::Args {
+                        format: source_format,
+                        source: assets::source(assets::path(source_format)).await,
+                    },
+                    transcode::sink::Args { format: sink_format, cache: None },
+                    bit_rate,
+                    time_offset,
+                )
+                .await;
+                assert_eq!(body, local_transcoded);
+            }
         }
         assert_eq!(binary_status, &[BinaryStatus::NoCache, BinaryStatus::NoCache]);
 

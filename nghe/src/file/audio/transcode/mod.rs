@@ -1,6 +1,6 @@
 mod format;
-mod sink;
+pub mod sink;
+pub mod source;
 mod transcoder;
 
-pub use sink::Sink;
 pub use transcoder::Transcoder;
