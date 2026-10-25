@@ -82,10 +82,9 @@ impl filesystem::Trait for Impl<'_> {
         offset: Option<u64>,
     ) -> Result<Self::AsyncRead, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem
-                .read_to_async_read(path, offset)
-                .await
-                .map(filesystem::io::AsyncRead::Local),
+            Impl::Local(filesystem) => {
+                filesystem.read_to_async_read(path, offset).await.map(Into::into)
+            }
             Impl::S3(filesystem) => {
                 filesystem.read_to_async_read(path, offset).await.map(filesystem::io::AsyncRead::S3)
             }
@@ -98,9 +97,7 @@ impl filesystem::Trait for Impl<'_> {
         offset: Option<u64>,
     ) -> Result<Self::Read, Error> {
         match self {
-            Impl::Local(filesystem) => {
-                filesystem.read_to_read(path, offset).await.map(filesystem::io::Read::Local)
-            }
+            Impl::Local(filesystem) => filesystem.read_to_read(path, offset).await.map(Into::into),
             Impl::S3(filesystem) => {
                 filesystem.read_to_read(path, offset).await.map(filesystem::io::Read::S3)
             }

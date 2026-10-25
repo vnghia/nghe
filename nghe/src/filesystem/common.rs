@@ -46,8 +46,8 @@ impl Impl<'_> {
 }
 
 pub trait Trait {
-    type AsyncRead: tokio::io::AsyncBufRead + Unpin;
-    type Read: std::io::BufRead;
+    type AsyncRead: tokio::io::AsyncRead + Unpin;
+    type Read: std::io::Read;
 
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error>;
     async fn scan_folder(
@@ -122,7 +122,7 @@ impl Trait for Impl<'_> {
     ) -> Result<Self::AsyncRead, Error> {
         match self {
             Impl::Local(filesystem) => {
-                filesystem.read_to_async_read(path, offset).await.map(super::io::AsyncRead::Local)
+                filesystem.read_to_async_read(path, offset).await.map(Into::into)
             }
             Impl::S3(filesystem) => {
                 filesystem.read_to_async_read(path, offset).await.map(super::io::AsyncRead::S3)
@@ -136,9 +136,7 @@ impl Trait for Impl<'_> {
         offset: Option<u64>,
     ) -> Result<Self::Read, Error> {
         match self {
-            Impl::Local(filesystem) => {
-                filesystem.read_to_read(path, offset).await.map(super::io::Read::Local)
-            }
+            Impl::Local(filesystem) => filesystem.read_to_read(path, offset).await.map(Into::into),
             Impl::S3(filesystem) => {
                 filesystem.read_to_read(path, offset).await.map(super::io::Read::S3)
             }
