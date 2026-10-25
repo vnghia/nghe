@@ -35,6 +35,7 @@ pub trait Trait: filesystem::Trait {
 
 impl filesystem::Trait for Impl<'_> {
     type AsyncRead = filesystem::io::AsyncRead;
+    type Read = filesystem::io::Read;
 
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         match self {
@@ -87,6 +88,21 @@ impl filesystem::Trait for Impl<'_> {
                 .map(filesystem::io::AsyncRead::Local),
             Impl::S3(filesystem) => {
                 filesystem.read_to_async_read(path, offset).await.map(filesystem::io::AsyncRead::S3)
+            }
+        }
+    }
+
+    async fn read_to_read(
+        &self,
+        path: Utf8TypedPath<'_>,
+        offset: Option<u64>,
+    ) -> Result<Self::Read, Error> {
+        match self {
+            Impl::Local(filesystem) => {
+                filesystem.read_to_read(path, offset).await.map(filesystem::io::Read::Local)
+            }
+            Impl::S3(filesystem) => {
+                filesystem.read_to_read(path, offset).await.map(filesystem::io::Read::S3)
             }
         }
     }

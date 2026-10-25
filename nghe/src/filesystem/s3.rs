@@ -80,6 +80,7 @@ impl Filesystem {
 
 impl super::Trait for Filesystem {
     type AsyncRead = impl tokio::io::AsyncBufRead + Unpin;
+    type Read = tokio_util::io::SyncIoBridge<impl tokio::io::AsyncBufRead + Unpin>;
 
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
@@ -160,6 +161,14 @@ impl super::Trait for Filesystem {
             .await?
             .body
             .into_async_read())
+    }
+
+    async fn read_to_read(
+        &self,
+        path: Utf8TypedPath<'_>,
+        offset: Option<u64>,
+    ) -> Result<Self::Read, Error> {
+        Ok(tokio_util::io::SyncIoBridge::new(self.read_to_async_read(path, offset).await?))
     }
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {

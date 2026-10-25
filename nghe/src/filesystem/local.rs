@@ -1,9 +1,10 @@
 use std::fs::Metadata;
+use std::io::{Seek as _, SeekFrom};
 
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
 use time::OffsetDateTime;
-use tokio::io::{AsyncSeekExt, SeekFrom};
+use tokio::io::AsyncSeekExt as _;
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 
 use super::{entry, path};
@@ -42,7 +43,7 @@ impl Filesystem {
         }
     }
 
-    pub async fn open_with_offset(
+    pub async fn async_open_with_offset(
         path: impl AsRef<Utf8PlatformPath>,
         offset: impl Into<Option<u64>> + Copy,
     ) -> Result<tokio::fs::File, Error> {
@@ -54,10 +55,24 @@ impl Filesystem {
         }
         Ok(file)
     }
+
+    pub fn open_with_offset(
+        path: impl AsRef<Utf8PlatformPath>,
+        offset: impl Into<Option<u64>> + Copy,
+    ) -> Result<std::fs::File, Error> {
+        let mut file = std::fs::File::open(path.as_ref())?;
+        if let Some(offset) = offset.into()
+            && offset > 0
+        {
+            file.seek(SeekFrom::Start(offset))?;
+        }
+        Ok(file)
+    }
 }
 
 impl super::Trait for Filesystem {
     type AsyncRead = tokio::io::BufReader<tokio::fs::File>;
+    type Read = std::io::BufReader<std::fs::File>;
 
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         if !Self::is_native(path) {
@@ -119,7 +134,19 @@ impl super::Trait for Filesystem {
         offset: Option<u64>,
     ) -> Result<Self::AsyncRead, Error> {
         let path = Self::to_platform(path)?;
-        Ok(tokio::io::BufReader::new(Self::open_with_offset(path, offset).await?))
+        Ok(tokio::io::BufReader::new(Self::async_open_with_offset(path, offset).await?))
+    }
+
+    async fn read_to_read(
+        &self,
+        path: Utf8TypedPath<'_>,
+        offset: Option<u64>,
+    ) -> Result<Self::Read, Error> {
+        let path = Self::to_platform(path)?;
+        tokio::task::spawn_blocking(move || {
+            Ok(std::io::BufReader::new(Self::open_with_offset(path, offset)?))
+        })
+        .await?
     }
 
     fn transcode_input(

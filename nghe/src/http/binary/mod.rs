@@ -122,7 +122,8 @@ impl Response {
         #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
         Self::from_async_read(
-            crate::filesystem::local::Filesystem::open_with_offset(path.as_ref(), offset).await?,
+            crate::filesystem::local::Filesystem::async_open_with_offset(path.as_ref(), offset)
+                .await?,
             property,
             offset,
             #[cfg(test)]

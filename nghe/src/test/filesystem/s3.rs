@@ -44,6 +44,7 @@ impl Mock {
 
 impl filesystem::Trait for Mock {
     type AsyncRead = <s3::Filesystem as filesystem::Trait>::AsyncRead;
+    type Read = <s3::Filesystem as filesystem::Trait>::Read;
 
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         self.filesystem.check_folder(path).await
@@ -75,6 +76,14 @@ impl filesystem::Trait for Mock {
         offset: Option<u64>,
     ) -> Result<Self::AsyncRead, Error> {
         self.filesystem.read_to_async_read(path, offset).await
+    }
+
+    async fn read_to_read(
+        &self,
+        path: Utf8TypedPath<'_>,
+        offset: Option<u64>,
+    ) -> Result<Self::Read, Error> {
+        self.filesystem.read_to_read(path, offset).await
     }
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
