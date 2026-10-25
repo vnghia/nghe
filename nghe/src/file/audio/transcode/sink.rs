@@ -1,23 +1,46 @@
+use std::fs::File;
 use std::io::{Result as IoResult, Write};
 
+use atomic_write_file::AtomicWriteFile;
 use educe::Educe;
-use ffmpeg_next::format::context::StreamIo;
+use ffmpeg_next::format as avformat;
 use loole::Sender;
 use nghe_api::format;
+use typed_path::Utf8PlatformPathBuf;
 
 use crate::Error;
+#[derive(Debug)]
+pub struct Args {
+    pub format: format::Transcode,
+    pub cache: Option<Utf8PlatformPathBuf>,
+}
 
 #[derive(Educe)]
 #[educe(Debug)]
 pub struct Sink {
+    pub format: format::Transcode,
     #[educe(Debug(ignore))]
     pub tx: Sender<Vec<u8>>,
-    pub buffer_size: usize,
-    pub format: format::Transcode,
-    pub cache: Option<std::fs::File>,
+    pub cache: Option<File>,
+}
+
+impl Args {
+    pub fn open_cache(&self) -> Result<Option<AtomicWriteFile>, Error> {
+        self.cache.as_ref().map(AtomicWriteFile::open).transpose().map_err(Into::into)
+    }
 }
 
 impl Sink {
+    pub fn try_into_context(self, buffer_size: usize) -> Result<avformat::context::Output, Error> {
+        let filename = self.filename();
+        avformat::output_to_stream(
+            avformat::context::StreamIo::from_write_with_capacity(self, buffer_size)?,
+            Some(filename),
+            None,
+        )
+        .map_err(Into::into)
+    }
+
     pub fn filename(&self) -> &'static str {
         match self.format {
             format::Transcode::Aac => ".aac",
@@ -54,14 +77,5 @@ impl Write for Sink {
         self.tx.close();
         self.cache.as_mut().map(Write::flush).transpose()?;
         Ok(())
-    }
-}
-
-impl TryFrom<Sink> for StreamIo {
-    type Error = Error;
-
-    fn try_from(sink: Sink) -> Result<Self, Self::Error> {
-        let buffer_size = sink.buffer_size;
-        Self::from_write_with_capacity(sink, buffer_size).map_err(Error::from)
     }
 }

@@ -9,7 +9,8 @@ use ffmpeg_next::{
 use loole::Receiver;
 use tracing::instrument;
 
-use super::{Path, Sink};
+use super::sink::{self, Sink};
+use super::source::{self, Source};
 use crate::{Error, config, error};
 
 struct Input {
@@ -41,8 +42,8 @@ pub struct Transcoder {
 }
 
 impl Input {
-    fn new(input: &str) -> Result<Self, Error> {
-        let context = avformat::input(input)?;
+    fn new(source: Source, buffer_size: usize) -> Result<Self, Error> {
+        let context = source.try_into_context(buffer_size)?;
 
         let stream = context
             .streams()
@@ -60,10 +61,14 @@ impl Input {
 }
 
 impl Output {
-    fn new(sink: Sink, bit_rate: u32, decoder: &avcodec::decoder::Audio) -> Result<Self, Error> {
+    fn new(
+        sink: Sink,
+        buffer_size: usize,
+        bit_rate: u32,
+        decoder: &avcodec::decoder::Audio,
+    ) -> Result<Self, Error> {
         let filename = sink.filename();
-        let mut context =
-            ffmpeg_next::format::output_to_stream(sink.try_into()?, Some(filename), None)?;
+        let mut context = sink.try_into_context(buffer_size)?;
 
         if cfg!(test) {
             // Set bitexact for deterministic transcoding output.
@@ -249,37 +254,49 @@ impl Filter {
 }
 
 impl Transcoder {
-    #[cfg_attr(not(coverage_nightly), instrument)]
+    #[cfg_attr(not(coverage_nightly), instrument(skip(source)))]
     pub fn spawn(
         config: &config::Transcode,
-        path: Path,
-        format: nghe_api::format::Transcode,
+        source: source::Args,
+        sink: sink::Args,
         bit_rate: u32,
         offset: u32,
     ) -> (Receiver<Vec<u8>>, tokio::task::JoinHandle<Result<(), Error>>) {
         let (tx, rx) = crate::sync::channel(config.channel_size);
-        let buffer_size = config.buffer_size;
+        let source_buffer_size = config.source_buffer_size;
+        let sink_buffer_size = config.sink_buffer_size;
 
         let span = tracing::Span::current();
         let handle = tokio::task::spawn_blocking(move || {
             let _entered = span.enter();
 
-            let atomic_cache = path.cache.map(AtomicWriteFile::open).transpose()?;
-            let cache = atomic_cache.as_ref().map(|file| file.as_file().try_clone()).transpose()?;
-            let sink = Sink { tx, buffer_size, format, cache };
+            let cache = sink.open_cache()?;
+            let sink = Sink {
+                tx,
+                format: sink.format,
+                cache: cache.as_ref().map(|cache| cache.as_file().try_clone()).transpose()?,
+            };
 
-            let mut transcoder = Self::new(&path.input, sink, bit_rate, offset)?;
+            let mut transcoder =
+                Self::new(source, source_buffer_size, sink, sink_buffer_size, bit_rate, offset)?;
             transcoder.transcode()?;
-            atomic_cache.map(AtomicWriteFile::commit).transpose()?;
+            cache.map(AtomicWriteFile::commit).transpose()?;
             Ok(())
         });
 
         (rx, handle)
     }
 
-    fn new(input: &str, sink: Sink, bit_rate: u32, offset: u32) -> Result<Self, Error> {
-        let input = Input::new(input)?;
-        let output = Output::new(sink, bit_rate, &input.decoder)?;
+    fn new(
+        source: Source,
+        source_buffer_size: usize,
+        sink: Sink,
+        sink_buffer_size: usize,
+        bit_rate: u32,
+        offset: u32,
+    ) -> Result<Self, Error> {
+        let input = Input::new(source, source_buffer_size)?;
+        let output = Output::new(sink, sink_buffer_size, bit_rate, &input.decoder)?;
         let graph = Graph::new(&input, &output, offset);
         Ok(Self { input, output, graph })
     }
@@ -337,7 +354,6 @@ impl Transcoder {
 #[coverage(off)]
 mod test {
     use futures_lite::{StreamExt, stream};
-    use nghe_api::format;
 
     use super::*;
     use crate::config;
@@ -345,18 +361,12 @@ mod test {
     impl Transcoder {
         pub async fn spawn_collect(
             config: &config::Transcode,
-            input: impl Into<String>,
-            format: format::Transcode,
+            source: source::Args,
+            sink: sink::Args,
             bit_rate: u32,
             offset: u32,
         ) -> Vec<u8> {
-            let (rx, handle) = Transcoder::spawn(
-                config,
-                Path { input: input.into(), cache: None },
-                format,
-                bit_rate,
-                offset,
-            );
+            let (rx, handle) = Transcoder::spawn(config, source, sink, bit_rate, offset);
             let data = rx.into_stream().map(stream::iter).flatten().collect().await;
             handle.await.unwrap().unwrap();
             data
@@ -392,8 +402,12 @@ mod tests {
         };
         server::init_ffmpeg(&config).unwrap();
 
-        let input = assets::path(audio::Format::Flac);
-        let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;
+        let source = {
+            let format = audio::Format::Flac;
+            source::Args { format, source: assets::source(assets::path(format)).await }
+        };
+        let sink = sink::Args { format, cache: None };
+        let data = Transcoder::spawn_collect(&config, source, sink, bit_rate, offset).await;
 
         let transcoded = assets::transcoded(format, offset);
         if tokio::fs::try_exists(&transcoded).await.unwrap() {
@@ -421,8 +435,12 @@ mod tests {
         };
         server::init_ffmpeg(&config).unwrap();
 
-        let input = env!("NGHE_HEARING_TEST_INPUT");
-        let data = Transcoder::spawn_collect(&config, input, format, bit_rate, offset).await;
+        let source = source::Args {
+            format: audio::Format::Flac,
+            source: assets::source(std::env::var("NGHE_HEARING_TEST_INPUT").unwrap().into()).await,
+        };
+        let sink = sink::Args { format, cache: None };
+        let data = Transcoder::spawn_collect(&config, source, sink, bit_rate, offset).await;
 
         tokio::fs::write(
             typed_path::Utf8PlatformPath::new(env!("NGHE_HEARING_TEST_OUTPUT"))

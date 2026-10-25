@@ -50,7 +50,6 @@ aws-sdk-s3 = { version = "1.155.0", default-features = false, features = [
   "http-1x",
   "rt-tokio",
   "rustls",
-  "sigv4a",
 ] }
 axum = { version = "0.8.4", default-features = false, features = [
   "http1",
@@ -87,7 +86,7 @@ loole = { version = "0.6.0" }
 o2o = { version = "0.5.4", default-features = false, features = ["syn2"] }
 rspotify = { version = "0.16.0", default-features = false, features = [
   "client-reqwest",
-  "reqwest-native-tls",
+  "reqwest-rustls-tls",
 ] }
 rustfs-mimalloc = { version = "0.7.0" }
 tokio = { version = "1.45.1", features = [
@@ -99,7 +98,7 @@ tokio = { version = "1.45.1", features = [
   # command
   "io-std",
 ] }
-tokio-util = { version = "0.7.15", features = ["io"] }
+tokio-util = { version = "0.7.15", features = ["io", "io-util"] }
 tower = { version = "0.5.2" }
 tower-http = { version = "0.7.0", features = [
   "cors",

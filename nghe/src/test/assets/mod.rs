@@ -1,6 +1,7 @@
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf};
 
 use crate::file::audio;
+use crate::filesystem;
 
 pub fn dir() -> Utf8PlatformPathBuf {
     Utf8PlatformPath::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap())
@@ -12,6 +13,10 @@ pub fn dir() -> Utf8PlatformPathBuf {
 
 pub fn path(format: audio::Format) -> Utf8PlatformPathBuf {
     dir().join("sample").with_extension(format.as_ref())
+}
+
+pub async fn source(path: Utf8PlatformPathBuf) -> filesystem::io::Read {
+    filesystem::local::Filesystem::read_to_read_platform(path, None).await.unwrap().into()
 }
 
 pub fn transcoded(format: nghe_api::format::Transcode, offset: u32) -> Utf8PlatformPathBuf {

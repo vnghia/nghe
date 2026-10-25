@@ -25,7 +25,9 @@ pub enum LogLevel {
 #[educe(Default)]
 pub struct Transcode {
     #[educe(Default(expression = 32 * 1024))]
-    pub buffer_size: usize,
+    pub source_buffer_size: usize,
+    #[educe(Default(expression = 32 * 1024))]
+    pub sink_buffer_size: usize,
     #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
     #[educe(Default(expression = Some(10)))]
     pub channel_size: Option<usize>,

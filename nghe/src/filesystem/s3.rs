@@ -1,7 +1,6 @@
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_s3::Client;
-use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
 use concat_string::concat_string;
@@ -10,15 +9,12 @@ use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
-use crate::file::{self, audio};
-use crate::http::binary;
 use crate::{Error, config, error};
 #[derive(Clone, Educe)]
 #[educe(Debug)]
 pub struct Filesystem {
     #[educe(Debug(ignore))]
     client: Client,
-    presigned_duration: std::time::Duration,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -50,7 +46,7 @@ impl Filesystem {
                 .build(),
         );
 
-        Self { client, presigned_duration: std::time::Duration::from_mins(s3.presigned_duration) }
+        Self { client }
     }
 
     pub fn split<'b, 'k, 'p: 'b + 'k>(
@@ -81,6 +77,9 @@ impl Filesystem {
 }
 
 impl super::Trait for Filesystem {
+    type AsyncRead = impl tokio::io::AsyncBufRead + Unpin;
+    type Read = tokio_util::io::SyncIoBridge<impl tokio::io::AsyncBufRead + Unpin>;
+
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
         self.client.list_objects_v2().bucket(bucket).prefix(key).max_keys(1).send().await?;
@@ -144,14 +143,13 @@ impl super::Trait for Filesystem {
         String::from_utf8(self.read(path).await?).map_err(Error::from)
     }
 
-    async fn read_to_binary(
+    async fn read_to_async_read(
         &self,
-        source: &binary::Source<file::Property<audio::Format>>,
+        path: Utf8TypedPath<'_>,
         offset: Option<u64>,
-    ) -> Result<binary::Response, Error> {
-        let path = source.path.to_path();
+    ) -> Result<Self::AsyncRead, Error> {
         let Path { bucket, key } = Self::split(path)?;
-        let reader = self
+        Ok(self
             .client
             .get_object()
             .bucket(bucket)
@@ -160,27 +158,15 @@ impl super::Trait for Filesystem {
             .send()
             .await?
             .body
-            .into_async_read();
-        binary::Response::from_async_read(
-            reader,
-            &source.property,
-            offset,
-            #[cfg(test)]
-            None,
-        )
+            .into_async_read())
     }
 
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        let Path { bucket, key } = Self::split(path)?;
-        Ok(self
-            .client
-            .get_object()
-            .bucket(bucket)
-            .key(key)
-            .presigned(PresigningConfig::expires_in(self.presigned_duration)?)
-            .await?
-            .uri()
-            .to_owned())
+    async fn read_to_read(
+        &self,
+        path: Utf8TypedPath<'_>,
+        offset: Option<u64>,
+    ) -> Result<Self::Read, Error> {
+        Ok(tokio_util::io::SyncIoBridge::new(self.read_to_async_read(path, offset).await?))
     }
 }
 

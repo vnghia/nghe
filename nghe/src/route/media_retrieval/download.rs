@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::Error;
 use crate::database::Database;
 use crate::file::{self, audio};
-use crate::filesystem::{self, Filesystem, Trait};
+use crate::filesystem::{self, Filesystem};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 
@@ -15,7 +15,7 @@ pub async fn handler_impl(
     source: binary::Source<file::Property<audio::Format>>,
     offset: Option<u64>,
 ) -> Result<binary::Response, Error> {
-    filesystem.read_to_binary(&source, offset).await
+    filesystem.read_to_http_binary(&source, offset).await
 }
 
 #[handler]
@@ -46,6 +46,7 @@ mod tests {
 
     use super::*;
     use crate::file::audio;
+    use crate::filesystem::Trait as _;
     use crate::http::header::ToETag;
     use crate::test::{Mock, mock};
 

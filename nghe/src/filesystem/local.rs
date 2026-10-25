@@ -1,13 +1,13 @@
 use std::fs::Metadata;
+use std::io::{Seek as _, SeekFrom};
 
 use async_walkdir::WalkDir;
 use futures_lite::stream::StreamExt;
 use time::OffsetDateTime;
-use typed_path::{Utf8PlatformPathBuf, Utf8TypedPath};
+use tokio::io::AsyncSeekExt as _;
+use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 
 use super::{entry, path};
-use crate::file::{self, audio};
-use crate::http::binary;
 use crate::{Error, error};
 
 #[derive(Debug, Clone, Copy)]
@@ -42,9 +42,48 @@ impl Filesystem {
             }
         }
     }
+
+    pub async fn async_open_with_offset(
+        path: impl AsRef<Utf8PlatformPath>,
+        offset: impl Into<Option<u64>> + Copy,
+    ) -> Result<tokio::fs::File, Error> {
+        let mut file = tokio::fs::File::open(path.as_ref()).await?;
+        if let Some(offset) = offset.into()
+            && offset > 0
+        {
+            file.seek(SeekFrom::Start(offset)).await?;
+        }
+        Ok(file)
+    }
+
+    pub fn open_with_offset(
+        path: impl AsRef<Utf8PlatformPath>,
+        offset: impl Into<Option<u64>> + Copy,
+    ) -> Result<std::fs::File, Error> {
+        let mut file = std::fs::File::open(path.as_ref())?;
+        if let Some(offset) = offset.into()
+            && offset > 0
+        {
+            file.seek(SeekFrom::Start(offset))?;
+        }
+        Ok(file)
+    }
+
+    pub async fn read_to_read_platform(
+        path: Utf8PlatformPathBuf,
+        offset: Option<u64>,
+    ) -> Result<<Self as super::Trait>::Read, Error> {
+        tokio::task::spawn_blocking(move || {
+            Ok(std::io::BufReader::new(Self::open_with_offset(path, offset)?))
+        })
+        .await?
+    }
 }
 
 impl super::Trait for Filesystem {
+    type AsyncRead = tokio::io::BufReader<tokio::fs::File>;
+    type Read = std::io::BufReader<std::fs::File>;
+
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         if !Self::is_native(path) {
             error::Kind::InvalidTypedPathPlatform(path.to_path_buf()).into()
@@ -99,27 +138,22 @@ impl super::Trait for Filesystem {
         tokio::fs::read_to_string(path.as_str()).await.map_err(Error::from)
     }
 
-    async fn read_to_binary(
-        &self,
-        source: &binary::Source<file::Property<audio::Format>>,
-        offset: Option<u64>,
-    ) -> Result<binary::Response, Error> {
-        let path = Self::to_platform(source.path.to_path())?;
-        binary::Response::from_path_property(
-            path,
-            &source.property,
-            offset,
-            #[cfg(test)]
-            None,
-        )
-        .await
-    }
-
-    fn transcode_input(
+    async fn read_to_async_read(
         &self,
         path: Utf8TypedPath<'_>,
-    ) -> impl Future<Output = Result<String, Error>> {
-        std::future::ready(Ok(path.as_str().to_owned()))
+        offset: Option<u64>,
+    ) -> Result<Self::AsyncRead, Error> {
+        let path = Self::to_platform(path)?;
+        Ok(tokio::io::BufReader::new(Self::async_open_with_offset(path, offset).await?))
+    }
+
+    async fn read_to_read(
+        &self,
+        path: Utf8TypedPath<'_>,
+        offset: Option<u64>,
+    ) -> Result<Self::Read, Error> {
+        let path = Self::to_platform(path)?;
+        Self::read_to_read_platform(path, offset).await
     }
 }
 
