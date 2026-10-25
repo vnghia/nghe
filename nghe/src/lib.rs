@@ -1,3 +1,4 @@
+#![allow(async_fn_in_trait)]
 #![allow(incomplete_features)]
 #![feature(adt_const_params)]
 #![feature(anonymous_lifetime_in_impl_trait)]

@@ -68,6 +68,16 @@ impl Filesystem {
         }
         Ok(file)
     }
+
+    pub async fn read_to_read_platform(
+        path: Utf8PlatformPathBuf,
+        offset: Option<u64>,
+    ) -> Result<<Self as super::Trait>::Read, Error> {
+        tokio::task::spawn_blocking(move || {
+            Ok(std::io::BufReader::new(Self::open_with_offset(path, offset)?))
+        })
+        .await?
+    }
 }
 
 impl super::Trait for Filesystem {
@@ -143,17 +153,7 @@ impl super::Trait for Filesystem {
         offset: Option<u64>,
     ) -> Result<Self::Read, Error> {
         let path = Self::to_platform(path)?;
-        tokio::task::spawn_blocking(move || {
-            Ok(std::io::BufReader::new(Self::open_with_offset(path, offset)?))
-        })
-        .await?
-    }
-
-    fn transcode_input(
-        &self,
-        path: Utf8TypedPath<'_>,
-    ) -> impl Future<Output = Result<String, Error>> {
-        std::future::ready(Ok(path.as_str().to_owned()))
+        Self::read_to_read_platform(path, offset).await
     }
 }
 

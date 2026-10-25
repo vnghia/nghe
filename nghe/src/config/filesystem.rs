@@ -36,8 +36,6 @@ pub struct S3 {
     pub use_path_style_endpoint: bool,
     #[educe(Default(expression = 5))]
     pub timeout: u64,
-    #[educe(Default(expression = 15))]
-    pub presigned_duration: u64,
     #[educe(Default(expression = 0))]
     pub stalled_stream_grace_preriod: u64,
 }

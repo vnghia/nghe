@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::download;
 use crate::database::Database;
 use crate::file::audio::transcode;
-use crate::filesystem::{Filesystem, Trait};
+use crate::filesystem::{Filesystem, Trait as _, local};
 use crate::http::binary;
 use crate::http::header::ToOffset;
 #[cfg(test)]
@@ -50,7 +50,8 @@ pub async fn handler(
         if cache_exists {
             if time_offset > 0 {
                 (
-                    transcode::Path { input: output.as_str().to_owned(), cache: None },
+                    local::Filesystem::read_to_read_platform(output, None).await?.into(),
+                    None,
                     #[cfg(test)]
                     BinaryStatus::UseCachedOutput,
                 )
@@ -71,30 +72,35 @@ pub async fn handler(
             //  - Otherwise, we spawn a transcoding process and let the sink writes the transcoded
             //    chunk to the cache file.
             (
-                transcode::Path {
-                    input: filesystem.transcode_input(source_path).await?,
-                    cache: if time_offset > 0 { None } else { Some(output) },
-                },
+                filesystem.read_to_read(source_path, None).await?,
+                if time_offset > 0 { None } else { Some(output) },
                 #[cfg(test)]
                 if time_offset > 0 { BinaryStatus::NoCache } else { BinaryStatus::WithCache },
             )
         }
     } else {
         (
-            transcode::Path { input: filesystem.transcode_input(source_path).await?, cache: None },
+            filesystem.read_to_read(source_path, None).await?,
+            None,
             #[cfg(test)]
             BinaryStatus::NoCache,
         )
     };
 
-    let (rx, _) =
-        transcode::Transcoder::spawn(&config, transcode_args.0, format, bitrate, time_offset);
+    let (rx, _) = transcode::Transcoder::spawn(
+        &config,
+        transcode_args.0,
+        format,
+        bitrate,
+        time_offset,
+        transcode_args.1,
+    );
 
     binary::Response::from_rx(
         rx,
         format,
         #[cfg(test)]
-        transcode_args.1,
+        transcode_args.2,
     )
 }
 
@@ -162,8 +168,8 @@ mod tests {
 
         let transcoded = {
             let path = music_folder.absolute_path(0);
-            let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
-            transcode::Transcoder::spawn_collect(config, &input, format, bitrate, 0).await
+            let source = music_folder.to_impl().read_to_read(path.to_path(), None).await.unwrap();
+            transcode::Transcoder::spawn_collect(config, source, format, bitrate, 0).await
         };
 
         let request = Request {
@@ -212,8 +218,8 @@ mod tests {
 
         let transcoded = {
             let path = music_folder.absolute_path(0);
-            let input = music_folder.to_impl().transcode_input(path.to_path()).await.unwrap();
-            transcode::Transcoder::spawn_collect(config, &input, format, bitrate, time_offset).await
+            let source = music_folder.to_impl().read_to_read(path.to_path(), None).await.unwrap();
+            transcode::Transcoder::spawn_collect(config, source, format, bitrate, time_offset).await
         };
 
         let request = Request {

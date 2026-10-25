@@ -68,10 +68,6 @@ impl filesystem::Trait for Mock {
     ) -> Result<Self::Read, Error> {
         self.filesystem.read_to_read(path, offset).await
     }
-
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        self.filesystem.transcode_input(path).await
-    }
 }
 
 impl super::Trait for Mock {

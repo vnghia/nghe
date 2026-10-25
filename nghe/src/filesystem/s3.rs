@@ -1,7 +1,6 @@
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_s3::Client;
-use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
 use aws_sdk_s3::types::Object;
 use concat_string::concat_string;
@@ -16,7 +15,6 @@ use crate::{Error, config, error};
 pub struct Filesystem {
     #[educe(Debug(ignore))]
     client: Client,
-    presigned_duration: std::time::Duration,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -48,7 +46,7 @@ impl Filesystem {
                 .build(),
         );
 
-        Self { client, presigned_duration: std::time::Duration::from_mins(s3.presigned_duration) }
+        Self { client }
     }
 
     pub fn split<'b, 'k, 'p: 'b + 'k>(
@@ -169,19 +167,6 @@ impl super::Trait for Filesystem {
         offset: Option<u64>,
     ) -> Result<Self::Read, Error> {
         Ok(tokio_util::io::SyncIoBridge::new(self.read_to_async_read(path, offset).await?))
-    }
-
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        let Path { bucket, key } = Self::split(path)?;
-        Ok(self
-            .client
-            .get_object()
-            .bucket(bucket)
-            .key(key)
-            .presigned(PresigningConfig::expires_in(self.presigned_duration)?)
-            .await?
-            .uri()
-            .to_owned())
     }
 }
 

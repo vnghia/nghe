@@ -70,8 +70,6 @@ pub trait Trait {
         path: Utf8TypedPath<'_>,
         offset: Option<u64>,
     ) -> Result<Self::Read, Error>;
-
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error>;
 }
 
 impl Trait for Impl<'_> {
@@ -144,13 +142,6 @@ impl Trait for Impl<'_> {
             Impl::S3(filesystem) => {
                 filesystem.read_to_read(path, offset).await.map(super::io::Read::S3)
             }
-        }
-    }
-
-    async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {
-        match self {
-            Impl::Local(filesystem) => filesystem.transcode_input(path).await,
-            Impl::S3(filesystem) => filesystem.transcode_input(path).await,
         }
     }
 }

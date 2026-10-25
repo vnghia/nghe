@@ -9,6 +9,12 @@ pub enum AsyncRead {
     S3(<s3::Filesystem as Trait>::AsyncRead),
 }
 
+impl From<<local::Filesystem as Trait>::AsyncRead> for AsyncRead {
+    fn from(value: <local::Filesystem as Trait>::AsyncRead) -> Self {
+        Self::Local(value)
+    }
+}
+
 impl Unpin for AsyncRead {}
 
 impl tokio::io::AsyncRead for AsyncRead {
@@ -43,6 +49,12 @@ impl tokio::io::AsyncBufRead for AsyncRead {
 pub enum Read {
     Local(<local::Filesystem as Trait>::Read),
     S3(<s3::Filesystem as Trait>::Read),
+}
+
+impl From<<local::Filesystem as Trait>::Read> for Read {
+    fn from(value: <local::Filesystem as Trait>::Read) -> Self {
+        Self::Local(value)
+    }
 }
 
 impl std::io::Read for Read {
