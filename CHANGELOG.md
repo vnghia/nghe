@@ -1,18 +1,5 @@
 # Changelog
 
-## [0.16.0](https://github.com/vnghia/nghe/compare/v0.15.1...v0.16.0) (2026-10-25)
-
-
-### Features
-
-* **ffmpeg:** use rust for reading transcoding input ([#1200](https://github.com/vnghia/nghe/issues/1200)) ([b3f2bc3](https://github.com/vnghia/nghe/commit/b3f2bc34a952bdd15cf0eab0c9004babf210025e))
-
-
-### Bug Fixes
-
-* cleanup unused frontend crate ([#1201](https://github.com/vnghia/nghe/issues/1201)) ([83f26d9](https://github.com/vnghia/nghe/commit/83f26d9f594fd35ea179e894ddf44ec7517db7d4))
-* **deps:** replace s3 with official aws-sdk-s3 ([#1199](https://github.com/vnghia/nghe/issues/1199)) ([2cd828a](https://github.com/vnghia/nghe/commit/2cd828adec168c66d6ad786ed21f0532473e8d2a))
-
 ## [0.15.1](https://github.com/vnghia/nghe/compare/v0.15.0...v0.15.1) (2026-10-23)
 
 
