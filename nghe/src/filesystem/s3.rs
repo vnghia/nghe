@@ -10,8 +10,6 @@ use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
 use super::{entry, path};
-use crate::file::{self, audio};
-use crate::http::binary;
 use crate::{Error, config, error};
 #[derive(Clone, Educe)]
 #[educe(Debug)]
@@ -81,6 +79,8 @@ impl Filesystem {
 }
 
 impl super::Trait for Filesystem {
+    type AsyncRead = impl tokio::io::AsyncBufRead + Unpin;
+
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         let Path { bucket, key } = Self::split(path)?;
         self.client.list_objects_v2().bucket(bucket).prefix(key).max_keys(1).send().await?;
@@ -144,14 +144,13 @@ impl super::Trait for Filesystem {
         String::from_utf8(self.read(path).await?).map_err(Error::from)
     }
 
-    async fn read_to_binary(
+    async fn read_to_async_read(
         &self,
-        source: &binary::Source<file::Property<audio::Format>>,
+        path: Utf8TypedPath<'_>,
         offset: Option<u64>,
-    ) -> Result<binary::Response, Error> {
-        let path = source.path.to_path();
+    ) -> Result<Self::AsyncRead, Error> {
         let Path { bucket, key } = Self::split(path)?;
-        let reader = self
+        Ok(self
             .client
             .get_object()
             .bucket(bucket)
@@ -160,14 +159,7 @@ impl super::Trait for Filesystem {
             .send()
             .await?
             .body
-            .into_async_read();
-        binary::Response::from_async_read(
-            reader,
-            &source.property,
-            offset,
-            #[cfg(test)]
-            None,
-        )
+            .into_async_read())
     }
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {

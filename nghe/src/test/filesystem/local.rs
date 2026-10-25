@@ -5,9 +5,7 @@ use tempfile::{Builder, TempDir};
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
 use crate::Error;
-use crate::file::{self, audio};
 use crate::filesystem::{self, local};
-use crate::http::binary;
 
 #[derive(Debug)]
 pub struct Mock {
@@ -28,6 +26,8 @@ impl Mock {
 }
 
 impl filesystem::Trait for Mock {
+    type AsyncRead = <local::Filesystem as filesystem::Trait>::AsyncRead;
+
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         self.filesystem.check_folder(path).await
     }
@@ -52,12 +52,12 @@ impl filesystem::Trait for Mock {
         self.filesystem.read_to_string(path).await
     }
 
-    async fn read_to_binary(
+    async fn read_to_async_read(
         &self,
-        source: &binary::Source<file::Property<audio::Format>>,
+        path: Utf8TypedPath<'_>,
         offset: Option<u64>,
-    ) -> Result<binary::Response, Error> {
-        self.filesystem.read_to_binary(source, offset).await
+    ) -> Result<Self::AsyncRead, Error> {
+        self.filesystem.read_to_async_read(path, offset).await
     }
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error> {

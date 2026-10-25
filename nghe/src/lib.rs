@@ -3,6 +3,7 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(coverage_attribute)]
 #![feature(duration_constructors)]
+#![feature(impl_trait_in_assoc_type)]
 #![feature(iterator_try_collect)]
 #![feature(proc_macro_hygiene)]
 #![feature(specialization)]

@@ -29,9 +29,25 @@ impl Impl<'_> {
             Impl::S3(filesystem) => Impl::S3(Cow::Owned(filesystem.into_owned())),
         }
     }
+
+    pub async fn read_to_http_binary(
+        &self,
+        source: &binary::Source<file::Property<audio::Format>>,
+        offset: Option<u64>,
+    ) -> Result<binary::Response, Error> {
+        binary::Response::from_async_read(
+            self.read_to_async_read(source.path.to_path(), offset).await?,
+            &source.property,
+            offset,
+            #[cfg(test)]
+            None,
+        )
+    }
 }
 
 pub trait Trait {
+    type AsyncRead: tokio::io::AsyncBufRead + Unpin;
+
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error>;
     async fn scan_folder(
         &self,
@@ -43,16 +59,18 @@ pub trait Trait {
 
     async fn read(&self, path: Utf8TypedPath<'_>) -> Result<Vec<u8>, Error>;
     async fn read_to_string(&self, path: Utf8TypedPath<'_>) -> Result<String, Error>;
-    async fn read_to_binary(
+    async fn read_to_async_read(
         &self,
-        source: &binary::Source<file::Property<audio::Format>>,
+        path: Utf8TypedPath<'_>,
         offset: Option<u64>,
-    ) -> Result<binary::Response, Error>;
+    ) -> Result<Self::AsyncRead, Error>;
 
     async fn transcode_input(&self, path: Utf8TypedPath<'_>) -> Result<String, Error>;
 }
 
 impl Trait for Impl<'_> {
+    type AsyncRead = super::io::AsyncRead;
+
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         match self {
             Impl::Local(filesystem) => filesystem.check_folder(path).await,
@@ -92,14 +110,18 @@ impl Trait for Impl<'_> {
         }
     }
 
-    async fn read_to_binary(
+    async fn read_to_async_read(
         &self,
-        source: &binary::Source<file::Property<audio::Format>>,
+        path: Utf8TypedPath<'_>,
         offset: Option<u64>,
-    ) -> Result<binary::Response, Error> {
+    ) -> Result<Self::AsyncRead, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.read_to_binary(source, offset).await,
-            Impl::S3(filesystem) => filesystem.read_to_binary(source, offset).await,
+            Impl::Local(filesystem) => {
+                filesystem.read_to_async_read(path, offset).await.map(super::io::AsyncRead::Local)
+            }
+            Impl::S3(filesystem) => {
+                filesystem.read_to_async_read(path, offset).await.map(super::io::AsyncRead::S3)
+            }
         }
     }
 

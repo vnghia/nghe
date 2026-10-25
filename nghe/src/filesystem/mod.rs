@@ -1,5 +1,6 @@
 mod common;
 pub mod entry;
+pub mod io;
 pub mod local;
 pub mod path;
 pub mod s3;

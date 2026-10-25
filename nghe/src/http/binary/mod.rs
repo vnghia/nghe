@@ -121,14 +121,8 @@ impl Response {
         offset: impl Into<Option<u64>> + Copy,
         #[cfg(test)] binary_status: impl Into<Option<binary::Status>>,
     ) -> Result<Self, Error> {
-        let mut file = tokio::fs::File::open(path.as_ref()).await?;
-        if let Some(offset) = offset.into()
-            && offset > 0
-        {
-            file.seek(SeekFrom::Start(offset)).await?;
-        }
         Self::from_async_read(
-            file,
+            crate::filesystem::local::Filesystem::open_with_offset(path.as_ref(), offset).await?,
             property,
             offset,
             #[cfg(test)]

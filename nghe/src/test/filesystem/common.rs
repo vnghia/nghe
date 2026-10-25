@@ -1,7 +1,5 @@
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::file::{self, audio};
-use crate::http::binary;
 use crate::{Error, filesystem};
 
 #[derive(Debug)]
@@ -36,6 +34,8 @@ pub trait Trait: filesystem::Trait {
 }
 
 impl filesystem::Trait for Impl<'_> {
+    type AsyncRead = filesystem::io::AsyncRead;
+
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error> {
         match self {
             Impl::Local(filesystem) => filesystem.check_folder(path).await,
@@ -75,14 +75,19 @@ impl filesystem::Trait for Impl<'_> {
         }
     }
 
-    async fn read_to_binary(
+    async fn read_to_async_read(
         &self,
-        source: &binary::Source<file::Property<audio::Format>>,
+        path: Utf8TypedPath<'_>,
         offset: Option<u64>,
-    ) -> Result<binary::Response, Error> {
+    ) -> Result<Self::AsyncRead, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.read_to_binary(source, offset).await,
-            Impl::S3(filesystem) => filesystem.read_to_binary(source, offset).await,
+            Impl::Local(filesystem) => filesystem
+                .read_to_async_read(path, offset)
+                .await
+                .map(filesystem::io::AsyncRead::Local),
+            Impl::S3(filesystem) => {
+                filesystem.read_to_async_read(path, offset).await.map(filesystem::io::AsyncRead::S3)
+            }
         }
     }
 
