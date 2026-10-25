@@ -67,10 +67,8 @@
               enableTarget = if withStatic then "static" else "shared";
               sharedLibs = if withStatic then "OFF" else "ON";
             in
-            rec {
+            {
               build = rec {
-                openssl = hostPkgs.openssl.override { static = withStatic; };
-
                 lame =
                   (hostPkgs.lame.override {
                     decoderSupport = false;
@@ -137,7 +135,7 @@
                     withSmallBuild = false;
                     withHardcodedTables = true;
                     withMultithread = true;
-                    withNetwork = true;
+                    withNetwork = false;
                     withPixelutils = false;
                     withPic = true;
                     withThumb = false;
@@ -170,26 +168,22 @@
                         doCheck = false;
                         configureFlags =
                           previousAttrs.configureFlags
-                          ++ [
-                            "--enable-openssl"
-                            "--extra-libs=-lm"
-                          ]
+                          ++ [ "--extra-libs=-lm" ]
                           ++ (hostLib.optional withStatic "--pkg-config-flags=--static");
-                        buildInputs = previousAttrs.buildInputs ++ [
-                          openssl
-                        ];
                       }
                     );
               };
 
-              check = hostLib.optionalAttrs canExecute {
+              check = hostLib.optionalAttrs canExecute rec {
+                openssl = hostPkgs.openssl.override { static = withStatic; };
+
                 libpq =
                   (hostPkgs.libpq.override {
                     curlSupport = false;
                     gssSupport = false;
                     nlsSupport = false;
 
-                    openssl = build.openssl;
+                    inherit openssl;
                   }).overrideAttrs
                     (
                       finalAttrs: previousAttrs: {
