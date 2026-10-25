@@ -289,6 +289,7 @@
                 postgresql
                 seaweedfs
                 lsof
+                cacert
               ];
 
               checkInputs = hostLib.attrValues nativeDeps.check;
