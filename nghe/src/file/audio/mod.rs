@@ -26,6 +26,7 @@ use lofty::mpeg::MpegFile;
 pub use metadata::{Metadata, Song};
 pub use name_date_mbz::{Album, NameDateMbz};
 use nghe_api::format;
+use o2o::o2o;
 pub use position::TrackDisc;
 pub use property::Property;
 pub use signed_duration::SignedDuration;
@@ -46,19 +47,31 @@ use crate::{Error, config};
     strum::Display,
     AsExpression,
     FromSqlRow,
+    o2o,
 )]
 #[diesel(sql_type = Text)]
 #[strum(serialize_all = "lowercase")]
+#[owned_into(format::Transcode)]
 #[cfg_attr(test, derive(fake::Dummy, strum::AsRefStr))]
 pub enum Format {
     Flac,
     #[strum(serialize = "mp3")]
+    #[into(Mp3)]
     Mpeg,
 }
 
 pub enum File {
     Flac { audio: FlacFile, file: super::File<Format> },
     Mpeg { audio: MpegFile, file: super::File<Format> },
+}
+
+impl PartialEq<format::Transcode> for Format {
+    fn eq(&self, other: &format::Transcode) -> bool {
+        matches!(
+            (self, other),
+            (Format::Flac, format::Transcode::Flac) | (Format::Mpeg, format::Transcode::Mp3)
+        )
+    }
 }
 
 impl format::Trait for Format {
