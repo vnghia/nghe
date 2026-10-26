@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.1](https://github.com/vnghia/nghe/compare/v0.16.0...v0.16.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **backend:** avoid unnecessary transcoding ([#1208](https://github.com/vnghia/nghe/issues/1208)) ([480dffa](https://github.com/vnghia/nghe/commit/480dffa98c548995e88529ed33b79e5936256fce))
+
 ## [0.16.0](https://github.com/vnghia/nghe/compare/v0.15.1...v0.16.0) (2026-10-25)
 
 
