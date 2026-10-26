@@ -15,6 +15,7 @@ pub struct Song<'mf, 'path> {
     pub relative_path: Cow<'path, str>,
     #[diesel(embed)]
     pub property: songs::property::File,
+    pub bitrate: i32,
 }
 
 #[auto_type]

@@ -14,13 +14,19 @@ pub struct Source<P: property::Trait> {
     pub property: P,
 }
 
+pub struct Audio<'fs> {
+    pub filesystem: filesystem::Impl<'fs>,
+    pub source: Source<file::Property<audio::Format>>,
+    pub bit_rate: u32,
+}
+
 impl Source<file::Property<audio::Format>> {
     pub async fn audio<'fs>(
         database: &Database,
         filesystem: &'fs Filesystem,
         user_id: Uuid,
         song_id: Uuid,
-    ) -> Result<(filesystem::Impl<'fs>, Self), Error> {
+    ) -> Result<Audio<'fs>, Error> {
         let audio = binary::source::audio::query(user_id, song_id)
             .get_result(&mut database.get().await?)
             .await?;
@@ -29,6 +35,10 @@ impl Source<file::Property<audio::Format>> {
             .path()
             .from_string(audio.music_folder.path.into_owned())
             .join(audio.relative_path);
-        Ok((filesystem, Self { path, property: audio.property.try_into()? }))
+        Ok(Audio {
+            filesystem,
+            source: Self { path, property: audio.property.try_into()? },
+            bit_rate: audio.bitrate.try_into()?,
+        })
     }
 }

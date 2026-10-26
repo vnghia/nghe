@@ -26,8 +26,9 @@ pub async fn handler(
     user_id: Uuid,
     request: Request,
 ) -> Result<binary::Response, Error> {
-    let (filesystem, source) =
-        binary::Source::audio(database, filesystem, user_id, request.id).await?;
+    let audio = binary::Source::audio(database, filesystem, user_id, request.id).await?;
+    let filesystem = audio.filesystem;
+    let source = audio.source;
     let offset = range.map(|range| range.to_offset(source.property.size.into())).transpose()?;
     handler_impl(filesystem, source, offset).await
 }
