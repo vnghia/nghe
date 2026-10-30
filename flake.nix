@@ -55,6 +55,7 @@
           mkNativeDeps =
             {
               hostPkgs,
+              rustBindgen,
               withStatic ? true,
             }:
             let
@@ -67,7 +68,7 @@
               enableTarget = if withStatic then "static" else "shared";
               sharedLibs = if withStatic then "OFF" else "ON";
             in
-            {
+            rec {
               build = rec {
                 lame =
                   (hostPkgs.lame.override {
@@ -172,18 +173,24 @@
                           ++ (hostLib.optional withStatic "--pkg-config-flags=--static");
                       }
                     );
+              }
+              // lib.optionalAttrs (!hostStdenv.hostPlatform.isBSD) {
+                aws-lc = (
+                  hostPkgs.aws-lc.override {
+                    rust-bindgen = rustBindgen;
+                    useSharedLibraries = !withStatic;
+                  }
+                );
               };
 
-              check = hostLib.optionalAttrs canExecute rec {
-                openssl = hostPkgs.openssl.override { static = withStatic; };
-
+              check = hostLib.optionalAttrs canExecute {
                 libpq =
                   (hostPkgs.libpq.override {
                     curlSupport = false;
                     gssSupport = false;
                     nlsSupport = false;
 
-                    inherit openssl;
+                    openssl = build.aws-lc;
                   }).overrideAttrs
                     (
                       finalAttrs: previousAttrs: {
@@ -242,6 +249,8 @@
               rustBin = inputs.rust-overlay.lib.mkRustBin { } rustPkgs.buildPackages;
               toolchain = rustBin.fromRustupToolchainFile ./rust-toolchain.toml;
 
+              bindgenPkgs = pkgs;
+
               rustTarget = hostStdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
               rustPlatform = rustPkgs.makeRustPlatform {
@@ -249,8 +258,15 @@
                 rustc = toolchain;
               };
 
+              rustBindgen = hostPkgs.rust-bindgen.override {
+                rust-bindgen-unwrapped = pkgs.rust-bindgen-unwrapped.override {
+                  clang = bindgenPkgs.clang;
+                };
+              };
+
               nativeDeps = mkNativeDeps {
                 inherit hostPkgs;
+                inherit rustBindgen;
                 inherit withStatic;
               };
 
@@ -275,8 +291,8 @@
                 rustPkgs.llvmPackages.bintools
 
                 # bindgen
-                pkgs.llvmPackages.libclang.lib
-                (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
+                bindgenPkgs.llvmPackages.libclang.lib
+                (rustPlatform.bindgenHook.override { clang = bindgenPkgs.clang; })
               ];
 
               buildInputs =
@@ -307,7 +323,8 @@
 
                   # native
                   PKG_CONFIG_ALL_STATIC = if withStatic then "1" else null;
-                  OPENSSL_STATIC = if withStatic then "1" else "0";
+                  AWS_LC_SYS_USE_SYSTEM = if !hostStdenv.hostPlatform.isBSD then "1" else "0";
+                  AWS_LC_SYS_STATIC = if withStatic then "1" else null;
                   PQ_LIB_STATIC = if withStatic then "1" else null;
 
                   # git
