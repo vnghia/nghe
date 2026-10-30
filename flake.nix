@@ -55,6 +55,8 @@
           mkNativeDeps =
             {
               hostPkgs,
+              rustPlatform,
+              bindgenClang,
               withStatic ? true,
             }:
             let
@@ -67,7 +69,7 @@
               enableTarget = if withStatic then "static" else "shared";
               sharedLibs = if withStatic then "OFF" else "ON";
             in
-            {
+            rec {
               build = rec {
                 lame =
                   (hostPkgs.lame.override {
@@ -172,18 +174,31 @@
                           ++ (hostLib.optional withStatic "--pkg-config-flags=--static");
                       }
                     );
+
+                aws-lc = (
+                  hostPkgs.aws-lc.override {
+                    rust-bindgen = (
+                      hostPkgs.rust-bindgen.override {
+                        rust-bindgen-unwrapped = hostPkgs.rust-bindgen-unwrapped.override {
+                          inherit rustPlatform;
+                          clang = bindgenClang;
+                          rustfmt = pkgs.rustfmt;
+                        };
+                      }
+                    );
+                    useSharedLibraries = !withStatic;
+                  }
+                );
               };
 
-              check = hostLib.optionalAttrs canExecute rec {
-                openssl = hostPkgs.openssl.override { static = withStatic; };
-
+              check = hostLib.optionalAttrs canExecute {
                 libpq =
                   (hostPkgs.libpq.override {
                     curlSupport = false;
                     gssSupport = false;
                     nlsSupport = false;
 
-                    inherit openssl;
+                    openssl = build.aws-lc;
                   }).overrideAttrs
                     (
                       finalAttrs: previousAttrs: {
@@ -248,9 +263,12 @@
                 cargo = toolchain;
                 rustc = toolchain;
               };
+              bindgenClang = pkgs.clang;
 
               nativeDeps = mkNativeDeps {
                 inherit hostPkgs;
+                inherit rustPlatform;
+                inherit bindgenClang;
                 inherit withStatic;
               };
 
@@ -276,7 +294,7 @@
 
                 # bindgen
                 pkgs.llvmPackages.libclang.lib
-                (rustPlatform.bindgenHook.override { clang = pkgs.clang; })
+                (rustPlatform.bindgenHook.override { clang = bindgenClang; })
               ];
 
               buildInputs =
@@ -307,7 +325,8 @@
 
                   # native
                   PKG_CONFIG_ALL_STATIC = if withStatic then "1" else null;
-                  OPENSSL_STATIC = if withStatic then "1" else "0";
+                  AWS_LC_SYS_USE_SYSTEM = "1";
+                  AWS_LC_SYS_STATIC = if withStatic then "1" else null;
                   PQ_LIB_STATIC = if withStatic then "1" else null;
 
                   # git
