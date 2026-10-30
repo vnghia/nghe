@@ -175,12 +175,19 @@
                     );
               }
               // lib.optionalAttrs (!hostStdenv.hostPlatform.isBSD) {
-                aws-lc = (
-                  hostPkgs.aws-lc.override {
+                aws-lc =
+                  (hostPkgs.aws-lc.override {
                     rust-bindgen = rustBindgen;
                     useSharedLibraries = !withStatic;
-                  }
-                );
+                  }).overrideAttrs
+                    (
+                      finalAttrs: previousAttrs: {
+                        doCheck = false;
+                        cmakeFlags = previousAttrs.cmakeFlags ++ [
+                          "-DBUILD_TESTING=ON"
+                        ];
+                      }
+                    );
               };
 
               check = hostLib.optionalAttrs canExecute {
