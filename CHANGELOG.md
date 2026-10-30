@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.2](https://github.com/vnghia/nghe/compare/v0.16.1...v0.16.2) (2026-10-30)
+
+
+### Bug Fixes
+
+* **backend/informant:** enable lastfm and spotify test independently ([#1212](https://github.com/vnghia/nghe/issues/1212)) ([f8352f8](https://github.com/vnghia/nghe/commit/f8352f89244152d321b55cff8e46fe6607c02fec))
+* **deps:** use system aws-lc instead of rebuilding ([#1211](https://github.com/vnghia/nghe/issues/1211)) ([8a83926](https://github.com/vnghia/nghe/commit/8a8392633ad4bd7016b71162d0402b696ae31916))
+
 ## [0.16.1](https://github.com/vnghia/nghe/compare/v0.16.0...v0.16.1) (2026-10-26)
 
 
