@@ -173,7 +173,8 @@
                           ++ (hostLib.optional withStatic "--pkg-config-flags=--static");
                       }
                     );
-
+              }
+              // lib.optionalAttrs (!hostStdenv.hostPlatform.isBSD) {
                 aws-lc = (
                   hostPkgs.aws-lc.override {
                     rust-bindgen = rustBindgen;
@@ -248,15 +249,19 @@
               rustBin = inputs.rust-overlay.lib.mkRustBin { } rustPkgs.buildPackages;
               toolchain = rustBin.fromRustupToolchainFile ./rust-toolchain.toml;
 
+              bindgenPkgs = pkgs;
+
               rustTarget = hostStdenv.targetPlatform.rust.rustcTarget;
               rustShoutTarget = builtins.replaceStrings [ "-" ] [ "_" ] (hostLib.toUpper rustTarget);
               rustPlatform = rustPkgs.makeRustPlatform {
                 cargo = toolchain;
                 rustc = toolchain;
               };
-              bindgenClang = pkgs.clang;
-              rustBindgen = pkgs.rust-bindgen.override {
-                rust-bindgen-unwrapped = pkgs.rust-bindgen-unwrapped.override { clang = bindgenClang; };
+
+              rustBindgen = hostPkgs.rust-bindgen.override {
+                rust-bindgen-unwrapped = pkgs.rust-bindgen-unwrapped.override {
+                  clang = bindgenPkgs.clang;
+                };
               };
 
               nativeDeps = mkNativeDeps {
@@ -286,8 +291,8 @@
                 rustPkgs.llvmPackages.bintools
 
                 # bindgen
-                pkgs.llvmPackages.libclang.lib
-                (rustPlatform.bindgenHook.override { clang = bindgenClang; })
+                bindgenPkgs.llvmPackages.libclang.lib
+                (rustPlatform.bindgenHook.override { clang = bindgenPkgs.clang; })
               ];
 
               buildInputs =
@@ -318,7 +323,7 @@
 
                   # native
                   PKG_CONFIG_ALL_STATIC = if withStatic then "1" else null;
-                  AWS_LC_SYS_USE_SYSTEM = "1";
+                  AWS_LC_SYS_USE_SYSTEM = if !hostStdenv.hostPlatform.isBSD then "1" else "0";
                   AWS_LC_SYS_STATIC = if withStatic then "1" else null;
                   PQ_LIB_STATIC = if withStatic then "1" else null;
 
