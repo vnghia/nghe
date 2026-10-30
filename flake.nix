@@ -55,8 +55,7 @@
           mkNativeDeps =
             {
               hostPkgs,
-              rustPlatform,
-              bindgenClang,
+              rustBindgen,
               withStatic ? true,
             }:
             let
@@ -177,15 +176,7 @@
 
                 aws-lc = (
                   hostPkgs.aws-lc.override {
-                    rust-bindgen = (
-                      hostPkgs.rust-bindgen.override {
-                        rust-bindgen-unwrapped = hostPkgs.rust-bindgen-unwrapped.override {
-                          inherit rustPlatform;
-                          clang = bindgenClang;
-                          rustfmt = pkgs.rustfmt;
-                        };
-                      }
-                    );
+                    rust-bindgen = rustBindgen;
                     useSharedLibraries = !withStatic;
                   }
                 );
@@ -264,11 +255,13 @@
                 rustc = toolchain;
               };
               bindgenClang = pkgs.clang;
+              rustBindgen = pkgs.rust-bindgen.override {
+                rust-bindgen-unwrapped = pkgs.rust-bindgen-unwrapped.override { clang = bindgenClang; };
+              };
 
               nativeDeps = mkNativeDeps {
                 inherit hostPkgs;
-                inherit rustPlatform;
-                inherit bindgenClang;
+                inherit rustBindgen;
                 inherit withStatic;
               };
 
