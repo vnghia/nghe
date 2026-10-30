@@ -84,12 +84,11 @@ impl Informant {
         } else {
             artist_informations::Spotify::default()
         };
-        let lastfm = lastfm
-            .map_or_default(|lastfm| artist_informations::Lastfm {
-                url: Some(lastfm.short.url.as_str().into()),
-                mbz_id: lastfm.short.mbid,
-                biography: lastfm.bio.summary.as_deref().map(Cow::Borrowed),
-            });
+        let lastfm = lastfm.map_or_default(|lastfm| artist_informations::Lastfm {
+            url: Some(lastfm.short.url.as_str().into()),
+            mbz_id: lastfm.short.mbid,
+            biography: lastfm.bio.summary.as_deref().map(Cow::Borrowed),
+        });
         artist_informations::Data { spotify, lastfm }.update(database, id).await
     }
 
@@ -208,15 +207,17 @@ mod query {
     }
 }
 
-#[cfg(all(test, spotify_env, lastfm_env))]
+#[cfg(all(test, any(spotify_env, lastfm_env)))]
 #[coverage(off)]
 mod tests {
     use rstest::rstest;
 
     use super::*;
-    use crate::file;
     use crate::file::audio;
     use crate::test::{Mock, mock};
+
+    const WESTLIFE_NAME: &str = "Westlife";
+    const MLTR_NAME: &str = "Michael Learns To Rock";
 
     #[rstest]
     #[tokio::test]
@@ -226,8 +227,8 @@ mod tests {
         mock: Mock,
         #[values(true, false)] full: bool,
     ) {
-        let id_westlife = audio::Artist::from("Westlife").upsert_mock(&mock).await;
-        let id_mltr = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
+        let id_westlife = audio::Artist::from(WESTLIFE_NAME).upsert_mock(&mock).await;
+        let id_mltr = audio::Artist::from(MLTR_NAME).upsert_mock(&mock).await;
 
         diesel::insert_into(artist_informations::table)
             .values(artist_informations::artist_id.eq(id_westlife))
@@ -245,11 +246,15 @@ mod tests {
             .get_result(&mut mock.get().await)
             .await
             .unwrap();
-        assert_eq!(westlife_data.spotify.id.is_some(), full);
-        assert_eq!(westlife_data.spotify.cover_art_id.is_some(), full);
-        assert_eq!(westlife_data.lastfm.url.is_some(), full);
-        assert_eq!(westlife_data.lastfm.mbz_id.is_some(), full);
-        assert_eq!(westlife_data.lastfm.biography.is_some(), full);
+        if cfg!(spotify_env) {
+            assert_eq!(westlife_data.spotify.id.is_some(), full);
+            assert_eq!(westlife_data.spotify.cover_art_id.is_some(), full);
+        }
+        if cfg!(lastfm_env) {
+            assert_eq!(westlife_data.lastfm.url.is_some(), full);
+            assert_eq!(westlife_data.lastfm.mbz_id.is_some(), full);
+            assert_eq!(westlife_data.lastfm.biography.is_some(), full);
+        }
 
         let mltr_data = artist_informations::table
             .filter(artist_informations::artist_id.eq(id_mltr))
@@ -257,13 +262,18 @@ mod tests {
             .get_result(&mut mock.get().await)
             .await
             .unwrap();
-        assert!(mltr_data.spotify.id.is_some());
-        assert!(mltr_data.spotify.cover_art_id.is_some());
-        assert!(mltr_data.lastfm.url.is_some());
-        assert!(mltr_data.lastfm.mbz_id.is_some());
-        assert!(mltr_data.lastfm.biography.is_some());
+        if cfg!(spotify_env) {
+            assert!(mltr_data.spotify.id.is_some());
+            assert!(mltr_data.spotify.cover_art_id.is_some());
+        }
+        if cfg!(lastfm_env) {
+            assert!(mltr_data.lastfm.url.is_some());
+            assert!(mltr_data.lastfm.mbz_id.is_some());
+            assert!(mltr_data.lastfm.biography.is_some());
+        }
     }
 
+    #[cfg(spotify_env)]
     #[rstest]
     #[tokio::test]
     async fn test_upsert_artist_image(
@@ -272,7 +282,9 @@ mod tests {
         mock: Mock,
         #[values(true, false)] full: bool,
     ) {
-        let id = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
+        use crate::file;
+
+        let id = audio::Artist::from(MLTR_NAME).upsert_mock(&mock).await;
         let config = &mock.config.cover_art;
         mock.informant.search_and_upsert_artists(mock.database(), config, false).await.unwrap();
 
@@ -302,7 +314,7 @@ mod tests {
         #[with(0, 1, None, true)]
         mock: Mock,
     ) {
-        let id_mltr = audio::Artist::from("Micheal Learns To Rock").upsert_mock(&mock).await;
+        let id_mltr = audio::Artist::from(MLTR_NAME).upsert_mock(&mock).await;
 
         mock.informant
             .fetch_and_upsert_artist(
@@ -311,7 +323,7 @@ mod tests {
                 &Request {
                     artist_id: id_mltr,
                     spotify_id: Some("7zMVPOJPs5jgU8NorRxqJe".to_owned()),
-                    lastfm_name: Some("Michael Learns to Rock".to_owned()),
+                    lastfm_name: Some(MLTR_NAME.to_owned()),
                 },
             )
             .await
@@ -323,10 +335,14 @@ mod tests {
             .get_result(&mut mock.get().await)
             .await
             .unwrap();
-        assert!(mltr_data.spotify.id.is_some());
-        assert!(mltr_data.spotify.cover_art_id.is_some());
-        assert!(mltr_data.lastfm.url.is_some());
-        assert!(mltr_data.lastfm.mbz_id.is_some());
-        assert!(mltr_data.lastfm.biography.is_some());
+        if cfg!(spotify_env) {
+            assert!(mltr_data.spotify.id.is_some());
+            assert!(mltr_data.spotify.cover_art_id.is_some());
+        }
+        if cfg!(lastfm_env) {
+            assert!(mltr_data.lastfm.url.is_some());
+            assert!(mltr_data.lastfm.mbz_id.is_some());
+            assert!(mltr_data.lastfm.biography.is_some());
+        }
     }
 }
