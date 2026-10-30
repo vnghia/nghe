@@ -210,6 +210,7 @@ mod query {
 #[cfg(all(test, any(spotify_env, lastfm_env)))]
 #[coverage(off)]
 mod tests {
+    use fake::{Fake, Faker};
     use rstest::rstest;
 
     use super::*;
@@ -314,7 +315,7 @@ mod tests {
         #[with(0, 1, None, true)]
         mock: Mock,
     ) {
-        let id_mltr = audio::Artist::from(MLTR_NAME).upsert_mock(&mock).await;
+        let id_mltr = audio::Artist::from(Faker.fake::<String>()).upsert_mock(&mock).await;
 
         mock.informant
             .fetch_and_upsert_artist(
