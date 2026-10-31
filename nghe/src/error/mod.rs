@@ -272,6 +272,7 @@ pub enum Kind {
 #[from_owned(image::ImageError)]
 #[from_owned(aws_sdk_s3::primitives::ByteStreamError)]
 #[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
+#[from_owned(aws_smithy_types_convert::date_time::Error)]
 pub struct Error {
     pub status_code: StatusCode,
     pub open_subsonic_code: OpenSubsonicCode,

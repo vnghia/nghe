@@ -1,9 +1,11 @@
 use std::borrow::Cow;
 
+use futures::Stream;
 use nghe_api::filesystem;
 use o2o::o2o;
 use typed_path::Utf8TypedPath;
 
+use super::entry::Entry;
 use super::{entry, path};
 use crate::Error;
 use crate::file::{self, audio};
@@ -46,15 +48,17 @@ impl Impl<'_> {
 }
 
 pub trait Trait {
+    type EntryStream: Stream<Item = Result<Entry, Error>>;
+
     type AsyncRead: tokio::io::AsyncRead + Unpin;
     type Read: std::io::Read;
 
     async fn check_folder(&self, path: Utf8TypedPath<'_>) -> Result<(), Error>;
-    async fn scan_folder(
+    fn scan_folder(
         &self,
-        sender: entry::Sender,
         prefix: Utf8TypedPath<'_>,
-    ) -> Result<(), Error>;
+        minimum_size: usize,
+    ) -> Result<Self::EntryStream, Error>;
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error>;
 
@@ -73,6 +77,8 @@ pub trait Trait {
 }
 
 impl Trait for Impl<'_> {
+    type EntryStream = entry::Stream;
+
     type AsyncRead = super::io::AsyncRead;
     type Read = super::io::Read;
 
@@ -83,14 +89,18 @@ impl Trait for Impl<'_> {
         }
     }
 
-    async fn scan_folder(
+    fn scan_folder(
         &self,
-        sender: entry::Sender,
         prefix: Utf8TypedPath<'_>,
-    ) -> Result<(), Error> {
+        minimum_size: usize,
+    ) -> Result<Self::EntryStream, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.scan_folder(sender, prefix).await,
-            Impl::S3(filesystem) => filesystem.scan_folder(sender, prefix).await,
+            Impl::Local(filesystem) => filesystem
+                .scan_folder(prefix, minimum_size)
+                .map(|stream| entry::Stream::Local(Box::pin(stream))),
+            Impl::S3(filesystem) => {
+                filesystem.scan_folder(prefix, minimum_size).map(entry::Stream::S3)
+            }
         }
     }
 
@@ -155,7 +165,7 @@ mod tests {
 
     use super::Trait as _;
     use crate::file::audio;
-    use crate::filesystem::{Entry, entry};
+    use crate::filesystem::Entry;
     use crate::test::filesystem::Trait as _;
     use crate::test::{Mock, mock};
 
@@ -241,13 +251,12 @@ mod tests {
             entries.push(Entry { format, path: prefix.join(relative_path), last_modified: None });
         }
 
-        let (tx, rx) = crate::sync::channel(mock.config.filesystem.scan.channel_size);
-        let sender = entry::Sender { tx, minimum_size };
-        let scan_handle = tokio::spawn(async move {
-            main_filesystem.scan_folder(sender, prefix.to_path()).await.unwrap();
-        });
-        let scanned_entries: Vec<_> = rx.into_stream().collect().await;
-        scan_handle.await.unwrap();
+        let scanned_entries: Vec<_> = main_filesystem
+            .scan_folder(prefix.to_path(), minimum_size)
+            .unwrap()
+            .try_collect()
+            .await
+            .unwrap();
 
         assert_eq!(scanned_entries.len(), n_larger);
         assert_eq!(

@@ -5,11 +5,10 @@ use diesel::{
     ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
+use futures::TryStreamExt;
 use lofty::config::ParseOptions;
-use loole::Receiver;
 use nghe_api::route::scan;
 use tokio::sync::Semaphore;
-use tokio::task::JoinHandle;
 use tracing::{Instrument, instrument};
 use typed_path::Utf8TypedPath;
 use uuid::Uuid;
@@ -95,17 +94,14 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         entry.path.strip_prefix(&self.music_folder.data.path).map_err(Error::from)
     }
 
-    fn init(&self) -> (JoinHandle<Result<(), Error>>, Arc<Semaphore>, Receiver<Entry>) {
+    fn init(&self) -> Result<(entry::Stream, Arc<Semaphore>), Error> {
         let config = self.config.scan;
-        let (tx, rx) = crate::sync::channel(config.channel_size);
         let filesystem = self.filesystem.clone().into_owned();
-        let sender = entry::Sender { tx, minimum_size: config.minimum_size };
         let prefix = self.path().to_path_buf();
-        (
-            tokio::spawn(async move { filesystem.scan_folder(sender, prefix.to_path()).await }),
+        Ok((
+            filesystem.scan_folder(prefix.to_path(), config.minimum_size)?,
             Arc::new(Semaphore::const_new(config.pool_size)),
-            rx,
-        )
+        ))
     }
 
     #[cfg_attr(not(coverage_nightly), instrument(skip_all, ret(level = "trace")))]
@@ -374,25 +370,29 @@ impl<'db, 'fs, 'mf> Scanner<'db, 'fs, 'mf> {
         span.record("started_at", tracing::field::display(&started_at));
         tracing::info!(music_folder = ?self.music_folder);
 
-        let (scan_handle, permit, rx) = self.init();
+        let (mut entry_stream, permit) = self.init()?;
         let mut join_set = tokio::task::JoinSet::new();
 
-        while let Ok(entry) = rx.recv_async().await {
-            let permit = permit.clone().acquire_owned().await?;
-            let scanner = self.clone().into_owned();
-            join_set.spawn(
-                async move {
-                    let _guard = permit;
-                    scanner.one(&entry, started_at).await
+        while let Some(entry) = entry_stream.try_next().await.transpose() {
+            match entry {
+                Ok(entry) => {
+                    let permit = permit.clone().acquire_owned().await?;
+                    let scanner = self.clone().into_owned();
+                    join_set.spawn(
+                        async move {
+                            let _guard = permit;
+                            scanner.one(&entry, started_at).await
+                        }
+                        .instrument(span.clone()),
+                    );
                 }
-                .instrument(span.clone()),
-            );
+                Err(error) => tracing::error!(entry_stream_error = ?error),
+            }
         }
 
         while let Some(result) = join_set.join_next().await {
             result??;
         }
-        scan_handle.await??;
 
         audio::Information::cleanup(&self.database, started_at).await?;
 

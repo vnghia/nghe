@@ -2,11 +2,12 @@ use std::fs::Metadata;
 use std::io::{Seek as _, SeekFrom};
 
 use async_walkdir::WalkDir;
-use futures_lite::stream::StreamExt;
+use futures::{Stream, StreamExt};
 use time::OffsetDateTime;
 use tokio::io::AsyncSeekExt as _;
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 
+use super::entry::Entry;
 use super::{entry, path};
 use crate::{Error, error};
 
@@ -81,6 +82,8 @@ impl Filesystem {
 }
 
 impl super::Trait for Filesystem {
+    type EntryStream = impl Stream<Item = Result<Entry, Error>>;
+
     type AsyncRead = tokio::io::BufReader<tokio::fs::File>;
     type Read = std::io::BufReader<std::fs::File>;
 
@@ -96,34 +99,38 @@ impl super::Trait for Filesystem {
         }
     }
 
-    async fn scan_folder(
+    fn scan_folder(
         &self,
-        sender: entry::Sender,
         prefix: Utf8TypedPath<'_>,
-    ) -> Result<(), Error> {
-        let mut stream = WalkDir::new(prefix.as_ref());
-
-        while let Some(entry) = stream.next().await {
+        minimum_size: usize,
+    ) -> Result<Self::EntryStream, Error> {
+        Ok(WalkDir::new(prefix.as_ref()).filter_map(move |entry| async move {
             match entry {
                 Ok(entry) => match entry.metadata().await {
                     Ok(metadata) => {
                         if metadata.is_file() {
-                            let path = entry
+                            match entry
                                 .path()
                                 .into_os_string()
                                 .into_string()
                                 .map(path::Local::from_string)
-                                .map_err(error::Kind::NonUTF8PathEncountered)?;
-                            sender.send(path, &metadata).await?;
+                            {
+                                Ok(path) => Entry::try_new(minimum_size, path, &metadata),
+                                Err(path) => Err(error::Kind::NonUTF8PathEncountered(path).into()),
+                            }
+                        } else {
+                            Ok(None)
                         }
                     }
-                    Err(error) => tracing::error!(list_folder_local_metadata_error = ?error),
+                    Err(error) => Err(error.into()),
                 },
-                Err(error) => tracing::error!(list_folder_local_walk_err = ?error),
+                Err(error) => {
+                    tracing::error!(scan_folder_walk_dir_error = ?error);
+                    Ok(None)
+                }
             }
-        }
-
-        Ok(())
+            .transpose()
+        }))
     }
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {

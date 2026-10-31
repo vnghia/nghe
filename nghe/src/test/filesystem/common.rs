@@ -1,6 +1,7 @@
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
-use crate::{Error, filesystem};
+use crate::Error;
+use crate::filesystem::{self, entry};
 
 #[derive(Debug)]
 pub enum Impl<'fs> {
@@ -34,6 +35,8 @@ pub trait Trait: filesystem::Trait {
 }
 
 impl filesystem::Trait for Impl<'_> {
+    type EntryStream = entry::Stream;
+
     type AsyncRead = filesystem::io::AsyncRead;
     type Read = filesystem::io::Read;
 
@@ -44,14 +47,18 @@ impl filesystem::Trait for Impl<'_> {
         }
     }
 
-    async fn scan_folder(
+    fn scan_folder(
         &self,
-        sender: filesystem::entry::Sender,
         prefix: Utf8TypedPath<'_>,
-    ) -> Result<(), Error> {
+        minimum_size: usize,
+    ) -> Result<Self::EntryStream, Error> {
         match self {
-            Impl::Local(filesystem) => filesystem.scan_folder(sender, prefix).await,
-            Impl::S3(filesystem) => filesystem.scan_folder(sender, prefix).await,
+            Impl::Local(filesystem) => filesystem
+                .scan_folder(prefix, minimum_size)
+                .map(|stream| entry::Stream::Local(Box::pin(stream))),
+            Impl::S3(filesystem) => {
+                filesystem.scan_folder(prefix, minimum_size).map(entry::Stream::S3)
+            }
         }
     }
 

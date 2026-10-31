@@ -1,13 +1,16 @@
 use aws_config::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_config::timeout::TimeoutConfig;
 use aws_sdk_s3::Client;
-use aws_sdk_s3::primitives::{AggregatedBytes, DateTime};
+use aws_sdk_s3::primitives::AggregatedBytes;
 use aws_sdk_s3::types::Object;
+use aws_smithy_types_convert::stream::PaginationStreamExt;
 use concat_string::concat_string;
 use educe::Educe;
+use futures::{Stream, StreamExt};
 use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
+use super::entry::Entry;
 use super::{entry, path};
 use crate::{Error, config, error};
 #[derive(Clone, Educe)]
@@ -77,6 +80,8 @@ impl Filesystem {
 }
 
 impl super::Trait for Filesystem {
+    type EntryStream = impl Stream<Item = Result<Entry, Error>>;
+
     type AsyncRead = impl tokio::io::AsyncBufRead + Unpin;
     type Read = tokio_util::io::SyncIoBridge<impl tokio::io::AsyncBufRead + Unpin>;
 
@@ -86,27 +91,39 @@ impl super::Trait for Filesystem {
         Ok(())
     }
 
-    async fn scan_folder(
+    fn scan_folder(
         &self,
-        sender: entry::Sender,
         prefix: Utf8TypedPath<'_>,
-    ) -> Result<(), Error> {
+        minimum_size: usize,
+    ) -> Result<Self::EntryStream, Error> {
         let Path { bucket, key } = Self::split(prefix)?;
-        let mut steam =
-            self.client.list_objects_v2().bucket(bucket).prefix(key).into_paginator().send();
-        let bucket = path::S3::from_str("/").join(bucket);
-
-        while let Some(output) = steam.try_next().await? {
-            if let Some(contents) = output.contents {
-                for content in contents {
-                    if let Some(key) = content.key() {
-                        sender.send(bucket.join(key), &content).await?;
-                    }
-                }
-            }
-        }
-
-        Ok(())
+        let root = path::S3::from_str("/").join(bucket);
+        Ok(self
+            .client
+            .list_objects_v2()
+            .bucket(bucket)
+            .prefix(key)
+            .into_paginator()
+            .send()
+            .into_stream_03x()
+            .flat_map(move |result| {
+                futures::stream::iter(match result {
+                    Ok(output) => output
+                        .contents
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter_map(|content| {
+                            if let Some(key) = content.key() {
+                                Entry::try_new(minimum_size, root.join(key), &content)
+                            } else {
+                                Ok(None)
+                            }
+                            .transpose()
+                        })
+                        .collect::<Vec<_>>(),
+                    Err(error) => vec![Err(error.into())],
+                })
+            }))
     }
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {
@@ -178,8 +195,7 @@ impl entry::Metadata for Object {
     fn last_modified(&self) -> Result<Option<OffsetDateTime>, Error> {
         Ok(self
             .last_modified()
-            .map(DateTime::as_nanos)
-            .map(OffsetDateTime::from_unix_timestamp_nanos)
+            .map(aws_smithy_types_convert::date_time::DateTimeExt::to_time)
             .transpose()?)
     }
 }

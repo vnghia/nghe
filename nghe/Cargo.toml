@@ -51,6 +51,10 @@ aws-sdk-s3 = { version = "1.155.0", default-features = false, features = [
   "rt-tokio",
   "rustls",
 ] }
+aws-smithy-types-convert = { version = "0.61.1", features = [
+  "convert-time",
+  "convert-streams",
+] }
 axum = { version = "0.8.4", default-features = false, features = [
   "http1",
   "http2",
@@ -73,6 +77,7 @@ ffmpeg-next = { version = "9.0.0", default-features = false, features = [
   "format",
 ] }
 figment = { version = "0.10.19", features = ["env"] }
+futures = { version = "0.3.34" }
 futures-lite = { version = "2.6.0" }
 image = { version = "0.25.6", default-features = false, features = [
   "jpeg",
