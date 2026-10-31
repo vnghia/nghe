@@ -2,7 +2,7 @@ use std::fs::Metadata;
 use std::io::{Seek as _, SeekFrom};
 
 use async_walkdir::WalkDir;
-use futures::{Stream, StreamExt};
+use futures_lite::{Stream, StreamExt};
 use time::OffsetDateTime;
 use tokio::io::AsyncSeekExt as _;
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
@@ -104,33 +104,30 @@ impl super::Trait for Filesystem {
         prefix: Utf8TypedPath<'_>,
         minimum_size: usize,
     ) -> Result<Self::EntryStream, Error> {
-        Ok(WalkDir::new(prefix.as_ref()).filter_map(move |entry| async move {
-            match entry {
-                Ok(entry) => match entry.metadata().await {
-                    Ok(metadata) => {
-                        if metadata.is_file() {
-                            match entry
-                                .path()
-                                .into_os_string()
-                                .into_string()
-                                .map(path::Local::from_string)
-                            {
-                                Ok(path) => Entry::try_new(minimum_size, path, &metadata),
-                                Err(path) => Err(error::Kind::NonUTF8PathEncountered(path).into()),
-                            }
-                        } else {
-                            Ok(None)
+        Ok(WalkDir::new(prefix.as_ref())
+            .then(async |entry| {
+                let entry = entry?;
+                let metadata = entry.metadata().await?;
+                Ok::<_, Error>((entry, metadata))
+            })
+            .filter_map(move |item| {
+                item.and_then(|(entry, metadata)| {
+                    if metadata.is_file() {
+                        match entry
+                            .path()
+                            .into_os_string()
+                            .into_string()
+                            .map(path::Local::from_string)
+                        {
+                            Ok(path) => Entry::try_new(minimum_size, path, &metadata),
+                            Err(path) => Err(error::Kind::NonUTF8PathEncountered(path).into()),
                         }
+                    } else {
+                        Ok(None)
                     }
-                    Err(error) => Err(error.into()),
-                },
-                Err(error) => {
-                    tracing::error!(scan_folder_walk_dir_error = ?error);
-                    Ok(None)
-                }
-            }
-            .transpose()
-        }))
+                })
+                .transpose()
+            }))
     }
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {

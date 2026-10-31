@@ -5,7 +5,7 @@ use diesel::{
     ExpressionMethods, NullableExpressionMethods, OptionalExtension, QueryDsl, SelectableHelper,
 };
 use diesel_async::RunQueryDsl;
-use futures::TryStreamExt;
+use futures_lite::StreamExt as _;
 use lofty::config::ParseOptions;
 use nghe_api::route::scan;
 use tokio::sync::Semaphore;

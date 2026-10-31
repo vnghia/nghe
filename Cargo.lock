@@ -3007,7 +3007,6 @@ dependencies = [
  "faster-hex",
  "ffmpeg-next",
  "figment",
- "futures",
  "futures-lite",
  "http-body-util",
  "image",

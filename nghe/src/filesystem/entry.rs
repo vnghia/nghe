@@ -1,7 +1,7 @@
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use futures::StreamExt;
+use futures_lite::StreamExt as _;
 use time::OffsetDateTime;
 use typed_path::{Utf8TypedPath, Utf8TypedPathBuf};
 
@@ -58,13 +58,13 @@ impl Entry {
 
 impl Unpin for Stream {}
 
-impl futures::Stream for Stream {
+impl futures_lite::Stream for Stream {
     type Item = Result<Entry, Error>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.get_mut() {
-            Self::Local(stream) => stream.poll_next_unpin(cx),
-            Self::S3(stream) => stream.poll_next_unpin(cx),
+            Self::Local(stream) => stream.poll_next(cx),
+            Self::S3(stream) => stream.poll_next(cx),
         }
     }
 }

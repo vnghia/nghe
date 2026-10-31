@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use futures::Stream;
+use futures_lite::Stream;
 use nghe_api::filesystem;
 use o2o::o2o;
 use typed_path::Utf8TypedPath;

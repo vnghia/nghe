@@ -6,7 +6,7 @@ use aws_sdk_s3::types::Object;
 use aws_smithy_types_convert::stream::PaginationStreamExt;
 use concat_string::concat_string;
 use educe::Educe;
-use futures::{Stream, StreamExt};
+use futures_lite::{Stream, StreamExt, stream};
 use time::OffsetDateTime;
 use typed_path::Utf8TypedPath;
 
@@ -107,7 +107,7 @@ impl super::Trait for Filesystem {
             .send()
             .into_stream_03x()
             .flat_map(move |result| {
-                futures::stream::iter(match result {
+                stream::iter(match result {
                     Ok(output) => output
                         .contents
                         .unwrap_or_default()

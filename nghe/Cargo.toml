@@ -77,7 +77,6 @@ ffmpeg-next = { version = "9.0.0", default-features = false, features = [
   "format",
 ] }
 figment = { version = "0.10.19", features = ["env"] }
-futures = { version = "0.3.34" }
 futures-lite = { version = "2.6.0" }
 image = { version = "0.25.6", default-features = false, features = [
   "jpeg",
