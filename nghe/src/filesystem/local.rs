@@ -113,15 +113,13 @@ impl super::Trait for Filesystem {
             .filter_map(move |item| {
                 item.and_then(|(entry, metadata)| {
                     if metadata.is_file() {
-                        match entry
+                        let path = entry
                             .path()
                             .into_os_string()
                             .into_string()
                             .map(path::Local::from_string)
-                        {
-                            Ok(path) => Entry::try_new(minimum_size, path, &metadata),
-                            Err(path) => Err(error::Kind::NonUTF8PathEncountered(path).into()),
-                        }
+                            .map_err(error::Kind::NonUTF8PathEncountered)?;
+                        Entry::try_new(minimum_size, path, &metadata)
                     } else {
                         Ok(None)
                     }
