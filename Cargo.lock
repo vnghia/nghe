@@ -2982,7 +2982,7 @@ checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
 
 [[package]]
 name = "nghe"
-version = "0.16.2"
+version = "0.16.3"
 dependencies = [
  "alrc",
  "async-walkdir",
@@ -3048,7 +3048,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-api"
-version = "0.16.2"
+version = "0.16.3"
 dependencies = [
  "bon",
  "built",
@@ -3072,7 +3072,7 @@ dependencies = [
 
 [[package]]
 name = "nghe-proc-macro"
-version = "0.16.2"
+version = "0.16.3"
 dependencies = [
  "bon",
  "concat-string",
