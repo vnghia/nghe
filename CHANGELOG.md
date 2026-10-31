@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.3](https://github.com/vnghia/nghe/compare/v0.16.2...v0.16.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* **backend/filesystem:** use stream for scan directory ([#1215](https://github.com/vnghia/nghe/issues/1215)) ([5560372](https://github.com/vnghia/nghe/commit/556037219dcfef5d89587d193db9e3603c8d666a))
+
 ## [0.16.2](https://github.com/vnghia/nghe/compare/v0.16.1...v0.16.2) (2026-10-30)
 
 
