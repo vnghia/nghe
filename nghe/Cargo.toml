@@ -51,6 +51,10 @@ aws-sdk-s3 = { version = "1.155.0", default-features = false, features = [
   "rt-tokio",
   "rustls",
 ] }
+aws-smithy-types-convert = { version = "0.61.1", features = [
+  "convert-time",
+  "convert-streams",
+] }
 axum = { version = "0.8.4", default-features = false, features = [
   "http1",
   "http2",

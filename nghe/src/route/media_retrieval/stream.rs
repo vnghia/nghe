@@ -296,7 +296,7 @@ mod tests {
             if time_offset == 0 {
                 assert_eq!(body, transcoded);
             } else {
-                assert!(!body.is_empty())
+                assert!(!body.is_empty());
             }
             assert_eq!(
                 binary_status,

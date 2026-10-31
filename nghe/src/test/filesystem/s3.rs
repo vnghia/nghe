@@ -43,6 +43,8 @@ impl Mock {
 }
 
 impl filesystem::Trait for Mock {
+    type EntryStream = <s3::Filesystem as filesystem::Trait>::EntryStream;
+
     type AsyncRead = <s3::Filesystem as filesystem::Trait>::AsyncRead;
     type Read = <s3::Filesystem as filesystem::Trait>::Read;
 
@@ -50,12 +52,12 @@ impl filesystem::Trait for Mock {
         self.filesystem.check_folder(path).await
     }
 
-    async fn scan_folder(
+    fn scan_folder(
         &self,
-        sender: filesystem::entry::Sender,
         prefix: Utf8TypedPath<'_>,
-    ) -> Result<(), Error> {
-        self.filesystem.scan_folder(sender, prefix).await
+        minimum_size: usize,
+    ) -> Result<Self::EntryStream, Error> {
+        self.filesystem.scan_folder(prefix, minimum_size)
     }
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {

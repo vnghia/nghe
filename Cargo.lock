@@ -634,6 +634,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-smithy-types-convert"
+version = "0.61.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f09916ff010d43086d52ec7d38899a5bc2ad21a2cb5428f85f1ee84a44008ba0"
+dependencies = [
+ "aws-smithy-async",
+ "aws-smithy-types",
+ "futures-core",
+ "time",
+]
+
+[[package]]
 name = "aws-smithy-xml"
 version = "0.64.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2977,6 +2989,7 @@ dependencies = [
  "atomic-write-file",
  "aws-config",
  "aws-sdk-s3",
+ "aws-smithy-types-convert",
  "axum",
  "axum-extra",
  "bon",
@@ -4519,7 +4532,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",

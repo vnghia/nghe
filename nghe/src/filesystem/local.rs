@@ -2,11 +2,12 @@ use std::fs::Metadata;
 use std::io::{Seek as _, SeekFrom};
 
 use async_walkdir::WalkDir;
-use futures_lite::stream::StreamExt;
+use futures_lite::{Stream, StreamExt};
 use time::OffsetDateTime;
 use tokio::io::AsyncSeekExt as _;
 use typed_path::{Utf8PlatformPath, Utf8PlatformPathBuf, Utf8TypedPath};
 
+use super::entry::Entry;
 use super::{entry, path};
 use crate::{Error, error};
 
@@ -81,6 +82,8 @@ impl Filesystem {
 }
 
 impl super::Trait for Filesystem {
+    type EntryStream = impl Stream<Item = Result<Entry, Error>>;
+
     type AsyncRead = tokio::io::BufReader<tokio::fs::File>;
     type Read = std::io::BufReader<std::fs::File>;
 
@@ -96,34 +99,33 @@ impl super::Trait for Filesystem {
         }
     }
 
-    async fn scan_folder(
+    fn scan_folder(
         &self,
-        sender: entry::Sender,
         prefix: Utf8TypedPath<'_>,
-    ) -> Result<(), Error> {
-        let mut stream = WalkDir::new(prefix.as_ref());
-
-        while let Some(entry) = stream.next().await {
-            match entry {
-                Ok(entry) => match entry.metadata().await {
-                    Ok(metadata) => {
-                        if metadata.is_file() {
-                            let path = entry
-                                .path()
-                                .into_os_string()
-                                .into_string()
-                                .map(path::Local::from_string)
-                                .map_err(error::Kind::NonUTF8PathEncountered)?;
-                            sender.send(path, &metadata).await?;
-                        }
+        minimum_size: usize,
+    ) -> Result<Self::EntryStream, Error> {
+        Ok(WalkDir::new(prefix.as_ref())
+            .then(async |entry| {
+                let entry = entry?;
+                let metadata = entry.metadata().await?;
+                Ok::<_, Error>((entry, metadata))
+            })
+            .filter_map(move |item| {
+                item.and_then(|(entry, metadata)| {
+                    if metadata.is_file() {
+                        let path = entry
+                            .path()
+                            .into_os_string()
+                            .into_string()
+                            .map(path::Local::from_string)
+                            .map_err(error::Kind::NonUTF8PathEncountered)?;
+                        Entry::try_new(minimum_size, path, &metadata)
+                    } else {
+                        Ok(None)
                     }
-                    Err(error) => tracing::error!(list_folder_local_metadata_error = ?error),
-                },
-                Err(error) => tracing::error!(list_folder_local_walk_err = ?error),
-            }
-        }
-
-        Ok(())
+                })
+                .transpose()
+            }))
     }
 
     async fn exists(&self, path: Utf8TypedPath<'_>) -> Result<bool, Error> {

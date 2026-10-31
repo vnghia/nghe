@@ -9,9 +9,6 @@ pub struct Scan {
     // 100 KiB in bytes
     #[educe(Default(expression = 100 * 1024))]
     pub minimum_size: usize,
-    #[serde_as(deserialize_as = "serde_with::DefaultOnError")]
-    #[educe(Default(expression = Some(10)))]
-    pub channel_size: Option<usize>,
     #[educe(Default(expression = 10))]
     pub pool_size: usize,
 }

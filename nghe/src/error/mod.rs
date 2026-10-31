@@ -270,8 +270,10 @@ pub enum Kind {
 #[from_owned(std::str::Utf8Error)]
 #[from_owned(tracing_subscriber::util::TryInitError)]
 #[from_owned(image::ImageError)]
+#[from_owned(async_walkdir::Error)]
 #[from_owned(aws_sdk_s3::primitives::ByteStreamError)]
 #[from_owned(aws_sdk_s3::presigning::PresigningConfigError)]
+#[from_owned(aws_smithy_types_convert::date_time::Error)]
 pub struct Error {
     pub status_code: StatusCode,
     pub open_subsonic_code: OpenSubsonicCode,
