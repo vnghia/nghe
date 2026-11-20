@@ -909,9 +909,9 @@ dependencies = [
 
 [[package]]
 name = "built"
-version = "0.8.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c0e531d93d39c34eef561e929e8a7f86d77a5af08aac4f6d6e39976c51858e9"
+checksum = "6192709ebc97997197804bcbb092ef897b5a6a2f33e2c77779f694dbe90fec1e"
 
 [[package]]
 name = "bumpalo"
@@ -2577,8 +2577,8 @@ version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "175dc66334db3b9ab9985bf8b61cfed50dc16d20964bb47f9e479adcae984a7f"
 dependencies = [
- "jiff-core 0.1.4",
- "jiff-static 0.2.41",
+ "jiff-core 0.1.8",
+ "jiff-static 0.2.46",
  "jiff-tzdb-platform 0.1.3",
  "log",
  "portable-atomic",
@@ -2627,7 +2627,7 @@ version = "0.2.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7b1af7547d47354bc438d797e3854601bde8f8d185780c5ba4ab27afa54f1ba"
 dependencies = [
- "jiff-core 0.1.4",
+ "jiff-core 0.1.8",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -2663,7 +2663,7 @@ version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "875a5a69ac2bab1a891711cf5eccbec1ce0341ea805560dcd90b7a2e925132e8"
 dependencies = [
- "jiff-tzdb 0.1.9",
+ "jiff-tzdb 0.1.10",
 ]
 
 [[package]]
@@ -4271,7 +4271,7 @@ dependencies = [
  "hex",
  "indexmap 1.9.3",
  "indexmap 2.14.2",
- "jiff 0.2.41",
+ "jiff 0.2.46",
  "jiff 1.0.1",
  "schemars 0.9.0",
  "schemars 1.2.3",
