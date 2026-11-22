@@ -50,7 +50,7 @@ reqwest = { version = "0.13.0", default-features = false, features = [
   "system-proxy",
   "json",
 ] }
-rstest = { version = "0.28.0" }
+rstest = { version = "0.29.0" }
 serde = { version = "1.0.218", features = ["derive"] }
 serde_html_form = { version = "0.4.0" }
 serde_json = { version = "1.0.139" }
