@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.16.3](https://github.com/vnghia/nghe/compare/v0.16.2...v0.16.3) (2026-11-27)
+
+
+### Bug Fixes
+
+* **backend/filesystem:** use stream for scan directory ([#1215](https://github.com/vnghia/nghe/issues/1215)) ([5560372](https://github.com/vnghia/nghe/commit/556037219dcfef5d89587d193db9e3603c8d666a))
+* **deps:** update rust crate aws-smithy-types-convert to 0.62.0 ([#1241](https://github.com/vnghia/nghe/issues/1241)) ([7a9d55e](https://github.com/vnghia/nghe/commit/7a9d55ed17b33d2a146a12f3afd77f959c84d869))
+
 ## [0.16.2](https://github.com/vnghia/nghe/compare/v0.16.1...v0.16.2) (2026-10-30)
 
 
