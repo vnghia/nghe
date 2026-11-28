@@ -3934,18 +3934,18 @@ dependencies = [
 
 [[package]]
 name = "rustfs-mimalloc"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc7914232a854336c62058c24a8362c553ac8e7adba2e2395ce9097db24d1510"
+checksum = "d4775cf1923dc0d597f0c87b8cf510a75ac9e0a535b7bbc4fd6421c73906c9b2"
 dependencies = [
  "rustfs-mimalloc-sys",
 ]
 
 [[package]]
 name = "rustfs-mimalloc-sys"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8073624242781448512682f1931624ee67108b6b7873b22fb29c1a1df689ac0c"
+checksum = "067cc28d28e312fb91f97f49bf2cf15fa92d7377533ff686735681c767c89030"
 dependencies = [
  "cc",
 ]
